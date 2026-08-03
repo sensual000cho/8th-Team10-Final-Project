@@ -5,6 +5,7 @@ Intermediate/
 Saved/
 
 *.sln
+*.slnx
 *.suo
 *.xcodeproj
 *.xcworkspace
@@ -21,7 +22,11 @@ Saved/
 
 # Visual Studio cache
 .vs/
+.vsconfig
 *.ipch
+
+# Unreal Editor user settings
+Config/DefaultEditorPerProjectUserSettings.ini
 
 # Local dev files
 [Dd]ev/
