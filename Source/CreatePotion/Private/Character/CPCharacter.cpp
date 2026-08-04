@@ -1,6 +1,8 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// CPCharacter.cpp
 
-#include "CreatePotionCharacter.h"
+
+#include "Character/CPCharacter.h"
+#include "Character/CPInteractionComponent.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -12,7 +14,8 @@
 #include "InputActionValue.h"
 #include "CreatePotion.h"
 
-ACreatePotionCharacter::ACreatePotionCharacter()
+
+ACPCharacter::ACPCharacter()
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -46,11 +49,11 @@ ACreatePotionCharacter::ACreatePotionCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
 
-	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
-	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
+	// InteractionComponent
+	InteractionComponent = CreateDefaultSubobject<UCPInteractionComponent>(TEXT("InteractionComponent"));
 }
 
-void ACreatePotionCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void ACPCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	// Set up action bindings
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
@@ -60,11 +63,14 @@ void ACreatePotionCharacter::SetupPlayerInputComponent(UInputComponent* PlayerIn
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 
 		// Moving
-		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ACreatePotionCharacter::Move);
-		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &ACreatePotionCharacter::Look);
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ACPCharacter::Move);
+		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &ACPCharacter::Look);
 
 		// Looking
-		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ACreatePotionCharacter::Look);
+		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ACPCharacter::Look);
+		
+		// Interacting
+		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ACPCharacter::OnInteractPressed);
 	}
 	else
 	{
@@ -72,7 +78,7 @@ void ACreatePotionCharacter::SetupPlayerInputComponent(UInputComponent* PlayerIn
 	}
 }
 
-void ACreatePotionCharacter::Move(const FInputActionValue& Value)
+void ACPCharacter::Move(const FInputActionValue& Value)
 {
 	// input is a Vector2D
 	FVector2D MovementVector = Value.Get<FVector2D>();
@@ -81,7 +87,7 @@ void ACreatePotionCharacter::Move(const FInputActionValue& Value)
 	DoMove(MovementVector.X, MovementVector.Y);
 }
 
-void ACreatePotionCharacter::Look(const FInputActionValue& Value)
+void ACPCharacter::Look(const FInputActionValue& Value)
 {
 	// input is a Vector2D
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
@@ -90,7 +96,7 @@ void ACreatePotionCharacter::Look(const FInputActionValue& Value)
 	DoLook(LookAxisVector.X, LookAxisVector.Y);
 }
 
-void ACreatePotionCharacter::DoMove(float Right, float Forward)
+void ACPCharacter::DoMove(float Right, float Forward)
 {
 	if (GetController() != nullptr)
 	{
@@ -110,7 +116,7 @@ void ACreatePotionCharacter::DoMove(float Right, float Forward)
 	}
 }
 
-void ACreatePotionCharacter::DoLook(float Yaw, float Pitch)
+void ACPCharacter::DoLook(float Yaw, float Pitch)
 {
 	if (GetController() != nullptr)
 	{
@@ -120,14 +126,22 @@ void ACreatePotionCharacter::DoLook(float Yaw, float Pitch)
 	}
 }
 
-void ACreatePotionCharacter::DoJumpStart()
+void ACPCharacter::DoJumpStart()
 {
 	// signal the character to jump
 	Jump();
 }
 
-void ACreatePotionCharacter::DoJumpEnd()
+void ACPCharacter::DoJumpEnd()
 {
 	// signal the character to stop jumping
 	StopJumping();
+}
+
+void ACPCharacter::OnInteractPressed()
+{
+	if (InteractionComponent)
+	{
+		InteractionComponent->TryInteract();
+	}
 }
