@@ -14,9 +14,6 @@ public class CreatePotion : ModuleRules
 			"Engine",
 			"InputCore",
 			"EnhancedInput",
-			"AIModule",
-			"StateTreeModule",
-			"GameplayStateTreeModule",
 			"UMG",
 			"Slate",
 			"GameplayTags",
@@ -26,19 +23,6 @@ public class CreatePotion : ModuleRules
 
 		PublicIncludePaths.AddRange(new string[] {
 			"CreatePotion",
-			"CreatePotion/Variant_Platforming",
-			"CreatePotion/Variant_Platforming/Animation",
-			"CreatePotion/Variant_Combat",
-			"CreatePotion/Variant_Combat/AI",
-			"CreatePotion/Variant_Combat/Animation",
-			"CreatePotion/Variant_Combat/Gameplay",
-			"CreatePotion/Variant_Combat/Interfaces",
-			"CreatePotion/Variant_Combat/UI",
-			"CreatePotion/Variant_SideScrolling",
-			"CreatePotion/Variant_SideScrolling/AI",
-			"CreatePotion/Variant_SideScrolling/Gameplay",
-			"CreatePotion/Variant_SideScrolling/Interfaces",
-			"CreatePotion/Variant_SideScrolling/UI"
 		});
 
 		// Uncomment if you are using Slate UI
