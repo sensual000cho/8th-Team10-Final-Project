@@ -13,5 +13,12 @@ UCLASS()
 class CREATEPOTION_API UCPBaseUserWidget : public UUserWidget
 {
 	GENERATED_BODY()
+protected:
+	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 	
+	// 바인딩, 언바인딩 함수
+	// 자식 클래스에서 override해서 사용
+	virtual void BindEvents();
+	virtual void UnbindEvents();
 };
