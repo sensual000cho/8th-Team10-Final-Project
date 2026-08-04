@@ -4,13 +4,15 @@
 
 #include "GameState/CPLabGameState.h"
 #include "PlayerState/CPLabPlayerState.h"
-#include "UI/CPLabHUD.h"
+//#include "UI/CPLabHUD.h"
 
 ACPLabGameMode::ACPLabGameMode()
 {
 	GameStateClass = ACPLabGameState::StaticClass();
 	PlayerStateClass = ACPLabPlayerState::StaticClass();
-	HUDClass = ACPLabHUD::StaticClass();
+	//UI 쪽 변경/확정 전까진 주석처리
+	//HUDClass = ACPLabHUD::StaticClass();
+	
 }
 
 ACPLabGameState* ACPLabGameMode::GetLabGameState() const
