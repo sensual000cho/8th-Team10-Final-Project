@@ -1,11 +1,11 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
-#include "CreatePotionCharacter.generated.h"
+#include "CPCharacter.generated.h"
 
 class USpringArmComponent;
 class UCameraComponent;
@@ -14,15 +14,11 @@ struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
-/**
- *  A simple player-controllable third person character
- *  Implements a controllable orbiting camera
- */
-UCLASS(abstract)
-class ACreatePotionCharacter : public ACharacter
+UCLASS()
+class CREATEPOTION_API ACPCharacter : public ACharacter
 {
 	GENERATED_BODY()
-
+	
 	/** Camera boom positioning the camera behind the character */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	USpringArmComponent* CameraBoom;
@@ -30,7 +26,7 @@ class ACreatePotionCharacter : public ACharacter
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
-	
+
 protected:
 
 	/** Jump Input Action */
@@ -52,7 +48,7 @@ protected:
 public:
 
 	/** Constructor */
-	ACreatePotionCharacter();	
+	ACPCharacter();	
 
 protected:
 
@@ -92,5 +88,6 @@ public:
 
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
-};
 
+
+};
