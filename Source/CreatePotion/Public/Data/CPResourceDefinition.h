@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "CPForageableItemData.h"
-#include "NiagaraSystem.h"
+//#include "NiagaraSystem.h"
 #include "Engine/DataAsset.h"
 #include "CPResourceDefinition.generated.h"
 
@@ -17,12 +17,12 @@ public:
 	TSoftObjectPtr<UStaticMesh> Mesh;
 	
 	// Idle VFX
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Presentation")
-	TSoftObjectPtr<UNiagaraSystem> IdleVFX;
+	//UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Presentation")
+	//TSoftObjectPtr<UNiagaraSystem> IdleVFX;
 	
 	// Harvest VFX
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Presentation")
-	TSoftObjectPtr<UNiagaraSystem> HarvestVFX;
+	//UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Presentation")
+	//TSoftObjectPtr<UNiagaraSystem> HarvestVFX;
 	
 	// 채집 시간
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Harvest")
