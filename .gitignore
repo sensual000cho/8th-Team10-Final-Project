@@ -38,3 +38,4 @@ Config/DefaultEditorPerProjectUserSettings.ini
 # JetBrains Rider Settings
 *.DotSettings
 *.DotSettings.user
+Plugins/Developer/RiderLink/
