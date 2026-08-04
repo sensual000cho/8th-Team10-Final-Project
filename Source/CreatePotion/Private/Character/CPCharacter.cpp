@@ -2,6 +2,7 @@
 
 
 #include "Character/CPCharacter.h"
+#include "Character/CPInteractionComponent.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -12,6 +13,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "CreatePotion.h"
+
 
 ACPCharacter::ACPCharacter()
 {
@@ -47,8 +49,8 @@ ACPCharacter::ACPCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
 
-	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
-	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
+	// InteractionComponent
+	InteractionComponent = CreateDefaultSubobject<UCPInteractionComponent>(TEXT("InteractionComponent"));
 }
 
 void ACPCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -66,6 +68,9 @@ void ACPCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ACPCharacter::Look);
+		
+		// Interacting
+		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ACPCharacter::OnInteractPressed);
 	}
 	else
 	{
@@ -133,4 +138,10 @@ void ACPCharacter::DoJumpEnd()
 	StopJumping();
 }
 
-
+void ACPCharacter::OnInteractPressed()
+{
+	if (InteractionComponent)
+	{
+		InteractionComponent->TryInteract();
+	}
+}
