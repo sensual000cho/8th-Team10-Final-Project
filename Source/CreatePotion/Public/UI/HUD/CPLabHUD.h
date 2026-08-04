@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/CPHUDBase.h"
+#include "UI/HUD/CPHUDBase.h"
 #include "CPLabHUD.generated.h"
 
 UCLASS()

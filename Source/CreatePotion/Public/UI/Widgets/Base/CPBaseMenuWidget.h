@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/Base/CPBaseUserWidget.h"
+#include "UI/Widgets/Base/CPBaseUserWidget.h"
 #include "CPBaseMenuWidget.generated.h"
 
 /**
