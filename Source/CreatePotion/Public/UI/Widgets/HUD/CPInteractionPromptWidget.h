@@ -24,7 +24,7 @@ public:
 	// bHasTarget: 지금 조준 중인 대상이 있는지
 	// PropmtText: "F: 채집하기" 같은 안내 문구
 	void UpdateInteractionPrompt(bool bHasTarget, const FText& PromptText);
-	
+
 protected:
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* TextBlock_InteractionPrompt;
