@@ -7,6 +7,7 @@
 #include "CPInteractionComponent.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPromptChanged, FText, Prompt);
+class UCameraComponent;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class CREATEPOTION_API UCPInteractionComponent : public UActorComponent
@@ -27,10 +28,12 @@ public:
 	
 private:
 	void PerformTrace(); // 타이머로 주기 실행
-    
+	void ClearCurrentTarget();
+	
 	FTimerHandle TraceTimerHandle; // 타이머 핸들
 	
 	UPROPERTY()
 	TWeakObjectPtr<AActor> CurrentTarget; // 감지된 대상
-	
+	UPROPERTY()
+	TObjectPtr<UCameraComponent> Camera;
 };
