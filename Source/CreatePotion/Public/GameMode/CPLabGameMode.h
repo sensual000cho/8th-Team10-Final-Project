@@ -35,6 +35,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Lab|Debug")
 	void DebugAdvanceSessionPhase();
 	
+	
 private:
 	// 엔진이 생성한 GameState를 Lab 타입으로 가져오는, 캐스팅 과정 절약용 함수
 	ACPLabGameState* GetLabGameState() const;
@@ -43,4 +44,5 @@ private:
 	//테스트용 더미 리퀘스트
 	UPROPERTY(EditDefaultsOnly, Category = "Lab|Request")
 	FCPLabRequest DefaultTestRequest;
+	
 };

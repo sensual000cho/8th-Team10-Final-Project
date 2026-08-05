@@ -3,7 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "CPLabTypes.generated.h"
+
+
+class UCPForageableItemData;
+
 
 UENUM(BlueprintType)
 enum class ECPLabSessionPhase : uint8
@@ -37,5 +42,29 @@ struct FCPLabRequest
     {
         return !RequestId.IsNone() &&
             !DisplayText.IsEmpty();
+    }
+};
+
+USTRUCT(BlueprintType)
+struct FCPLabIngredientInstance
+{
+    GENERATED_BODY()
+
+    // 이 작업 재료가 어떤 원본 재료에서 만들어졌는지
+    UPROPERTY(BlueprintReadOnly, Category = "Lab|Ingredient")
+    TObjectPtr<UCPForageableItemData> SourceItemData = nullptr;
+
+    // 가공에 따라 변경되는 현재 효과값
+    UPROPERTY(BlueprintReadOnly, Category = "Lab|Ingredient")
+    TMap<FGameplayTag, int32> CurrentEffects;
+
+    bool IsValid() const
+    {
+        return SourceItemData != nullptr;
+    }
+
+    int32 GetEffectValue(const FGameplayTag& EffectTag) const
+    {
+        return CurrentEffects.FindRef(EffectTag);
     }
 };
