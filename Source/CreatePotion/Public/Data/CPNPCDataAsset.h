@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "NPC/CPNPCTypes.h"
 #include "CPNPCDataAsset.generated.h"
 
 class USkeletalMesh;
@@ -22,5 +23,8 @@ public:
 	FTransform SpawnTransform;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Capsule")
-	float CapsuleRadiusRatio = 0.3f;	
+	float CapsuleRadiusRatio = 0.3f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
+	TMap<ECPNPCSituation, FCPNPCSituationData> SituationData;
 };

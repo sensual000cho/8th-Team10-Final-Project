@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "GameCore/Interface/CPinteractable.h"
 #include "CPBaseNPC.generated.h"
 
 class UCPNPCDataAsset;
@@ -24,6 +25,10 @@ protected:
 
 	UFUNCTION(BlueprintCallable, Category = "NPC")
 	void FitCapsuleToMesh(USkeletalMesh* NPCMesh);
+
+	void OnInteract_Implementation(AActor* Interactor);
+	FText GetInteractionPrompt_Implementation();
+	bool CanInteract_Implementation(AActor* Interactor);
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC")

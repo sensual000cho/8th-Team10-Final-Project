@@ -1,5 +1,5 @@
 #include "NPC/CPBaseNPC.h"
-#include "Data/CPNPCDataAsset.h"
+#include "NPC/CPNPCDataAsset.h"
 #include "Components/CapsuleComponent.h"
 
 ACPBaseNPC::ACPBaseNPC()
@@ -42,8 +42,6 @@ void ACPBaseNPC::InitializeFromDataAsset()
     {
         Tags.AddUnique(NPCData->NPCName);
     }
-
-    SetActorTransform(NPCData->SpawnTransform);
 }
 
 void ACPBaseNPC::FitCapsuleToMesh(USkeletalMesh* InMesh)
@@ -59,4 +57,25 @@ void ACPBaseNPC::FitCapsuleToMesh(USkeletalMesh* InMesh)
 
     GetCapsuleComponent()->SetCapsuleSize(MeshRadius, MeshHalfHeight);
     GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -MeshHalfHeight));
+}
+
+void ACPBaseNPC::OnInteract_Implementation(AActor* Interactor)
+{
+    UE_LOG(LogTemp, Warning, TEXT("[%s] OnInteract called by %s"),
+        *GetName(),
+        Interactor ? *Interactor->GetName() : TEXT("Unknown"));
+}
+
+FText ACPBaseNPC::GetInteractionPrompt_Implementation()
+{
+    UE_LOG(LogTemp, Log, TEXT("[%s] GetInteractionPrompt called"), *GetName());
+    return FText::FromString(TEXT("대화하기"));
+}
+
+bool ACPBaseNPC::CanInteract_Implementation(AActor* Interactor)
+{
+    UE_LOG(LogTemp, Log, TEXT("[%s] CanInteract called by %s"),
+        *GetName(),
+        Interactor ? *Interactor->GetName() : TEXT("Unknown"));
+    return true;
 }
