@@ -1,28 +1,28 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "Lab/Actor/CPLabBell.h"
 
 #include "Components/StaticMeshComponent.h"
 #include "Engine/World.h"
 #include "GameMode/CPLabGameMode.h"
 #include "GameState/CPLabGameState.h"
-#include "Lab/CPLabTypes.h"
-
+#include "Lab/Component/CPLabPotionSessionComponent.h"
 
 ACPLabBell::ACPLabBell()
 {
 	PrimaryActorTick.bCanEverTick = false;
-	BellMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BellMesh"));
+
+	BellMesh =
+		CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BellMesh"));
 	SetRootComponent(BellMesh);
+
+	// 상호작용 Trace에 필요한 Visibility와 캐릭터 충돌만 사용
 	BellMesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	BellMesh->SetCollisionObjectType(ECC_WorldDynamic);
-	//일단 Ignore, 필요한 것만 반응
 	BellMesh->SetCollisionResponseToAllChannels(ECR_Ignore);
-	BellMesh->SetCollisionResponseToChannel(ECC_Visibility,ECR_Block);
-	BellMesh->SetCollisionResponseToChannel(ECC_Pawn,ECR_Block);
+	BellMesh->SetCollisionResponseToChannel(
+		ECC_Visibility,
+		ECR_Block);
+	BellMesh->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
 }
-
 
 void ACPLabBell::OnInteract_Implementation(AActor* Interactor)
 {
@@ -31,7 +31,7 @@ void ACPLabBell::OnInteract_Implementation(AActor* Interactor)
 
 FText ACPLabBell::GetInteractionPrompt_Implementation()
 {
-	return FText::FromString(TEXT("개점하기"));
+	return FText::FromString(TEXT("벨 울리기"));
 }
 
 bool ACPLabBell::CanInteract_Implementation(AActor* Interactor)
@@ -39,10 +39,12 @@ bool ACPLabBell::CanInteract_Implementation(AActor* Interactor)
 	const UWorld* World = GetWorld();
 	const ACPLabGameState* LabState =
 		World ? World->GetGameState<ACPLabGameState>() : nullptr;
+	const UCPLabPotionSessionComponent* Session =
+		LabState ? LabState->GetPotionSession() : nullptr;
 
-	return LabState &&
-		LabState->GetCurrentPhase() ==
-			ECPLabSessionPhase::WaitingForBell;
+	return Session &&
+		Session->GetSessionState().Phase ==
+			ECPLabPotionSessionPhase::WaitingForBell;
 }
 
 bool ACPLabBell::TryRingBell()
@@ -55,5 +57,3 @@ bool ACPLabBell::TryRingBell()
 
 	return LabMode && LabMode->TryStartLabSession();
 }
-
-

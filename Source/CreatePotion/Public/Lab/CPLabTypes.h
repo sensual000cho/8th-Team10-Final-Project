@@ -1,70 +1,60 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "CPLabTypes.generated.h"
 
-
 class UCPForageableItemData;
 
-
-UENUM(BlueprintType)
-enum class ECPLabSessionPhase : uint8
-{
-    WaitingForBell,
-    Request,
-    Preparing,
-    Processing,
-    Result,
-};
-
+// 손님이 요청한 포션 한 건의 기본 정보
 USTRUCT(BlueprintType)
-struct FCPLabRequest
+struct FCPLabPotionRequest
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 
-    UPROPERTY(
-        EditAnywhere,
-        BlueprintReadOnly,
-        Category = "Lab|Request")
-    //ID를 이용해 리퀘스트 불러오는 방식으로
-    FName RequestId = NAME_None;
+	// 세션 안에서 리퀘스트를 구분하기 위한 ID
+	UPROPERTY(
+		EditAnywhere,
+		BlueprintReadOnly,
+		Category = "Lab|Request")
+	FName RequestId = NAME_None;
 
-    UPROPERTY(
-        EditAnywhere,
-        BlueprintReadOnly,
-        Category = "Lab|Request")
-    FText DisplayText;
+	// 플레이어에게 보여 줄 리퀘스트 내용
+	UPROPERTY(
+		EditAnywhere,
+		BlueprintReadOnly,
+		Category = "Lab|Request")
+	FText DisplayText;
 
-    bool IsValid() const
-    {
-        return !RequestId.IsNone() &&
-            !DisplayText.IsEmpty();
-    }
+	// 리퀘스트에 필요한 ID와 표시 문장이 모두 들어 있는지 확인
+	bool IsValid() const
+	{
+		return !RequestId.IsNone() && !DisplayText.IsEmpty();
+	}
 };
 
+// 원본 재료 정보와 가공 중 변하는 효과값을 함께 보관하는 작업용 데이터
 USTRUCT(BlueprintType)
 struct FCPLabIngredientInstance
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 
-    // 이 작업 재료가 어떤 원본 재료에서 만들어졌는지
-    UPROPERTY(BlueprintReadOnly, Category = "Lab|Ingredient")
-    TObjectPtr<UCPForageableItemData> SourceItemData = nullptr;
+	// 이 작업 재료가 어떤 원본 재료에서 만들어졌는지
+	UPROPERTY(BlueprintReadOnly, Category = "Lab|Ingredient")
+	TObjectPtr<UCPForageableItemData> SourceItemData = nullptr;
 
-    // 가공에 따라 변경되는 현재 효과값
-    UPROPERTY(BlueprintReadOnly, Category = "Lab|Ingredient")
-    TMap<FGameplayTag, int32> CurrentEffects;
+	// 원본에서 복사한 뒤 가공에 따라 변경되는 현재 효과값
+	UPROPERTY(BlueprintReadOnly, Category = "Lab|Ingredient")
+	TMap<FGameplayTag, int32> CurrentEffects;
 
-    bool IsValid() const
-    {
-        return SourceItemData != nullptr;
-    }
+	// 사용할 수 있는 원본 재료가 연결되어 있는지 확인
+	bool IsValid() const
+	{
+		return SourceItemData != nullptr;
+	}
 
-    int32 GetEffectValue(const FGameplayTag& EffectTag) const
-    {
-        return CurrentEffects.FindRef(EffectTag);
-    }
+	int32 GetEffectValue(const FGameplayTag& EffectTag) const
+	{
+		return CurrentEffects.FindRef(EffectTag);
+	}
 };

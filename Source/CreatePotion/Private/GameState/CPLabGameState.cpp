@@ -1,33 +1,17 @@
-// CPLabGameState.cpp
-
 #include "GameState/CPLabGameState.h"
 
-bool ACPLabGameState::ApplySessionPhase(ECPLabSessionPhase NewPhase)
+#include "Lab/Component/CPLabPotionSessionComponent.h"
+
+ACPLabGameState::ACPLabGameState()
 {
-	if (CurrentPhase == NewPhase)
-	{
-		return false;
-	}
-
-	CurrentPhase = NewPhase;
-	//갱 신 후 CurrentPhase 뭔지 Broadcast 하기
-	OnSessionPhaseChanged.Broadcast(CurrentPhase);
-
-	UE_LOG(LogTemp, Log, TEXT("[Lab] Session Phase -> %s"), *UEnum::GetValueAsString(CurrentPhase));
-	return true;
+	// 모든 Lab Actor가 같은 세션 상태를 사용하도록 GameState에 생성
+	PotionSession =
+		CreateDefaultSubobject<UCPLabPotionSessionComponent>(
+			TEXT("PotionSession"));
 }
 
-bool ACPLabGameState::ApplyRequest(const FCPLabRequest& NewRequest)
+UCPLabPotionSessionComponent*
+ACPLabGameState::GetPotionSession() const
 {
-	if (!NewRequest.IsValid())
-	{
-		return false;
-	}
-	CurrentRequest = NewRequest;
-	return true;
-}
-
-void ACPLabGameState::ClearRequest()
-{
-	CurrentRequest = FCPLabRequest{};
+	return PotionSession;
 }

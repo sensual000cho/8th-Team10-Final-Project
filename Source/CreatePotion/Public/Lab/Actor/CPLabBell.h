@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -9,6 +7,7 @@
 
 class UStaticMeshComponent;
 
+// 플레이어가 공방 포션 세션을 시작할 때 사용하는 벨
 UCLASS()
 class CREATEPOTION_API ACPLabBell : public AActor, public ICPInteractable
 {
@@ -21,6 +20,7 @@ public:
 	virtual void OnInteract_Implementation(AActor* Interactor) override;
 	//FTEXT로 상호작용 UI 프롬프트 - 채집하기, 벨 울리기 등등...
 	virtual FText GetInteractionPrompt_Implementation() override;
+	//아직 포션 세션이 시작되지 않았을 때만 상호작용 허용
 	virtual bool CanInteract_Implementation(AActor* Interactor) override;
 	
 	//lab 세션 시작을 GameMode에 요청
