@@ -3,6 +3,7 @@
 
 #include "Character/CPInteractionComponent.h"
 #include "GameCore/Interface/CPInteractable.h"
+#include "GameCore/Interface/CPTimedInteractable.h"
 #include "Camera/CameraComponent.h"
 #include "Character/CPCharacter.h"
 #include "HAL/IConsoleManager.h"
@@ -31,6 +32,11 @@ void UCPInteractionComponent::BeginPlay()
 
 	Camera = Character->GetFollowCamera();
 	
+	if (!Camera)
+	{
+		return;
+	}
+	
 	// Trace하는 타이머 시작
 	GetWorld()->GetTimerManager().SetTimer(
 		TraceTimerHandle,
@@ -43,7 +49,17 @@ void UCPInteractionComponent::BeginPlay()
 
 void UCPInteractionComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	GetWorld()->GetTimerManager().ClearTimer(TraceTimerHandle);
+	if (GetWorld())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(
+			TraceTimerHandle
+		);
+
+		GetWorld()->GetTimerManager().ClearTimer(
+			InteractionTimerHandle
+		);
+	}
+	
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -181,6 +197,12 @@ void UCPInteractionComponent::PerformTrace()
 
 	if (FoundActor && FoundActor->Implements<UCPInteractable>())
 	{
+		// 같은 대상을 계속 보고 있다면 매번 호출 X
+		if (CurrentTarget.Get() == FoundActor)
+		{
+			return;
+		}
+		
 		CurrentTarget = FoundActor;
 		const FText Prompt = ICPInteractable::Execute_GetInteractionPrompt(FoundActor);
 		OnPromptChanged.Broadcast(Prompt);
@@ -193,32 +215,127 @@ void UCPInteractionComponent::PerformTrace()
 
 void UCPInteractionComponent::ClearCurrentTarget()
 {
-	CurrentTarget = nullptr;
+	if (!CurrentTarget.IsValid())
+	{
+		return;
+	}
+
+	CurrentTarget.Reset();
 	OnPromptChanged.Broadcast(FText::GetEmpty());
 }
 
 void UCPInteractionComponent::TryInteract()
 {
+	// 시간형 상호작용 실행중엔 상호작용 Try 하지 않음
+	if (InteractingTarget.IsValid())
+	{
+		return;
+	}
+	
 	if (!CurrentTarget.IsValid())
 	{
 		return;
 	}
 
 	AActor* Target = CurrentTarget.Get();
-	if (!Target)
+	AActor* Interactor = GetOwner();
+	
+	if (!Target || !Target->Implements<UCPInteractable>())
 	{
 		return;
 	}
 	
-	// 상호작용 가능하다면
-	if (ICPInteractable::Execute_CanInteract(Target, GetOwner()))
+	if (!ICPInteractable::Execute_CanInteract(Target, Interactor))
 	{
-		// 상호작용 실행
-		ICPInteractable::Execute_OnInteract(Target, GetOwner());
+		return;
 	}
-	else
+	
+	if (Target->Implements<UCPTimedInteractable>())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Can't interact with target actor"));
+		const float Duration = ICPTimedInteractable::Execute_GetInteractionDuration(Target, Interactor);
+
+		if (Duration > 0.f)
+		{
+			StartTimedInteraction(Target, Duration);
+			return;
+		}
+	}
+
+	// 시간형 인터페이스가 없으면 일반 상호작용 실행
+	ICPInteractable::Execute_OnInteract(Target, Interactor);
+}
+
+void UCPInteractionComponent::StartTimedInteraction(AActor* Target, float Duration)
+{
+	if (!Target || Duration <= 0.f || InteractingTarget.IsValid())
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	InteractingTarget = Target;
+	InteractionDuration = Duration;
+	InteractionElapsedTime = 0.f;
+
+	ICPTimedInteractable::Execute_OnInteractionStarted(Target, GetOwner());
+
+	World->GetTimerManager().SetTimer(
+		InteractionTimerHandle,
+		this,
+		&UCPInteractionComponent::UpdateTimedInteraction,
+		InteractionUpdateInterval,
+		true
+	);
+}
+
+void UCPInteractionComponent::UpdateTimedInteraction()
+{
+	if (!InteractingTarget.IsValid())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(InteractionTimerHandle);
+		return;
+	}
+
+	InteractionElapsedTime += InteractionUpdateInterval;
+
+	if (InteractionElapsedTime >= InteractionDuration)
+	{
+		CompleteTimedInteraction();
 	}
 }
 
+void UCPInteractionComponent::CompleteTimedInteraction()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	World->GetTimerManager().ClearTimer(InteractionTimerHandle);
+
+	AActor* Target = InteractingTarget.Get();
+	AActor* Interactor = GetOwner();
+
+	// 진행상태 초기화
+	InteractingTarget.Reset();
+
+	InteractionDuration = 0.f;
+	InteractionElapsedTime = 0.f;
+
+	if (!Target || !Target->Implements<UCPInteractable>())
+	{
+		return;
+	}
+
+	// 시간이 끝나면 기존 OnInteract 호출
+	ICPInteractable::Execute_OnInteract(
+		Target,
+		Interactor
+	);
+}
