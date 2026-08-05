@@ -12,7 +12,9 @@ ACPLabGameMode::ACPLabGameMode()
 	PlayerStateClass = ACPLabPlayerState::StaticClass();
 	//UI 쪽 변경/확정 전까진 주석처리
 	//HUDClass = ACPLabHUD::StaticClass();
-	
+	DefaultTestRequest.RequestId = FName(TEXT("TestSleepWarmCalm"));
+	DefaultTestRequest.DisplayText = FText::FromString(
+		TEXT("잠이 잘 오고, 몸이 따뜻해지며, 마음이 편안해지는 물약을 만들어 주세요."));
 }
 
 ACPLabGameState* ACPLabGameMode::GetLabGameState() const
@@ -37,19 +39,50 @@ bool ACPLabGameMode::SetSessionPhase(ECPLabSessionPhase NewPhase)
 
 void ACPLabGameMode::ResetLabSession()
 {
+	if (ACPLabGameState* LabState = GetLabGameState())
+	{
+		LabState->ClearRequest();
+	}
+
 	SetSessionPhase(ECPLabSessionPhase::WaitingForBell);
 }
 
 bool ACPLabGameMode::TryStartLabSession()
 {
-	ACPLabGameState* LabState = GetLabGameState();
+	return TryStartLabSessionWithRequest(DefaultTestRequest);
+}
 
-	if (!LabState || LabState->GetCurrentPhase() != ECPLabSessionPhase::WaitingForBell)
+bool ACPLabGameMode::TryStartLabSessionWithRequest(const FCPLabRequest& Request)
+{
+	ACPLabGameState* LabState = GetLabGameState();
+	if (!LabState ||
+		LabState->GetCurrentPhase() != ECPLabSessionPhase::WaitingForBell ||
+		!LabState->ApplyRequest(Request))
 	{
 		return false;
 	}
 
-	return SetSessionPhase(ECPLabSessionPhase::Request);
+	if (SetSessionPhase(ECPLabSessionPhase::Request))
+	{
+		return true;
+	}
+
+	LabState->ClearRequest();
+	return false;
+
+}
+
+bool ACPLabGameMode::TryAcceptLabRequest()
+{
+	ACPLabGameState* LabState = GetLabGameState();
+	if (!LabState ||
+		LabState->GetCurrentPhase() != ECPLabSessionPhase::Request ||
+		!LabState->HasActiveRequest())
+	{
+		return false;
+	}
+
+	return SetSessionPhase(ECPLabSessionPhase::Preparing);
 }
 
 
@@ -64,11 +97,11 @@ void ACPLabGameMode::DebugAdvanceSessionPhase()
 	switch (LabState->GetCurrentPhase())
 	{
 	case ECPLabSessionPhase::WaitingForBell:
-		SetSessionPhase(ECPLabSessionPhase::Request);
+		TryStartLabSession();
 		break;
 
 	case ECPLabSessionPhase::Request:
-		SetSessionPhase(ECPLabSessionPhase::Preparing);
+		TryAcceptLabRequest();
 		break;
 
 	case ECPLabSessionPhase::Preparing:
@@ -80,7 +113,7 @@ void ACPLabGameMode::DebugAdvanceSessionPhase()
 		break;
 
 	case ECPLabSessionPhase::Result:
-		SetSessionPhase(ECPLabSessionPhase::WaitingForBell);
+		ResetLabSession();
 		break;
 
 	default:

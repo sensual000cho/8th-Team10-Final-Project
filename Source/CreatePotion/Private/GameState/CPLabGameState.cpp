@@ -16,3 +16,18 @@ bool ACPLabGameState::ApplySessionPhase(ECPLabSessionPhase NewPhase)
 	UE_LOG(LogTemp, Log, TEXT("[Lab] Session Phase -> %s"), *UEnum::GetValueAsString(CurrentPhase));
 	return true;
 }
+
+bool ACPLabGameState::ApplyRequest(const FCPLabRequest& NewRequest)
+{
+	if (!NewRequest.IsValid())
+	{
+		return false;
+	}
+	CurrentRequest = NewRequest;
+	return true;
+}
+
+void ACPLabGameState::ClearRequest()
+{
+	CurrentRequest = FCPLabRequest{};
+}

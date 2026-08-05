@@ -14,3 +14,28 @@ enum class ECPLabSessionPhase : uint8
     Processing,
     Result,
 };
+
+USTRUCT(BlueprintType)
+struct FCPLabRequest
+{
+    GENERATED_BODY()
+
+    UPROPERTY(
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Lab|Request")
+    //ID를 이용해 리퀘스트 불러오는 방식으로
+    FName RequestId = NAME_None;
+
+    UPROPERTY(
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Lab|Request")
+    FText DisplayText;
+
+    bool IsValid() const
+    {
+        return !RequestId.IsNone() &&
+            !DisplayText.IsEmpty();
+    }
+};

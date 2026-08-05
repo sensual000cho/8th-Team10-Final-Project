@@ -26,7 +26,26 @@ public:
 	
 	// 프로젝트 규칙상 LabGameMode에서만 써야 하는 함수. 상태 변경된 경우 true 반환.
 	bool ApplySessionPhase(ECPLabSessionPhase NewPhase);
+	
+	UFUNCTION(BlueprintPure, Category = "Lab|Request")
+	FCPLabRequest GetCurrentRequest() const
+	{
+		return CurrentRequest;
+	}
+
+	UFUNCTION(BlueprintPure, Category = "Lab|Request")
+	bool HasActiveRequest() const
+	{
+		return CurrentRequest.IsValid();
+	}
+
+	// 프로젝트 규칙상 CPLabGameMode에서만 호출
+	bool ApplyRequest(const FCPLabRequest& NewRequest);
+
+	// 프로젝트 규칙상 CPLabGameMode에서만 호출
+	void ClearRequest();
 
 private:
-	UPROPERTY()	ECPLabSessionPhase CurrentPhase = ECPLabSessionPhase::WaitingForBell;	
+	UPROPERTY()	ECPLabSessionPhase CurrentPhase = ECPLabSessionPhase::WaitingForBell;
+	UPROPERTY()	FCPLabRequest CurrentRequest;
 };
