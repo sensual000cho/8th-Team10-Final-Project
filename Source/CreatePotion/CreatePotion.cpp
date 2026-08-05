@@ -6,3 +6,4 @@
 IMPLEMENT_PRIMARY_GAME_MODULE( FDefaultGameModuleImpl, CreatePotion, "CreatePotion" );
 
 DEFINE_LOG_CATEGORY(LogCreatePotion)
+DEFINE_LOG_CATEGORY(LogInventory)
