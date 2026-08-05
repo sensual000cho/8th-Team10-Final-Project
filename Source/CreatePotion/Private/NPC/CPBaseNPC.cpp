@@ -1,5 +1,5 @@
 #include "NPC/CPBaseNPC.h"
-#include "NPC/CPNPCDataAsset.h"
+#include "Data/CPNPCDataAsset.h"
 #include "Components/CapsuleComponent.h"
 
 ACPBaseNPC::ACPBaseNPC()
