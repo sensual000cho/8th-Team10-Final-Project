@@ -1,6 +1,6 @@
 #include "NPC/CPNPCSpawner.h"
 #include "NPC/CPBaseNPC.h"
-#include "NPC/CPNPCDataAsset.h"
+#include "Data/CPNPCDataAsset.h"
 #include "Kismet/GameplayStatics.h"
 
 ACPNPCSpawner::ACPNPCSpawner()

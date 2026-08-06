@@ -1,11 +1,92 @@
 #include "NPC/CPBaseNPC.h"
-#include "NPC/CPNPCDataAsset.h"
+#include "Data/CPNPCDataAsset.h"
 #include "Components/CapsuleComponent.h"
+#include "Animation/AnimSequence.h"
+#include "Kismet/GameplayStatics.h"
+#include "Quest/QuestManager.h"
 
 ACPBaseNPC::ACPBaseNPC()
 {
 	PrimaryActorTick.bCanEverTick = false;
+    if (GetCapsuleComponent())
+    {
+        GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+        GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+        GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Block);
+    }
 
+}
+
+void ACPBaseNPC::OnInteract_Implementation(AActor* Interactor)
+{
+}
+
+FText ACPBaseNPC::GetInteractionPrompt_Implementation()
+{
+    UE_LOG(LogTemp, Log, TEXT("[대화하기] GetInteractionPrompt called"));
+
+    //확인용, 추후 삭제 예정
+    if (NPCData && GetGameInstance())
+    {
+        if (UQuestManager* QuestManager = GetGameInstance()->GetSubsystem<UQuestManager>())
+        {
+            for (const FName& QuestID : NPCData->TownQuestIDs)
+            {
+                if (QuestID.IsNone()) { continue; }
+
+                EQuestState CurrentState = QuestManager->GetQuestState(QuestID);
+                if (CurrentState == EQuestState::NotAccepted)
+                {
+                    FText FullScript = QuestManager->GetQuestFullText(QuestID);
+                    UE_LOG(LogTemp, Warning, TEXT("========================================"));
+                    UE_LOG(LogTemp, Warning, TEXT("[퀘스트 대사 확인] QuestID: %s"), *QuestID.ToString());
+                    UE_LOG(LogTemp, Warning, TEXT("[대사 내용]: %s"), *FullScript.ToString());
+                 
+                }
+            }
+            for (const FName& QuestID : NPCData->LabQuestIDs)
+            {
+                if (QuestID.IsNone()) { continue; }
+
+                //if (QuestManager->GetQuestState(QuestID) == EQuestState::Accepted)
+                //{
+                    FText HintScript = QuestManager->GetSessionHintText(QuestID);
+                    UE_LOG(LogTemp, Warning, TEXT("[리퀘스트 대사 확인] QuestID: %s"), *QuestID.ToString());
+                    UE_LOG(LogTemp, Warning, TEXT("[대사 내용]: %s"), *HintScript.ToString());
+                    UE_LOG(LogTemp, Warning, TEXT("========================================"));
+                //}
+            }
+        }
+    }
+    return FText::FromString(TEXT("대화하기"));
+}
+
+bool ACPBaseNPC::CanInteract_Implementation(AActor* Interactor)
+{
+    UE_LOG(LogTemp, Log, TEXT("[%s] CanInteract called by %s"),
+        *GetName(),
+        Interactor ? *Interactor->GetName() : TEXT("Unknown"));
+    return true;
+}
+
+bool ACPBaseNPC::GetDialogueEntryForCurrentState(FCPNPCDialogueEntry& OutEntry) const
+{
+    if (!NPCData) { return false; }
+
+    if (const FCPNPCSituationData* SituationData = NPCData->SituationData.Find(CurrentSituation))
+    {
+        if (const FCPNPCDialogueEntry* Entry = SituationData->EmotionVariants.Find(CurrentEmotion))
+        {
+            OutEntry = *Entry;
+            return true;
+        }
+        else if (const FCPNPCDialogueEntry* DefaultEntry = SituationData->EmotionVariants.Find(ECPNPCEmotion::Neutral))
+        {
+            OutEntry = *DefaultEntry;
+            return true;
+        }
+    }
+    return false;
 }
 
 void ACPBaseNPC::OnConstruction(const FTransform& Transform)
@@ -23,20 +104,21 @@ void ACPBaseNPC::BeginPlay()
 
 void ACPBaseNPC::InitializeFromDataAsset()
 {
-    if (!NPCData)
-    {
-        return;
-    }
+    if (!NPCData) { return; }
     
     USkeletalMesh* LoadedMesh = NPCData->NPCMesh.LoadSynchronous();
-    if (!LoadedMesh)
+    if (LoadedMesh)
     {
-        return;
+        GetMesh()->SetSkeletalMesh(LoadedMesh);
+        FitCapsuleToMesh(LoadedMesh);
     }
 
-    GetMesh()->SetSkeletalMesh(LoadedMesh);
-
-    FitCapsuleToMesh(LoadedMesh);
+    UAnimSequence* LoadedAnim = NPCData->IdleAnimation.LoadSynchronous();
+    if (LoadedAnim)
+    {
+        GetMesh()->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+        GetMesh()->PlayAnimation(LoadedAnim, true); // 반복 재생
+    }
 
     if (NPCData->NPCName != NAME_None)
     {
@@ -59,23 +141,4 @@ void ACPBaseNPC::FitCapsuleToMesh(USkeletalMesh* InMesh)
     GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -MeshHalfHeight));
 }
 
-void ACPBaseNPC::OnInteract_Implementation(AActor* Interactor)
-{
-    UE_LOG(LogTemp, Warning, TEXT("[%s] OnInteract called by %s"),
-        *GetName(),
-        Interactor ? *Interactor->GetName() : TEXT("Unknown"));
-}
 
-FText ACPBaseNPC::GetInteractionPrompt_Implementation()
-{
-    UE_LOG(LogTemp, Log, TEXT("[%s] GetInteractionPrompt called"), *GetName());
-    return FText::FromString(TEXT("대화하기"));
-}
-
-bool ACPBaseNPC::CanInteract_Implementation(AActor* Interactor)
-{
-    UE_LOG(LogTemp, Log, TEXT("[%s] CanInteract called by %s"),
-        *GetName(),
-        Interactor ? *Interactor->GetName() : TEXT("Unknown"));
-    return true;
-}
