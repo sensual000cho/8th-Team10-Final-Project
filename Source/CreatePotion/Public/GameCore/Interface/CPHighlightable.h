@@ -19,7 +19,7 @@ class UCPHighlightable : public UInterface
 class CREATEPOTION_API ICPHighlightable
 {
 	GENERATED_BODY()
-
+	
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
 	virtual void SetHighLight(bool bhighLighted) = 0;
