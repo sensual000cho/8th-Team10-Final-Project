@@ -13,5 +13,4 @@ UCLASS()
 class CREATEPOTION_API UCPBaseMenuWidget : public UCPBaseUserWidget
 {
 	GENERATED_BODY()
-	
 };
