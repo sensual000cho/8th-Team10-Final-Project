@@ -84,12 +84,11 @@ void ACPResourceSpawner::SpawnSlot(int32 SlotIndex)
 	
 	FCPResourceNodeState& State = StateSubsystem->GetOrCreateState(Key);
 	
-	const FVector SpawnLocation = CalculateSpawnLocation(SlotIndex, State.Generation);
+	const FTransform SpawnTransform = CalculateSpawnTransform(SlotIndex, State.Generation);
 	
 	ACPResourceNodeActor* ResourceActor = GetWorld()->SpawnActor<ACPResourceNodeActor>(
 		ACPResourceNodeActor::StaticClass(),
-		SpawnLocation,
-		FRotator::ZeroRotator
+		SpawnTransform
 	);
 	if (!ResourceActor) return;
 	
@@ -107,15 +106,15 @@ FCPResourceNodeKey ACPResourceSpawner::MakeNodeKey(int32 SlotIndex) const
 	return Key;
 }
 
-FVector ACPResourceSpawner::CalculateSpawnLocation(int32 SlotIndex, int32 Generation) const
+FTransform ACPResourceSpawner::CalculateSpawnTransform(int32 SlotIndex, int32 Generation) const
 {
 	if (!SpawnArea)
 	{
-		return GetActorLocation();
+		return GetActorTransform();
 	}
 	
-	const int32 Seed = MakeSpawnSeed(SlotIndex, Generation);
-	FRandomStream RandomStream(Seed);
+	FRandomStream RandomStream(MakeSpawnSeed(SlotIndex, Generation));
+	
 	const FVector BoxExtent = SpawnArea->GetUnscaledBoxExtent();
 	const FVector LocalLocation(
 		RandomStream.FRandRange(-BoxExtent.X, BoxExtent.X),
@@ -123,7 +122,46 @@ FVector ACPResourceSpawner::CalculateSpawnLocation(int32 SlotIndex, int32 Genera
 		0.f
 	);
 	
-	return SpawnArea->GetComponentTransform().TransformPosition(LocalLocation);
+	const FVector BaseLocation = SpawnArea->GetComponentTransform().TransformPosition(LocalLocation);
+	const FVector Start = BaseLocation + FVector(0.f, 0.f, BoxExtent.Z);
+	const FVector End = BaseLocation - FVector(0.f, 0.f, BoxExtent.Z);
+	
+	FHitResult Hit;
+	
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(this);
+	
+	const bool bHit = GetWorld()->LineTraceSingleByChannel(
+		Hit,
+		Start,
+		End,
+		ECC_Visibility,
+		QueryParams
+	);
+	
+	if (bHit)
+	{
+		const FVector GroundNormal = Hit.ImpactNormal.GetSafeNormal();
+		
+		const float Dot = FMath::Clamp(FVector::DotProduct(FVector::UpVector, GroundNormal), -1.f, 1.f);
+		
+		const float GroundAngle = FMath::RadiansToDegrees(FMath::Acos(Dot));
+		
+		const FQuat FullAlignRotation = FQuat::FindBetweenNormals(FVector::UpVector, GroundNormal);
+		
+		const float AllignAlpha = GroundAngle > KINDA_SMALL_NUMBER ?
+		FMath::Min(MaxGroundAlignAngle / GroundAngle, 1.f) : 0.f;
+		
+		const FQuat LimitedAlignRotation = FQuat::Slerp(FQuat::Identity, FullAlignRotation, AllignAlpha);
+		
+		const float RandomYaw = RandomStream.FRandRange(0.f, 360.f);
+		
+		const FQuat FinalRotation = LimitedAlignRotation * LimitedAlignRotation;
+		
+		return FTransform(FinalRotation, Hit.ImpactPoint);
+	}
+	
+	return FTransform(FRotator::ZeroRotator, BaseLocation);
 }
 
 // 레벨 전환 시 위치 보존을 위한 시드 생성 코드

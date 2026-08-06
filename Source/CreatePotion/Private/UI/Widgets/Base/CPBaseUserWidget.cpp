@@ -17,8 +17,10 @@ void UCPBaseUserWidget::NativeDestruct()
 
 void UCPBaseUserWidget::BindEvents()
 {
+	
 }
 
 void UCPBaseUserWidget::UnbindEvents()
 {
+	
 }
