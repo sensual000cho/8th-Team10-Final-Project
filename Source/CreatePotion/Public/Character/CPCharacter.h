@@ -49,6 +49,9 @@ protected:
 	/** Interaction Input Action */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* InteractAction;
+	
+	UPROPERTY(EditAnywhere, Category="Input")
+	UInputAction* MouseInteractAction;
 
 public:
 
