@@ -55,16 +55,16 @@ class CREATEPOTION_API UCPInventoryComponent : public UActorComponent
 
 public:	
 	UCPInventoryComponent();
-
-protected:
-	virtual void BeginPlay() override;
-
-private:
+    
     // TODO : 인벤토리 내에서 같은 재료지만 Tag가 다른 재료를 저장할 일이 있을지?
     // 있다면 Tag를 추가 인자로 받아야할 가능성이 높음
     UFUNCTION(BlueprintCallable, Category = "Inventory")
     void TryGetItem(UCPForageableItemData* InItemData, int32 Count);
+    
+protected:
+	virtual void BeginPlay() override;
 
+private:
     bool FindAvailableSpace(int32 ItemWidth, int32 ItemHeight, int32& OutGridIndex);
 
 public:
