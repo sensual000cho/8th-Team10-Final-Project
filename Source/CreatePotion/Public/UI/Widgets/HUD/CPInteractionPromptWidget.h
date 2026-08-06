@@ -6,6 +6,7 @@
 #include "UI/Widgets/Base/CPBaseHUDWidget.h"
 #include "CPInteractionPromptWidget.generated.h"
 
+class UCPInteractionComponent;
 class UTextBlock;
 /**
  * 
@@ -19,13 +20,18 @@ protected:
 	virtual void BindEvents() override;
 	virtual void UnbindEvents() override;
 	
+	UFUNCTION()
+	void OnPromptChanged(FText Prompt);
 public:
 	// 상호작용 대상 탐색 컴포넌트가 호출할 함수
 	// bHasTarget: 지금 조준 중인 대상이 있는지
-	// PropmtText: "F: 채집하기" 같은 안내 문구
-	void UpdateInteractionPrompt(bool bHasTarget, const FText& PromptText);
+	// PromptText: "F: 채집하기" 같은 안내 문구
+
 
 protected:
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* TextBlock_InteractionPrompt;
+	
+	UPROPERTY()
+	UCPInteractionComponent* BoundInteractionComponent;
 };

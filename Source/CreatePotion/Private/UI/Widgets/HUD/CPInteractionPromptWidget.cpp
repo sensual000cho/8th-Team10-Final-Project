@@ -2,11 +2,20 @@
 
 
 #include "UI/Widgets/HUD/CPInteractionPromptWidget.h"
+#include "Character/CPInteractionComponent.h"
 #include "Components/TextBlock.h"
 
 void UCPInteractionPromptWidget::BindEvents()
 {
 	// TODO: 상호작용 탐색 컴포넌트 완성 후 델리게이트 구독
+	APawn* OwningPawn = GetOwningPlayerPawn();
+	if (!OwningPawn) return;
+	
+	BoundInteractionComponent = OwningPawn->FindComponentByClass<UCPInteractionComponent>();
+	if (BoundInteractionComponent)
+	{
+		BoundInteractionComponent->OnPromptChanged.AddDynamic(this, &UCPInteractionPromptWidget::OnPromptChanged);
+	}
 	
 	SetVisibility(ESlateVisibility::Collapsed);
 }
@@ -14,14 +23,20 @@ void UCPInteractionPromptWidget::BindEvents()
 void UCPInteractionPromptWidget::UnbindEvents()
 {
 	// 구독한 델리게이트 해제 
+	if (BoundInteractionComponent)
+	{
+		BoundInteractionComponent->OnPromptChanged.RemoveDynamic(this, &UCPInteractionPromptWidget::OnPromptChanged);
+		BoundInteractionComponent = nullptr;
+	}
 }
 
-void UCPInteractionPromptWidget::UpdateInteractionPrompt(bool bHasTarget, const FText& PromptText)
+void UCPInteractionPromptWidget::OnPromptChanged(FText Prompt)
 {
+	bool bHasTarget = !Prompt.IsEmpty();
 	SetVisibility(bHasTarget ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 	
-	if  (bHasTarget && TextBlock_InteractionPrompt)
+	if (bHasTarget && TextBlock_InteractionPrompt)
 	{
-		TextBlock_InteractionPrompt->SetText(PromptText);
+		TextBlock_InteractionPrompt->SetText(Prompt);
 	}
 }
