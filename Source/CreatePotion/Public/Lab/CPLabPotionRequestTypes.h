@@ -4,6 +4,8 @@
 #include "Lab/CPLabTypes.h"
 #include "CPLabPotionRequestTypes.generated.h"
 
+class ACPAlchemyProp;
+
 namespace CPLabPotionRequestRules
 {
 	// 한 리퀘스트에서 사용하는 고정 슬롯 수
@@ -11,8 +13,7 @@ namespace CPLabPotionRequestRules
 
 	// 가공을 시작할 때 필요한 최소·최대 재료 수
 	inline constexpr int32 MinSelectedIngredientCount = 1;
-	inline constexpr int32 MaxSelectedIngredientCount =
-		IngredientSlotCapacity;
+	inline constexpr int32 MaxSelectedIngredientCount = IngredientSlotCapacity;
 
 	// 현재 프로토타입은 1개부터 시작하고 추후 최대 5개까지 사용
 	inline constexpr int32 MinRequestCount = 1;
@@ -72,6 +73,10 @@ struct FCPLabPotionRequestState
 	// 선택된 재료를 확정해서 보관하는 슬롯 3칸
 	UPROPERTY(BlueprintReadOnly, Category = "Lab|Request")
 	TArray<FCPLabIngredientInstance> IngredientSlots;
+	
+	// 변경 예정 사양: 슬롯에 들어간 Prop 참조만 저장
+	//UPROPERTY(BlueprintReadOnly, Category = "Lab|Request")
+	//TArray<TObjectPtr<ACPAlchemyProp>> IngredientSlots;
 
 	// 리퀘스트 정보와 슬롯 수가 정상인지 확인
 	bool IsValid() const
@@ -129,21 +134,15 @@ struct FCPLabPotionSessionState
 	// 리퀘스트 수와 현재 활성 상태가 서로 맞는지 확인
 	bool IsValid() const
 	{
-		if (RequestStates.Num() <
-				CPLabPotionRequestRules::MinRequestCount ||
-			RequestStates.Num() >
-				CPLabPotionRequestRules::MaxRequestCount ||
+		if (RequestStates.Num() < CPLabPotionRequestRules::MinRequestCount || 
+			RequestStates.Num() > CPLabPotionRequestRules::MaxRequestCount ||
 			RequestStates.ContainsByPredicate(
-				[](const FCPLabPotionRequestState& RequestState)
-				{
-					return !RequestState.IsValid();
-				}))
+				[](const FCPLabPotionRequestState& RequestState){ return !RequestState.IsValid(); }))
 		{
 			return false;
 		}
 
-		if (Phase == ECPLabPotionSessionPhase::InProgress)
-		{
+		if (Phase == ECPLabPotionSessionPhase::InProgress){
 			return !ActiveRequestId.IsNone() &&
 				RequestStates.ContainsByPredicate(
 					[this](const FCPLabPotionRequestState& RequestState)
@@ -151,10 +150,7 @@ struct FCPLabPotionSessionState
 						return RequestState.PotionRequest.RequestId ==
 							ActiveRequestId;
 					});
-		}
-
-		if (Phase == ECPLabPotionSessionPhase::Completed)
-		{
+		} else if (Phase == ECPLabPotionSessionPhase::Completed){
 			return ActiveRequestId.IsNone() &&
 				!RequestStates.ContainsByPredicate(
 					[](const FCPLabPotionRequestState& RequestState)

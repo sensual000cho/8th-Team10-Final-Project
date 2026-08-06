@@ -17,10 +17,7 @@ void ACPAlchemyProp::InitializeFromItemData(UCPForageableItemData* ItemData)
 {
 	ResetWorkingIngredient();
 
-	if (!ItemData)
-	{
-		return;
-	}
+	if (!ItemData) return;
 
 	WorkingIngredient.SourceItemData = ItemData;
 

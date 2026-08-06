@@ -54,10 +54,11 @@ public:
 
 	// 지정한 리퀘스트의 슬롯에 재료 확정
 	bool TryPlaceIngredient(
-		FName RequestId,
-		int32 SlotIndex,
-		const FCPLabIngredientInstance& Ingredient);
-
+		FName RequestId, int32 SlotIndex, const FCPLabIngredientInstance& Ingredient);
+		
+	// 변경 예정 사양: Slot에 재료값 복사본이 아니라 Prop 참조를 저장
+	//bool TryPlaceIngredient(FName RequestId, int32 SlotIndex, ACPAlchemyProp* IngredientProp);
+	
 	// 지정한 슬롯에 확정된 재료 제거
 	bool TryClearIngredient(
 		FName RequestId,

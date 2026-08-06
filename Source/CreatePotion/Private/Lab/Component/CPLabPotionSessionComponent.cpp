@@ -167,6 +167,7 @@ bool UCPLabPotionSessionComponent::TryPlaceIngredient(
 	}
 
 	// 슬롯에는 Actor 참조가 아니라 현재 재료값의 확정본을 저장
+	// 변경 예정 사양: 슬롯에는 Prop 참조를 저장
 	RequestState.IngredientSlots[SlotIndex] = Ingredient;
 	NotifySessionChanged();
 	return true;
