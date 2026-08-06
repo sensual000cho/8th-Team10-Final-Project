@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "UI/Codex/CPForageableCodexWidget.h"
+#include "UI/Widgets/Common/Codex/CPForageableCodexWidget.h"
 
 #include "Components/Image.h"
 #include "Components/TextBlock.h"

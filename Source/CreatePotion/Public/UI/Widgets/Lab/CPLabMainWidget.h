@@ -3,15 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/Widgets/Base/CPBaseUserWidget.h"
-#include "CPBaseHUDWidget.generated.h"
+#include "UI/Widgets/Base/CPBaseFixedWidget.h"
+#include "CPLabMainWidget.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class CREATEPOTION_API UCPBaseHUDWidget : public UCPBaseUserWidget
+class CREATEPOTION_API UCPLabMainWidget : public UCPBaseFixedWidget
 {
 	GENERATED_BODY()
-	
 };
