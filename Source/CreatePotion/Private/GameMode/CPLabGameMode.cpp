@@ -116,14 +116,10 @@ bool ACPLabGameMode::TryDeliverActivePotion()
 }
 
 bool ACPLabGameMode::TryPlaceIngredient(
-	FName RequestId, int32 SlotIndex, const FCPLabIngredientInstance& Ingredient)
+	FName RequestId, int32 SlotIndex, ACPAlchemyProp* Ingredient)
 {
 	UCPLabPotionSessionComponent* Session = GetPotionSession();
-	return Session &&
-		Session->TryPlaceIngredient(
-			RequestId,
-			SlotIndex,
-			Ingredient);
+	return Session && Session->TryPlaceIngredient(RequestId, SlotIndex, Ingredient);
 }
 
 bool ACPLabGameMode::TryClearIngredient(FName RequestId, int32 SlotIndex)
@@ -133,24 +129,11 @@ bool ACPLabGameMode::TryClearIngredient(FName RequestId, int32 SlotIndex)
 		Session->TryClearIngredient(RequestId, SlotIndex);
 }
 
-bool ACPLabGameMode::TryCreateWorkingIngredient(
-	FName RequestId, int32 SlotIndex, FCPLabIngredientInstance& OutWorkingIngredient) const
+bool ACPLabGameMode::TryGetIngredientPropFromSlot(
+	FName RequestId, int32 SlotIndex, ACPAlchemyProp*& OutIngredientProp) const
 {
 	UCPLabPotionSessionComponent* Session = GetPotionSession();
-	return Session && Session->TryCreateWorkingCopy(
-		RequestId,
-		SlotIndex,
-		OutWorkingIngredient);
-}
-
-bool ACPLabGameMode::TryCommitWorkingIngredient(
-	FName RequestId, int32 SlotIndex, const FCPLabIngredientInstance& WorkingIngredient)
-{
-	UCPLabPotionSessionComponent* Session = GetPotionSession();
-	return Session && Session->TryCommitWorkingCopy(
-		RequestId,
-		SlotIndex,
-		WorkingIngredient);
+	return Session && Session->TryGetIngredientPropFromSlot(RequestId, SlotIndex, OutIngredientProp);
 }
 
 void ACPLabGameMode::DebugAdvanceSessionPhase()
@@ -245,9 +228,7 @@ bool ACPLabGameMode::SpawnIngredients()
 	CollectSlotActors(IngredientSlotActors);
 	
 	const int32 SpawnCount = FMath::Min3(
-		TestIngredients.Num(),
-		IngredientSlotActors.Num(), 
-		CPLabPotionRequestRules::IngredientSlotCapacity);
+		TestIngredients.Num(), IngredientSlotActors.Num(), CPLabPotionRequestRules::IngredientSlotCapacity);
 	if (SpawnCount <= 0) return false;
 	
 	bool bPlacedAnyIngredient = false;
@@ -262,8 +243,7 @@ bool ACPLabGameMode::SpawnIngredients()
 		UClass* PropClass = ItemData->AlchemyPropClass.LoadSynchronous();
 		if (!PropClass) continue;
 		
-		ACPAlchemyProp* SpawnedProp = World->SpawnActor<ACPAlchemyProp>(
-			PropClass, SlotActor->GetActorTransform());
+		ACPAlchemyProp* SpawnedProp = World->SpawnActor<ACPAlchemyProp>(PropClass, SlotActor->GetActorTransform());
 		if (!SpawnedProp) continue;
 		
 		// Prop Spawn
@@ -283,10 +263,8 @@ bool ACPLabGameMode::SpawnIngredients()
 		// 높이 보정
 		SpawnedProp->AddActorWorldOffset(FVector(0.f, 0.f, ZOffset), false);
 		
-		// 생성된 Prop의 재료 데이터를 현재 Slot에 저장
-		// 변경 예정 사양: Slot에는 SpawnedProp 참조를 저장
-		const FCPLabIngredientInstance WorkingIngredient = SpawnedProp->GetWorkingIngredient();
-		if (TryPlaceIngredient(ActiveRequestId, SlotIndex, WorkingIngredient)){
+		// Slot에는 SpawnedProp 참조를 저장
+		if (TryPlaceIngredient(ActiveRequestId, SlotIndex, SpawnedProp)){
 			SpawnedIngredients.Add(SpawnedProp);
 			bPlacedAnyIngredient = true;
 			++PlacedCount;

@@ -54,11 +54,10 @@ struct FCPLabPotionRequestState
 {
 	GENERATED_BODY()
 
-	// 리퀘스트를 만들 때 항상 슬롯 3칸을 준비
+	// 리퀘스트를 만들 때 슬롯 IngredientSlotCapacity크기의 칸을 준비
 	FCPLabPotionRequestState()
 	{
-		IngredientSlots.SetNum(
-			CPLabPotionRequestRules::IngredientSlotCapacity);
+		IngredientSlots.SetNum(CPLabPotionRequestRules::IngredientSlotCapacity);
 	}
 
 	// 이 상태가 담당하는 포션 리퀘스트
@@ -67,35 +66,25 @@ struct FCPLabPotionRequestState
 
 	// 현재 리퀘스트의 제조 진행 상태
 	UPROPERTY(BlueprintReadOnly, Category = "Lab|Request")
-	ECPLabPotionRequestPhase Phase =
-		ECPLabPotionRequestPhase::Queued;
-
-	// 선택된 재료를 확정해서 보관하는 슬롯 3칸
-	UPROPERTY(BlueprintReadOnly, Category = "Lab|Request")
-	TArray<FCPLabIngredientInstance> IngredientSlots;
+	ECPLabPotionRequestPhase Phase = ECPLabPotionRequestPhase::Queued;
 	
-	// 변경 예정 사양: 슬롯에 들어간 Prop 참조만 저장
-	//UPROPERTY(BlueprintReadOnly, Category = "Lab|Request")
-	//TArray<TObjectPtr<ACPAlchemyProp>> IngredientSlots;
+	// 슬롯에 들어간 Prop 참조를 저장
+	UPROPERTY(BlueprintReadOnly, Category = "Lab|Request")
+	TArray<TObjectPtr<ACPAlchemyProp>> IngredientSlots;
 
 	// 리퀘스트 정보와 슬롯 수가 정상인지 확인
 	bool IsValid() const
 	{
-		return PotionRequest.IsValid() &&
-			IngredientSlots.Num() ==
-				CPLabPotionRequestRules::IngredientSlotCapacity;
+		return PotionRequest.IsValid() && IngredientSlots.Num() == CPLabPotionRequestRules::IngredientSlotCapacity;
 	}
 
 	// 슬롯에 실제로 들어 있는 재료 수를 계산
 	int32 GetSelectedIngredientCount() const
 	{
 		int32 SelectedCount = 0;
-		for (const FCPLabIngredientInstance& Ingredient : IngredientSlots)
+		for (const ACPAlchemyProp* Ingredient : IngredientSlots)
 		{
-			if (Ingredient.IsValid())
-			{
-				++SelectedCount;
-			}
+			if (Ingredient) ++SelectedCount;
 		}
 
 		return SelectedCount;
@@ -105,10 +94,8 @@ struct FCPLabPotionRequestState
 	bool HasValidIngredientSelection() const
 	{
 		const int32 SelectedCount = GetSelectedIngredientCount();
-		return SelectedCount >=
-				CPLabPotionRequestRules::MinSelectedIngredientCount &&
-			SelectedCount <=
-				CPLabPotionRequestRules::MaxSelectedIngredientCount;
+		return SelectedCount >= CPLabPotionRequestRules::MinSelectedIngredientCount &&
+			SelectedCount <= CPLabPotionRequestRules::MaxSelectedIngredientCount;
 	}
 };
 
@@ -120,8 +107,7 @@ struct FCPLabPotionSessionState
 
 	// 포션 세션 전체의 현재 진행 상태
 	UPROPERTY(BlueprintReadOnly, Category = "Lab|Session")
-	ECPLabPotionSessionPhase Phase =
-		ECPLabPotionSessionPhase::WaitingForBell;
+	ECPLabPotionSessionPhase Phase = ECPLabPotionSessionPhase::WaitingForBell;
 
 	// 지금 플레이어가 진행 중인 리퀘스트 ID
 	UPROPERTY(BlueprintReadOnly, Category = "Lab|Session")
@@ -134,30 +120,39 @@ struct FCPLabPotionSessionState
 	// 리퀘스트 수와 현재 활성 상태가 서로 맞는지 확인
 	bool IsValid() const
 	{
-		if (RequestStates.Num() < CPLabPotionRequestRules::MinRequestCount || 
-			RequestStates.Num() > CPLabPotionRequestRules::MaxRequestCount ||
-			RequestStates.ContainsByPredicate(
-				[](const FCPLabPotionRequestState& RequestState){ return !RequestState.IsValid(); }))
+		// 세션에 들어온 요청 개수가 허용 범위 인지 확인
+		const int32 RequestCount = RequestStates.Num();
+		if (RequestCount < CPLabPotionRequestRules::MinRequestCount || 
+			RequestCount > CPLabPotionRequestRules::MaxRequestCount)
 		{
 			return false;
 		}
-
+		
+		// 각 요청 상태가 정상인지 확인
+		for (const FCPLabPotionRequestState& RequestState : RequestStates){
+			if (!RequestState.IsValid()) return false;
+		}
+		
+		// 세션 진행 중 -> 활성 request가 있어야 함
 		if (Phase == ECPLabPotionSessionPhase::InProgress){
-			return !ActiveRequestId.IsNone() &&
-				RequestStates.ContainsByPredicate(
-					[this](const FCPLabPotionRequestState& RequestState)
-					{
-						return RequestState.PotionRequest.RequestId ==
-							ActiveRequestId;
-					});
+			if (ActiveRequestId.IsNone()) return false;
+			
+			// 활성 request가 존재하는지 확인
+			for (const FCPLabPotionRequestState& RequestState : RequestStates){
+				if (ActiveRequestId == RequestState.PotionRequest.RequestId) return true;
+			}
+			
+			return false;
+		// 세션 완료 -> 활성 request가 없어야 함
 		} else if (Phase == ECPLabPotionSessionPhase::Completed){
-			return ActiveRequestId.IsNone() &&
-				!RequestStates.ContainsByPredicate(
-					[](const FCPLabPotionRequestState& RequestState)
-					{
-						return RequestState.Phase !=
-							ECPLabPotionRequestPhase::Delivered;
-					});
+			if (!ActiveRequestId.IsNone()) return false;
+			
+			// 모든 request가 완료 상태인지 확인
+			for (const FCPLabPotionRequestState& RequestState : RequestStates){
+				if ( RequestState.Phase != ECPLabPotionRequestPhase::Delivered) return false;
+			}
+			
+			return true;
 		}
 
 		return false;

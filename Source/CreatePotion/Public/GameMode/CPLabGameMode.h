@@ -53,22 +53,15 @@ public:
 
 	// 지정한 리퀘스트 슬롯에 재료 배치 요청
 	UFUNCTION(BlueprintCallable, Category = "Lab|Request")
-	bool TryPlaceIngredient(FName RequestId, int32 SlotIndex, const FCPLabIngredientInstance& Ingredient);
+	bool TryPlaceIngredient(FName RequestId, int32 SlotIndex, ACPAlchemyProp* Ingredient);
 
 	// 지정한 리퀘스트 슬롯의 재료 제거 요청
 	UFUNCTION(BlueprintCallable, Category = "Lab|Request")
 	bool TryClearIngredient(FName RequestId, int32 SlotIndex);
 
-	// 슬롯 재료를 가공 Actor가 사용할 작업본으로 가져오기
+	// 지정한 리퀘스트 슬롯에 등록된 Prop 참조 가져오기
 	UFUNCTION(BlueprintCallable, Category = "Lab|Request")
-	bool TryCreateWorkingIngredient(FName RequestId, int32 SlotIndex, FCPLabIngredientInstance& OutWorkingIngredient) const;
-
-	// 가공이 끝난 작업본을 지정한 슬롯에 반영
-	UFUNCTION(BlueprintCallable, Category = "Lab|Request")
-	bool TryCommitWorkingIngredient(
-		FName RequestId,
-		int32 SlotIndex,
-		const FCPLabIngredientInstance& WorkingIngredient);
+	bool TryGetIngredientPropFromSlot(FName RequestId, int32 SlotIndex, ACPAlchemyProp*& OutIngredientProp) const;
 
 	// 현재 상태를 다음 단계로 넘기는 테스트 전용 함수
 	UFUNCTION(BlueprintCallable, Category = "Lab|Debug")

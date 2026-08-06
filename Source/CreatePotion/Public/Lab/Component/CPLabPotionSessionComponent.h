@@ -6,13 +6,13 @@
 #include "CPLabPotionSessionComponent.generated.h"
 
 class UCPForageableItemData;
+class ACPAlchemyProp;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FCPOnLabSessionChanged);
 
 // 포션 세션과 리퀘스트별 슬롯 상태를 한곳에서 관리
 UCLASS()
-class CREATEPOTION_API UCPLabPotionSessionComponent
-	: public UActorComponent
+class CREATEPOTION_API UCPLabPotionSessionComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
@@ -30,16 +30,13 @@ public:
 		FCPLabPotionRequestState& OutRequestState) const;
 
 	UFUNCTION(BlueprintPure, Category = "Lab|Request")
-	bool GetRequestState(
-		FName RequestId,
-		FCPLabPotionRequestState& OutRequestState) const;
+	bool GetRequestState(FName RequestId, FCPLabPotionRequestState& OutRequestState) const;
 
 	UFUNCTION(BlueprintPure, Category = "Lab|Request")
 	int32 GetDeliveredRequestCount() const;
 
 	// 전달받은 리퀘스트들로 새 포션 세션 시작
-	bool StartSession(
-		const TArray<FCPLabPotionRequest>& PotionRequests);
+	bool StartSession(const TArray<FCPLabPotionRequest>& PotionRequests);
 
 	// 진행 중인 세션과 슬롯을 모두 초기 상태로 되돌림
 	void ResetSession();
@@ -48,34 +45,17 @@ public:
 	bool TrySetActiveRequest(FName RequestId);
 
 	// 정해진 진행 순서에 맞을 때만 리퀘스트 상태 변경
-	bool TrySetRequestPhase(
-		FName RequestId,
-		ECPLabPotionRequestPhase NewPhase);
-
-	// 지정한 리퀘스트의 슬롯에 재료 확정
-	bool TryPlaceIngredient(
-		FName RequestId, int32 SlotIndex, const FCPLabIngredientInstance& Ingredient);
-		
-	// 변경 예정 사양: Slot에 재료값 복사본이 아니라 Prop 참조를 저장
-	//bool TryPlaceIngredient(FName RequestId, int32 SlotIndex, ACPAlchemyProp* IngredientProp);
+	bool TrySetRequestPhase(FName RequestId, ECPLabPotionRequestPhase NewPhase);
 	
-	// 지정한 슬롯에 확정된 재료 제거
-	bool TryClearIngredient(
-		FName RequestId,
-		int32 SlotIndex);
-
-	// 슬롯의 확정 재료를 가공용 작업본으로 복사
-	bool TryCreateWorkingCopy(
-		FName RequestId,
-		int32 SlotIndex,
-		FCPLabIngredientInstance& OutWorkingCopy) const;
-
-	// 가공이 끝난 작업본을 원래 슬롯에 다시 반영
-	bool TryCommitWorkingCopy(
-		FName RequestId,
-		int32 SlotIndex,
-		const FCPLabIngredientInstance& WorkingCopy);
-
+	// 지정한 리퀘스트의 슬롯에 Prop 참조를 저장
+	bool TryPlaceIngredient(FName RequestId, int32 SlotIndex, ACPAlchemyProp* IngredientProp);
+	
+	// 지정한 슬롯에 등록된 Prop 참조를 제거
+	bool TryClearIngredient(FName RequestId, int32 SlotIndex);
+	
+	// 지정한 슬롯에 등록된 Prop 참조를 가져옴
+	bool TryGetIngredientPropFromSlot(FName RequestId, int32 SlotIndex, ACPAlchemyProp*& OutIngredientProp) const;
+	
 	// 완성된 포션을 납품 처리하고 필요하면 세션 완료
 	bool TryMarkRequestDelivered(FName RequestId);
 
@@ -91,15 +71,12 @@ private:
 	bool IsValidSlotIndex(int32 SlotIndex) const;
 
 	// 같은 리퀘스트의 다른 슬롯에 동일한 원본 재료가 있는지 확인
-	bool HasDuplicateIngredient(
-		const FCPLabPotionRequestState& RequestState,
-		const UCPForageableItemData* ItemData,
-		int32 IgnoredSlotIndex) const;
+	bool HasDuplicateIngredient(const FCPLabPotionRequestState& RequestState, 
+		const ACPAlchemyProp* IngredientProp, int32 IgnoredSlotIndex) const;
 
 	// 현재 상태에서 요청한 다음 상태로 이동할 수 있는지 확인
 	bool CanTransitionRequestPhase(
-		const FCPLabPotionRequestState& RequestState,
-		ECPLabPotionRequestPhase NewPhase) const;
+		const FCPLabPotionRequestState& RequestState,ECPLabPotionRequestPhase NewPhase) const;
 
 	// 세션의 모든 리퀘스트가 납품됐는지 확인
 	bool AreAllRequestsDelivered() const;

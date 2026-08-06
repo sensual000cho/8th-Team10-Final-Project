@@ -24,12 +24,13 @@ public:
 	// 슬롯에서 꺼낸 재료와 원래 위치를 기억하도록 초기화
 	UFUNCTION(BlueprintCallable, Category = "Lab|Ingredient")
 	bool InitializeFromRequestSlot(
-		FName InRequestId,
-		int32 InSourceSlotIndex,
-		const FCPLabIngredientInstance& Ingredient);
+		FName InRequestId, int32 InSourceSlotIndex, const FCPLabIngredientInstance& Ingredient);
 
 	UFUNCTION(BlueprintPure, Category = "Lab|Ingredient")
 	FCPLabIngredientInstance GetWorkingIngredient() const;
+	
+	UFUNCTION(BlueprintCallable, Category = "Lab|Ingredient")
+	bool SetWorkingIngredient(const FCPLabIngredientInstance& Ingredient);
 
 	UFUNCTION(BlueprintPure, Category = "Lab|Ingredient")
 	UCPForageableItemData* GetSourceItemData() const;
