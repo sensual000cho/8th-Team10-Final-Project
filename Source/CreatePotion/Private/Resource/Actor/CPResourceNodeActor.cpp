@@ -1,6 +1,7 @@
 #include "Resource/Actor/CPResourceNodeActor.h"
 #include "Data/CPResourceDefinition.h"
 #include "Resource/System/CPResourceStateSubsystem.h"
+#include "Components/CPInventoryComponent.h"
 
 ACPResourceNodeActor::ACPResourceNodeActor()
 {
@@ -50,9 +51,8 @@ void ACPResourceNodeActor::Harvest(AActor* Interactor)
 	UCPForageableItemData* HarvestedItem = ResourceDefinition->HarvestedItem;
 	if (!HarvestedItem) return;
 	
-	//TODO: 인벤토리 참조
-	//UCPInventoryCompoenent* Inventory = Interactor->FindComponentByClass<UCPInventoryComponent>();
-	//if (!Inventory) return;
+	UCPInventoryComponent* Inventory = Interactor->FindComponentByClass<UCPInventoryComponent>();
+	if (!Inventory) return;
 	
 	UGameInstance* GameInstance = GetGameInstance();
 	if (!GameInstance) return;
@@ -60,8 +60,7 @@ void ACPResourceNodeActor::Harvest(AActor* Interactor)
 	UCPResourceStateSubsystem* StateSubsystem = GameInstance->GetSubsystem<UCPResourceStateSubsystem>();
 	if (!StateSubsystem) return;
 	
-	//TODO: 인벤토리 내 아이템 추가 함수 호출. 실패 시 리턴
-	//if (!Inventory->TryGetItem(HarvestedItem, ResourceDefinition->HarvestAmount)) return;
+	Inventory->TryGetItem(HarvestedItem, ResourceDefinition->HarvestAmount);
 	
 	StateSubsystem->MarkHarvested(NodeKey);
 	
