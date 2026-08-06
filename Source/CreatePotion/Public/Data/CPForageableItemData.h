@@ -19,7 +19,7 @@ struct FAlchemyProperty
 	int32 Value = 0;
 };
 
-UCLASS()
+UCLASS(BlueprintType)
 class CREATEPOTION_API UCPForageableItemData : public UDataAsset
 {
 	GENERATED_BODY()
@@ -42,11 +42,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
 	TSoftObjectPtr<UTexture2D> Icon;
 	
-	// Prop
-	// AActor -> 관련 액터 구현 시 변경
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop")
-	TSoftClassPtr<AActor> GatheringPropClass;
-	
+	// Prop	
 	// AActor -> 관련 액터 구현 시 변경
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop")
 	TSoftClassPtr<AActor> AlchemyPropClass;
