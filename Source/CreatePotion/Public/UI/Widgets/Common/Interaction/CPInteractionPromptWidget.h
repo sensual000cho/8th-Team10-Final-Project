@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/Widgets/Base/CPBaseHUDWidget.h"
+#include "UI/Widgets/Base/CPBaseFixedWidget.h"
 #include "CPInteractionPromptWidget.generated.h"
 
 class UCPInteractionComponent;
@@ -12,7 +12,7 @@ class UTextBlock;
  * 
  */
 UCLASS()
-class CREATEPOTION_API UCPInteractionPromptWidget : public UCPBaseHUDWidget
+class CREATEPOTION_API UCPInteractionPromptWidget : public UCPBaseFixedWidget
 {
 	GENERATED_BODY()
 	
@@ -23,10 +23,6 @@ protected:
 	UFUNCTION()
 	void OnPromptChanged(FText Prompt);
 public:
-	// 상호작용 대상 탐색 컴포넌트가 호출할 함수
-	// bHasTarget: 지금 조준 중인 대상이 있는지
-	// PromptText: "F: 채집하기" 같은 안내 문구
-
 
 protected:
 	UPROPERTY(meta = (BindWidget))

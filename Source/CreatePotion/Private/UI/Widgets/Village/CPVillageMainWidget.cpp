@@ -1,5 +1,4 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "UI/Widgets/Base/CPBaseHUDWidget.h"
-
+#include "UI/Widgets/Town/CPTownMainWidget.h"
