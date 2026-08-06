@@ -11,6 +11,12 @@
  이를 구독 중인 UI(퀘스트 저널 등)가 자동으로 갱신*/
 void UQuestManager::AcceptQuest(FName QuestID)
 {
+	if (GetQuestState(QuestID) == EQuestState::Completed)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("이미 완료된 퀘스트입니다: %s"), *QuestID.ToString());
+		return;
+	}
+
 	QuestStates.Add(QuestID, EQuestState::Accepted);
 	OnQuestUpdated.Broadcast(QuestID, EQuestState::Accepted);
 	UE_LOG(LogTemp, Warning, TEXT("퀘스트 수락: %s"), *QuestID.ToString());
@@ -34,6 +40,14 @@ DT_QuestScript(텍스트 전용 DataTable)에서 값을 가져옴
 접근하지 않으므로 UI에서 안전하게 자유롭게 호출 가능
 ===================================================================*/
 
+// 퀘스트 제목 조회
+FText UQuestManager::GetQuestTitle(FName QuestID) const
+{
+	if (!QuestScriptTable) return FText::GetEmpty();
+
+	FQuestData* Quest = QuestScriptTable->FindRow<FQuestData>(QuestID, TEXT(""));
+	return Quest ? Quest->QuestTitle : FText::GetEmpty();
+}
 // 마을 NPC가 퀘스트를 제안할 때 보여줄 원문 대사
 FText UQuestManager::GetQuestFullText(FName QuestID) const
 {
@@ -71,6 +85,23 @@ FText UQuestManager::GetSessionHintTextDetailed(FName QuestID) const
 
 	FQuestAnswerData* Answer = QuestAnswerTable->FindRow<FQuestAnswerData>(QuestID, TEXT(""));
 	return Answer ? Answer->SessionHintText_Detailed : FText::GetEmpty();
+}
+
+// 최종 힌트 
+FText UQuestManager::GetSessionHintTextDetailed2(FName QuestID) const
+{
+	if (!QuestAnswerTable) return FText::GetEmpty();
+
+	FQuestAnswerData* Answer = QuestAnswerTable->FindRow<FQuestAnswerData>(QuestID, TEXT(""));
+	return Answer ? Answer->SessionHintText_Detailed2 : FText::GetEmpty();
+}
+
+// 저널용 퀘스트 전체 조회 함수
+TArray<FName> UQuestManager::GetAllTrackedQuestIDs() const
+{
+	TArray<FName> Result;
+	QuestStates.GetKeys(Result);
+	return Result;
 }
 
 // ===================================================================
@@ -159,6 +190,12 @@ void UQuestManager::Initialize(FSubsystemCollectionBase& Collection)
 //   OnQuestUpdated 델리게이트를 방송함
 EDeliveryGrade UQuestManager::TryDeliver(FName QuestID, const TArray<FAlchemyProperty>& PotionResult)
 {
+	if (GetQuestState(QuestID) == EQuestState::Completed)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("이미 완료 처리된 퀘스트입니다: %s"), *QuestID.ToString());
+		return EDeliveryGrade::Fail;
+	}
+
 	if (!QuestAnswerTable) return EDeliveryGrade::Fail;
 
 	FQuestAnswerData* Answer = QuestAnswerTable->FindRow<FQuestAnswerData>(QuestID, TEXT(""));
@@ -215,6 +252,43 @@ EDeliveryGrade UQuestManager::TryDeliver(FName QuestID, const TArray<FAlchemyPro
 	UE_LOG(LogTemp, Warning, TEXT("퀘스트 %s 납품 결과: %d/%d 조건 만족"), *QuestID.ToString(), CorrectCount, TotalCount);
 
 	return Grade;
+}
+
+// 최종 결과 점수 반영용 평가 함수
+TArray<EConditionMatchResult> UQuestManager::EvaluateConditions(FName QuestID, const TArray<FAlchemyProperty>& PotionResult) const
+{
+	TArray<EConditionMatchResult> Results;
+
+	if (!QuestAnswerTable) return Results;
+
+	FQuestAnswerData* Answer = QuestAnswerTable->FindRow<FQuestAnswerData>(QuestID, TEXT(""));
+	if (!Answer) return Results;
+
+	for (const FQuestEffectRequirement& Req : Answer->RequestedEffects)
+	{
+		const FAlchemyProperty* Matching = PotionResult.FindByPredicate(
+			[&](const FAlchemyProperty& P) { return P.Tag == Req.Axis; }
+		);
+
+		if (!Matching)
+		{
+			Results.Add(EConditionMatchResult::WrongTag);
+		}
+		else if (Matching->Value < Req.MinValue)
+		{
+			Results.Add(EConditionMatchResult::TooLow);
+		}
+		else if (Matching->Value > Req.MaxValue)
+		{
+			Results.Add(EConditionMatchResult::TooHigh);
+		}
+		else
+		{
+			Results.Add(EConditionMatchResult::Correct);
+		}
+	}
+
+	return Results;
 }
 
 // ===================================================================
