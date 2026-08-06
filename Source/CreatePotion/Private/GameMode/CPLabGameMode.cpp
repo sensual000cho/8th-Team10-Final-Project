@@ -1,5 +1,6 @@
 #include "GameMode/CPLabGameMode.h"
 
+#include "Engine/Engine.h"
 #include "GameState/CPLabGameState.h"
 #include "Lab/Component/CPLabPotionSessionComponent.h"
 #include "PlayerState/CPLabPlayerState.h"
@@ -37,11 +38,24 @@ bool ACPLabGameMode::TryStartLabSession()
 	return TryStartLabSessionWithRequests(DefaultTestRequests);
 }
 
-bool ACPLabGameMode::TryStartLabSessionWithRequests(
-	const TArray<FCPLabPotionRequest>& PotionRequests)
+bool ACPLabGameMode::TryStartLabSessionWithRequests(const TArray<FCPLabPotionRequest>& PotionRequests)
 {
 	UCPLabPotionSessionComponent* Session = GetPotionSession();
-	return Session && Session->StartSession(PotionRequests);
+	if (!Session) return false;
+	
+	const bool bStarted = Session->StartSession(PotionRequests);
+	if (bStarted && GEngine){
+		FCPLabPotionRequestState ActiveRequestState;
+		if (!Session->GetActiveRequestState(ActiveRequestState)){
+			GEngine->AddOnScreenDebugMessage(
+				-1, 3.0f, FColor::Red, TEXT("[Lab] 활성화된 리퀘스트가 없습니다."));
+			return bStarted;
+		}
+		GEngine->AddOnScreenDebugMessage(
+			-1, 3.0f, FColor::Cyan, 
+			FString::Printf(TEXT("[Lab] %s"), *ActiveRequestState.PotionRequest.DisplayText.ToString()));
+	}
+	return bStarted;
 }
 
 void ACPLabGameMode::ResetLabSession()
@@ -142,34 +156,22 @@ void ACPLabGameMode::DebugAdvanceSessionPhase()
 {
 	// 월드 Actor가 완성되기 전 세션 진행 상태만 빠르게 확인하는 함수
 	UCPLabPotionSessionComponent* Session = GetPotionSession();
-	if (!Session)
-	{
+	if (!Session) return;
+
+	const FCPLabPotionSessionState SessionState = Session->GetSessionState();
+
+	if (SessionState.Phase == ECPLabPotionSessionPhase::WaitingForBell){
+		const bool bStarted = TryStartLabSession();
 		return;
-	}
-
-	const FCPLabPotionSessionState SessionState =
-		Session->GetSessionState();
-
-	if (SessionState.Phase == ECPLabPotionSessionPhase::WaitingForBell)
-	{
-		TryStartLabSession();
-		return;
-	}
-
-	if (SessionState.Phase == ECPLabPotionSessionPhase::Completed)
-	{
+	}else if (SessionState.Phase == ECPLabPotionSessionPhase::Completed){
 		ResetLabSession();
 		return;
 	}
 
 	FCPLabPotionRequestState ActiveRequestState;
-	if (!Session->GetActiveRequestState(ActiveRequestState))
-	{
-		return;
-	}
+	if (!Session->GetActiveRequestState(ActiveRequestState)) return;
 
-	switch (ActiveRequestState.Phase)
-	{
+	switch (ActiveRequestState.Phase){
 	case ECPLabPotionRequestPhase::Queued:
 		TryAcceptActiveRequest();
 		break;

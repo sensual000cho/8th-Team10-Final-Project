@@ -89,4 +89,7 @@ private:
 	// 실제 리퀘스트 시스템이 연결되기 전 사용할 테스트 데이터
 	UPROPERTY(EditDefaultsOnly, Category = "Lab|Debug")
 	TArray<FCPLabPotionRequest> DefaultTestRequests;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Lab|Debug")
+	TArray<TObjectPtr<UCPForageableItemData>> DefaultTestIngrediants;
 };
