@@ -1,7 +1,7 @@
 #include "Resource/Actor/CPResourceNodeActor.h"
 #include "Data/CPResourceDefinition.h"
 #include "Resource/System/CPResourceStateSubsystem.h"
-#include "Components/CPInventoryComponent.h"
+#include "Items/CPDroppedItemBase.h"
 
 ACPResourceNodeActor::ACPResourceNodeActor()
 {
@@ -67,19 +67,16 @@ void ACPResourceNodeActor::Harvest(AActor* Interactor)
 	if (!Interactor) return;
 	if (!ResourceDefinition) return;
 	
-	UCPForageableItemData* HarvestedItem = ResourceDefinition->HarvestedItem;
-	if (!HarvestedItem) return;
-	
-	UCPInventoryComponent* Inventory = Interactor->FindComponentByClass<UCPInventoryComponent>();
-	if (!Inventory) return;
-	
 	UGameInstance* GameInstance = GetGameInstance();
 	if (!GameInstance) return;
 	
 	UCPResourceStateSubsystem* StateSubsystem = GameInstance->GetSubsystem<UCPResourceStateSubsystem>();
 	if (!StateSubsystem) return;
 	
-	Inventory->TryGetItem(HarvestedItem, ResourceDefinition->HarvestAmount);
+	ACPDroppedItemBase* DroppedItem = GetWorld()->SpawnActor<ACPDroppedItemBase>(ACPDroppedItemBase::StaticClass(), GetActorTransform());
+	if (!DroppedItem) return;
+	
+	DroppedItem->Initialize(ResourceDefinition->HarvestedItem, ResourceDefinition->HarvestAmount, ResourceDefinition->Mesh.LoadSynchronous());
 	
 	StateSubsystem->MarkHarvested(NodeKey);
 	
