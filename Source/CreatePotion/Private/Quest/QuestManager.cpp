@@ -17,6 +17,13 @@ void UQuestManager::AcceptQuest(FName QuestID)
 		return;
 	}
 
+	// 처음 수락하는 퀘스트라면 순서 기록에 추가
+	if (!QuestStates.Contains(QuestID))
+	{
+		QuestOrder.Add(QuestID);
+	}
+
+
 	QuestStates.Add(QuestID, EQuestState::Accepted);
 	OnQuestUpdated.Broadcast(QuestID, EQuestState::Accepted);
 	UE_LOG(LogTemp, Warning, TEXT("퀘스트 수락: %s"), *QuestID.ToString());
@@ -99,9 +106,7 @@ FText UQuestManager::GetSessionHintTextDetailed2(FName QuestID) const
 // 저널용 퀘스트 전체 조회 함수
 TArray<FName> UQuestManager::GetAllTrackedQuestIDs() const
 {
-	TArray<FName> Result;
-	QuestStates.GetKeys(Result);
-	return Result;
+	return QuestOrder;  // TMap 대신 순서가 보장된 배열 반환
 }
 
 // ===================================================================
