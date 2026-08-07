@@ -1,0 +1,123 @@
+﻿// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "Public/Data/CPForageableItemData.h" // FAlchemyProperty 참조용 (채집물/연금 태그 구조체)
+#include "CoreMinimal.h"
+#include "Subsystems/GameInstanceSubsystem.h"
+#include "QuestTypes.h"
+#include "QuestManager.generated.h"
+
+// 퀘스트 상태가 바뀔 때마다(수락/완료 등) 방송되는 이벤트
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnQuestUpdated, FName, QuestID, EQuestState, NewState);
+
+// 포션 납품 시 판정되는 등급.
+// TryDeliver()의 반환값으로 사용되며, 완성된 포션이 퀘스트 조건을
+// 몇 개나 만족했는지에 따라 결정됨.
+UENUM(BlueprintType)
+enum class EDeliveryGrade : uint8
+{
+	Fail,     // 조건을 하나도 만족 못함
+	Okay,     // 일부 조건만 만족
+	Good,     // 대부분(전체-1개 이상) 조건 만족
+	Perfect   // 모든 조건 만족
+};
+
+UCLASS()
+class CREATEPOTION_API UQuestManager : public UGameInstanceSubsystem
+{
+	GENERATED_BODY()
+
+public:
+	// 텍스트 전용 DataTable (Row Structure: FQuestData)
+	UPROPERTY(EditDefaultsOnly, Category = "Quest")
+	UDataTable* QuestScriptTable;
+
+	// 조건/정답 데이터 전용 DataTable (Row Structure: FQuestAnswerData)
+	UPROPERTY(EditDefaultsOnly, Category = "Quest")
+	UDataTable* QuestAnswerTable;
+
+	// 퀘스트 상태 변경 알림 이벤트
+	UPROPERTY(BlueprintAssignable, Category = "Quest|Events")
+	FOnQuestUpdated OnQuestUpdated;
+
+	// [수락] NPC 대화 UI에서 "수락" 버튼 클릭 시 호출 / 상태를 Accepted로 전환
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	void AcceptQuest(FName QuestID);
+
+	// [상태 조회] 특정 퀘스트가 현재 NotAccepted/Accepted/Completed 중 어디인지 반환
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	EQuestState GetQuestState(FName QuestID) const;
+
+	// 저널 목록용 - 짧은 제목 (신규)
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	FText GetQuestTitle(FName QuestID) const;
+
+	// [텍스트-원문] 마을 NPC가 퀘스트를 제안할 때 하는 원문 대사
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	FText GetQuestFullText(FName QuestID) const;
+
+	// [텍스트-요약] 수락 후 퀘스트 저널에서 다시 확인할 때 보여줄 요약
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	FText GetQuestSummaryText(FName QuestID) const;
+
+	// [텍스트-세션힌트 1차] 공방 조제 세션 진입 시 보여줄 서술형 힌트
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	FText GetSessionHintText(FName QuestID) const;
+
+	// [텍스트-세션힌트 2차] "네? 그게 뭐죠?" 등 추가 힌트 요청 시 보여줄 더 구체적인 서술형 힌트
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	FText GetSessionHintTextDetailed(FName QuestID) const;
+
+	// 3차 힌트 (신규)
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	FText GetSessionHintTextDetailed2(FName QuestID) const;
+
+	// 저널 UI 목록 구성용 - 현재 추적 중인 퀘스트 ID 전체 (신규)
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	TArray<FName> GetAllTrackedQuestIDs() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	TArray<EConditionMatchResult> EvaluateConditions(FName QuestID, const TArray<FAlchemyProperty>& PotionResult) const;
+
+
+	// [검증] QuestScriptTable과 QuestAnswerTable의 QuestID가 서로 빠짐없이 짝이 맞는지 확인
+	// 데이터 입력 실수(한쪽에만 등록)를 개발 중 로그로 잡아내기 위한 함수
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	void ValidateQuestTablesMatch();
+
+	// 퀘스트가 요구하는 조건과 비교, 등급을 매기고 만족 시 상태를 Completed로 전환
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	EDeliveryGrade TryDeliver(FName QuestID, const TArray<FAlchemyProperty>& PotionResult);
+
+	// ※ 결과 처리(TryDeliver) 테스트용 임시 코드.
+	// 가짜 데이터로 TryDeliver 로직을 검증하기 위한 함수. 추후 삭제 예정
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	void TestTryDeliver();
+
+	// 특정 퀘스트의 현재 힌트 단계 조회
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	int32 GetQuestHintLevel(FName QuestID) const;
+
+	// 특정 퀘스트의 힌트 단계 갱신 (저장)
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	void SetQuestHintLevel(FName QuestID, int32 NewLevel);
+
+	// 현재 저장된 힌트 단계에 맞는 텍스트 자동 반환
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	FText GetCurrentSessionHintText(FName QuestID) const;
+
+
+private:
+	// 퀘스트별 현재 진행 상태 저장소 (QuestID → 상태)
+	UPROPERTY()
+	TMap<FName, EQuestState> QuestStates;
+
+	// 퀘스트별 힌트 열람 단계 저장소 (0: 기본, 1: 디테일1, 2: 디테일2)
+	UPROPERTY()
+	TMap<FName, int32> QuestHintLevels;
+
+protected:
+	// Subsystem 생성 시 자동 호출됨. QuestScriptTable/QuestAnswerTable을 자동으로 찾아 연결함.
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+};

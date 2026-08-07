@@ -19,7 +19,7 @@ public:
 	const FCPResourceNodeState* FindState(const FCPResourceNodeKey& Key) const;
 	
 	// 채집 시(Pool 반환 및 Generation 갱신)
-	void MarkHarvested(const FCPResourceNodeKey& Key, double CurrentTime, double RespawnDuration);
+	void MarkHarvested(const FCPResourceNodeKey& Key, double CurrentTime = 0, double RespawnDuration = 0);
 	
 	// 리스폰 검사
 	bool IsReady(const FCPResourceNodeKey& Key, double CurrentTime) const;

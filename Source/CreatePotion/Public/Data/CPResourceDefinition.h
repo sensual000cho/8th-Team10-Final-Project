@@ -30,7 +30,7 @@ public:
 	
 	// 채집 아이템
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Harvest")
-	TSoftObjectPtr<UCPForageableItemData> HarvestedItem;
+	TObjectPtr<UCPForageableItemData> HarvestedItem;
 	
 	// 채집 개수
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Harvest",
