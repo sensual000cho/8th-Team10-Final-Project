@@ -14,4 +14,9 @@ class CREATEPOTION_API UCPBasePopupWidget : public UCPBaseUserWidget
 {
 	GENERATED_BODY()
 	
+public:
+	virtual bool RequiresUIFocus() const {return true;}
+	
+	UFUNCTION(BlueprintCallable, Category = "Popup")
+	void RequestClose();
 };
