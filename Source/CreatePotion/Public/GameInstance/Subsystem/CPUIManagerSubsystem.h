@@ -26,14 +26,22 @@ public:
 	}
 	
 	// 특정 위젯을 지정해서 닫기 (순서무관)
+	UFUNCTION(BlueprintCallable, Category = "UI|Debug")
 	void CloseWidget(UUserWidget* Widget);
+	
 	void CloseTopWidget();
 private:
 	struct FPopupEntry
 	{
 		UUserWidget* Widget = nullptr;
-		bool bRequiresUIFocus = true;
+		bool bRequiresUIFocus = true;  
 	};
 	TArray<FPopupEntry> OpenWidgets;
 	void UpdateInputMode(); 
+	
+public:
+	// 디버그용 BP함수
+	UFUNCTION(BlueprintCallable, Category = "UI|Debug")
+	UUserWidget* PushWidgetBP(TSubclassOf<UUserWidget> WidgetClass);
+	
 };
