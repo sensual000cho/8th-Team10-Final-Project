@@ -70,7 +70,7 @@ private:
 	TObjectPtr<URotatingMovementComponent> RotatingMovement;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Drop")
-	float DroppedScale = 0.6f;
+	float DroppedScale = 0.8f;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Drop")
 	float DropHorizontalSpeed = 100.f;
