@@ -15,15 +15,5 @@ void UCPCommonNotificationWidget::SetNotifiactionText(const FText& InText)
 void UCPCommonNotificationWidget::ShowWithAutoClose(const FText& InText, float Duration)
 {
 	SetNotifiactionText(InText);
-	
-	if (Duration > 0.f)
-	{
-		GetWorld()->GetTimerManager().SetTimer(
-			AutoCloseTimerHandle,
-			this,
-			&UCPCommonNotificationWidget::RequestClose,
-			Duration,
-			false
-		);
-	}
+	SetAutoClose(Duration);
 }
