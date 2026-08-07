@@ -6,9 +6,8 @@
 #include "NPC/CPBaseNPC.h"
 #include "CPLabNPC.generated.h"
 
-/**
- * 
- */
+class UCPNPCDialogueWidget;
+
 UCLASS()
 class CREATEPOTION_API ACPLabNPC : public ACPBaseNPC
 {
@@ -16,6 +15,9 @@ class CREATEPOTION_API ACPLabNPC : public ACPBaseNPC
 public:
 	virtual void OnInteract_Implementation(AActor* Interactor) override;
 	virtual bool CanInteract_Implementation(AActor* Interactor) override;
-	virtual FText GetInteractionPrompt_Implementation() override;
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<UCPNPCDialogueWidget> DialogueWidgetClass;
 
 };
