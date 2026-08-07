@@ -73,10 +73,19 @@ void ACPResourceNodeActor::Harvest(AActor* Interactor)
 	UCPResourceStateSubsystem* StateSubsystem = GameInstance->GetSubsystem<UCPResourceStateSubsystem>();
 	if (!StateSubsystem) return;
 	
-	ACPDroppedItemBase* DroppedItem = GetWorld()->SpawnActor<ACPDroppedItemBase>(ACPDroppedItemBase::StaticClass(), GetActorTransform());
+	ACPDroppedItemBase* DroppedItem = GetWorld()->SpawnActor<ACPDroppedItemBase>(
+		DroppedItemClass,
+		GetActorLocation(),
+		FRotator::ZeroRotator
+		);
 	if (!DroppedItem) return;
 	
-	DroppedItem->Initialize(ResourceDefinition->HarvestedItem, ResourceDefinition->HarvestAmount, ResourceDefinition->Mesh.LoadSynchronous());
+	DroppedItem->Initialize(ResourceDefinition->HarvestedItem, ResourceDefinition->HarvestAmount,
+		ResourceDefinition->Mesh.LoadSynchronous());
+	
+	const float RandomYaw = FMath::FRandRange(0.f, 360.f);
+	const FVector DropDirection = FRotator(0.f, RandomYaw, 0.f).Vector();
+	DroppedItem->StartDropMotion(DropDirection);
 	
 	StateSubsystem->MarkHarvested(NodeKey);
 	

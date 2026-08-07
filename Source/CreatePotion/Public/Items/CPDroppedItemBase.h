@@ -5,6 +5,10 @@
 #include "GameFramework/Actor.h"
 #include "CPDroppedItemBase.generated.h"
 
+class URotatingMovementComponent;
+class UTimelineComponent;
+class UProjectileMovementComponent;
+class USphereComponent;
 class UCPForageableItemData;
 
 // 바닥에 떨구는 아이템 베이스 액터
@@ -26,13 +30,61 @@ public:
 	// 아이템 데이터 초기화
 	void Initialize(UCPForageableItemData* InItemData, int32 InAmount, UStaticMesh* InMesh);
 	
-protected:
+	// 드랍 시 아이템 떨어지는 효과
+	void StartDropMotion(const FVector& DropDirection);
+	
+private:
+	UFUNCTION()
+	void OnDropMotionStopped(const FHitResult& ImpactResult);
+	
+	// 호버링	
+	UFUNCTION()
+	void UpdateHover(float Value);
+	
+	void StartHover();
+	
+private:
 	// 현재 아이템 데이터가 재료밖에 없어서 재료 아이템 데이터로 함
 	UPROPERTY(Transient)
 	TObjectPtr<UCPForageableItemData> ItemData;
 	
-	UPROPERTY(Transient)
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<USphereComponent> SphereCollision;
+	
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<USceneComponent> VisualRoot;
+	
+	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UStaticMeshComponent> Mesh;
 	
+	UPROPERTY(VisibleAnywhere, Category = "Drop")
+	TObjectPtr<UProjectileMovementComponent> DropMovement;
+	
+	UPROPERTY(VisibleAnywhere, Category = "Hover")
+	TObjectPtr<UTimelineComponent> HoverTimeline;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Hover")
+	TObjectPtr<UCurveFloat> HoverCurve;
+	
+	UPROPERTY(VisibleAnywhere, Category="Hover")
+	TObjectPtr<URotatingMovementComponent> RotatingMovement;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Drop")
+	float DroppedScale = 0.6f;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Drop")
+	float DropHorizontalSpeed = 100.f;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Drop")
+	float DropVerticalSpeed = 100.f;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Hover")
+	float HoverHeight = 20.f;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Hover")
+	float HoverAmplitude = 10.f;
+	
 	int32 Amount = 1;
+	
+	FVector HoverBaseLocation;
 };

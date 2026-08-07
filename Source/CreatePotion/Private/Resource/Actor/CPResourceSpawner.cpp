@@ -87,7 +87,7 @@ void ACPResourceSpawner::SpawnSlot(int32 SlotIndex)
 	const FTransform SpawnTransform = CalculateSpawnTransform(SlotIndex, State.Generation);
 	
 	ACPResourceNodeActor* ResourceActor = GetWorld()->SpawnActor<ACPResourceNodeActor>(
-		ACPResourceNodeActor::StaticClass(),
+		ResourceNodeActorClass,
 		SpawnTransform
 	);
 	if (!ResourceActor) return;
