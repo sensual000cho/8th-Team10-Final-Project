@@ -61,6 +61,8 @@ bool ACPLabGameMode::TryStartLabSessionWithRequests(const TArray<FCPLabPotionReq
 				-1, 3.0f, FColor::Cyan, 
 				FString::Printf(TEXT("[Lab] %s"), *ActiveRequestState.PotionRequest.DisplayText.ToString()));
 		}
+		Session->OnPotionResultChanged.RemoveDynamic(this, &ACPLabGameMode::ShowResultDebugMessage);
+		Session->OnPotionResultChanged.AddDynamic(this, &ACPLabGameMode::ShowResultDebugMessage);
 		SpawnIngredients();
 	}
 	return bStarted;
@@ -84,35 +86,69 @@ bool ACPLabGameMode::TrySelectRequest(FName RequestId)
 bool ACPLabGameMode::TryAcceptActiveRequest()
 {
 	UCPLabPotionSessionComponent* Session = GetPotionSession();
-	return Session &&
+	const bool bAccepted = Session &&
 		Session->TrySetRequestPhase(
 			GetActiveRequestId(),
 			ECPLabPotionRequestPhase::Preparing);
+
+	if (bAccepted && GEngine){
+		GEngine->AddOnScreenDebugMessage(
+			-1, 3.f, FColor::Cyan, TEXT("[Lab] Phase: Preparing"));
+	}
+
+	return bAccepted;
 }
 
 bool ACPLabGameMode::TryBeginActiveRequestProcessing()
 {
 	UCPLabPotionSessionComponent* Session = GetPotionSession();
-	return Session &&
+	const bool bProcessing = Session &&
 		Session->TrySetRequestPhase(
 			GetActiveRequestId(),
 			ECPLabPotionRequestPhase::Processing);
+
+	if (bProcessing && GEngine){
+		GEngine->AddOnScreenDebugMessage(
+			-1, 3.f, FColor::Cyan, TEXT("[Lab] Phase: Processing"));
+	}
+
+	return bProcessing;
 }
 
 bool ACPLabGameMode::TryFinishActivePotion()
 {
 	UCPLabPotionSessionComponent* Session = GetPotionSession();
-	return Session &&
-		Session->TrySetRequestPhase(
-			GetActiveRequestId(),
-			ECPLabPotionRequestPhase::PotionReady);
+	if (!Session) return false;
+	
+	const bool bFinished = Session->TrySetRequestPhase(
+		GetActiveRequestId(),
+		ECPLabPotionRequestPhase::PotionReady);
+	
+	if (bFinished){
+		if (GEngine){
+			GEngine->AddOnScreenDebugMessage(
+				-1, 3.f, FColor::Cyan, TEXT("[Lab] Phase: PotionReady"));
+		}
+		ShowResultDebugMessage(Session->GetPotionResult());
+	}
+	
+	return bFinished;
 }
 
 bool ACPLabGameMode::TryDeliverActivePotion()
 {
 	UCPLabPotionSessionComponent* Session = GetPotionSession();
-	return Session &&
-		Session->TryMarkRequestDelivered(GetActiveRequestId());
+	if (!Session) return false;
+	
+	const bool bDelivered = Session->TryMarkRequestDelivered(GetActiveRequestId());
+	if (!bDelivered) return false;
+	
+	if (GEngine){
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("[Lab] Completed"));
+	}
+	
+	ResetLabSession();
+	return true;
 }
 
 bool ACPLabGameMode::TryPlaceIngredient(
@@ -291,4 +327,20 @@ void ACPLabGameMode::ClearSpawnedIngredients()
 		}
 	}
 	SpawnedIngredients.Reset();
+}
+
+
+void ACPLabGameMode::ShowResultDebugMessage(const TArray<FAlchemyProperty>& EffectTotals)
+{
+	if (!GEngine || EffectTotals.IsEmpty()) return;
+	
+	FString ResultMessage = TEXT("[Lab] Potion Result");
+	
+	for (const FAlchemyProperty& EffectTotal : EffectTotals){
+		if (!EffectTotal.Tag.IsValid()) continue;
+		
+		ResultMessage += FString::Printf(TEXT("\n%s: %d"), *EffectTotal.Tag.ToString(), EffectTotal.Value);
+	}
+	
+	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, ResultMessage);
 }

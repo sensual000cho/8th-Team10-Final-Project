@@ -8,6 +8,8 @@
 class UStaticMeshComponent;
 class UCPForageableItemData;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FCPOnAlchemyPropChanged);
+
 // 공방에서 들고 다니며 가공하는 물리 재료 Actor
 UCLASS()
 class CREATEPOTION_API ACPAlchemyProp : public AActor
@@ -16,6 +18,10 @@ class CREATEPOTION_API ACPAlchemyProp : public AActor
 	
 public:	
 	ACPAlchemyProp();
+	
+	// Prop의 작업 재료값이 바뀌었음을 알림
+	UPROPERTY(BlueprintAssignable, Category = "Lab|Ingredient")
+	FCPOnAlchemyPropChanged OnAlchemyPropChanged;
 	
 	// ItemData의 원본 효과값을 복사해 새 작업 재료로 초기화
 	UFUNCTION(BlueprintCallable, Category = "Lab|Ingredient")

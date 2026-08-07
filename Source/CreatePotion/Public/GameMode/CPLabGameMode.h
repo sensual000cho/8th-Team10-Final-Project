@@ -81,6 +81,10 @@ private:
 	// Spawn된 재료 초기화
 	void ClearSpawnedIngredients();
 	
+	// 임시 DebugMessage
+	UFUNCTION()
+	void ShowResultDebugMessage(const TArray<FAlchemyProperty>& EffectTotals);
+	
 private:
 	// 실제 리퀘스트 시스템이 연결되기 전 사용할 테스트 데이터
 	UPROPERTY(EditDefaultsOnly, Category = "Lab|Debug")

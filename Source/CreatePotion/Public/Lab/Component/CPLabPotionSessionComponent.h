@@ -9,6 +9,8 @@ class UCPForageableItemData;
 class ACPAlchemyProp;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FCPOnLabSessionChanged);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
+	FCPOnLabPotionResultChanged, const TArray<FAlchemyProperty>&, EffectTotals);
 
 // 포션 세션과 리퀘스트별 슬롯 상태를 한곳에서 관리
 UCLASS()
@@ -58,10 +60,9 @@ public:
 	
 	// 완성된 포션을 납품 처리하고 필요하면 세션 완료
 	bool TryMarkRequestDelivered(FName RequestId);
-
-	// 세션이나 슬롯 상태가 바뀌었음을 Blueprint에 알림
-	UPROPERTY(BlueprintAssignable, Category = "Lab|Session")
-	FCPOnLabSessionChanged OnSessionChanged;
+	
+	UFUNCTION(BlueprintCallable, Category = "Lab|Result")
+	const TArray<FAlchemyProperty>& GetPotionResult() const;
 
 private:
 	// RequestId와 일치하는 상태의 배열 위치 찾기
@@ -83,10 +84,28 @@ private:
 
 	// 아직 납품하지 않은 다음 리퀘스트 ID 찾기
 	FName FindNextUndeliveredRequestId() const;
+	
+	UFUNCTION()
+	void HandleIngredientPropChanged();
+	
+	void ReBuildResult();
 
 	// 상태 변경 Delegate를 한곳에서 호출
 	void NotifySessionChanged();
 
+public:
+	// 세션이나 슬롯 상태가 바뀌었음을 Blueprint에 알림
+	UPROPERTY(BlueprintAssignable, Category = "Lab|Session")
+	FCPOnLabSessionChanged OnSessionChanged;
+	
+	// 현재 포션 결과값이 바뀌었음을 Blueprint에 알림
+	UPROPERTY(BlueprintAssignable, Category = "Lab|Session")
+	FCPOnLabPotionResultChanged OnPotionResultChanged;
+	
+private:
 	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Session")
 	FCPLabPotionSessionState SessionState;
+	
+	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Result")
+	TArray<FAlchemyProperty> CurrentPotionResult;
 };

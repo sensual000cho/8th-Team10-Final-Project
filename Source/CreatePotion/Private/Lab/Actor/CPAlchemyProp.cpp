@@ -17,7 +17,10 @@ void ACPAlchemyProp::InitializeFromItemData(UCPForageableItemData* ItemData)
 {
 	ResetWorkingIngredient();
 
-	if (!ItemData) return;
+	if (!ItemData){
+		OnAlchemyPropChanged.Broadcast();
+		return;
+	}
 
 	WorkingIngredient.SourceItemData = ItemData;
 
@@ -27,20 +30,24 @@ void ACPAlchemyProp::InitializeFromItemData(UCPForageableItemData* ItemData)
 
 		WorkingIngredient.CurrentEffects.Add(Property.Tag, Property.Value);
 	}
+	
+	OnAlchemyPropChanged.Broadcast();
 }
 
 bool ACPAlchemyProp::InitializeFromRequestSlot(
 	FName InRequestId, int32 InSourceSlotIndex, const FCPLabIngredientInstance& Ingredient)
 {
-	ResetWorkingIngredient();
-
 	if (InRequestId.IsNone() || InSourceSlotIndex < 0 || 
 		InSourceSlotIndex >= CPLabPotionRequestRules::IngredientSlotCapacity || !Ingredient.IsValid()) return false;
-
+	
+	ResetWorkingIngredient();
+	
 	// 작업을 마친 뒤 원래 슬롯에 돌아갈 수 있도록 출처도 함께 저장
 	SourceRequestId = InRequestId;
 	SourceSlotIndex = InSourceSlotIndex;
 	WorkingIngredient = Ingredient;
+	
+	OnAlchemyPropChanged.Broadcast();
 	return true;
 }
 
@@ -57,6 +64,7 @@ bool ACPAlchemyProp::SetWorkingIngredient(const FCPLabIngredientInstance& Ingred
 	if (WorkingIngredient.IsValid() && WorkingIngredient.SourceItemData != Ingredient.SourceItemData) return false;
 	
 	WorkingIngredient = Ingredient;
+	OnAlchemyPropChanged.Broadcast();
 	return true;
 }
 

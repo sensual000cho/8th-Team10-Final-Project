@@ -85,8 +85,20 @@ bool UCPLabPotionSessionComponent::StartSession(const TArray<FCPLabPotionRequest
 
 void UCPLabPotionSessionComponent::ResetSession()
 {
+	// Slot에 있는 Delegate 정리
+	for (FCPLabPotionRequestState& RequestState : SessionState.RequestStates){
+		for (ACPAlchemyProp* IngredientProp : RequestState.IngredientSlots){
+			if (!IsValid(IngredientProp)) continue;
+			IngredientProp->OnAlchemyPropChanged.RemoveDynamic(
+				this, &UCPLabPotionSessionComponent::HandleIngredientPropChanged);
+		}
+	}
+	
 	SessionState = FCPLabPotionSessionState{};
+	CurrentPotionResult.Reset();
+	
 	NotifySessionChanged();
+	OnPotionResultChanged.Broadcast(CurrentPotionResult);
 }
 
 bool UCPLabPotionSessionComponent::TrySetActiveRequest(FName RequestId)
@@ -96,10 +108,7 @@ bool UCPLabPotionSessionComponent::TrySetActiveRequest(FName RequestId)
 
 	const int32 RequestIndex = FindRequestIndex(RequestId);
 	if (RequestIndex == INDEX_NONE || 
-		SessionState.RequestStates[RequestIndex].Phase == ECPLabPotionRequestPhase::Delivered)
-	{
-		return false;
-	}
+		SessionState.RequestStates[RequestIndex].Phase == ECPLabPotionRequestPhase::Delivered) return false;
 
 	SessionState.ActiveRequestId = RequestId;
 	NotifySessionChanged();
@@ -133,9 +142,16 @@ bool UCPLabPotionSessionComponent::TryPlaceIngredient(
 		return false;
 	}
 
-	// 슬롯에는 Prop 참조를 저장
+	ACPAlchemyProp* PreviousIngredientProp = RequestState.IngredientSlots[SlotIndex];
+	if (IsValid(PreviousIngredientProp)){
+		PreviousIngredientProp->OnAlchemyPropChanged.RemoveDynamic(
+			this, &UCPLabPotionSessionComponent::HandleIngredientPropChanged);
+	}
+	
 	RequestState.IngredientSlots[SlotIndex] = IngredientProp;
+	
 	NotifySessionChanged();
+	ReBuildResult();
 	return true;
 }
 
@@ -151,8 +167,16 @@ bool UCPLabPotionSessionComponent::TryClearIngredient(FName RequestId, int32 Slo
 		return false;
 	}
 
+	// 현재 슬롯의 이전 delegate 정리
+	ACPAlchemyProp* IngredientProp = RequestState.IngredientSlots[SlotIndex];
+	if (IsValid(IngredientProp)){
+		IngredientProp->OnAlchemyPropChanged.RemoveDynamic(
+			this, &UCPLabPotionSessionComponent::HandleIngredientPropChanged);
+	}
+	
 	RequestState.IngredientSlots[SlotIndex] = nullptr;
 	NotifySessionChanged();
+	ReBuildResult();
 	return true;
 }
 
@@ -192,7 +216,13 @@ bool UCPLabPotionSessionComponent::TryMarkRequestDelivered(FName RequestId)
 	}
 
 	NotifySessionChanged();
+	ReBuildResult();
 	return true;
+}
+
+const TArray<FAlchemyProperty>& UCPLabPotionSessionComponent::GetPotionResult() const
+{
+	return CurrentPotionResult;
 }
 
 int32 UCPLabPotionSessionComponent::FindRequestIndex(FName RequestId) const
@@ -259,6 +289,46 @@ FName UCPLabPotionSessionComponent::FindNextUndeliveredRequestId() const
 	}
 	
 	return NAME_None;
+}
+
+void UCPLabPotionSessionComponent::HandleIngredientPropChanged()
+{
+	ReBuildResult();
+}
+
+void UCPLabPotionSessionComponent::ReBuildResult()
+{
+	TMap<FGameplayTag, int32> EffectTotalMap;
+	
+	// Map에 Key: Tag, Value: Value의 형태로 저장
+	FCPLabPotionRequestState ActiveRequestState;
+	if (GetActiveRequestState(ActiveRequestState)){
+		for (ACPAlchemyProp* IngredientProp : ActiveRequestState.IngredientSlots){
+			if (!IsValid(IngredientProp)) continue;
+			
+			const FCPLabIngredientInstance Ingredient = IngredientProp->GetWorkingIngredient();
+			if (!Ingredient.IsValid()) continue;
+			
+			for (const TPair<FGameplayTag, int32>& Effect : Ingredient.CurrentEffects){
+				if (!Effect.Key.IsValid()) continue;
+				
+				EffectTotalMap.FindOrAdd(Effect.Key) += Effect.Value;
+			}
+		}
+	}
+	
+	// 이전 결과 정리 및 Map을 Array로 변경
+	CurrentPotionResult.Reset();
+	CurrentPotionResult.Reserve(EffectTotalMap.Num());
+	
+	for (const TPair<FGameplayTag, int32>& Effect : EffectTotalMap){
+		FAlchemyProperty EffectTotal;
+		EffectTotal.Tag = Effect.Key;
+		EffectTotal.Value = Effect.Value;
+		CurrentPotionResult.Add(EffectTotal);
+	}
+	
+	OnPotionResultChanged.Broadcast(CurrentPotionResult);
 }
 
 void UCPLabPotionSessionComponent::NotifySessionChanged()
