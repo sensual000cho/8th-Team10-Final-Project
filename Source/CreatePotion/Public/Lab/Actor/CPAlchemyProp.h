@@ -8,6 +8,8 @@
 class UStaticMeshComponent;
 class UCPForageableItemData;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FCPOnAlchemyPropChanged);
+
 // 공방에서 들고 다니며 가공하는 물리 재료 Actor
 UCLASS()
 class CREATEPOTION_API ACPAlchemyProp : public AActor
@@ -17,6 +19,10 @@ class CREATEPOTION_API ACPAlchemyProp : public AActor
 public:	
 	ACPAlchemyProp();
 	
+	// Prop의 작업 재료값이 바뀌었음을 알림
+	UPROPERTY(BlueprintAssignable, Category = "Lab|Ingredient")
+	FCPOnAlchemyPropChanged OnAlchemyPropChanged;
+	
 	// ItemData의 원본 효과값을 복사해 새 작업 재료로 초기화
 	UFUNCTION(BlueprintCallable, Category = "Lab|Ingredient")
 	void InitializeFromItemData(UCPForageableItemData* ItemData);
@@ -24,12 +30,13 @@ public:
 	// 슬롯에서 꺼낸 재료와 원래 위치를 기억하도록 초기화
 	UFUNCTION(BlueprintCallable, Category = "Lab|Ingredient")
 	bool InitializeFromRequestSlot(
-		FName InRequestId,
-		int32 InSourceSlotIndex,
-		const FCPLabIngredientInstance& Ingredient);
+		FName InRequestId, int32 InSourceSlotIndex, const FCPLabIngredientInstance& Ingredient);
 
 	UFUNCTION(BlueprintPure, Category = "Lab|Ingredient")
 	FCPLabIngredientInstance GetWorkingIngredient() const;
+	
+	UFUNCTION(BlueprintCallable, Category = "Lab|Ingredient")
+	bool SetWorkingIngredient(const FCPLabIngredientInstance& Ingredient);
 
 	UFUNCTION(BlueprintPure, Category = "Lab|Ingredient")
 	UCPForageableItemData* GetSourceItemData() const;

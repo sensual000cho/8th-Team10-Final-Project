@@ -8,6 +8,7 @@
 #include "CPResourceNodeActor.generated.h"
 
 class UCPResourceDefinition;
+class ACPDroppedItemBase;
 
 UCLASS()
 class CREATEPOTION_API ACPResourceNodeActor : public AActor, public ICPInteractable, public ICPTimedInteractable
@@ -45,6 +46,9 @@ private:
 	
 	UPROPERTY(VisibleInstanceOnly, Category = "Resource")
 	FCPResourceNodeKey NodeKey;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Resource")
+	TSubclassOf<ACPDroppedItemBase> DroppedItemClass;
 	
 	UPROPERTY(Transient)
 	TObjectPtr<UCPResourceDefinition> ResourceDefinition;
