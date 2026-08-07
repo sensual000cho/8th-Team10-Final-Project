@@ -1,7 +1,7 @@
 ﻿// CPItemContainerComponent.h
 
 #include "Components/CPItemContainerComponent.h"
-#include "CreatePotion.h"                               // 로그용 헤더
+#include "CreatePotion.h"   // 로그용 헤더
 #include "Data/CPForageableItemData.h"
 
 UCPItemContainerComponent::UCPItemContainerComponent()
@@ -19,149 +19,171 @@ int32 UCPItemContainerComponent::TryGetItem(UCPForageableItemData* InItemData, i
     if (!InItemData || Count <= 0)
     {
         UE_LOG(LogContainer, Warning, TEXT("TryGetItem 실패: 아이템 데이터가 없거나 수량이 0 이하입니다."));
-        return Count; // int32 반환형에 맞게 반환
+        return Count;
     }
 
-    // 이미 기존 아이템이 존재하는지 확인 후 Stack
+    // 이미 기존 아이템이 존재하는지 확인 후, 존재한다면 Stack
     for (FContainerItem& Item : ContainerItems)
     {
-        // 같은 아이템이면서, MaxStack개가 안 된 슬롯을 찾음
         if (Item.ItemDataAsset == InItemData && Item.Stacked < MaxStack)
         {
-            int32 SpaceLeft = MaxStack - Item.Stacked;
+            int32 SpaceLeft = MaxStack - Item.Stacked;  // Stack 가능한 숫자
             int32 AmountToAdd = FMath::Min(Count, SpaceLeft);
             int32 OldStacked = Item.Stacked;
 
             Item.Stacked += AmountToAdd;
-            Count -= AmountToAdd; // 넣은 만큼 남은 수량 차감
+            Count -= AmountToAdd;   // 남은 수량
 
-            // [아이템 이름] / (n -> m) / 현재 [m/10]
-            UE_LOG(LogContainer, Log, TEXT("아이템 겹치기: [%s] GridIndex [%d]에 %d개 추가 (%d -> %d) / 현재 [%d / %d]"),
-                *InItemData->DisplayName.ToString(), Item.GridIndex, AmountToAdd, OldStacked, Item.Stacked, Item.Stacked, MaxStack);
+            UE_LOG(LogContainer, Log, TEXT("아이템 겹치기: [%s (%dx%d)] GridIndex [%d]에 %d개 추가 (%d -> %d) / 현재 [%d / %d]"),
+                *InItemData->DisplayName.ToString(),
+                InItemData->ContainerSizeX, InItemData->ContainerSizeY,
+                Item.GridIndex, AmountToAdd, OldStacked, Item.Stacked, Item.Stacked, MaxStack);
 
-            if (Count <= 0)
+            if (Count <= 0) // 남은 수량이 없으면 = 완벽하게 다 Stack되었으면
             {
-                // TODO: UI 업데이트 델리게이트 호출
-                return 0; // 성공적으로 다 넣었으므로 남은 수량 0 반환
+                OnContainerUpdated.Broadcast(); // 컨테이너 UI 업데이트
+                return 0;
             }
         }
     }
 
     // 남은 수량이 있다면 새로운 칸에 분할해서 넣기
-    int32 ItemWidth = 1;  // InItemData->SizeX; 
-    int32 ItemHeight = 1; // InItemData->SizeY;
-
-    // 남은 개수가 0이 될 때까지 계속 빈 공간을 찾음
     while (Count > 0)
     {
         int32 AmountToAdd = FMath::Min(Count, MaxStack);
         int32 FoundIndex = -1;
         bool bHasSpace = false;
+        bool bIsRotated = false; // 회전 여부
 
-        // 컨테이너 타입에 따라 빈 공간을 찾는 방식을 다르게 적용!
+        // 컨테이너 타입에 따라 빈 공간을 찾는 방식을 다르게 적용
         if (ContainerType == EContainerType::Grid2D)
         {
-            bHasSpace = FindGridSpace(ItemWidth, ItemHeight, FoundIndex);
+            FoundIndex = FindGridSpace(InItemData, bIsRotated);
+
+            // -1이 아니면 자리를 찾은 것
+            if (FoundIndex != -1)
+            {
+                bHasSpace = true;
+            }
         }
         else if (ContainerType == EContainerType::Slot1D)
         {
             bHasSpace = FindSlotSpace(FoundIndex);
         }
 
+        // 공간이 충분하면 아이템을 컨테이너에 넣기
         if (bHasSpace)
         {
             FContainerItem NewItem;
             NewItem.ItemDataAsset = InItemData;
             NewItem.Stacked = AmountToAdd;
             NewItem.GridIndex = FoundIndex;
+            NewItem.bIsRotated = bIsRotated;
 
             ContainerItems.Add(NewItem);
             Count -= AmountToAdd;
 
-            UE_LOG(LogContainer, Log, TEXT("새 아이템 획득 성공! GridIndex [%d]에 %d개 위치함. 현재 컨테이너 아이템 총 %d개"),
-                FoundIndex, AmountToAdd, ContainerItems.Num());
+            UE_LOG(LogContainer, Log, TEXT("새 아이템 획득 성공! [%s (%dx%d)] GridIndex [%d]에 %d개 위치함 (회전: %d) 현재 총 %d개"),
+                *InItemData->DisplayName.ToString(),
+                InItemData->ContainerSizeX, InItemData->ContainerSizeY,
+                FoundIndex, AmountToAdd, bIsRotated, ContainerItems.Num());
         }
         else
         {
-            // 공간이 꽉 차서 더 이상 넣을 수 없으면 루프 탈출
-            UE_LOG(LogContainer, Warning, TEXT("컨테이너 공간 부족! 다 넣지 못한 남은 %d개를 반환합니다."), Count);
+            UE_LOG(LogContainer, Warning, TEXT("컨테이너 공간 부족으로 인해 [%s] 남은 %d개를 반환"),
+                *InItemData->DisplayName.ToString(), Count);
             break;
         }
     }
 
-    // TODO: UI 업데이트 델리게이트 호출
-
-    // 전부 다 들어갔다면 0, 공간이 부족해서 남았다면 남은 Count 반환
+    // UI 업데이트 Broadcast
+    OnContainerUpdated.Broadcast();
     return Count;
 }
 
-bool UCPItemContainerComponent::FindGridSpace(int32 ItemWidth, int32 ItemHeight, int32& OutGridIndex)
+bool UCPItemContainerComponent::IsGridSpaceEnough(int32 TargetIndex, int32 ItemWidth, int32 ItemHeight) const
 {
+    if (TargetIndex < 0)
+    {
+        return false;
+    }
+    // 넣고자 하는 목표 위치의 2D 좌표 (X, Y)
+    int32 TargetCol = TargetIndex % Columns;
+    int32 TargetRow = TargetIndex / Columns;
+
+    // 컨테이너 경계선 검사
+    if (TargetCol + ItemWidth > Columns || TargetRow + ItemHeight > Rows)
+    {
+        return false; // 컨테이너 밖으로 아이템이 넘치면 불가능하다고 알리기
+    }
+
+    // 컨테이너 내 기존 아이템과 충돌 검사
+    for (const FContainerItem& ExistingItem : ContainerItems)
+    {
+        if (!ExistingItem.ItemDataAsset || ExistingItem.GridIndex < 0) continue;
+
+        // 기존 아이템의 위치 (X, Y)
+        int32 ExCol = ExistingItem.GridIndex % Columns;
+        int32 ExRow = ExistingItem.GridIndex / Columns;
+
+        // 기존 아이템의 가로/세로 (회전되어 있다면 Width와 Height를 바꿔서 계산)
+        int32 ExW = ExistingItem.bIsRotated ? ExistingItem.ItemDataAsset->ContainerSizeY : ExistingItem.ItemDataAsset->ContainerSizeX;
+        int32 ExH = ExistingItem.bIsRotated ? ExistingItem.ItemDataAsset->ContainerSizeX : ExistingItem.ItemDataAsset->ContainerSizeY;
+
+        // Overlap 판별
+        bool bOverlapX = (TargetCol < ExCol + ExW) && (TargetCol + ItemWidth > ExCol);
+        bool bOverlapY = (TargetRow < ExRow + ExH) && (TargetRow + ItemHeight > ExRow);
+
+        // X축도 겹치고 Y축 둘 다 Overlap될 때
+        if (bOverlapX && bOverlapY)
+        {
+            return false;
+        }
+    }
+
+    // 경계선도 안 넘고, 겹치는 아이템도 없다면 true를 반환하여 빈 공간임을 알림
+    return true;
+}
+
+int32 UCPItemContainerComponent::FindGridSpace(UCPForageableItemData* ItemData, bool& bOutIsRotated)
+{
+    if (!ItemData)
+    {
+        return -1;
+    }
+
+    int32 ItemW = ItemData->ContainerSizeX;
+    int32 ItemH = ItemData->ContainerSizeY;
     int32 TotalSlots = Columns * Rows;
-    TArray<bool> OccupiedGrid;
-    OccupiedGrid.Init(false, TotalSlots);
 
-    // 현재 인벤토리에 있는 아이템들을 바탕으로 '사용 중'인 칸을 모두 true로 칠함
-    for (const FContainerItem& Item : ContainerItems)
+    // 정방향으로 가방 맨 앞부터 끝까지 빈 곳이 있나 찾기
+    for (int32 i = 0; i < TotalSlots; ++i)
     {
-        if (!Item.ItemDataAsset || Item.GridIndex < 0) continue;
-
-        // 아이템의 가로 세로 크기
-        // 회전 여부에 따라 Width와 Height를 바꿔줌, false일 때 원래대로
-        // int32 W = Item.bIsRotated ? ItemHeight : ItemWidth;
-        // int32 H = Item.bIsRotated ? ItemWidth : ItemHeight;
-        int32 W = Item.bIsRotated ? 1 : 1;
-        int32 H = Item.bIsRotated ? 1 : 1;
-
-        int32 StartX = Item.GridIndex % Columns;
-        int32 StartY = Item.GridIndex / Columns;
-
-        for (int32 y = 0; y < H; ++y)
+        bool bIsGridEnough = IsGridSpaceEnough(i, ItemW, ItemH);
+        if (bIsGridEnough)
         {
-            for (int32 x = 0; x < W; ++x)
+            bOutIsRotated = false;
+            return i; // Grid Index를 반환하여 해당 Index에 아이템을 배치하라고 Return
+        }
+    }
+
+    // 만약 정방향 자리가 없고 가로/세로 길이가 다른 아이템이라면
+    if (ItemW != ItemH)
+    {
+        for (int32 i = 0; i < TotalSlots; ++i)
+        {
+            // ItemW와 ItemH의 자리를 바꿔서(회전해서) 검사
+            if (IsGridSpaceEnough(i, ItemH, ItemW))
             {
-                int32 MarkIndex = (StartY + y) * Columns + (StartX + x);
-                if (OccupiedGrid.IsValidIndex(MarkIndex))
-                {
-                    OccupiedGrid[MarkIndex] = true;
-                }
+                bOutIsRotated = true; // 회전해서 넣어야 한다고 회전값을 true로 변경
+                return i; // Grid Index를 반환하여 해당 Index에 아이템을 배치하라고 Return
             }
         }
     }
 
-    // 왼쪽 위부터 빈 공간을 찾기 시작
-    for (int32 y = 0; y <= Rows - ItemHeight; ++y)
-    {
-        for (int32 x = 0; x <= Columns - ItemWidth; ++x)
-        {
-            bool bCanFit = true;
-
-            // (x, y) 위치에 아이템(Width x Height)을 놓을 수 있는지 검사
-            for (int32 checkY = 0; checkY < ItemHeight; ++checkY)
-            {
-                for (int32 checkX = 0; checkX < ItemWidth; ++checkX)
-                {
-                    int32 CheckIndex = (y + checkY) * Columns + (x + checkX);
-                    if (OccupiedGrid[CheckIndex] == true)
-                    {
-                        bCanFit = false;
-                        break; // 겹치는 칸 발견 시 즉시 중단
-                    }
-                }
-                if (!bCanFit) break;
-            }
-
-            // 공간을 찾았다면 해당 위치의 인덱스를 반환하고 종료
-            if (bCanFit)
-            {
-                OutGridIndex = y * Columns + x;
-                return true;
-            }
-        }
-    }
-
-    // 모든 칸을 확인했지만 공간이 없을 때 = 임시 인벤토리 생성
-    return false;
+    // 모든 공간을 찾았는데도 자리가 없으면 실패
+    bOutIsRotated = false;
+    return -1; // Grid Index가 -1이면 자리가 없는 경우 = 임시 인벤토리로
 }
 
 bool UCPItemContainerComponent::FindSlotSpace(int32& OutGridIndex)

@@ -4,50 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Types/CPContainerTypes.h"
 #include "CPItemContainerComponent.generated.h"
 
+// 아이템 목록이 갱신되었음을 알리는 델리게이트, UI에 사용
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnContainerUpdatedSignature);
+
 class UCPForageableItemData;
-
-UENUM(BlueprintType)
-enum class EContainerType : uint8
-{
-    Slot1D UMETA(DisplayName = "슬롯형 (가공, 장비창)"),
-    Grid2D UMETA(DisplayName = "격자형 (인벤토리, 창고, 상점)")
-};
-
-USTRUCT(BlueprintType)
-struct FContainerItem
-{
-    GENERATED_BODY()
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
-    UCPForageableItemData* ItemDataAsset = nullptr;
-
-    // 현재 개수
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
-    int32 Stacked = 1;
-
-    // 그리드 위치
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
-    int32 GridIndex = -1;
-
-    // 현재 아이템이 회전되어 있는지 여부, false = 정방향, true = 회전
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
-    bool bIsRotated = false;
-
-    // Hash를 사용하여 Key값으로 정렬도 되지 않고 레플리케이션을 지원하지 않는 TMap 대신
-    // 몇 가지 안되는 특성의 값을 캐싱해서 정렬 구현, 이후에 속성이 늘어날 경우 배열로 관리
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Tag")
-    int32 Tag_A = 0;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Tag")
-    int32 Tag_B = 0;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Tag")
-    int32 Tag_C = 0;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Tag")
-    int32 Tag_D = 0;
-    //UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Tag")
-    //FString Tag_SP = 0;
-};
 
 UCLASS( ClassGroup=(CPContainer), meta=(BlueprintSpawnableComponent) )
 class CREATEPOTION_API UCPItemContainerComponent : public UActorComponent
@@ -62,15 +25,18 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Container")
     virtual int32 TryGetItem(UCPForageableItemData* InItemData, int32 Count);
 
+    // 특정 인덱스에 특정 크기(Width, Height)의 아이템을 넣을 수 있는지 2D 충돌 검사
+    bool IsGridSpaceEnough(int32 TargetIndex, int32 ItemWidth, int32 ItemHeight) const;
+
+    // 2D 그리드 검색 (아이템 고유 크기 사용)
+    int32 FindGridSpace(UCPForageableItemData* ItemData, bool& bOutIsRotated);
+
 protected:
 	virtual void BeginPlay() override;
 
 private:
     // 1D 슬롯 검색 (크기 무시, 무조건 1칸)
     bool FindSlotSpace(int32& OutGridIndex);
-
-    // 2D 그리드 검색 (아이템 고유 크기 사용)
-    bool FindGridSpace(int32 ItemWidth, int32 ItemHeight, int32& OutGridIndex);
 
 public:
     // 컨테이너 타입
@@ -83,9 +49,9 @@ public:
 
     // Grid 모드일 때 사용할 가로/세로 크기
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container|Settings", meta = (EditCondition = "ContainerType == EContainerType::Grid2D"))
-    int32 Columns = 8;
+    int32 Columns = 3;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container|Settings", meta = (EditCondition = "ContainerType == EContainerType::Grid2D"))
-    int32 Rows = 3;
+    int32 Rows = 6;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container")
     TArray<FContainerItem> ContainerItems;
@@ -93,4 +59,7 @@ public:
     // TODO : 재료 별 최대 스택 개수는 아이템 DataAsset에서 가져올 수 있도록
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Container")
     int32 MaxStack = 10;
+
+    UPROPERTY(BlueprintAssignable, Category = "Container|Event")
+    FOnContainerUpdatedSignature OnContainerUpdated;
 };
