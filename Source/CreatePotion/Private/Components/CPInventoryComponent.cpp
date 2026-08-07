@@ -1,7 +1,7 @@
 ﻿// CPInventoryComponent.cpp
 
 #include "Components/CPInventoryComponent.h"
-#include "CreatePotion.h"	// 로그용
+#include "CreatePotion.h"   // 로그용 헤더
 
 int32 UCPInventoryComponent::TryGetItem(UCPForageableItemData* InItemData, int32 Count)
 {
