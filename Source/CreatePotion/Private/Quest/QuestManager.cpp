@@ -17,6 +17,13 @@ void UQuestManager::AcceptQuest(FName QuestID)
 		return;
 	}
 
+	// 처음 수락하는 퀘스트라면 순서 기록에 추가
+	if (!QuestStates.Contains(QuestID))
+	{
+		QuestOrder.Add(QuestID);
+	}
+
+
 	QuestStates.Add(QuestID, EQuestState::Accepted);
 	OnQuestUpdated.Broadcast(QuestID, EQuestState::Accepted);
 	UE_LOG(LogTemp, Warning, TEXT("퀘스트 수락: %s"), *QuestID.ToString());
@@ -99,9 +106,7 @@ FText UQuestManager::GetSessionHintTextDetailed2(FName QuestID) const
 // 저널용 퀘스트 전체 조회 함수
 TArray<FName> UQuestManager::GetAllTrackedQuestIDs() const
 {
-	TArray<FName> Result;
-	QuestStates.GetKeys(Result);
-	return Result;
+	return QuestOrder;  // TMap 대신 순서가 보장된 배열 반환
 }
 
 // ===================================================================
@@ -318,3 +323,45 @@ void UQuestManager::TestTryDeliver()
 	EDeliveryGrade Grade = TryDeliver(FName("Origin_Q001"), TestPotion);
 	UE_LOG(LogTemp, Warning, TEXT("테스트 결과 등급: %d"), (int32)Grade);
 }
+
+#pragma region 리퀘스트 힌트 단계 저장 관련
+int32 UQuestManager::GetQuestHintLevel(FName QuestID) const
+{
+	// 맵에 기록된 힌트 단계가 있다면 반환, 없다면 0단계(처음) 반환
+	if (const int32* Level = QuestHintLevels.Find(QuestID))
+	{
+		return *Level;
+	}
+	return 0;
+}
+
+void UQuestManager::SetQuestHintLevel(FName QuestID, int32 NewLevel)
+{
+	// 새로운 힌트 단계 저장 (기존에 있으면 덮어쓰기)
+	QuestHintLevels.Add(QuestID, NewLevel);
+	UE_LOG(LogTemp, Log, TEXT("퀘스트 %s 힌트 단계 %d(으)로 갱신"), *QuestID.ToString(), NewLevel);
+}
+
+FText UQuestManager::GetCurrentSessionHintText(FName QuestID) const
+{
+	if (!QuestAnswerTable) return FText::GetEmpty();
+
+	FQuestAnswerData* Answer = QuestAnswerTable->FindRow<FQuestAnswerData>(QuestID, TEXT(""));
+	if (!Answer) return FText::GetEmpty();
+
+	// 저장된 힌트 단계를 확인해서 알맞은 대사를 반환
+	int32 Level = GetQuestHintLevel(QuestID);
+
+	if (Level == 1)
+	{
+		return Answer->SessionHintText_Detailed;
+	}
+	else if (Level >= 2)
+	{
+		return Answer->SessionHintText_Detailed2; 
+	}
+
+	// Level이 0이거나 그 외의 경우 기본 힌트
+	return Answer->SessionHintText;
+}
+#pragma endregion

@@ -23,6 +23,11 @@ void ACPBaseNPC::OnInteract_Implementation(AActor* Interactor)
 
 FText ACPBaseNPC::GetInteractionPrompt_Implementation()
 {
+    if (!CanInteract_Implementation(nullptr))
+    {
+        return FText::GetEmpty();
+    }
+
     UE_LOG(LogTemp, Log, TEXT("[대화하기] GetInteractionPrompt called"));
 
     //확인용, 추후 삭제 예정
@@ -37,10 +42,9 @@ FText ACPBaseNPC::GetInteractionPrompt_Implementation()
                 EQuestState CurrentState = QuestManager->GetQuestState(QuestID);
                 if (CurrentState == EQuestState::NotAccepted)
                 {
-                    FText FullScript = QuestManager->GetQuestFullText(QuestID);
-                    UE_LOG(LogTemp, Warning, TEXT("========================================"));
-                    UE_LOG(LogTemp, Warning, TEXT("[퀘스트 대사 확인] QuestID: %s"), *QuestID.ToString());
-                    UE_LOG(LogTemp, Warning, TEXT("[대사 내용]: %s"), *FullScript.ToString());
+                    FText FullScript = QuestManager->GetQuestFullText(QuestID);  
+                    UE_LOG(LogTemp, Log, TEXT("[퀘스트 대사 확인] QuestID: %s"), *QuestID.ToString());
+                    UE_LOG(LogTemp, Log, TEXT("[대사 내용]: %s"), *FullScript.ToString());
                  
                 }
             }
@@ -48,17 +52,17 @@ FText ACPBaseNPC::GetInteractionPrompt_Implementation()
             {
                 if (QuestID.IsNone()) { continue; }
 
-                //if (QuestManager->GetQuestState(QuestID) == EQuestState::Accepted)
-                //{
+                if (QuestManager->GetQuestState(QuestID) == EQuestState::Accepted)
+                {
                     FText HintScript = QuestManager->GetSessionHintText(QuestID);
-                    UE_LOG(LogTemp, Warning, TEXT("[리퀘스트 대사 확인] QuestID: %s"), *QuestID.ToString());
-                    UE_LOG(LogTemp, Warning, TEXT("[대사 내용]: %s"), *HintScript.ToString());
-                    UE_LOG(LogTemp, Warning, TEXT("========================================"));
-                //}
+                    UE_LOG(LogTemp, Log, TEXT("[리퀘스트 대사 확인] QuestID: %s"), *QuestID.ToString());
+                    UE_LOG(LogTemp, Log, TEXT("[대사 내용]: %s"), *HintScript.ToString());
+                  
+                }
             }
         }
     }
-    return FText::FromString(TEXT("대화하기"));
+    return FText::FromString(TEXT("F : 대화하기"));
 }
 
 bool ACPBaseNPC::CanInteract_Implementation(AActor* Interactor)

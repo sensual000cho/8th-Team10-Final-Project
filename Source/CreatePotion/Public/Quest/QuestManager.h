@@ -95,10 +95,32 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	void TestTryDeliver();
 
+	// 특정 퀘스트의 현재 힌트 단계 조회
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	int32 GetQuestHintLevel(FName QuestID) const;
+
+	// 특정 퀘스트의 힌트 단계 갱신 (저장)
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	void SetQuestHintLevel(FName QuestID, int32 NewLevel);
+
+	// 현재 저장된 힌트 단계에 맞는 텍스트 자동 반환
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	FText GetCurrentSessionHintText(FName QuestID) const;
+
+
 private:
 	// 퀘스트별 현재 진행 상태 저장소 (QuestID → 상태)
 	UPROPERTY()
 	TMap<FName, EQuestState> QuestStates;
+
+	// 퀘스트별 힌트 열람 단계 저장소 (0: 기본, 1: 디테일1, 2: 디테일2)
+	UPROPERTY()
+
+	TMap<FName, int32> QuestHintLevels;
+	// 수락한 순서를 기록하는 배열
+	UPROPERTY()
+	TArray<FName> QuestOrder;
+
 
 protected:
 	// Subsystem 생성 시 자동 호출됨. QuestScriptTable/QuestAnswerTable을 자동으로 찾아 연결함.

@@ -1,6 +1,8 @@
 ﻿#include "NPC/CPTownNPC.h"
 #include "Quest/QuestManager.h"
 #include "Data/CPNPCDataAsset.h"
+#include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
+#include "UI/Widgets/Common/Dialogue/CPNPCDialogueWidget.h"
 
 void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 {
@@ -16,6 +18,9 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 	UQuestManager* QuestManager = GameInstance->GetSubsystem<UQuestManager>();
 	if (!QuestManager) { return; }
 
+	UCPUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UCPUIManagerSubsystem>();
+	if (!UIManager) { return; }
+
 	// DA(TownQuestIDs)에 지정된 퀘스트 ID들만 순회
 	for (const FName& QuestID : NPCData->TownQuestIDs)
 	{
@@ -27,13 +32,19 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 		if (CurrentState == EQuestState::NotAccepted)
 		{
 			FText FullScript = QuestManager->GetQuestFullText(QuestID);
-			UE_LOG(LogTemp, Warning, TEXT("[%s 마을대화 - QuestID: %s]: %s"),
+			UE_LOG(LogTemp, Log, TEXT("[%s 마을대화 - QuestID: %s]: %s"),
 				*NPCData->NPCName.ToString(),
 				*QuestID.ToString(),
 				*FullScript.ToString());
+			if (DialogueWidgetClass)
+			{
+				if (UCPNPCDialogueWidget* DialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidgetBP(DialogueWidgetClass)))
+				{
+					FText NPCNameText = FText::FromName(NPCData->NPCName);
+					DialogueWidget->InitDialogue(false, QuestID, NPCNameText, FullScript);
+				}
+			}
 
-			// TODO: 실제 UI 대화창에 FullScript 띄우기
-			QuestManager->AcceptQuest(QuestID);
 			break;
 		}
 	}
@@ -62,16 +73,4 @@ bool ACPTownNPC::CanInteract_Implementation(AActor* Interactor)
 
 	// 모든 퀘스트를 수락했다면 상호작용 불가 상태 (false)로 만듦
 	return false;
-}
-
-FText ACPTownNPC::GetInteractionPrompt_Implementation()
-{
-	// 만약 대화할 거리가 안 남아서 상호작용 불가능 상태라면
-	if (!CanInteract_Implementation(nullptr))
-	{
-		// 빈 텍스트를 반환해서 UI 프롬프트나 로그 출력을 완전히 숨김
-		return FText::GetEmpty();
-	}
-
-	return Super::GetInteractionPrompt_Implementation();
 }
