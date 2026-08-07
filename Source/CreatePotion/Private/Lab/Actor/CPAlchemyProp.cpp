@@ -17,47 +17,37 @@ void ACPAlchemyProp::InitializeFromItemData(UCPForageableItemData* ItemData)
 {
 	ResetWorkingIngredient();
 
-	if (!ItemData)
-	{
+	if (!ItemData){
+		OnAlchemyPropChanged.Broadcast();
 		return;
 	}
 
 	WorkingIngredient.SourceItemData = ItemData;
 
 	// DataAsset의 원본 효과값을 복사해 Actor만의 작업값 생성
-	for (const FAlchemyProperty& Property : ItemData->TagAxes)
-	{
-		if (!Property.Tag.IsValid())
-		{
-			continue;
-		}
+	for (const FAlchemyProperty& Property : ItemData->TagAxes){
+		if (!Property.Tag.IsValid())continue;
 
-		WorkingIngredient.CurrentEffects.Add(
-			Property.Tag,
-			Property.Value);
+		WorkingIngredient.CurrentEffects.Add(Property.Tag, Property.Value);
 	}
+	
+	OnAlchemyPropChanged.Broadcast();
 }
 
 bool ACPAlchemyProp::InitializeFromRequestSlot(
-	FName InRequestId,
-	int32 InSourceSlotIndex,
-	const FCPLabIngredientInstance& Ingredient)
+	FName InRequestId, int32 InSourceSlotIndex, const FCPLabIngredientInstance& Ingredient)
 {
+	if (InRequestId.IsNone() || InSourceSlotIndex < 0 || 
+		InSourceSlotIndex >= CPLabPotionRequestRules::IngredientSlotCapacity || !Ingredient.IsValid()) return false;
+	
 	ResetWorkingIngredient();
-
-	if (InRequestId.IsNone() ||
-		InSourceSlotIndex < 0 ||
-		InSourceSlotIndex >=
-			CPLabPotionRequestRules::IngredientSlotCapacity ||
-		!Ingredient.IsValid())
-	{
-		return false;
-	}
-
+	
 	// 작업을 마친 뒤 원래 슬롯에 돌아갈 수 있도록 출처도 함께 저장
 	SourceRequestId = InRequestId;
 	SourceSlotIndex = InSourceSlotIndex;
 	WorkingIngredient = Ingredient;
+	
+	OnAlchemyPropChanged.Broadcast();
 	return true;
 }
 
@@ -65,6 +55,17 @@ FCPLabIngredientInstance
 ACPAlchemyProp::GetWorkingIngredient() const
 {
 	return WorkingIngredient;
+}
+
+bool ACPAlchemyProp::SetWorkingIngredient(const FCPLabIngredientInstance& Ingredient)
+{
+	if (!Ingredient.IsValid()) return false;
+	
+	if (WorkingIngredient.IsValid() && WorkingIngredient.SourceItemData != Ingredient.SourceItemData) return false;
+	
+	WorkingIngredient = Ingredient;
+	OnAlchemyPropChanged.Broadcast();
+	return true;
 }
 
 UCPForageableItemData* ACPAlchemyProp::GetSourceItemData() const
@@ -89,8 +90,7 @@ int32 ACPAlchemyProp::GetSourceSlotIndex() const
 
 bool ACPAlchemyProp::IsAssignedToRequestSlot() const
 {
-	return !SourceRequestId.IsNone() &&
-		SourceSlotIndex != INDEX_NONE;
+	return !SourceRequestId.IsNone() && SourceSlotIndex != INDEX_NONE;
 }
 
 void ACPAlchemyProp::ResetWorkingIngredient()

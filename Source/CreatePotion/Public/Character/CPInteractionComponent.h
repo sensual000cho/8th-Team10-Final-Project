@@ -7,6 +7,12 @@
 #include "CPInteractionComponent.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPromptChanged, FText, Prompt);
+
+// 상호작용 프로그레스 델리게이트
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInteractionStarted);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInteractionProgressChanged, float, Progress);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInteractionCompleted);
+
 class UCameraComponent;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -22,6 +28,15 @@ public:
 	
 	UPROPERTY(BlueprintAssignable)
 	FOnPromptChanged OnPromptChanged;
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnInteractionStarted OnInteractionStarted;
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnInteractionProgressChanged OnInteractionProgressChanged;
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnInteractionCompleted OnInteractionCompleted;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float TraceDistance = 200.f; // 감지 거리
