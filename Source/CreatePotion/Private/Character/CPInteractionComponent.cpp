@@ -308,6 +308,8 @@ void UCPInteractionComponent::StartTimedInteraction(AActor* Target, float Durati
 	InteractionElapsedTime = 0.f;
 
 	ICPTimedInteractable::Execute_OnInteractionStarted(Target, GetOwner());
+	
+	OnInteractionStarted.Broadcast();
 
 	World->GetTimerManager().SetTimer(
 		InteractionTimerHandle,
@@ -327,6 +329,8 @@ void UCPInteractionComponent::UpdateTimedInteraction()
 	}
 
 	InteractionElapsedTime += InteractionUpdateInterval;
+	
+	OnInteractionProgressChanged.Broadcast(InteractionElapsedTime / InteractionDuration);
 
 	if (InteractionElapsedTime >= InteractionDuration)
 	{
@@ -352,6 +356,8 @@ void UCPInteractionComponent::CompleteTimedInteraction()
 
 	InteractionDuration = 0.f;
 	InteractionElapsedTime = 0.f;
+	
+	OnInteractionCompleted.Broadcast();
 
 	if (!Target || !Target->Implements<UCPInteractable>())
 	{

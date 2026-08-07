@@ -5,8 +5,10 @@
 #include "Lab/CPLabPotionRequestTypes.h"
 #include "CPLabGameMode.generated.h"
 
+class ACPAlchemyProp;
 class ACPLabGameState;
 class UCPLabPotionSessionComponent;
+class UCPForageableItemData;
 
 // Blueprint와 월드 Actor가 포션 세션 기능을 호출하는 입구
 UCLASS()
@@ -23,8 +25,7 @@ public:
 
 	// 외부에서 전달받은 리퀘스트 목록으로 세션 시작
 	UFUNCTION(BlueprintCallable, Category = "Lab|Session")
-	bool TryStartLabSessionWithRequests(
-		const TArray<FCPLabPotionRequest>& PotionRequests);
+	bool TryStartLabSessionWithRequests(const TArray<FCPLabPotionRequest>& PotionRequests);
 
 	// 진행 중인 포션 세션을 벨 대기 상태로 초기화
 	UFUNCTION(BlueprintCallable, Category = "Lab|Session")
@@ -52,30 +53,15 @@ public:
 
 	// 지정한 리퀘스트 슬롯에 재료 배치 요청
 	UFUNCTION(BlueprintCallable, Category = "Lab|Request")
-	bool TryPlaceIngredient(
-		FName RequestId,
-		int32 SlotIndex,
-		const FCPLabIngredientInstance& Ingredient);
+	bool TryPlaceIngredient(FName RequestId, int32 SlotIndex, ACPAlchemyProp* Ingredient);
 
 	// 지정한 리퀘스트 슬롯의 재료 제거 요청
 	UFUNCTION(BlueprintCallable, Category = "Lab|Request")
-	bool TryClearIngredient(
-		FName RequestId,
-		int32 SlotIndex);
+	bool TryClearIngredient(FName RequestId, int32 SlotIndex);
 
-	// 슬롯 재료를 가공 Actor가 사용할 작업본으로 가져오기
+	// 지정한 리퀘스트 슬롯에 등록된 Prop 참조 가져오기
 	UFUNCTION(BlueprintCallable, Category = "Lab|Request")
-	bool TryCreateWorkingIngredient(
-		FName RequestId,
-		int32 SlotIndex,
-		FCPLabIngredientInstance& OutWorkingIngredient) const;
-
-	// 가공이 끝난 작업본을 지정한 슬롯에 반영
-	UFUNCTION(BlueprintCallable, Category = "Lab|Request")
-	bool TryCommitWorkingIngredient(
-		FName RequestId,
-		int32 SlotIndex,
-		const FCPLabIngredientInstance& WorkingIngredient);
+	bool TryGetIngredientPropFromSlot(FName RequestId, int32 SlotIndex, ACPAlchemyProp*& OutIngredientProp) const;
 
 	// 현재 상태를 다음 단계로 넘기는 테스트 전용 함수
 	UFUNCTION(BlueprintCallable, Category = "Lab|Debug")
@@ -85,8 +71,34 @@ private:
 	ACPLabGameState* GetLabGameState() const;
 	UCPLabPotionSessionComponent* GetPotionSession() const;
 	FName GetActiveRequestId() const;
-
+	
+	// 재료를 Spawn할 Actor 탐색
+	void CollectSlotActors(TArray<AActor*>& OutSlotActors) const;
+	
+	// 재료 Spawn
+	bool SpawnIngredients();
+	
+	// Spawn된 재료 초기화
+	void ClearSpawnedIngredients();
+	
+	// 임시 DebugMessage
+	UFUNCTION()
+	void ShowResultDebugMessage(const TArray<FAlchemyProperty>& EffectTotals);
+	
+private:
 	// 실제 리퀘스트 시스템이 연결되기 전 사용할 테스트 데이터
 	UPROPERTY(EditDefaultsOnly, Category = "Lab|Debug")
 	TArray<FCPLabPotionRequest> DefaultTestRequests;
+	
+	// 실제 DA가 넘어오기 전 사용할 임시 지정값
+	UPROPERTY(EditDefaultsOnly, Category = "Lab|Debug")
+	TArray<TObjectPtr<UCPForageableItemData>> TestIngredients;
+	
+	// 재료를 놓을 SlotActor 탐색용 태그
+	UPROPERTY(EditDefaultsOnly, Category = "Lab|Debug")
+	FName SlotActorTag;
+	
+	// 생성된 재료를 관리하는 배열
+	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Debug")
+	TArray<TObjectPtr<ACPAlchemyProp>> SpawnedIngredients;
 };

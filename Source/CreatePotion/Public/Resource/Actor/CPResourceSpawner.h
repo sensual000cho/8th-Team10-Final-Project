@@ -5,6 +5,7 @@
 #include "Resource/CPResourceType.h"
 #include "CPResourceSpawner.generated.h"
 
+class ACPResourceNodeActor;
 class UCPResourceDefinition;
 class UBoxComponent;
 
@@ -52,6 +53,10 @@ private:
 	
 	UPROPERTY(VisibleAnywhere, Category = "Component")
 	TObjectPtr<UBoxComponent> SpawnArea;
+	
+	// 스폰될 채집물 클래스
+	UPROPERTY(EditDefaultsOnly, Category = "Resource")
+	TSubclassOf<ACPResourceNodeActor> ResourceNodeActorClass;
 	
 	UPROPERTY(EditAnywhere, Category = "Resource")
 	TSoftObjectPtr<UCPResourceDefinition> ResourceDefinition;
