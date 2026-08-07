@@ -41,6 +41,12 @@ public:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
 	TSoftObjectPtr<UTexture2D> Icon;
+
+	// 인벤토리 임시
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
+	int32 ContainerSizeX = 1;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
+	int32 ContainerSizeY = 1;
 	
 	// Prop	
 	// AActor -> 관련 액터 구현 시 변경
