@@ -7,6 +7,8 @@
 #include "Engine/DataAsset.h"
 #include "CPForageableItemData.generated.h"
 
+class ACPAlchemyProp;
+
 USTRUCT(BlueprintType)
 struct FAlchemyProperty
 {
@@ -51,7 +53,7 @@ public:
 	// Prop	
 	// AActor -> 관련 액터 구현 시 변경
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop")
-	TSoftClassPtr<AActor> AlchemyPropClass;
+	TSoftClassPtr<ACPAlchemyProp> AlchemyPropClass;
 	
 	// 도감
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Codex")
