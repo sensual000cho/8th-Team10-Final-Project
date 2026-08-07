@@ -10,5 +10,4 @@ UCLASS()
 class CREATEPOTION_API ACPLabHUD : public ACPHUDBase
 {
 	GENERATED_BODY()
-	
 };

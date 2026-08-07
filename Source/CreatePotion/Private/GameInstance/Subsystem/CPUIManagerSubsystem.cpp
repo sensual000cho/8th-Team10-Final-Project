@@ -4,6 +4,7 @@
 #include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
 #include "GameFramework/PlayerController.h"
 #include "Blueprint/UserWidget.h"
+#include "UI/Widgets/Base/CPBasePopupWidget.h"
 
 void UCPUIManagerSubsystem::CloseWidget(UUserWidget* Widget)
 {
@@ -57,3 +58,26 @@ void UCPUIManagerSubsystem::UpdateInputMode()
 		PC->bShowMouseCursor = false;
 	}
 }
+
+UUserWidget* UCPUIManagerSubsystem::PushWidgetBP(TSubclassOf<UUserWidget> WidgetClass)
+{
+	if (!WidgetClass) return nullptr;
+	
+	UUserWidget* Widget = CreateWidget<UUserWidget>(GetGameInstance(), WidgetClass);
+	
+	if (Widget)
+	{
+		Widget->AddToViewport(OpenWidgets.Num());
+		bool bFocus = true;
+		if (auto* PopupWidget = Cast<UCPBasePopupWidget>(Widget))
+		{
+			bFocus = PopupWidget->RequiresUIFocus();
+		}
+		
+		OpenWidgets.Add({Widget, bFocus});
+		UpdateInputMode();
+	}
+	return Widget;
+}
+
+

@@ -49,6 +49,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	EQuestState GetQuestState(FName QuestID) const;
 
+	// 저널 목록용 - 짧은 제목 (신규)
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	FText GetQuestTitle(FName QuestID) const;
+
 	// [텍스트-원문] 마을 NPC가 퀘스트를 제안할 때 하는 원문 대사
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	FText GetQuestFullText(FName QuestID) const;
@@ -64,6 +68,18 @@ public:
 	// [텍스트-세션힌트 2차] "네? 그게 뭐죠?" 등 추가 힌트 요청 시 보여줄 더 구체적인 서술형 힌트
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	FText GetSessionHintTextDetailed(FName QuestID) const;
+
+	// 3차 힌트 (신규)
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	FText GetSessionHintTextDetailed2(FName QuestID) const;
+
+	// 저널 UI 목록 구성용 - 현재 추적 중인 퀘스트 ID 전체 (신규)
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	TArray<FName> GetAllTrackedQuestIDs() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	TArray<EConditionMatchResult> EvaluateConditions(FName QuestID, const TArray<FAlchemyProperty>& PotionResult) const;
+
 
 	// [검증] QuestScriptTable과 QuestAnswerTable의 QuestID가 서로 빠짐없이 짝이 맞는지 확인
 	// 데이터 입력 실수(한쪽에만 등록)를 개발 중 로그로 잡아내기 위한 함수
