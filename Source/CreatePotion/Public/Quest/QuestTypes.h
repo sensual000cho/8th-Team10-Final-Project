@@ -13,9 +13,15 @@ struct FQuestData : public FTableRowBase
 {
 	GENERATED_BODY()
 
+	// 저널 목록에서 보여줄 짧은 제목 (신규)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerFacing")
+	FText QuestTitle;
+
+	// 퀘스트 원문
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerFacing")
 	FText QuestText_Full;
 
+	// 퀘스트 요약
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerFacing")
 	FText QuestText_Summary;
 };
@@ -47,9 +53,13 @@ struct FQuestAnswerData : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerFacing")
 	FText SessionHintText;
 
-	// 2차 힌트 - "네? 그게 뭐죠?" 버튼 눌렀을 때 보여줌 (구체적)
+	// 1차 힌트 - "네? 그게 뭐죠?" 버튼 눌렀을 때 보여줌 (구체적)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerFacing")
 	FText SessionHintText_Detailed;
+
+	// 2차(최종) 힌트 - 마지막으로 제공받는 힌트
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerFacing")
+	FText SessionHintText_Detailed2;
 
 	// 실제 판정 기준 - UI가 절대 직접 접근하면 안 됨
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hidden")
