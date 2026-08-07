@@ -16,7 +16,7 @@ void UCPInteractionPromptWidget::BindEvents()
 		BoundInteractionComponent->OnPromptChanged.AddDynamic(this, &UCPInteractionPromptWidget::OnPromptChanged);
 	}
 	
-	SetVisibility(ESlateVisibility::Collapsed);
+	HideWidget();
 }
 
 void UCPInteractionPromptWidget::UnbindEvents()
@@ -32,10 +32,11 @@ void UCPInteractionPromptWidget::UnbindEvents()
 void UCPInteractionPromptWidget::OnPromptChanged(FText Prompt)
 {
 	bool bHasTarget = !Prompt.IsEmpty();
-	SetVisibility(bHasTarget ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 	
 	if (bHasTarget && TextBlock_InteractionPrompt)
 	{
 		TextBlock_InteractionPrompt->SetText(Prompt);
 	}
+	
+	bHasTarget ? ShowWidget() : HideWidget();
 }

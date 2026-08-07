@@ -4,4 +4,3 @@
 #include "GameCore/Interface/CPHighlightable.h"
 
 
-// Add default functionality here for any ICPHighlightable functions that are not pure virtual.
