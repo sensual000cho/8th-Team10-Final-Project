@@ -3,7 +3,9 @@
 
 #include "Lab/CPProcessorComponent.h"
 
+#include "GameState/CPLabGameState.h"
 #include "Lab/Actor/CPAlchemyProp.h"
+#include "Lab/Component/CPLabPotionSessionComponent.h"
 
 // Sets default values for this component's properties
 UCPProcessorComponent::UCPProcessorComponent()
@@ -18,6 +20,28 @@ bool UCPProcessorComponent::ProcessItem(ACPAlchemyProp* ItemInstance)
 	ApplyProcess(ItemInstance);
 	// ItemInstance에 ProcessorId 등록(예정)
 	return true;
+}
+
+bool UCPProcessorComponent::ExecuteInteraction(AActor* Interacter)
+{
+	if (!CanExecuteInteraction(Interacter)) return false;
+	
+	const UWorld* World = GetWorld();
+	const ACPLabGameState* LabGameState = World->GetGameState<ACPLabGameState>();
+	UCPLabPotionSessionComponent* Session = LabGameState->GetPotionSession();
+	
+	return ProcessItem(Session->GetHeldIngredientProp());
+}
+
+bool UCPProcessorComponent::CanExecuteInteraction(AActor* Interacter) const
+{
+	if (!Super::CanExecuteInteraction(Interacter)) return false;
+	
+	const UWorld* World = GetWorld();
+	const ACPLabGameState* LabGameState = World ? World->GetGameState<ACPLabGameState>() : nullptr;
+	const UCPLabPotionSessionComponent* Session = LabGameState ? LabGameState->GetPotionSession() : nullptr;
+	
+	return Session && CanProcess(Session->GetHeldIngredientProp());
 }
 
 void UCPProcessorComponent::ResetProcessor()

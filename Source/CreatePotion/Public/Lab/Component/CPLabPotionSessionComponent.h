@@ -58,6 +58,22 @@ public:
 	// 지정한 슬롯에 등록된 Prop 참조를 가져옴
 	bool TryGetIngredientPropFromSlot(FName RequestId, int32 SlotIndex, ACPAlchemyProp*& OutIngredientProp) const;
 	
+	// 플레이어가 들고 있는 재료 Prop 참조를 가져옴
+	UFUNCTION(BlueprintPure, Category = "Lab|Carry")
+	ACPAlchemyProp* GetHeldIngredientProp() const;
+	
+	// 현재 들고 있는 재료가 있는지 확인
+	UFUNCTION(BlueprintPure, Category = "Lab|Carry")
+	bool HasHeldIngredient() const;
+	
+	// 재료 Prop을 현재 들고 있는 재료로 등록
+	UFUNCTION(BlueprintCallable, Category = "Lab|Carry")
+	bool TryHoldIngredient(ACPAlchemyProp* IngredientProp);
+	
+	// 들고 있는 재료 Prop 참조를 꺼내고 보유 상태를 비움
+	UFUNCTION(BlueprintCallable, Category = "Lab|Carry")
+	bool TryReleaseHeldIngredient(ACPAlchemyProp*& OutIngredientProp);
+	
 	// 완성된 포션을 납품 처리하고 필요하면 세션 완료
 	bool TryMarkRequestDelivered(FName RequestId);
 	
@@ -105,6 +121,10 @@ public:
 private:
 	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Session")
 	FCPLabPotionSessionState SessionState;
+	
+	// 현재 들고 있는 재료 Prop
+	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Carry")
+	TObjectPtr<ACPAlchemyProp> HeldIngredientProp;
 	
 	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Result")
 	TArray<FAlchemyProperty> CurrentPotionResult;

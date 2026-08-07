@@ -95,6 +95,7 @@ void UCPLabPotionSessionComponent::ResetSession()
 	}
 	
 	SessionState = FCPLabPotionSessionState{};
+	HeldIngredientProp = nullptr;
 	CurrentPotionResult.Reset();
 	
 	NotifySessionChanged();
@@ -194,6 +195,36 @@ bool UCPLabPotionSessionComponent::TryGetIngredientPropFromSlot(
 	if (!IsValidSlotIndex(SlotIndex) || !IsValid(RequestState.IngredientSlots[SlotIndex])) return false;
 	
 	OutIngredientProp = RequestState.IngredientSlots[SlotIndex];
+	return true;
+}
+
+ACPAlchemyProp* UCPLabPotionSessionComponent::GetHeldIngredientProp() const
+{
+	return HeldIngredientProp;
+}
+
+bool UCPLabPotionSessionComponent::HasHeldIngredient() const
+{
+	return IsValid(HeldIngredientProp);
+}
+
+bool UCPLabPotionSessionComponent::TryHoldIngredient(ACPAlchemyProp* IngredientProp)
+{
+	if (HasHeldIngredient() || !IsValid(IngredientProp)) return false;
+	
+	HeldIngredientProp = IngredientProp;
+	NotifySessionChanged();
+	return true;
+}
+
+bool UCPLabPotionSessionComponent::TryReleaseHeldIngredient(ACPAlchemyProp*& OutIngredientProp)
+{
+	OutIngredientProp = nullptr;
+	if (!HasHeldIngredient()) return false;
+	
+	OutIngredientProp = HeldIngredientProp;
+	HeldIngredientProp = nullptr;
+	NotifySessionChanged();
 	return true;
 }
 
