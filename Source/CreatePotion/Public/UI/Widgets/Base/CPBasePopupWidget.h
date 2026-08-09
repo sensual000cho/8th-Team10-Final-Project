@@ -16,12 +16,12 @@ class CREATEPOTION_API UCPBasePopupWidget : public UCPBaseUserWidget
 	GENERATED_BODY()
 	
 public:
-	virtual bool RequiresUIFocus() const {return true;}
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
-	ECPInputMode InputMode = ECPInputMode::UIOnly;
+	ECPInputMode InputMode = ECPInputMode::GameAndUI;
 	
 	ECPInputMode GetInputMode() const { return InputMode; }
+	//ECPInputMode SetInputMode() { return ECPInputMode::GameAndUI; }
 	
 	UFUNCTION(BlueprintCallable, Category = "Popup")
 	void RequestClose();

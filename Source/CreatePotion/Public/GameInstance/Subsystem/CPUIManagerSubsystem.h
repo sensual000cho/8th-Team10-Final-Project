@@ -52,7 +52,7 @@ private:
 	struct FPopupEntry
 	{
 		UUserWidget* Widget = nullptr;
-		ECPInputMode InputMode = ECPInputMode::GameOnly;
+		ECPInputMode InputMode = ECPInputMode::GameAndUI;
 	};
 	
 	void UpdateInputMode(); 
@@ -62,6 +62,6 @@ private:
 public:
 	// 디버그용 BP함수
 	UFUNCTION(BlueprintCallable, Category = "UI|Debug")
-	UUserWidget* PushWidgetBP(TSubclassOf<UUserWidget> WidgetClass);
+	UUserWidget* PushWidgetBP(TSubclassOf<UUserWidget> WidgetClass, ECPInputMode InputMode = ECPInputMode::GameAndUI);
 	
 };

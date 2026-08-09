@@ -98,7 +98,7 @@ void UCPUIManagerSubsystem::UpdateInputMode()
 	}
 }
 
-UUserWidget* UCPUIManagerSubsystem::PushWidgetBP(TSubclassOf<UUserWidget> WidgetClass)
+UUserWidget* UCPUIManagerSubsystem::PushWidgetBP(TSubclassOf<UUserWidget> WidgetClass, ECPInputMode InputMode)
 {
 	if (!WidgetClass) return nullptr;
 	
@@ -108,14 +108,14 @@ UUserWidget* UCPUIManagerSubsystem::PushWidgetBP(TSubclassOf<UUserWidget> Widget
 	{
 		Widget->AddToViewport(OpenWidgets.Num());
 		
-		ECPInputMode Mode = ECPInputMode::GameOnly; // 기본값
 		
-		if (auto* PopupWidget = Cast<UCPBasePopupWidget>(Widget))
-		{
-			Mode = PopupWidget->GetInputMode();
-		}
+		// if (auto* PopupWidget = Cast<UCPBasePopupWidget>(Widget))
+		// {
+		// 	Mode = PopupWidget->GetInputMode();
+		// 	
+		// }
 		
-		OpenWidgets.Add({Widget, Mode});
+		OpenWidgets.Add({Widget, InputMode});
 		UpdateInputMode();
 	}
 	return Widget;
