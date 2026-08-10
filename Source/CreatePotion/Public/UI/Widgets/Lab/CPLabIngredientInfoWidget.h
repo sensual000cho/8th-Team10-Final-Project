@@ -75,7 +75,10 @@ protected:
 		"CPLabIngredientInfoWidget",
 		"EmptyIngredient",
 		"비어 있음");
-
+	
+	UFUNCTION(BlueprintCallable, Category = "Lab|UI|Ingredient")
+    void SetHeaderText(const FText& InHeaderText);
+    
 private:
 	void ApplyIngredientInfo(const FCPLabIngredientInstance& InIngredient);
 	void RefreshObservedIngredient();

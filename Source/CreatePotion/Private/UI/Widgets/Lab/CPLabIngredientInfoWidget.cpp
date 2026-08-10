@@ -45,6 +45,14 @@ void UCPLabIngredientInfoWidget::ClearObservedIngredient()
 	ApplyIngredientInfo(FCPLabIngredientInstance{});
 }
 
+void UCPLabIngredientInfoWidget::SetHeaderText(const FText& InHeaderText)
+{
+	if (Text_Context)
+	{
+		Text_Context->SetText(InHeaderText);
+	}
+}
+
 void UCPLabIngredientInfoWidget::ApplyIngredientInfo(const FCPLabIngredientInstance& InIngredient)
 {
 	if (!InIngredient.IsValid())
