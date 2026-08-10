@@ -47,6 +47,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Lab|UI|Ingredient")
 	bool HasIngredientInfo() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Lab|UI|Ingredient")
+	void SetHeaderText(const FText& InHeaderText);
+	
 protected:
 	virtual void NativeConstruct() override;
 	virtual void UnbindEvents() override;
@@ -76,8 +79,7 @@ protected:
 		"EmptyIngredient",
 		"비어 있음");
 	
-	UFUNCTION(BlueprintCallable, Category = "Lab|UI|Ingredient")
-    void SetHeaderText(const FText& InHeaderText);
+
     
 private:
 	void ApplyIngredientInfo(const FCPLabIngredientInstance& InIngredient);

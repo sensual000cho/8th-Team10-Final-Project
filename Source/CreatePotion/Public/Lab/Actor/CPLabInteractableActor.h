@@ -26,11 +26,10 @@ public:
 	virtual void OnInteract_Implementation(AActor* Interactor) override;
 	virtual bool CanInteract_Implementation(AActor* Interactor) override;
 	virtual FText GetInteractionPrompt_Implementation() override;
-
-private:
-	UPROPERTY(VisibleAnywhere, Category = "Lab|Interaction")
+	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = "Lab|Interaction")
 	TObjectPtr<UStaticMeshComponent> Mesh;
-	
+
+private:	
 	UPROPERTY(Transient)
 	TObjectPtr<UCPLabInteractActionComponent> CachedActionComponent;
 };
