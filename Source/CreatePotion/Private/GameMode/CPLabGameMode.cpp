@@ -1,7 +1,6 @@
 #include "GameMode/CPLabGameMode.h"
 
 #include "Data/CPForageableItemData.h"
-#include "Engine/Engine.h"
 #include "GameState/CPLabGameState.h"
 #include "Kismet/GameplayStatics.h"
 #include "Lab/Actor/CPAlchemyProp.h"
@@ -50,19 +49,6 @@ bool ACPLabGameMode::TryStartLabSessionWithRequests(const TArray<FCPLabPotionReq
 	
 	const bool bStarted = Session->StartSession(PotionRequests);
 	if (bStarted){
-		if (GEngine){
-			FCPLabPotionRequestState ActiveRequestState;
-			if (!Session->GetActiveRequestState(ActiveRequestState)){
-				GEngine->AddOnScreenDebugMessage(
-					-1, 3.0f, FColor::Red, TEXT("[Lab] 활성화된 리퀘스트가 없습니다."));
-				return bStarted;
-			}
-			GEngine->AddOnScreenDebugMessage(
-				-1, 3.0f, FColor::Cyan, 
-				FString::Printf(TEXT("[Lab] %s"), *ActiveRequestState.PotionRequest.DisplayText.ToString()));
-		}
-		Session->OnPotionResultChanged.RemoveDynamic(this, &ACPLabGameMode::ShowResultDebugMessage);
-		Session->OnPotionResultChanged.AddDynamic(this, &ACPLabGameMode::ShowResultDebugMessage);
 		SpawnIngredients();
 	}
 	return bStarted;
@@ -91,11 +77,6 @@ bool ACPLabGameMode::TryAcceptActiveRequest()
 			GetActiveRequestId(),
 			ECPLabPotionRequestPhase::Preparing);
 
-	if (bAccepted && GEngine){
-		GEngine->AddOnScreenDebugMessage(
-			-1, 3.f, FColor::Cyan, TEXT("[Lab] Phase: Preparing"));
-	}
-
 	return bAccepted;
 }
 
@@ -106,11 +87,6 @@ bool ACPLabGameMode::TryBeginActiveRequestProcessing()
 		Session->TrySetRequestPhase(
 			GetActiveRequestId(),
 			ECPLabPotionRequestPhase::Processing);
-
-	if (bProcessing && GEngine){
-		GEngine->AddOnScreenDebugMessage(
-			-1, 3.f, FColor::Cyan, TEXT("[Lab] Phase: Processing"));
-	}
 
 	return bProcessing;
 }
@@ -123,15 +99,7 @@ bool ACPLabGameMode::TryFinishActivePotion()
 	const bool bFinished = Session->TrySetRequestPhase(
 		GetActiveRequestId(),
 		ECPLabPotionRequestPhase::PotionReady);
-	
-	if (bFinished){
-		if (GEngine){
-			GEngine->AddOnScreenDebugMessage(
-				-1, 3.f, FColor::Cyan, TEXT("[Lab] Phase: PotionReady"));
-		}
-		ShowResultDebugMessage(Session->GetPotionResult());
-	}
-	
+
 	return bFinished;
 }
 
@@ -143,33 +111,14 @@ bool ACPLabGameMode::TryDeliverActivePotion()
 	const bool bDelivered = Session->TryMarkRequestDelivered(GetActiveRequestId());
 	if (!bDelivered) return false;
 	
-	if (GEngine){
-		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("[Lab] Completed"));
-	}
-	
 	ResetLabSession();
 	return true;
 }
 
-bool ACPLabGameMode::TryPlaceIngredient(
-	FName RequestId, int32 SlotIndex, ACPAlchemyProp* Ingredient)
+bool ACPLabGameMode::PlaceIngredient(int32 SlotIndex, ACPAlchemyProp* Ingredient)
 {
 	UCPLabPotionSessionComponent* Session = GetPotionSession();
-	return Session && Session->TryPlaceIngredient(RequestId, SlotIndex, Ingredient);
-}
-
-bool ACPLabGameMode::TryClearIngredient(FName RequestId, int32 SlotIndex)
-{
-	UCPLabPotionSessionComponent* Session = GetPotionSession();
-	return Session &&
-		Session->TryClearIngredient(RequestId, SlotIndex);
-}
-
-bool ACPLabGameMode::TryGetIngredientPropFromSlot(
-	FName RequestId, int32 SlotIndex, ACPAlchemyProp*& OutIngredientProp) const
-{
-	UCPLabPotionSessionComponent* Session = GetPotionSession();
-	return Session && Session->TryGetIngredientPropFromSlot(RequestId, SlotIndex, OutIngredientProp);
+	return Session && Session->PlaceIngredient(SlotIndex, Ingredient);
 }
 
 void ACPLabGameMode::DebugAdvanceSessionPhase()
@@ -268,13 +217,17 @@ bool ACPLabGameMode::SpawnIngredients()
 	if (SpawnCount <= 0) return false;
 	
 	bool bPlacedAnyIngredient = false;
-	int32 PlacedCount = 0;
+	
+	UCPLabPotionSessionComponent* Session = GetPotionSession();
+	if (!Session) return false;
 	
 	for (int32 SlotIndex = 0; SlotIndex < SpawnCount; ++SlotIndex){
 		UCPForageableItemData* ItemData = TestIngredients[SlotIndex];
 		AActor* SlotActor = IngredientSlotActors[SlotIndex];
 		
 		if (!ItemData || !SlotActor) continue;
+		
+		Session->RegisterIngredientSlotActor(SlotIndex, SlotActor);
 		
 		UClass* PropClass = ItemData->AlchemyPropClass.LoadSynchronous();
 		if (!PropClass) continue;
@@ -285,36 +238,15 @@ bool ACPLabGameMode::SpawnIngredients()
 		// Prop Spawn
 		SpawnedProp->InitializeFromItemData(ItemData);
 		
-		// Slot 액터와 재료 Actor의 실제 Bounds 가져옴
-		FVector SlotOrigin, SlotExtent;
-		FVector PropOrigin, PropExtent;
-		SlotActor->GetActorBounds(false, SlotOrigin, SlotExtent);
-		SpawnedProp->GetActorBounds(false, PropOrigin, PropExtent);
-		
-		// 재료가 파묻치지 않기 위한 z값 계산
-		const float SlotSurfaceZ = SlotOrigin.Z + SlotExtent.Z;
-		const float PropBottomZ = PropOrigin.Z - PropExtent.Z;
-		const float ZOffset = SlotSurfaceZ - PropBottomZ;
-		
-		// 높이 보정
-		SpawnedProp->AddActorWorldOffset(FVector(0.f, 0.f, ZOffset), false);
-		
 		// Slot에는 SpawnedProp 참조를 저장
-		if (TryPlaceIngredient(ActiveRequestId, SlotIndex, SpawnedProp)){
+		if (PlaceIngredient(SlotIndex, SpawnedProp)){
 			SpawnedIngredients.Add(SpawnedProp);
 			bPlacedAnyIngredient = true;
-			++PlacedCount;
 		}else{
 			SpawnedProp->Destroy();
 		}
 	}
-	
-	if (GEngine){
-		GEngine->AddOnScreenDebugMessage(
-			-1, 3.f, bPlacedAnyIngredient ? FColor::Green : FColor::Red,
-			FString::Printf(TEXT("[Lab] %d개 재료가 생성 후 배치되었습니다."), PlacedCount));
-	}
-	
+
 	return bPlacedAnyIngredient;
 }
 
@@ -327,20 +259,4 @@ void ACPLabGameMode::ClearSpawnedIngredients()
 		}
 	}
 	SpawnedIngredients.Reset();
-}
-
-
-void ACPLabGameMode::ShowResultDebugMessage(const TArray<FAlchemyProperty>& EffectTotals)
-{
-	if (!GEngine || EffectTotals.IsEmpty()) return;
-	
-	FString ResultMessage = TEXT("[Lab] Potion Result");
-	
-	for (const FAlchemyProperty& EffectTotal : EffectTotals){
-		if (!EffectTotal.Tag.IsValid()) continue;
-		
-		ResultMessage += FString::Printf(TEXT("\n%s: %d"), *EffectTotal.Tag.ToString(), EffectTotal.Value);
-	}
-	
-	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, ResultMessage);
 }
