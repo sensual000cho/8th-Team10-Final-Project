@@ -73,7 +73,10 @@ void UCPContainerGridWidget::UpdateGrid(const TArray<FContainerItem>& ContainerI
 
 		// 새로운 아이템 위젯을 생성
 		UCPItemSlotWidget* NewItemWidget = CreateWidget<UCPItemSlotWidget>(this, ItemWidgetClass);
-		if (!NewItemWidget) continue;
+		if (!NewItemWidget)
+		{
+			continue;
+		}
 
 		// 캔버스 패널에 먼저 추가
 		// NativeConstruct가 실행되며 ClearSlot이 호출됨
@@ -111,8 +114,9 @@ void UCPContainerGridWidget::UpdateGrid(const TArray<FContainerItem>& ContainerI
 			CanvasSlot->SetPosition(FVector2D(PosX, PosY));
 			CanvasSlot->SetSize(FVector2D(SizeX, SizeY));
 
-			// 위치와 크기까지 캔버스에 다 잡힌 이후에, 마지막으로 그림과 텍스트를 업데이트
-			NewItemWidget->UpdateSlot(Item);
+			NewItemWidget->UpdateSlot(Item); // 위치와 크기까지 캔버스를 확정 후 마지막으로 이미지와 텍스트 업데이트
+			NewItemWidget->OwnerContainer = CachedContainer;
+			NewItemWidget->CachedItemData = Item;
 		}
 	}
 }
