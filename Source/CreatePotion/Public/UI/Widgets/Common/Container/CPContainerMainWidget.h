@@ -1,0 +1,35 @@
+﻿// CPContainerMainWidget.h
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "UI/Widgets/Base/CPBaseFixedWidget.h"
+#include "CPContainerMainWidget.generated.h"
+
+class UCPContainerGridWidget;
+class UCPItemContainerComponent;
+
+UCLASS()
+class CREATEPOTION_API UCPContainerMainWidget : public UCPBaseFixedWidget
+{
+	GENERATED_BODY()
+
+public:
+	// 창이 처음 초기화될 때 컴포넌트와 연결해주는 함수
+	UFUNCTION(BlueprintCallable, Category = "Container|UI")
+	void BindContainer(UCPItemContainerComponent* InContainer);
+
+	// 아이템 획득/사용 시 UI를 새로고침하는 함수
+	UFUNCTION(BlueprintCallable, Category = "Container|UI")
+	void UpdateUI();
+	
+protected:
+	// 실제 데이터를 가져올 컨테이너 컴포넌트
+	UPROPERTY(BlueprintReadOnly, Category = "Container")
+	UCPItemContainerComponent* TargetContainer;
+
+	// 실제 아이템을 가지고 있을 Grid
+	UPROPERTY(meta = (BindWidget))
+	UCPContainerGridWidget* ContainerGrid;
+
+};

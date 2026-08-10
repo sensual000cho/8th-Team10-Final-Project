@@ -6,6 +6,14 @@
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "CPUIManagerSubsystem.generated.h"
 
+UENUM(BlueprintType)
+enum class ECPInputMode : uint8
+{
+	GameOnly	UMETA(DisplayName = "Game Only"),
+	UIOnly		UMETA(DisplayName = "UI Only"),
+	GameAndUI	UMETA(DisplayName = "Game and UI"),
+};
+
 /**
  * 
  */
@@ -17,27 +25,30 @@ public:
 	
 	// 위젯 띄우는 템플릿
 	template<typename T>
-	T* PushWidget(TSubclassOf<T> WidgetClass, bool bRequiresUIFocus = true)
-	{
-		T* Widget = CreateWidget<T>(GetWorld(), WidgetClass);
-		Widget->AddToViewport(OpenWidgets.Num());
-		OpenWidgets.Add({Widget, bRequiresUIFocus});
-		return Widget;
-	}
+	T* PushWidget(TSubclassOf<T> WidgetClass);
 	
 	// 특정 위젯을 지정해서 닫기 (순서무관)
-	UFUNCTION(BlueprintCallable, Category = "UI|Debug")
+	UFUNCTION(BlueprintCallable, Category = "UI")
 	void CloseWidget(UUserWidget* Widget);
 	
+	UFUNCTION(BlueprintCallable, Category = "UI")
 	void CloseTopWidget();
+	
+	UFUNCTION(BlueprintCallable, Category = "UI")
+	void BringWidgetToFront(UUserWidget* Widget);
+	
+	
+	
 private:
 	struct FPopupEntry
 	{
 		UUserWidget* Widget = nullptr;
-		bool bRequiresUIFocus = true;  
+		ECPInputMode InputMode = ECPInputMode::GameAndUI;
 	};
-	TArray<FPopupEntry> OpenWidgets;
+	
 	void UpdateInputMode(); 
+	
+	TArray<FPopupEntry> OpenWidgets;
 	
 public:
 	// 디버그용 BP함수
@@ -45,3 +56,5 @@ public:
 	UUserWidget* PushWidgetBP(TSubclassOf<UUserWidget> WidgetClass);
 	
 };
+
+

@@ -22,7 +22,9 @@ class CREATEPOTION_API ICPHighlightable
 	
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-	virtual void SetHighLight(bool bhighLighted) = 0;
+	// 외곽선 하이라이트 설정
+	UFUNCTION(BlueprintNativeEvent, Category = "Interaction")
+	void SetHighlight(bool bHighlighted);
 };
 
 
