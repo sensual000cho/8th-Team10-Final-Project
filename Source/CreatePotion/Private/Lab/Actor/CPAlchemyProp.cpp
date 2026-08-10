@@ -34,23 +34,6 @@ void ACPAlchemyProp::InitializeFromItemData(UCPForageableItemData* ItemData)
 	OnAlchemyPropChanged.Broadcast();
 }
 
-bool ACPAlchemyProp::InitializeFromRequestSlot(
-	FName InRequestId, int32 InSourceSlotIndex, const FCPLabIngredientInstance& Ingredient)
-{
-	if (InRequestId.IsNone() || InSourceSlotIndex < 0 || 
-		InSourceSlotIndex >= CPLabPotionRequestRules::IngredientSlotCapacity || !Ingredient.IsValid()) return false;
-	
-	ResetWorkingIngredient();
-	
-	// 작업을 마친 뒤 원래 슬롯에 돌아갈 수 있도록 출처도 함께 저장
-	SourceRequestId = InRequestId;
-	SourceSlotIndex = InSourceSlotIndex;
-	WorkingIngredient = Ingredient;
-	
-	OnAlchemyPropChanged.Broadcast();
-	return true;
-}
-
 FCPLabIngredientInstance
 ACPAlchemyProp::GetWorkingIngredient() const
 {
@@ -78,27 +61,10 @@ int32 ACPAlchemyProp::GetEffectValue(const FGameplayTag& EffectTag) const
 	return WorkingIngredient.GetEffectValue(EffectTag);
 }
 
-FName ACPAlchemyProp::GetSourceRequestId() const
-{
-	return SourceRequestId;
-}
-
-int32 ACPAlchemyProp::GetSourceSlotIndex() const
-{
-	return SourceSlotIndex;
-}
-
-bool ACPAlchemyProp::IsAssignedToRequestSlot() const
-{
-	return !SourceRequestId.IsNone() && SourceSlotIndex != INDEX_NONE;
-}
-
 void ACPAlchemyProp::ResetWorkingIngredient()
 {
-	// 다른 재료로 다시 초기화할 때 이전 재료 정보가 남지 않도록 전부 초기화
+	// 다른 재료로 다시 초기화할 때 이전 재료 정보가 남지 않도록 초기화
 	WorkingIngredient = FCPLabIngredientInstance{};
-	SourceRequestId = NAME_None;
-	SourceSlotIndex = INDEX_NONE;
 }
 
 

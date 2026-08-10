@@ -12,7 +12,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FCPOnLabSessionChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
 	FCPOnLabPotionResultChanged, const TArray<FAlchemyProperty>&, EffectTotals);
 
-// 포션 세션과 리퀘스트별 슬롯 상태를 한곳에서 관리
+// 포션 세션과 공방 슬롯 상태를 한곳에서 관리
 UCLASS()
 class CREATEPOTION_API UCPLabPotionSessionComponent : public UActorComponent
 {
@@ -49,14 +49,17 @@ public:
 	// 정해진 진행 순서에 맞을 때만 리퀘스트 상태 변경
 	bool TrySetRequestPhase(FName RequestId, ECPLabPotionRequestPhase NewPhase);
 	
-	// 지정한 리퀘스트의 슬롯에 Prop 참조를 저장
-	bool TryPlaceIngredient(FName RequestId, int32 SlotIndex, ACPAlchemyProp* IngredientProp);
+	// 지정한 슬롯에 Prop 참조를 저장
+	bool PlaceIngredient(int32 SlotIndex, ACPAlchemyProp* IngredientProp);
 	
 	// 지정한 슬롯에 등록된 Prop 참조를 제거
-	bool TryClearIngredient(FName RequestId, int32 SlotIndex);
+	bool ClearIngredient(int32 SlotIndex);
 	
 	// 지정한 슬롯에 등록된 Prop 참조를 가져옴
-	bool TryGetIngredientPropFromSlot(FName RequestId, int32 SlotIndex, ACPAlchemyProp*& OutIngredientProp) const;
+	bool GetIngredientPropFromSlot(int32 SlotIndex, ACPAlchemyProp*& OutIngredientProp) const;
+	
+	// SlotIndex에 대응하는 월드 Slot Actor를 등록
+	bool RegisterIngredientSlotActor(int32 SlotIndex, AActor* SlotActor);
 	
 	// 플레이어가 들고 있는 재료 Prop 참조를 가져옴
 	UFUNCTION(BlueprintPure, Category = "Lab|Carry")
@@ -74,6 +77,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Lab|Carry")
 	bool TryReleaseHeldIngredient(ACPAlchemyProp*& OutIngredientProp);
 	
+	// 들고 있는 재료와 Slot간 교체, 놓기, 들기
+	bool InteractIngredientSlot(int32 SlotIndex);
+	
 	// 완성된 포션을 납품 처리하고 필요하면 세션 완료
 	bool TryMarkRequestDelivered(FName RequestId);
 	
@@ -87,9 +93,25 @@ private:
 	// SlotIndex가 실제 슬롯 배열 범위 안인지 확인
 	bool IsValidSlotIndex(int32 SlotIndex) const;
 
-	// 같은 리퀘스트의 다른 슬롯에 동일한 원본 재료가 있는지 확인
-	bool HasDuplicateIngredient(const FCPLabPotionRequestState& RequestState, 
-		const ACPAlchemyProp* IngredientProp, int32 IgnoredSlotIndex) const;
+	// 다른 슬롯에 동일한 원본 재료가 있는지 확인
+	bool HasDuplicateIngredient(const ACPAlchemyProp* IngredientProp, int32 IgnoredSlotIndex) const;
+	
+	// 지정한 재료가 어느 슬롯에 있는지 탐색
+	int32 FindIngredientSlotIndex(const ACPAlchemyProp* IngredientProp) const;
+	
+	void SyncIngredientActors();
+	
+	void MoveIngredientPropToSlot(ACPAlchemyProp* IngredientProp, const AActor* SlotActor);
+	
+	// 슬롯에 실제로 들어 있는 재료 수를 계산
+	int32 GetSelectedIngredientCount() const;
+	
+	// 가공을 시작할 수 있는지 확인
+	bool HasValidIngredientSelection() const;
+	
+	// 슬롯의 재료 변경 이벤트
+	void BindIngredientPropChanged(ACPAlchemyProp* IngredientProp);
+	void UnbindIngredientPropChanged(ACPAlchemyProp* IngredientProp);
 
 	// 현재 상태에서 요청한 다음 상태로 이동할 수 있는지 확인
 	bool CanTransitionRequestPhase(
@@ -121,6 +143,12 @@ public:
 private:
 	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Session")
 	FCPLabPotionSessionState SessionState;
+	
+	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Slot")
+	TArray<TObjectPtr<ACPAlchemyProp>> IngredientSlots;
+	
+	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Slot")
+	TArray<TObjectPtr<AActor>> IngredientSlotActors;
 	
 	// 현재 들고 있는 재료 Prop
 	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Carry")
