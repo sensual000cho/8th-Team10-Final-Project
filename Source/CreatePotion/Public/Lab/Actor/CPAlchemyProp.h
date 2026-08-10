@@ -26,12 +26,7 @@ public:
 	// ItemData의 원본 효과값을 복사해 새 작업 재료로 초기화
 	UFUNCTION(BlueprintCallable, Category = "Lab|Ingredient")
 	void InitializeFromItemData(UCPForageableItemData* ItemData);
-
-	// 슬롯에서 꺼낸 재료와 원래 위치를 기억하도록 초기화
-	UFUNCTION(BlueprintCallable, Category = "Lab|Ingredient")
-	bool InitializeFromRequestSlot(
-		FName InRequestId, int32 InSourceSlotIndex, const FCPLabIngredientInstance& Ingredient);
-
+	
 	UFUNCTION(BlueprintPure, Category = "Lab|Ingredient")
 	FCPLabIngredientInstance GetWorkingIngredient() const;
 	
@@ -43,29 +38,27 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Lab|Ingredient")
 	int32 GetEffectValue(const FGameplayTag& EffectTag) const;
-
-	UFUNCTION(BlueprintPure, Category = "Lab|Ingredient")
-	FName GetSourceRequestId() const;
-
-	UFUNCTION(BlueprintPure, Category = "Lab|Ingredient")
-	int32 GetSourceSlotIndex() const;
-
-	UFUNCTION(BlueprintPure, Category = "Lab|Ingredient")
-	bool IsAssignedToRequestSlot() const;
+	
+	bool HasBeenProcessedBy(FName InProcessorId) const;
+	bool MarkProcessedBy(FName InProcessorId);
+	
+	float GetProcessMultiplier() const;
+	void SetProcessMultiplier(float InMultiplier);
 
 private:
-	// 현재 작업 재료와 슬롯 출처 정보를 모두 비움
+	// 현재 작업 재료 정보를 비움
 	void ResetWorkingIngredient();
 
+private:
 	UPROPERTY(VisibleAnywhere, Category = "Lab|Ingredient")
 	TObjectPtr<UStaticMeshComponent> StaticMeshComponent;
 	
 	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Ingredient")
 	FCPLabIngredientInstance WorkingIngredient;
-
-	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Ingredient")
-	FName SourceRequestId = NAME_None;
-
-	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Ingredient")
-	int32 SourceSlotIndex = INDEX_NONE;
+	
+	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Processor")
+	TSet<FName> AppliedProcessorIds;
+	
+	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Processor")
+	float ProcessMultiplier;
 };

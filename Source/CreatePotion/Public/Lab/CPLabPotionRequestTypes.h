@@ -4,8 +4,6 @@
 #include "Lab/CPLabTypes.h"
 #include "CPLabPotionRequestTypes.generated.h"
 
-class ACPAlchemyProp;
-
 namespace CPLabPotionRequestRules
 {
 	// 한 리퀘스트에서 사용하는 고정 슬롯 수
@@ -48,17 +46,11 @@ enum class ECPLabPotionRequestPhase : uint8
 	Delivered,
 };
 
-// 리퀘스트 하나의 진행 상태와 재료 슬롯을 보관
+// 리퀘스트 하나의 진행 상태를 보관
 USTRUCT(BlueprintType)
 struct FCPLabPotionRequestState
 {
 	GENERATED_BODY()
-
-	// 리퀘스트를 만들 때 슬롯 IngredientSlotCapacity크기의 칸을 준비
-	FCPLabPotionRequestState()
-	{
-		IngredientSlots.SetNum(CPLabPotionRequestRules::IngredientSlotCapacity);
-	}
 
 	// 이 상태가 담당하는 포션 리퀘스트
 	UPROPERTY(BlueprintReadOnly, Category = "Lab|Request")
@@ -68,34 +60,9 @@ struct FCPLabPotionRequestState
 	UPROPERTY(BlueprintReadOnly, Category = "Lab|Request")
 	ECPLabPotionRequestPhase Phase = ECPLabPotionRequestPhase::Queued;
 	
-	// 슬롯에 들어간 Prop 참조를 저장
-	UPROPERTY(BlueprintReadOnly, Category = "Lab|Request")
-	TArray<TObjectPtr<ACPAlchemyProp>> IngredientSlots;
-
-	// 리퀘스트 정보와 슬롯 수가 정상인지 확인
-	bool IsValid() const
-	{
-		return PotionRequest.IsValid() && IngredientSlots.Num() == CPLabPotionRequestRules::IngredientSlotCapacity;
-	}
-
-	// 슬롯에 실제로 들어 있는 재료 수를 계산
-	int32 GetSelectedIngredientCount() const
-	{
-		int32 SelectedCount = 0;
-		for (const ACPAlchemyProp* Ingredient : IngredientSlots)
-		{
-			if (Ingredient) ++SelectedCount;
-		}
-
-		return SelectedCount;
-	}
-
-	// 현재 재료 수로 가공을 시작할 수 있는지 확인
-	bool HasValidIngredientSelection() const
-	{
-		const int32 SelectedCount = GetSelectedIngredientCount();
-		return SelectedCount >= CPLabPotionRequestRules::MinSelectedIngredientCount &&
-			SelectedCount <= CPLabPotionRequestRules::MaxSelectedIngredientCount;
+	// 리퀘스트 정보가 정상인지 확인
+	bool IsValid() const {
+		return PotionRequest.IsValid();
 	}
 };
 

@@ -22,8 +22,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Notification")
 	void ShowWithAutoClose(const FText& InText, float Duration = 2.0f);
 	
-	virtual bool RequiresUIFocus() const override { return false; }
-	
 protected:
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* TextBlock_Notification;
