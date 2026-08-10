@@ -7,27 +7,20 @@
 #include "Components/VerticalBox.h"
 #include "Data/CPForageableItemData.h"
 #include "Engine/Texture2D.h"
+#include "UI/Widgets/Lab/CPLabIngredientEffectRowWidget.h"
 
 void UCPLabIngredientInfoWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-
-	if (Ingredient.IsValid())
-	{
-		RefreshWidget();
-		ShowIngredientInfo();
-	}
-	else
-	{
-		// 테스트 용으로 숨기기 기능 없애둠
-		//HideIngredientInfo();		
-	}
+	RefreshWidget();
 }
 
 void UCPLabIngredientInfoWidget::SetIngredientInfo(
 	const FCPLabIngredientInstance& InIngredient,
 	const FText& InContextText)
 {
+	ContextText = InContextText;
+
 	if (!InIngredient.IsValid())
 	{
 		ClearIngredientInfo();
@@ -35,48 +28,28 @@ void UCPLabIngredientInfoWidget::SetIngredientInfo(
 	}
 
 	Ingredient = InIngredient;
-	ContextText = InContextText;
 
 	RefreshWidget();
-	ShowIngredientInfo();
 }
 
 void UCPLabIngredientInfoWidget::SetPreviewEffects(
 	const TMap<FGameplayTag, int32>& InPreviewEffects)
 {
 	PreviewEffects = InPreviewEffects;
-	RefreshPreview();
+	RebuildEffectRows();
 }
 
 void UCPLabIngredientInfoWidget::ClearPreviewEffects()
 {
 	PreviewEffects.Reset();
-	RefreshPreview();
+	RebuildEffectRows();
 }
 
 void UCPLabIngredientInfoWidget::ClearIngredientInfo()
 {
 	Ingredient = FCPLabIngredientInstance{};
 	PreviewEffects.Reset();
-	ContextText = FText::GetEmpty();
-
-	HideIngredientInfo();
-}
-
-void UCPLabIngredientInfoWidget::ShowIngredientInfo()
-{
-	if (!Ingredient.IsValid())
-	{
-		return;
-	}
-
-	// 클릭 안되는 말 그대로 "표시용" UI
-	SetVisibility(ESlateVisibility::HitTestInvisible);
-}
-
-void UCPLabIngredientInfoWidget::HideIngredientInfo()
-{
-	SetVisibility(ESlateVisibility::Collapsed);
+	RefreshEmptyState();
 }
 
 bool UCPLabIngredientInfoWidget::HasIngredientInfo() const
@@ -88,7 +61,7 @@ void UCPLabIngredientInfoWidget::RefreshWidget()
 {
 	if (!Ingredient.IsValid())
 	{
-		HideIngredientInfo();
+		RefreshEmptyState();
 		return;
 	}
 
@@ -98,6 +71,9 @@ void UCPLabIngredientInfoWidget::RefreshWidget()
 		ClearIngredientInfo();
 		return;
 	}
+
+	// This fixed HUD card always remains present.
+	SetVisibility(ESlateVisibility::HitTestInvisible);
 
 	if (Text_Context)
 	{
@@ -117,50 +93,52 @@ void UCPLabIngredientInfoWidget::RefreshWidget()
 			IconTexture ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 	}
 
-	if (Text_EffectSummary)
-	{
-		Text_EffectSummary->SetText(BuildEffectSummary());
-	}
-
-	RefreshPreview();
+	RebuildEffectRows();
 }
 
-void UCPLabIngredientInfoWidget::RefreshPreview()
+void UCPLabIngredientInfoWidget::RefreshEmptyState()
 {
-	const FText PreviewSummary = BuildPreviewDeltaSummary();
-	const bool bShouldShowPreview = !PreviewSummary.IsEmpty();
-
-	if (VerticalBox_DeltaArea)
+	// Preserve the designer text when no context has been supplied yet.
+	if (Text_Context && !ContextText.IsEmpty())
 	{
-		VerticalBox_DeltaArea->SetVisibility(
-			bShouldShowPreview
-				? ESlateVisibility::HitTestInvisible
-				: ESlateVisibility::Collapsed);
+		Text_Context->SetText(ContextText);
 	}
 
-	if (Text_PreviewDeltaSummary)
+	if (Text_MaterialName)
 	{
-		Text_PreviewDeltaSummary->SetText(PreviewSummary);
+		Text_MaterialName->SetText(EmptyIngredientText);
 	}
+
+	if (Image_MaterialIcon)
+	{
+		Image_MaterialIcon->SetBrushFromTexture(nullptr);
+		Image_MaterialIcon->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	if (VerticalBox_EffectRows)
+	{
+		VerticalBox_EffectRows->ClearChildren();
+	}
+
+	SetVisibility(ESlateVisibility::HitTestInvisible);
 }
 
-FText UCPLabIngredientInfoWidget::BuildEffectSummary() const
+void UCPLabIngredientInfoWidget::RebuildEffectRows()
 {
-	if (!Ingredient.IsValid())
+	if (!VerticalBox_EffectRows)
 	{
-		return FText::GetEmpty();
+		return;
 	}
+
+	VerticalBox_EffectRows->ClearChildren();
 
 	const UCPForageableItemData* ItemData = Ingredient.SourceItemData.Get();
-	if (!ItemData)
+	if (!ItemData || !EffectRowWidgetClass)
 	{
-		return FText::GetEmpty();
+		return;
 	}
 
-	TArray<FString> EffectLines;
-	EffectLines.Reserve(ItemData->TagAxes.Num());
-
-	// TMap 순회 순서는 고정되지 않으므로 DataAsset의 축 순서를 표시 순서로 사용한다.
+	// Preserve the authored DataAsset order instead of relying on TMap iteration order.
 	for (const FAlchemyProperty& Property : ItemData->TagAxes)
 	{
 		if (!Property.Tag.IsValid())
@@ -169,60 +147,41 @@ FText UCPLabIngredientInfoWidget::BuildEffectSummary() const
 		}
 
 		const int32 CurrentValue = Ingredient.CurrentEffects.FindRef(Property.Tag);
-		EffectLines.Add(FString::Printf(
-			TEXT("%s: %d"),
-			*Property.Tag.ToString(),
-			CurrentValue));
-	}
-
-	return EffectLines.IsEmpty()
-		? FText::GetEmpty()
-		: FText::FromString(FString::Join(EffectLines, TEXT("\n")));
-}
-
-FText UCPLabIngredientInfoWidget::BuildPreviewDeltaSummary() const
-{
-	if (!Ingredient.IsValid() || PreviewEffects.IsEmpty())
-	{
-		return FText::GetEmpty();
-	}
-
-	const UCPForageableItemData* ItemData = Ingredient.SourceItemData.Get();
-	if (!ItemData)
-	{
-		return FText::GetEmpty();
-	}
-
-	TArray<FString> DeltaLines;
-	DeltaLines.Reserve(ItemData->TagAxes.Num());
-
-	for (const FAlchemyProperty& Property : ItemData->TagAxes)
-	{
-		if (!Property.Tag.IsValid())
-		{
-			continue;
-		}
-
 		const int32* PreviewValue = PreviewEffects.Find(Property.Tag);
-		if (!PreviewValue)
+
+		UCPLabIngredientEffectRowWidget* EffectRow =
+			CreateWidget<UCPLabIngredientEffectRowWidget>(GetOwningPlayer(), EffectRowWidgetClass);
+		if (!EffectRow)
 		{
 			continue;
 		}
 
-		const int32 CurrentValue = Ingredient.CurrentEffects.FindRef(Property.Tag);
-		if (CurrentValue == *PreviewValue)
-		{
-			continue;
-		}
-
-		DeltaLines.Add(FString::Printf(
-			TEXT("%s: %d -> %d"),
-			*Property.Tag.ToString(),
+		EffectRow->SetEffectData(
+			GetEffectDisplayName(Property.Tag),
 			CurrentValue,
-			*PreviewValue));
+			PreviewValue != nullptr,
+			PreviewValue ? *PreviewValue : CurrentValue);
+
+		VerticalBox_EffectRows->AddChildToVerticalBox(EffectRow);
+	}
+}
+
+FText UCPLabIngredientInfoWidget::GetEffectDisplayName(const FGameplayTag& EffectTag) const
+{
+	if (const FText* DisplayName = EffectDisplayNames.Find(EffectTag))
+	{
+		if (!DisplayName->IsEmpty())
+		{
+			return *DisplayName;
+		}
 	}
 
-	return DeltaLines.IsEmpty()
-		? FText::GetEmpty()
-		: FText::FromString(FString::Join(DeltaLines, TEXT("\n")));
+	FString FallbackName = EffectTag.ToString();
+	int32 LastSeparatorIndex = INDEX_NONE;
+	if (FallbackName.FindLastChar(TEXT('.'), LastSeparatorIndex))
+	{
+		FallbackName.RightChopInline(LastSeparatorIndex + 1);
+	}
+
+	return FText::FromString(FallbackName);
 }

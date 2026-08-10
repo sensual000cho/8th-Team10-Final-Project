@@ -9,24 +9,24 @@
 #include "CPLabIngredientInfoWidget.generated.h"
 
 class UCPForageableItemData;
+class UCPLabIngredientEffectRowWidget;
 class UImage;
 class UTextBlock;
 class UVerticalBox;
 
-//공방에서 운반 중이거나 슬롯에 놓인 재료 정보를 표시하는 공용 카드.
-//실제 재료 상태는 외부에서 전달받으며 월드 Actor나 슬롯을 직접 탐색하지 않는다.
- 
+/**
+ * Shared contextual card for a carried ingredient or an ingredient in a slot.
+ * Receives a material snapshot from its owner and does not search world actors or slots.
+ */
 UCLASS()
 class CREATEPOTION_API UCPLabIngredientInfoWidget : public UCPBaseUserWidget
 {
 	GENERATED_BODY()
 
 public:
-	// 원본 재료와 현재 가공 상태를 한 번에 갱신한다.
 	UFUNCTION(BlueprintCallable, Category = "Lab|UI|Ingredient")
 	void SetIngredientInfo(const FCPLabIngredientInstance& InIngredient, const FText& InContextText);
 
-	// 가공기를 바라보는 동안 표시할 예상 효과값을 갱신한다.
 	UFUNCTION(BlueprintCallable, Category = "Lab|UI|Ingredient")
 	void SetPreviewEffects(const TMap<FGameplayTag, int32>& InPreviewEffects);
 
@@ -35,12 +35,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Lab|UI|Ingredient")
 	void ClearIngredientInfo();
-
-	UFUNCTION(BlueprintCallable, Category = "Lab|UI|Ingredient")
-	void ShowIngredientInfo();
-
-	UFUNCTION(BlueprintCallable, Category = "Lab|UI|Ingredient")
-	void HideIngredientInfo();
 
 	UFUNCTION(BlueprintPure, Category = "Lab|UI|Ingredient")
 	bool HasIngredientInfo() const;
@@ -58,20 +52,26 @@ protected:
 	TObjectPtr<UImage> Image_MaterialIcon;
 
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> Text_EffectSummary;
+	TObjectPtr<UVerticalBox> VerticalBox_EffectRows;
 
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UVerticalBox> VerticalBox_DeltaArea;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lab|UI|Ingredient")
+	TSubclassOf<UCPLabIngredientEffectRowWidget> EffectRowWidgetClass;
 
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> Text_PreviewDeltaSummary;
+	// Presentation-only label overrides. Gameplay tags remain the source of identity.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lab|UI|Ingredient")
+	TMap<FGameplayTag, FText> EffectDisplayNames;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lab|UI|Ingredient")
+	FText EmptyIngredientText = NSLOCTEXT(
+		"CPLabIngredientInfoWidget",
+		"EmptyIngredient",
+		"비어 있음");
 
 private:
 	void RefreshWidget();
-	void RefreshPreview();
-
-	FText BuildEffectSummary() const;
-	FText BuildPreviewDeltaSummary() const;
+	void RefreshEmptyState();
+	void RebuildEffectRows();
+	FText GetEffectDisplayName(const FGameplayTag& EffectTag) const;
 
 	UPROPERTY(Transient)
 	FCPLabIngredientInstance Ingredient;
