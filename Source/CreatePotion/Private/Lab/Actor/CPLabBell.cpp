@@ -31,7 +31,7 @@ void ACPLabBell::OnInteract_Implementation(AActor* Interactor)
 
 FText ACPLabBell::GetInteractionPrompt_Implementation()
 {
-	return FText::FromString(TEXT("벨 울리기"));
+	return FText::FromString(TEXT("F: 벨 울리기"));
 }
 
 bool ACPLabBell::CanInteract_Implementation(AActor* Interactor)
