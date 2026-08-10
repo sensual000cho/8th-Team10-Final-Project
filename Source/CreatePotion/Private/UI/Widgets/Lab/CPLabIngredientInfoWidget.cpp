@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// 재료 정보 카드의 공용 표시와 Prop 변경 감지를 구현한다.
 
 #include "UI/Widgets/Lab/CPLabIngredientInfoWidget.h"
 
@@ -18,6 +18,7 @@ void UCPLabIngredientInfoWidget::NativeConstruct()
 
 void UCPLabIngredientInfoWidget::SetIngredientInfo(const FCPLabIngredientInstance& InIngredient)
 {
+	// 스냅샷 표시로 전환할 때 이전 Actor의 변경 이벤트가 섞이지 않도록 관찰을 먼저 끝낸다.
 	UnbindObservedIngredient();
 	ApplyIngredientInfo(InIngredient);
 }
@@ -31,6 +32,7 @@ void UCPLabIngredientInfoWidget::SetObservedIngredient(ACPAlchemyProp* InIngredi
 		if (IsValid(InIngredientProp))
 		{
 			ObservedIngredientProp = InIngredientProp;
+			// 같은 위젯이 재구성돼도 동일한 델리게이트가 중복 등록되지 않게 AddUnique를 사용한다.
 			InIngredientProp->OnAlchemyPropChanged.AddUniqueDynamic(
 				this,
 				&UCPLabIngredientInfoWidget::HandleObservedIngredientChanged);
@@ -57,6 +59,7 @@ void UCPLabIngredientInfoWidget::ApplyIngredientInfo(const FCPLabIngredientInsta
 {
 	if (!InIngredient.IsValid())
 	{
+		// 재료가 사라지면 이전 재료의 예상 효과도 함께 지워 잔상이 남지 않게 한다.
 		Ingredient = FCPLabIngredientInstance{};
 		PreviewEffects.Reset();
 		RefreshEmptyState();
@@ -138,13 +141,10 @@ void UCPLabIngredientInfoWidget::RefreshWidget()
 	const UCPForageableItemData* ItemData = Ingredient.SourceItemData.Get();
 	if (!ItemData)
 	{
+		// 유효하지 않은 원본 DataAsset은 정상 재료로 표시하지 않고 빈 상태로 되돌린다.
 		ClearIngredientInfo();
 		return;
 	}
-
-	// This fixed HUD card always remains present.
-	SetVisibility(ESlateVisibility::HitTestInvisible);
-
 
 	if (Text_MaterialName)
 	{
@@ -179,8 +179,6 @@ void UCPLabIngredientInfoWidget::RefreshEmptyState()
 	{
 		VerticalBox_EffectRows->ClearChildren();
 	}
-
-	SetVisibility(ESlateVisibility::HitTestInvisible);
 }
 
 void UCPLabIngredientInfoWidget::RebuildEffectRows()
@@ -198,7 +196,7 @@ void UCPLabIngredientInfoWidget::RebuildEffectRows()
 		return;
 	}
 
-	// Preserve the authored DataAsset order instead of relying on TMap iteration order.
+	// TMap 순회 순서는 보장되지 않으므로, 기획자가 DataAsset에 작성한 TagAxes 순서를 사용한다.
 	for (const FAlchemyProperty& Property : ItemData->TagAxes)
 	{
 		if (!Property.Tag.IsValid())
@@ -228,6 +226,7 @@ void UCPLabIngredientInfoWidget::RebuildEffectRows()
 
 FText UCPLabIngredientInfoWidget::GetEffectDisplayName(const FGameplayTag& EffectTag) const
 {
+	// WBP별 한글 표시 이름이 지정돼 있으면 GameplayTag 문자열보다 우선한다.
 	if (const FText* DisplayName = EffectDisplayNames.Find(EffectTag))
 	{
 		if (!DisplayName->IsEmpty())
@@ -238,6 +237,7 @@ FText UCPLabIngredientInfoWidget::GetEffectDisplayName(const FGameplayTag& Effec
 
 	FString FallbackName = EffectTag.ToString();
 	int32 LastSeparatorIndex = INDEX_NONE;
+	// 별도 표시 이름이 없으면 "Alchemy.BodyHeat"에서 마지막 조각인 "BodyHeat"만 보여준다.
 	if (FallbackName.FindLastChar(TEXT('.'), LastSeparatorIndex))
 	{
 		FallbackName.RightChopInline(LastSeparatorIndex + 1);

@@ -19,6 +19,8 @@ public:
 	virtual bool ExecuteInteraction(AActor* Interacter) override;
 	virtual bool CanExecuteInteraction(AActor* Interacter) const override;
 	
+	const int32 GetSlotIndex(){return SlotIndex;}
+	
 private:
 	UCPLabPotionSessionComponent* GetPotionSession() const;
 	

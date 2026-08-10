@@ -56,6 +56,7 @@ public:
 	bool ClearIngredient(int32 SlotIndex);
 	
 	// 지정한 슬롯에 등록된 Prop 참조를 가져옴
+	UFUNCTION(BlueprintCallable, Category = "Lab|Slot")
 	bool GetIngredientPropFromSlot(int32 SlotIndex, ACPAlchemyProp*& OutIngredientProp) const;
 	
 	// SlotIndex에 대응하는 월드 Slot Actor를 등록

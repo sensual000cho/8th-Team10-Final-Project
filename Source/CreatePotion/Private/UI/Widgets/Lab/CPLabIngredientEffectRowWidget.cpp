@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// 재료 효과 한 줄의 값 갱신과 변화 상태 판정을 구현한다.
 
 #include "UI/Widgets/Lab/CPLabIngredientEffectRowWidget.h"
 
@@ -25,6 +25,7 @@ void UCPLabIngredientEffectRowWidget::SetEffectData(
 
 	if (!bInHasPreview)
 	{
+		// 예상값이 없을 때는 0을 표시하지 않고 예상값 묶음 전체를 레이아웃에서 제거한다.
 		DeltaState = ECPLabIngredientEffectDeltaState::None;
 
 		if (PreviewGroup)
@@ -59,6 +60,7 @@ void UCPLabIngredientEffectRowWidget::SetEffectData(
 		PreviewGroup->SetVisibility(ESlateVisibility::HitTestInvisible);
 	}
 
+	// C++은 변화 상태만 판정하고 실제 색상과 화살표 표현은 WBP에 위임한다.
 	BP_ApplyDeltaStyle(DeltaState);
 }
 
