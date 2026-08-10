@@ -31,6 +31,9 @@ public:
     // 2D 그리드 검색 (아이템 고유 크기 사용)
     int32 FindGridSpace(UCPForageableItemData* ItemData, bool& bOutIsRotated);
 
+    UFUNCTION(BlueprintCallable, Category = "Container|Action")
+    bool GetItemFromContainer(int32 TargetGridIndex, int32 AmountToRemove);
+
 protected:
 	virtual void BeginPlay() override;
 

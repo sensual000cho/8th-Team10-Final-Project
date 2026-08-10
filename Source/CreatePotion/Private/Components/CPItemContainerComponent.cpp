@@ -213,3 +213,30 @@ bool UCPItemContainerComponent::FindSlotSpace(int32& OutGridIndex)
 
     return false; // 모든 슬롯이 꽉 찼을 경우
 }
+
+bool UCPItemContainerComponent::GetItemFromContainer(int32 TargetGridIndex, int32 AmountToRemove) 
+{
+    for (int32 i = 0; i < ContainerItems.Num(); ++i)
+    {
+        if (ContainerItems[i].GridIndex == TargetGridIndex)
+        {
+            // 가진 개수가 뺄 개수보다 많거나 같을 때만 허용
+            if (ContainerItems[i].Stacked >= AmountToRemove)
+            {
+                ContainerItems[i].Stacked -= AmountToRemove;
+
+                // 만약 다 빼서 0개가 되었다면 배열에서 삭제
+                if (ContainerItems[i].Stacked <= 0)
+                {
+                    ContainerItems.RemoveAt(i);
+                }
+
+                // UI 갱신 Broadcast
+                OnContainerUpdated.Broadcast();
+                return true;
+            }
+            break;
+        }
+    }
+    return false;
+}
