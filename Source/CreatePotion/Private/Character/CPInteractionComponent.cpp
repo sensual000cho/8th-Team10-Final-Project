@@ -6,6 +6,7 @@
 #include "GameCore/Interface/CPTimedInteractable.h"
 #include "Camera/CameraComponent.h"
 #include "Character/CPCharacter.h"
+#include "GameCore/Interface/CPHighlightable.h"
 #include "HAL/IConsoleManager.h"
 
 // 에디터에서 콘솔창에 cp.Debug.Interaction를 입력해서 Debug On/Off 가능
@@ -203,7 +204,23 @@ void UCPInteractionComponent::PerformTrace()
 			return;
 		}
 		
+		// 이전 대상 하이라이트 끄기
+		if (AActor* PrevTarget = CurrentTarget.Get())
+		{
+			if (PrevTarget->Implements<UCPHighlightable>())
+			{
+				ICPHighlightable::Execute_SetHighLight(PrevTarget, false);
+			}
+		}
+		
 		CurrentTarget = FoundActor;
+		
+		// 새 대상 하이라이트 켜기
+		if (FoundActor->Implements<UCPHighlightable>())
+		{
+			ICPHighlightable::Execute_SetHighLight(FoundActor, true);
+		}
+		
 		const FText Prompt = ICPInteractable::Execute_GetInteractionPrompt(FoundActor);
 		OnPromptChanged.Broadcast(Prompt);
 	}
@@ -218,6 +235,14 @@ void UCPInteractionComponent::ClearCurrentTarget()
 	if (!CurrentTarget.IsValid())
 	{
 		return;
+	}
+	
+	if (AActor* Target = CurrentTarget.Get())
+	{
+		if (Target->Implements<UCPHighlightable>())
+		{
+			ICPHighlightable::Execute_SetHighLight(Target, false);
+		}
 	}
 
 	CurrentTarget.Reset();
