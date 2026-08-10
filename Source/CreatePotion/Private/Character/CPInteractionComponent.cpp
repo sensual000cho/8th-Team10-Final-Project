@@ -207,19 +207,13 @@ void UCPInteractionComponent::PerformTrace()
 		// 이전 대상 하이라이트 끄기
 		if (AActor* PrevTarget = CurrentTarget.Get())
 		{
-			if (PrevTarget->Implements<UCPHighlightable>())
-			{
-				ICPHighlightable::Execute_SetHighLight(PrevTarget, false);
-			}
+			SetActorHighlight(PrevTarget, false);
 		}
 		
 		CurrentTarget = FoundActor;
 		
 		// 새 대상 하이라이트 켜기
-		if (FoundActor->Implements<UCPHighlightable>())
-		{
-			ICPHighlightable::Execute_SetHighLight(FoundActor, true);
-		}
+		SetActorHighlight(FoundActor, true);
 		
 		const FText Prompt = ICPInteractable::Execute_GetInteractionPrompt(FoundActor);
 		OnPromptChanged.Broadcast(Prompt);
@@ -239,10 +233,7 @@ void UCPInteractionComponent::ClearCurrentTarget()
 	
 	if (AActor* Target = CurrentTarget.Get())
 	{
-		if (Target->Implements<UCPHighlightable>())
-		{
-			ICPHighlightable::Execute_SetHighLight(Target, false);
-		}
+		SetActorHighlight(Target, false);
 	}
 
 	CurrentTarget.Reset();
@@ -369,4 +360,31 @@ void UCPInteractionComponent::CompleteTimedInteraction()
 		Target,
 		Interactor
 	);
+}
+
+void UCPInteractionComponent::SetActorHighlight(AActor* Target, bool bHighlighted)
+{
+	UE_LOG(LogTemp, Warning, TEXT("[InteractionComponent] SetActorHighlight 호출됨"));
+	
+	
+	if (!Target) return;
+	
+	// 하이라이트 인터페이스를 구현한 액터면 그 구현을 우선 사용
+	if (Target->Implements<UCPHighlightable>())
+	{
+		ICPHighlightable::Execute_SetHighlight(Target, bHighlighted);
+		return;
+	}
+	
+	if (UMeshComponent* Mesh = Target->FindComponentByClass<UMeshComponent>())
+	{
+		const TCHAR* Message = HighlightMaterial ? TEXT("Valid") : TEXT("NULL");
+		UE_LOG(LogTemp, Warning, TEXT("[InteractionComponent] Found Mesh: %s, HighlightMaterial: %s"),
+			*Mesh->GetName(), Message);
+		Mesh->SetOverlayMaterial(bHighlighted ? HighlightMaterial : nullptr);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("[InteractionComponent] %s 에서 Mesh 발견되지 않음"), *Target->GetName());
+	}
 }

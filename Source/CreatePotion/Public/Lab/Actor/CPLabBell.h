@@ -26,10 +26,8 @@ public:
 	//lab 세션 시작을 GameMode에 요청
 	UFUNCTION(BlueprintCallable, Category= "Lab|Bell")
 	bool TryRingBell();
-	
 
 
-private:
-	UPROPERTY(VisibleAnywhere, Category = "Lab|Bell")
+	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = "Lab|Bell")
 	TObjectPtr<UStaticMeshComponent> BellMesh;
 };
