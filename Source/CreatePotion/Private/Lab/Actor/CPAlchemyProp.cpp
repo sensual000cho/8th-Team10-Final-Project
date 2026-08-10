@@ -4,7 +4,7 @@
 #include "Data/CPForageableItemData.h"
 
 // 물리 재료 Actor의 기본 컴포넌트 구성
-ACPAlchemyProp::ACPAlchemyProp()
+ACPAlchemyProp::ACPAlchemyProp(): ProcessMultiplier(1) 
 {
 	// 직접 이동·가공 요청을 받을 때만 갱신하므로 Tick은 사용하지 않음
 	PrimaryActorTick.bCanEverTick = false;
@@ -34,23 +34,6 @@ void ACPAlchemyProp::InitializeFromItemData(UCPForageableItemData* ItemData)
 	OnAlchemyPropChanged.Broadcast();
 }
 
-bool ACPAlchemyProp::InitializeFromRequestSlot(
-	FName InRequestId, int32 InSourceSlotIndex, const FCPLabIngredientInstance& Ingredient)
-{
-	if (InRequestId.IsNone() || InSourceSlotIndex < 0 || 
-		InSourceSlotIndex >= CPLabPotionRequestRules::IngredientSlotCapacity || !Ingredient.IsValid()) return false;
-	
-	ResetWorkingIngredient();
-	
-	// 작업을 마친 뒤 원래 슬롯에 돌아갈 수 있도록 출처도 함께 저장
-	SourceRequestId = InRequestId;
-	SourceSlotIndex = InSourceSlotIndex;
-	WorkingIngredient = Ingredient;
-	
-	OnAlchemyPropChanged.Broadcast();
-	return true;
-}
-
 FCPLabIngredientInstance
 ACPAlchemyProp::GetWorkingIngredient() const
 {
@@ -78,27 +61,36 @@ int32 ACPAlchemyProp::GetEffectValue(const FGameplayTag& EffectTag) const
 	return WorkingIngredient.GetEffectValue(EffectTag);
 }
 
-FName ACPAlchemyProp::GetSourceRequestId() const
+bool ACPAlchemyProp::HasBeenProcessedBy(FName InProcessorId) const
 {
-	return SourceRequestId;
+	return !InProcessorId.IsNone() && AppliedProcessorIds.Contains(InProcessorId);
 }
 
-int32 ACPAlchemyProp::GetSourceSlotIndex() const
+bool ACPAlchemyProp::MarkProcessedBy(FName InProcessorId)
 {
-	return SourceSlotIndex;
+	if (InProcessorId.IsNone() || AppliedProcessorIds.Contains(InProcessorId)) return false;
+	
+	AppliedProcessorIds.Add(InProcessorId);
+	return true;
 }
 
-bool ACPAlchemyProp::IsAssignedToRequestSlot() const
+float ACPAlchemyProp::GetProcessMultiplier() const
 {
-	return !SourceRequestId.IsNone() && SourceSlotIndex != INDEX_NONE;
+	return ProcessMultiplier;
 }
+
+void ACPAlchemyProp::SetProcessMultiplier(float InMultiplier)
+{
+	ProcessMultiplier = InMultiplier;
+}
+
 
 void ACPAlchemyProp::ResetWorkingIngredient()
 {
-	// 다른 재료로 다시 초기화할 때 이전 재료 정보가 남지 않도록 전부 초기화
+	// 다른 재료로 다시 초기화할 때 이전 재료 정보가 남지 않도록 초기화
 	WorkingIngredient = FCPLabIngredientInstance{};
-	SourceRequestId = NAME_None;
-	SourceSlotIndex = INDEX_NONE;
+	AppliedProcessorIds.Reset();
+	ProcessMultiplier = 1;
 }
 
 
