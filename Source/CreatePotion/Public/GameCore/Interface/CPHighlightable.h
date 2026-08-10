@@ -24,7 +24,7 @@ class CREATEPOTION_API ICPHighlightable
 public:
 	// 외곽선 하이라이트 설정
 	UFUNCTION(BlueprintNativeEvent, Category = "Interaction")
-	void SetHighLight(bool bHighLighted);
+	void SetHighlight(bool bHighlighted);
 };
 
 
