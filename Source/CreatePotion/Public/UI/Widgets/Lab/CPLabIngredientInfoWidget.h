@@ -10,6 +10,7 @@
 
 class UCPForageableItemData;
 class UCPLabIngredientEffectRowWidget;
+class ACPAlchemyProp;
 class UImage;
 class UTextBlock;
 class UVerticalBox;
@@ -25,7 +26,14 @@ class CREATEPOTION_API UCPLabIngredientInfoWidget : public UCPBaseUserWidget
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Lab|UI|Ingredient")
-	void SetIngredientInfo(const FCPLabIngredientInstance& InIngredient, const FText& InContextText);
+	void SetIngredientInfo(const FCPLabIngredientInstance& InIngredient);
+
+	// Observe one world ingredient and refresh whenever its working data changes.
+	UFUNCTION(BlueprintCallable, Category = "Lab|UI|Ingredient")
+	void SetObservedIngredient(ACPAlchemyProp* InIngredientProp);
+
+	UFUNCTION(BlueprintCallable, Category = "Lab|UI|Ingredient")
+	void ClearObservedIngredient();
 
 	UFUNCTION(BlueprintCallable, Category = "Lab|UI|Ingredient")
 	void SetPreviewEffects(const TMap<FGameplayTag, int32>& InPreviewEffects);
@@ -41,6 +49,7 @@ public:
 
 protected:
 	virtual void NativeConstruct() override;
+	virtual void UnbindEvents() override;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_Context;
@@ -68,6 +77,13 @@ protected:
 		"비어 있음");
 
 private:
+	void ApplyIngredientInfo(const FCPLabIngredientInstance& InIngredient);
+	void RefreshObservedIngredient();
+	void UnbindObservedIngredient();
+
+	UFUNCTION()
+	void HandleObservedIngredientChanged();
+
 	void RefreshWidget();
 	void RefreshEmptyState();
 	void RebuildEffectRows();
@@ -79,6 +95,7 @@ private:
 	UPROPERTY(Transient)
 	TMap<FGameplayTag, int32> PreviewEffects;
 
+
 	UPROPERTY(Transient)
-	FText ContextText;
+	TWeakObjectPtr<ACPAlchemyProp> ObservedIngredientProp;
 };

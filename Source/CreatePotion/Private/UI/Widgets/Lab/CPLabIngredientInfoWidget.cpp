@@ -7,6 +7,7 @@
 #include "Components/VerticalBox.h"
 #include "Data/CPForageableItemData.h"
 #include "Engine/Texture2D.h"
+#include "Lab/Actor/CPAlchemyProp.h"
 #include "UI/Widgets/Lab/CPLabIngredientEffectRowWidget.h"
 
 void UCPLabIngredientInfoWidget::NativeConstruct()
@@ -15,21 +16,84 @@ void UCPLabIngredientInfoWidget::NativeConstruct()
 	RefreshWidget();
 }
 
-void UCPLabIngredientInfoWidget::SetIngredientInfo(
-	const FCPLabIngredientInstance& InIngredient,
-	const FText& InContextText)
+void UCPLabIngredientInfoWidget::SetIngredientInfo(const FCPLabIngredientInstance& InIngredient)
 {
-	ContextText = InContextText;
+	UnbindObservedIngredient();
+	ApplyIngredientInfo(InIngredient);
+}
 
+void UCPLabIngredientInfoWidget::SetObservedIngredient(ACPAlchemyProp* InIngredientProp)
+{
+	if (ObservedIngredientProp.Get() != InIngredientProp)
+	{
+		UnbindObservedIngredient();
+
+		if (IsValid(InIngredientProp))
+		{
+			ObservedIngredientProp = InIngredientProp;
+			InIngredientProp->OnAlchemyPropChanged.AddUniqueDynamic(
+				this,
+				&UCPLabIngredientInfoWidget::HandleObservedIngredientChanged);
+		}
+	}
+	RefreshObservedIngredient();
+}
+
+void UCPLabIngredientInfoWidget::ClearObservedIngredient()
+{
+	UnbindObservedIngredient();
+	ApplyIngredientInfo(FCPLabIngredientInstance{});
+}
+
+void UCPLabIngredientInfoWidget::ApplyIngredientInfo(const FCPLabIngredientInstance& InIngredient)
+{
 	if (!InIngredient.IsValid())
 	{
-		ClearIngredientInfo();
+		Ingredient = FCPLabIngredientInstance{};
+		PreviewEffects.Reset();
+		RefreshEmptyState();
 		return;
 	}
 
 	Ingredient = InIngredient;
 
 	RefreshWidget();
+}
+
+void UCPLabIngredientInfoWidget::RefreshObservedIngredient()
+{
+	ACPAlchemyProp* IngredientProp = ObservedIngredientProp.Get();
+	if (!IsValid(IngredientProp))
+	{
+		ObservedIngredientProp.Reset();
+		ApplyIngredientInfo(FCPLabIngredientInstance{});
+		return;
+	}
+
+	ApplyIngredientInfo(IngredientProp->GetWorkingIngredient());
+}
+
+void UCPLabIngredientInfoWidget::UnbindObservedIngredient()
+{
+	if (ACPAlchemyProp* IngredientProp = ObservedIngredientProp.Get(); IsValid(IngredientProp))
+	{
+		IngredientProp->OnAlchemyPropChanged.RemoveDynamic(
+			this,
+			&UCPLabIngredientInfoWidget::HandleObservedIngredientChanged);
+	}
+
+	ObservedIngredientProp.Reset();
+}
+
+void UCPLabIngredientInfoWidget::HandleObservedIngredientChanged()
+{
+	RefreshObservedIngredient();
+}
+
+void UCPLabIngredientInfoWidget::UnbindEvents()
+{
+	UnbindObservedIngredient();
+	Super::UnbindEvents();
 }
 
 void UCPLabIngredientInfoWidget::SetPreviewEffects(
@@ -47,9 +111,7 @@ void UCPLabIngredientInfoWidget::ClearPreviewEffects()
 
 void UCPLabIngredientInfoWidget::ClearIngredientInfo()
 {
-	Ingredient = FCPLabIngredientInstance{};
-	PreviewEffects.Reset();
-	RefreshEmptyState();
+	ClearObservedIngredient();
 }
 
 bool UCPLabIngredientInfoWidget::HasIngredientInfo() const
@@ -75,10 +137,6 @@ void UCPLabIngredientInfoWidget::RefreshWidget()
 	// This fixed HUD card always remains present.
 	SetVisibility(ESlateVisibility::HitTestInvisible);
 
-	if (Text_Context)
-	{
-		Text_Context->SetText(ContextText);
-	}
 
 	if (Text_MaterialName)
 	{
@@ -98,12 +156,6 @@ void UCPLabIngredientInfoWidget::RefreshWidget()
 
 void UCPLabIngredientInfoWidget::RefreshEmptyState()
 {
-	// Preserve the designer text when no context has been supplied yet.
-	if (Text_Context && !ContextText.IsEmpty())
-	{
-		Text_Context->SetText(ContextText);
-	}
-
 	if (Text_MaterialName)
 	{
 		Text_MaterialName->SetText(EmptyIngredientText);
