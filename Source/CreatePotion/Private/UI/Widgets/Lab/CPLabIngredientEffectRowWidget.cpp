@@ -5,8 +5,6 @@
 #include "Components/TextBlock.h"
 #include "Components/Widget.h"
 
-#define LOCTEXT_NAMESPACE "CPLabIngredientEffectRowWidget"
-
 void UCPLabIngredientEffectRowWidget::SetEffectData(
 	const FText& InEffectName,
 	int32 InCurrentLevel,
@@ -71,9 +69,5 @@ ECPLabIngredientEffectDeltaState UCPLabIngredientEffectRowWidget::GetDeltaState(
 
 FText UCPLabIngredientEffectRowWidget::FormatLevel(int32 Level)
 {
-	return FText::Format(
-		LOCTEXT("EffectLevelFormat", "Lv. {0}"),
-		FText::AsNumber(Level));
+	return FText::FromString(FString::Printf(TEXT("Lv. %d"), Level));
 }
-
-#undef LOCTEXT_NAMESPACE

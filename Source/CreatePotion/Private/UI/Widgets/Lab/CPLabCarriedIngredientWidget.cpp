@@ -4,14 +4,12 @@
 #include "Lab/Actor/CPAlchemyProp.h"
 #include "Lab/Component/CPLabPotionSessionComponent.h"
 
-#define LOCTEXT_NAMESPACE "CPLabCarriedIngredientWidget"
-
 void UCPLabCarriedIngredientWidget::NativeConstruct()
 {
 	// Super 호출 중 UCPBaseUserWidget이 가상 BindEvents를 호출하므로 세션 바인딩은 이미 끝난 상태다.
 	Super::NativeConstruct();
 
-	SetHeaderText(LOCTEXT("CarryHeader", "현재 운반중인 재료"));
+	SetHeaderText(FText::FromString(TEXT("현재 운반중인 재료")));
 	SetVisibility(ESlateVisibility::HitTestInvisible);
 	RefreshHeldIngredient();
 }
@@ -74,5 +72,3 @@ void UCPLabCarriedIngredientWidget::RefreshHeldIngredient()
 
 	ClearObservedIngredient();
 }
-
-#undef LOCTEXT_NAMESPACE
