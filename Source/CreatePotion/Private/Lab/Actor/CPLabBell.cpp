@@ -6,6 +6,9 @@
 #include "GameState/CPLabGameState.h"
 #include "Lab/Component/CPLabPotionSessionComponent.h"
 
+#include "Kismet/GameplayStatics.h"
+#include "NPC/CPNPCSpawner.h"
+
 ACPLabBell::ACPLabBell()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -54,6 +57,16 @@ bool ACPLabBell::TryRingBell()
 		World
 			? World->GetAuthGameMode<ACPLabGameMode>()
 			: nullptr;
+	bool bSessionStarted = LabMode && LabMode->TryStartLabSession();
 
-	return LabMode && LabMode->TryStartLabSession();
+	if (bSessionStarted)
+	{
+		ACPNPCSpawner* Spawner = Cast<ACPNPCSpawner>(UGameplayStatics::GetActorOfClass(World, ACPNPCSpawner::StaticClass()));
+		if (Spawner)
+		{
+			Spawner->StartSpawningSession();
+		}
+	}
+
+	return bSessionStarted;
 }

@@ -20,6 +20,11 @@ void UQuestManager::AcceptQuest(FName QuestID)
 	QuestStates.Add(QuestID, EQuestState::Accepted);
 	OnQuestUpdated.Broadcast(QuestID, EQuestState::Accepted);
 	UE_LOG(LogTemp, Warning, TEXT("퀘스트 수락: %s"), *QuestID.ToString());
+
+	if (!AcceptedQuestOrder.Contains(QuestID))
+	{
+		AcceptedQuestOrder.Add(QuestID);
+	}
 }
 
 // 특정 퀘스트의 현재 진행 상태(수락 전/수락함/완료함)를 조회

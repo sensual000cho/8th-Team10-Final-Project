@@ -41,6 +41,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Quest|Events")
 	FOnQuestUpdated OnQuestUpdated;
 
+	// 플레이어가 퀘스트를 수락한 순서대로 QuestID를 저장하는 배열
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Quest")
+	TArray<FName> AcceptedQuestOrder;
+
 	// [수락] NPC 대화 UI에서 "수락" 버튼 클릭 시 호출 / 상태를 Accepted로 전환
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	void AcceptQuest(FName QuestID);
@@ -106,6 +110,7 @@ public:
 	// 현재 저장된 힌트 단계에 맞는 텍스트 자동 반환
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	FText GetCurrentSessionHintText(FName QuestID) const;
+
 
 
 private:
