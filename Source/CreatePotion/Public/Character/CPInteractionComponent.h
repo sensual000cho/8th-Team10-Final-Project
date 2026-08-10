@@ -51,6 +51,13 @@ private:
 	void CompleteTimedInteraction();
 	
 private:
+	// --- 상호작용 대상 Highlight ---
+	void SetActorHighlight(AActor* Target, bool bHighlighted);
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Highlight")
+	UMaterialInterface* HighlightMaterial;
+	
+private:
 	// 상호작용 대상 탐색 타이머
 	FTimerHandle TraceTimerHandle;
 	// 시간형 상호작용 진행 타이머
