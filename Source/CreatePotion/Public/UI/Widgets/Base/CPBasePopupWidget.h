@@ -21,7 +21,6 @@ public:
 	ECPInputMode InputMode = ECPInputMode::GameAndUI;
 	
 	ECPInputMode GetInputMode() const { return InputMode; }
-	//ECPInputMode SetInputMode() { return ECPInputMode::GameAndUI; }
 	
 	UFUNCTION(BlueprintCallable, Category = "Popup")
 	void RequestClose();

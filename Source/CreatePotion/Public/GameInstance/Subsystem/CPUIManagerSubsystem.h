@@ -25,16 +25,7 @@ public:
 	
 	// 위젯 띄우는 템플릿
 	template<typename T>
-	T* PushWidget(TSubclassOf<T> WidgetClass, ECPInputMode InputMode = ECPInputMode::GameOnly)
-	{
-		T* Widget = CreateWidget<T>(GetWorld(), WidgetClass);
-		Widget->AddToViewport(OpenWidgets.Num());
-		
-		// 열린 위젯 배열에 추가
-		OpenWidgets.Add({Widget, InputMode});
-		UpdateInputMode();
-		return Widget;
-	}
+	T* PushWidget(TSubclassOf<T> WidgetClass);
 	
 	// 특정 위젯을 지정해서 닫기 (순서무관)
 	UFUNCTION(BlueprintCallable, Category = "UI")
@@ -58,10 +49,12 @@ private:
 	void UpdateInputMode(); 
 	
 	TArray<FPopupEntry> OpenWidgets;
-
+	
 public:
 	// 디버그용 BP함수
 	UFUNCTION(BlueprintCallable, Category = "UI|Debug")
-	UUserWidget* PushWidgetBP(TSubclassOf<UUserWidget> WidgetClass, ECPInputMode InputMode = ECPInputMode::GameAndUI);
+	UUserWidget* PushWidgetBP(TSubclassOf<UUserWidget> WidgetClass);
 	
 };
+
+

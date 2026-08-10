@@ -6,6 +6,30 @@
 #include "Blueprint/UserWidget.h"
 #include "UI/Widgets/Base/CPBasePopupWidget.h"
 
+template <typename T>
+T* UCPUIManagerSubsystem::PushWidget(TSubclassOf<T> WidgetClass)
+{
+	{
+		T* Widget = CreateWidget<T>(GetWorld(), WidgetClass);
+		
+		if (Widget)
+		{
+			Widget->AddToViewport(OpenWidgets.Num());
+			
+			ECPInputMode InputMode = ECPInputMode::GameAndUI; // 디폴트값
+			if (auto* PopupWidget = Cast<UCPBasePopupWidget>(Widget))
+			{
+				InputMode = PopupWidget->InputMode;
+			}
+			
+			// 열린 위젯 배열에 추가
+			OpenWidgets.Add({Widget, InputMode});
+			UpdateInputMode();
+		}
+		return Widget;
+	}
+}
+
 void UCPUIManagerSubsystem::CloseWidget(UUserWidget* Widget)
 {
 	UE_LOG(LogTemp, Warning, TEXT("[UIManager] CloseWidget 호출됨, Widget = %s, OpenWidgets.Num()=%d"),
@@ -98,7 +122,7 @@ void UCPUIManagerSubsystem::UpdateInputMode()
 	}
 }
 
-UUserWidget* UCPUIManagerSubsystem::PushWidgetBP(TSubclassOf<UUserWidget> WidgetClass, ECPInputMode InputMode)
+UUserWidget* UCPUIManagerSubsystem::PushWidgetBP(TSubclassOf<UUserWidget> WidgetClass)
 {
 	if (!WidgetClass) return nullptr;
 	
@@ -108,12 +132,12 @@ UUserWidget* UCPUIManagerSubsystem::PushWidgetBP(TSubclassOf<UUserWidget> Widget
 	{
 		Widget->AddToViewport(OpenWidgets.Num());
 		
-		
-		// if (auto* PopupWidget = Cast<UCPBasePopupWidget>(Widget))
-		// {
-		// 	Mode = PopupWidget->GetInputMode();
-		// 	
-		// }
+		ECPInputMode InputMode = ECPInputMode::GameOnly;
+		if (auto* PopupWidget = Cast<UCPBasePopupWidget>(Widget))
+		{
+			InputMode = PopupWidget->GetInputMode();
+			UE_LOG(LogTemp, Warning, TEXT("[UIManager] PushWidgetBP InputMode 읽음: %d"), (int32)InputMode);
+		}
 		
 		OpenWidgets.Add({Widget, InputMode});
 		UpdateInputMode();
