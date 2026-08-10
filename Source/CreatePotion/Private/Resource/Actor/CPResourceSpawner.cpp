@@ -28,17 +28,9 @@ void ACPResourceSpawner::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	if (ResourceDefinition.IsNull())
+	if (SpawnEntries.Num() == 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("%s : Resource definition is null"), *GetName());
-		
-		return;
-	}
-	
-	LoadedResourceDefinition = ResourceDefinition.LoadSynchronous();
-	if (!LoadedResourceDefinition)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("%s : Failed to load ResourceDefinition"), *GetName());
 		
 		return;
 	}
@@ -84,6 +76,12 @@ void ACPResourceSpawner::SpawnSlot(int32 SlotIndex)
 	
 	FCPResourceNodeState& State = StateSubsystem->GetOrCreateState(Key);
 	
+	const FCPResourceSpawnEntry* Entry = SelectResource(SlotIndex, State.Generation);
+	if (!Entry) return;
+	
+	UCPResourceDefinition* Definition = Entry->ResourceDefinition;
+	if (!Definition) return;
+	
 	const FTransform SpawnTransform = CalculateSpawnTransform(SlotIndex, State.Generation);
 	
 	ACPResourceNodeActor* ResourceActor = GetWorld()->SpawnActor<ACPResourceNodeActor>(
@@ -92,7 +90,41 @@ void ACPResourceSpawner::SpawnSlot(int32 SlotIndex)
 	);
 	if (!ResourceActor) return;
 	
-	ResourceActor->InitializeResource(Key, LoadedResourceDefinition);
+	ResourceActor->InitializeResource(Key, Definition);
+}
+
+const FCPResourceSpawnEntry* ACPResourceSpawner::SelectResource(int32 SlotIndex, int32 Generation) const
+{
+	float TotalWeight = 0.f;
+	
+	for (const FCPResourceSpawnEntry& Entry : SpawnEntries)
+	{
+		if (Entry.ResourceDefinition && Entry.Weight > 0.f)
+		{
+			TotalWeight += Entry.Weight;
+		}
+	}
+	
+	if (TotalWeight <= 0.f) return nullptr;
+	
+	FRandomStream RandomStream(MakeSpawnSeed(SlotIndex, Generation, 1));
+	
+	const float Roll = RandomStream.FRandRange(0.f, TotalWeight);
+	float AccumulatedWeight = 0.f;
+	
+	for (const FCPResourceSpawnEntry& Entry : SpawnEntries)
+	{
+		if (!Entry.ResourceDefinition || Entry.Weight <= 0.f) continue;
+		
+		AccumulatedWeight += Entry.Weight;
+		
+		if (Roll <=	AccumulatedWeight)
+		{
+			return &Entry;
+		}
+	}
+	
+	return nullptr;
 }
 
 FCPResourceNodeKey ACPResourceSpawner::MakeNodeKey(int32 SlotIndex) const
@@ -113,7 +145,7 @@ FTransform ACPResourceSpawner::CalculateSpawnTransform(int32 SlotIndex, int32 Ge
 		return GetActorTransform();
 	}
 	
-	FRandomStream RandomStream(MakeSpawnSeed(SlotIndex, Generation));
+	FRandomStream RandomStream(MakeSpawnSeed(SlotIndex, Generation, 2));
 	
 	const FVector BoxExtent = SpawnArea->GetUnscaledBoxExtent();
 	const FVector LocalLocation(
@@ -156,7 +188,9 @@ FTransform ACPResourceSpawner::CalculateSpawnTransform(int32 SlotIndex, int32 Ge
 		
 		const float RandomYaw = RandomStream.FRandRange(0.f, 360.f);
 		
-		const FQuat FinalRotation = LimitedAlignRotation * LimitedAlignRotation;
+		const FQuat RandomYawRotation(FVector::UpVector, FMath::DegreesToRadians(RandomYaw));
+		
+		const FQuat FinalRotation = LimitedAlignRotation * RandomYawRotation;
 		
 		return FTransform(FinalRotation, Hit.ImpactPoint);
 	}
@@ -166,7 +200,7 @@ FTransform ACPResourceSpawner::CalculateSpawnTransform(int32 SlotIndex, int32 Ge
 
 // 레벨 전환 시 위치 보존을 위한 시드 생성 코드
 // 채집물은 스포너의 일정 범위 내에 랜덤으로 스폰되고, 스폰된 채집물은 위치를 레벨 전환시에도 보존됨
-int32 ACPResourceSpawner::MakeSpawnSeed(int32 SlotIndex, int32 Generation) const
+int32 ACPResourceSpawner::MakeSpawnSeed(int32 SlotIndex, int32 Generation, int32 Salt) const
 {
 	uint32 Seed = FNV32OffsetBasis;
 	
@@ -183,6 +217,7 @@ int32 ACPResourceSpawner::MakeSpawnSeed(int32 SlotIndex, int32 Generation) const
 	
 	Mix(static_cast<uint32>(SlotIndex));
 	Mix(static_cast<uint32>(Generation));
+	Mix(static_cast<uint32>(Salt));
 	
 	return static_cast<int32>(Seed & 0x7FFFFFFF);
 }
