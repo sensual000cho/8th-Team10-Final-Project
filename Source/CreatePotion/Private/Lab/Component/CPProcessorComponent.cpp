@@ -12,7 +12,7 @@
 namespace
 {
 	// PR 이후 제거 예정: 가공 전후 태그 값 확인용 재료 이름 표시
-	FString GetDebugIngredientName(const ACPAlchemyProp* IngredientProp)
+	FString GetProcessorDebugIngredientName(const ACPAlchemyProp* IngredientProp)
 	{
 		if (!IsValid(IngredientProp)) return TEXT("없음");
 
@@ -79,7 +79,7 @@ bool UCPProcessorComponent::ProcessItem(ACPAlchemyProp* ItemInstance)
 			FString::Printf(
 				TEXT("가공기구: %s\n재료: %s\n가공 전: %s\n가공 후: %s"),
 				*ProcessorId.ToString(),
-				*GetDebugIngredientName(ItemInstance),
+				*GetProcessorDebugIngredientName(ItemInstance),
 				*GetDebugEffectText(BeforeIngredient),
 				*GetDebugEffectText(AfterIngredient)));
 	}
