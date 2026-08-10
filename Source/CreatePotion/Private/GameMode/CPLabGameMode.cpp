@@ -5,6 +5,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Lab/Actor/CPAlchemyProp.h"
 #include "Lab/Component/CPLabPotionSessionComponent.h"
+#include "Lab/Component/CPProcessorComponent.h"
 #include "PlayerState/CPLabPlayerState.h"
 
 namespace
@@ -98,6 +99,7 @@ bool ACPLabGameMode::TryStartLabSessionWithRequests(const TArray<FCPLabPotionReq
 void ACPLabGameMode::ResetLabSession()
 {
 	ClearSpawnedIngredients();
+	ResetProcessors();
 	
 	if (UCPLabPotionSessionComponent* Session = GetPotionSession()){
 		Session->ResetSession();
@@ -160,6 +162,13 @@ bool ACPLabGameMode::PlaceIngredient(int32 SlotIndex, ACPAlchemyProp* Ingredient
 {
 	UCPLabPotionSessionComponent* Session = GetPotionSession();
 	return Session && Session->PlaceIngredient(SlotIndex, Ingredient);
+}
+
+void ACPLabGameMode::RegisterProcessor(UCPProcessorComponent* ProcessorComponent)
+{
+	if (!IsValid(ProcessorComponent) || ProcessorPendings.Contains(ProcessorComponent)) return;
+	
+	ProcessorPendings.Add(ProcessorComponent);
 }
 
 void ACPLabGameMode::DebugAdvanceSessionPhase()
@@ -304,4 +313,14 @@ void ACPLabGameMode::ClearSpawnedIngredients()
 		}
 	}
 	SpawnedIngredients.Reset();
+}
+
+void ACPLabGameMode::ResetProcessors()
+{
+	for (UCPProcessorComponent* Processor : ProcessorPendings){
+		if (!IsValid(Processor)) continue;
+		Processor->ResetProcessor();
+	}
+	
+	ProcessorPendings.Reset();
 }

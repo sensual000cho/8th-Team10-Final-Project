@@ -34,6 +34,8 @@ protected:
 	virtual bool CanProcess(const ACPAlchemyProp* ItemInstance) const;
 	virtual void ApplyProcess(ACPAlchemyProp* ItemInstance);
 	
+	virtual bool NeedsResetRequestEnd() const;
+	
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Processor")
 	FName ProcessorId;

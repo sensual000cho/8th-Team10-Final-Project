@@ -23,6 +23,7 @@ protected:
 	virtual bool CanProcess(const ACPAlchemyProp* ItemInstance) const override;
 	virtual void ApplyProcess(ACPAlchemyProp* ItemInstance) override;
 	
+	virtual bool NeedsResetRequestEnd() const override;
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Lab/Processor")
 	float ProcessMultiplier;

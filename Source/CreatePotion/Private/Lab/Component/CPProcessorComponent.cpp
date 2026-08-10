@@ -4,6 +4,7 @@
 #include "Lab/Component/CPProcessorComponent.h"
 
 #include "Data/CPForageableItemData.h"
+#include "GameMode/CPLabGameMode.h"
 #include "GameState/CPLabGameState.h"
 #include "Lab/Actor/CPAlchemyProp.h"
 #include "Lab/Component/CPLabPotionSessionComponent.h"
@@ -59,6 +60,13 @@ bool UCPProcessorComponent::ProcessItem(ACPAlchemyProp* ItemInstance)
 	
 	ApplyProcess(ItemInstance);
 	ItemInstance->MarkProcessedBy(ProcessorId);
+	
+	if (NeedsResetRequestEnd()){
+		ACPLabGameMode* LabGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ACPLabGameMode>() : nullptr;
+		if (LabGameMode){
+			LabGameMode->RegisterProcessor(this);
+		}
+	}
 
 	const FCPLabIngredientInstance AfterIngredient = ItemInstance->GetWorkingIngredient();
 
@@ -121,4 +129,9 @@ bool UCPProcessorComponent::CanProcess(const ACPAlchemyProp* ItemInstance) const
 void UCPProcessorComponent::ApplyProcess(ACPAlchemyProp* ItemInstance)
 {
 	// 상속한 각 기구에서 구현
+}
+
+bool UCPProcessorComponent::NeedsResetRequestEnd() const
+{
+	return false;
 }

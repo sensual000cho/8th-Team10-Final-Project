@@ -25,4 +25,9 @@ void UCPCrusherComponent::ApplyProcess(ACPAlchemyProp* ItemInstance)
 	
 	ItemInstance->SetProcessMultiplier(ProcessMultiplier);
 	UsedCount++;
+}
+
+bool UCPCrusherComponent::NeedsResetRequestEnd() const
+{
+	return UsedCount > 0;
 } 

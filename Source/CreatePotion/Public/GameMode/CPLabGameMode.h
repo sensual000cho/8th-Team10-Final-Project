@@ -5,6 +5,7 @@
 #include "Lab/CPLabPotionRequestTypes.h"
 #include "CPLabGameMode.generated.h"
 
+class UCPProcessorComponent;
 class ACPAlchemyProp;
 class ACPLabGameState;
 class UCPLabPotionSessionComponent;
@@ -55,6 +56,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Lab|Request")
 	bool PlaceIngredient(int32 SlotIndex, ACPAlchemyProp* Ingredient);
 	
+	// 리퀘스트 종료 시 초기화할 가공기구 등록
+	void RegisterProcessor(UCPProcessorComponent* ProcessorComponent);
+	
 	// 현재 상태를 다음 단계로 넘기는 테스트 전용 함수
 	UFUNCTION(BlueprintCallable, Category = "Lab|Debug")
 	void DebugAdvanceSessionPhase();
@@ -73,6 +77,9 @@ private:
 	// Spawn된 재료 초기화
 	void ClearSpawnedIngredients();
 	
+	// 등록된 가공 기구 상태 초기화
+	void ResetProcessors();
+	
 private:
 	// 실제 리퀘스트 시스템이 연결되기 전 사용할 테스트 데이터
 	UPROPERTY(EditDefaultsOnly, Category = "Lab|Debug")
@@ -89,4 +96,8 @@ private:
 	// 생성된 재료를 관리하는 배열
 	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Debug")
 	TArray<TObjectPtr<ACPAlchemyProp>> SpawnedIngredients;
+	
+	// 초기화할 가공기구를 관리하는 배열
+	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Debug")
+	TArray<TObjectPtr<UCPProcessorComponent>> ProcessorPendings;
 };
