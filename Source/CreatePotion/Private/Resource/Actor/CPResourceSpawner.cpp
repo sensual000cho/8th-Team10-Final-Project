@@ -4,6 +4,7 @@
 #include "Resource/Actor/CPResourceNodeActor.h"
 #include "Resource/System/CPResourceStateSubsystem.h"
 #include "Data/CPResourceDefinition.h"
+#include "Resource/System/CPObjectPoolSubsystem.h"
 
 namespace
 {
@@ -84,10 +85,13 @@ void ACPResourceSpawner::SpawnSlot(int32 SlotIndex)
 	
 	const FTransform SpawnTransform = CalculateSpawnTransform(SlotIndex, State.Generation);
 	
-	ACPResourceNodeActor* ResourceActor = GetWorld()->SpawnActor<ACPResourceNodeActor>(
-		ResourceNodeActorClass,
-		SpawnTransform
-	);
+	UCPObjectPoolSubsystem* PoolSubsystem = GetWorld()->GetSubsystem<UCPObjectPoolSubsystem>();
+	if (!PoolSubsystem) return;
+	
+	AActor* AcquiredActor = PoolSubsystem->AcquireActor(ResourceNodeActorClass, SpawnTransform);
+	if (!AcquiredActor) return;
+	
+	ACPResourceNodeActor* ResourceActor = Cast<ACPResourceNodeActor>(AcquiredActor);
 	if (!ResourceActor) return;
 	
 	ResourceActor->InitializeResource(Key, Definition);

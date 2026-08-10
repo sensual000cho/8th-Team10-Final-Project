@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameCore/Interface/CPInteractable.h"
+#include "GameCore/Interface/CPPoolable.h"
 #include "GameFramework/Actor.h"
 #include "CPDroppedItemBase.generated.h"
 
@@ -13,7 +14,7 @@ class UCPForageableItemData;
 
 // 바닥에 떨구는 아이템 베이스 액터
 UCLASS()
-class CREATEPOTION_API ACPDroppedItemBase : public AActor, public ICPInteractable
+class CREATEPOTION_API ACPDroppedItemBase : public AActor, public ICPInteractable, public ICPPoolable
 {
 	GENERATED_BODY()
 	
@@ -27,11 +28,19 @@ public:
 	
 	virtual bool CanInteract_Implementation(AActor* Interactor) override;
 	
+	// 오브젝트 풀링 인터페이스 관련
+	virtual void OnAcquireFromPool_Implementation() override;
+	
+	virtual void OnReleaseToPool_Implementation() override;
+	
 	// 아이템 데이터 초기화
 	void Initialize(UCPForageableItemData* InItemData, int32 InAmount, UStaticMesh* InMesh);
 	
 	// 드랍 시 아이템 떨어지는 효과
 	void StartDropMotion(const FVector& DropDirection);
+	
+protected:
+	virtual void BeginPlay() override;
 	
 private:
 	UFUNCTION()

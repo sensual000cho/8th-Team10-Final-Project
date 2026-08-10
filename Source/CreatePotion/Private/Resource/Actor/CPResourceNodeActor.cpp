@@ -2,6 +2,7 @@
 #include "Data/CPResourceDefinition.h"
 #include "Resource/System/CPResourceStateSubsystem.h"
 #include "Items/CPDroppedItemBase.h"
+#include "Resource/System/CPObjectPoolSubsystem.h"
 
 ACPResourceNodeActor::ACPResourceNodeActor()
 {
@@ -55,10 +56,28 @@ float ACPResourceNodeActor::GetInteractionDuration_Implementation(AActor* Intera
 	return ResourceDefinition->HarvestDuration;
 }
 
+void ACPResourceNodeActor::OnAcquireFromPool_Implementation()
+{
+	SetActorHiddenInGame(false);
+	SetActorEnableCollision(true);
+}
+
+void ACPResourceNodeActor::OnReleaseToPool_Implementation()
+{
+	SetActorHiddenInGame(true);
+	SetActorEnableCollision(false);
+	
+	NodeKey = FCPResourceNodeKey{};
+	ResourceDefinition = nullptr;
+	
+	Mesh->SetStaticMesh(nullptr);
+}
+
 void ACPResourceNodeActor::ApplyDefinition()
 {
 	if (!ResourceDefinition) return;
 	
+	//TODO: 추후 비동기 로드 방식으로 전환 예정
 	Mesh->SetStaticMesh(ResourceDefinition->Mesh.LoadSynchronous());
 }
 
@@ -73,12 +92,17 @@ void ACPResourceNodeActor::Harvest(AActor* Interactor)
 	UCPResourceStateSubsystem* StateSubsystem = GameInstance->GetSubsystem<UCPResourceStateSubsystem>();
 	if (!StateSubsystem) return;
 	
-	ACPDroppedItemBase* DroppedItem = GetWorld()->SpawnActor<ACPDroppedItemBase>(
-		DroppedItemClass,
-		GetActorLocation(),
-		FRotator::ZeroRotator
-		);
-	if (!DroppedItem) return;
+	UCPObjectPoolSubsystem* Pool = GetWorld()->GetSubsystem<UCPObjectPoolSubsystem>();
+	if (!Pool) return;
+	
+	AActor* AcquiredActor = Pool->AcquireActor(DroppedItemClass, {FRotator::ZeroRotator, GetActorLocation()});
+	
+	ACPDroppedItemBase* DroppedItem = Cast<ACPDroppedItemBase>(AcquiredActor);
+	if (!DroppedItem)
+	{
+		Pool->ReleaseActor(AcquiredActor);
+		return;
+	}
 	
 	DroppedItem->Initialize(ResourceDefinition->HarvestedItem, ResourceDefinition->HarvestAmount,
 		ResourceDefinition->Mesh.LoadSynchronous());
@@ -89,7 +113,7 @@ void ACPResourceNodeActor::Harvest(AActor* Interactor)
 	
 	StateSubsystem->MarkHarvested(NodeKey);
 	
-	Destroy();
+	Pool->ReleaseActor(this);
 }
 
 void ACPResourceNodeActor::Inspect(AActor* Interactor)
