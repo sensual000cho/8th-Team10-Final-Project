@@ -1,0 +1,28 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Lab/Component/CPProcessorComponent.h"
+#include "CPDryerComponent.generated.h"
+
+/**
+ * 
+ */
+UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+class CREATEPOTION_API UCPDryerComponent : public UCPProcessorComponent
+{
+	GENERATED_BODY()
+	
+public:
+	UCPDryerComponent();
+	
+protected:
+	virtual bool CanProcess(const ACPAlchemyProp* ItemInstance) const override;
+	virtual void ApplyProcess(ACPAlchemyProp* ItemInstance) override;
+	
+private:
+	UPROPERTY(EditDefaultsOnly, Category = "Lab/Processor")
+	int32 ProcessAmount;
+	
+};

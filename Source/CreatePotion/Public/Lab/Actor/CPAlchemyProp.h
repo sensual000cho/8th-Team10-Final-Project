@@ -38,6 +38,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Lab|Ingredient")
 	int32 GetEffectValue(const FGameplayTag& EffectTag) const;
+	
+	bool HasBeenProcessedBy(FName InProcessorId) const;
+	bool MarkProcessedBy(FName InProcessorId);
+	
+	float GetProcessMultiplier() const;
+	void SetProcessMultiplier(float InMultiplier);
 
 private:
 	// 현재 작업 재료 정보를 비움
@@ -49,4 +55,10 @@ private:
 	
 	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Ingredient")
 	FCPLabIngredientInstance WorkingIngredient;
+	
+	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Processor")
+	TSet<FName> AppliedProcessorIds;
+	
+	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Processor")
+	float ProcessMultiplier;
 };

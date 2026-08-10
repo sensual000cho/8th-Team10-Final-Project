@@ -19,6 +19,47 @@ namespace
 		PotionRequest.DisplayText = MoveTemp(DisplayText);
 		return PotionRequest;
 	}
+
+	// PR 이후 제거 예정: 현재 리퀘스트 페이즈 확인용 문자열 변환
+	FString GetDebugRequestPhaseText(ECPLabPotionRequestPhase Phase)
+	{
+		switch (Phase){
+		case ECPLabPotionRequestPhase::Queued:
+			return TEXT("대기");
+
+		case ECPLabPotionRequestPhase::Preparing:
+			return TEXT("재료 준비");
+
+		case ECPLabPotionRequestPhase::Processing:
+			return TEXT("가공");
+
+		case ECPLabPotionRequestPhase::PotionReady:
+			return TEXT("포션 완성");
+
+		case ECPLabPotionRequestPhase::Delivered:
+			return TEXT("납품 완료");
+
+		default:
+			return TEXT("알 수 없음");
+		}
+	}
+
+	// PR 이후 제거 예정: 현재 리퀘스트 페이즈 확인용 DebugMessage
+	void ShowDebugRequestPhase(const UCPLabPotionSessionComponent* Session)
+	{
+		if (!GEngine || !Session) return;
+
+		FCPLabPotionRequestState ActiveRequestState;
+		const FString RequestPhaseText = Session->GetActiveRequestState(ActiveRequestState)
+			? GetDebugRequestPhaseText(ActiveRequestState.Phase)
+			: TEXT("없음");
+
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			4.f,
+			FColor::Yellow,
+			FString::Printf(TEXT("리퀘스트 단계: %s"), *RequestPhaseText));
+	}
 }
 
 ACPLabGameMode::ACPLabGameMode()
@@ -131,9 +172,11 @@ void ACPLabGameMode::DebugAdvanceSessionPhase()
 
 	if (SessionState.Phase == ECPLabPotionSessionPhase::WaitingForBell){
 		const bool bStarted = TryStartLabSession();
+		ShowDebugRequestPhase(Session);
 		return;
 	}else if (SessionState.Phase == ECPLabPotionSessionPhase::Completed){
 		ResetLabSession();
+		ShowDebugRequestPhase(Session);
 		return;
 	}
 
@@ -160,6 +203,8 @@ void ACPLabGameMode::DebugAdvanceSessionPhase()
 	default:
 		break;
 	}
+
+	ShowDebugRequestPhase(Session);
 }
 
 ACPLabGameState* ACPLabGameMode::GetLabGameState() const

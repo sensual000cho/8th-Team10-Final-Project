@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Component/CPLabInteractActionComponent.h"
+#include "CPLabInteractActionComponent.h"
 #include "Components/ActorComponent.h"
 #include "CPProcessorComponent.generated.h"
 
@@ -35,7 +35,6 @@ protected:
 	virtual void ApplyProcess(ACPAlchemyProp* ItemInstance);
 	
 protected:
-	// Props에서 해당 값을 저장할 공간 필요(TSet 권장), 기구 해금 관리에도 사용(TSet 권장)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Processor")
 	FName ProcessorId;
 		
