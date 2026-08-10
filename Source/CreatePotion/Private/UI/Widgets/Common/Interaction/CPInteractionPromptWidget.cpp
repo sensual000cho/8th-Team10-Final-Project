@@ -16,6 +16,7 @@ void UCPInteractionPromptWidget::BindEvents()
 		BoundInteractionComponent->OnPromptChanged.AddDynamic(this, &UCPInteractionPromptWidget::OnPromptChanged);
 	}
 	
+	
 	HideWidget();
 }
 

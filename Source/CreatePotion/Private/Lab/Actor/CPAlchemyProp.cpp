@@ -4,7 +4,7 @@
 #include "Data/CPForageableItemData.h"
 
 // 물리 재료 Actor의 기본 컴포넌트 구성
-ACPAlchemyProp::ACPAlchemyProp()
+ACPAlchemyProp::ACPAlchemyProp(): ProcessMultiplier(1) 
 {
 	// 직접 이동·가공 요청을 받을 때만 갱신하므로 Tick은 사용하지 않음
 	PrimaryActorTick.bCanEverTick = false;
@@ -61,10 +61,36 @@ int32 ACPAlchemyProp::GetEffectValue(const FGameplayTag& EffectTag) const
 	return WorkingIngredient.GetEffectValue(EffectTag);
 }
 
+bool ACPAlchemyProp::HasBeenProcessedBy(FName InProcessorId) const
+{
+	return !InProcessorId.IsNone() && AppliedProcessorIds.Contains(InProcessorId);
+}
+
+bool ACPAlchemyProp::MarkProcessedBy(FName InProcessorId)
+{
+	if (InProcessorId.IsNone() || AppliedProcessorIds.Contains(InProcessorId)) return false;
+	
+	AppliedProcessorIds.Add(InProcessorId);
+	return true;
+}
+
+float ACPAlchemyProp::GetProcessMultiplier() const
+{
+	return ProcessMultiplier;
+}
+
+void ACPAlchemyProp::SetProcessMultiplier(float InMultiplier)
+{
+	ProcessMultiplier = InMultiplier;
+}
+
+
 void ACPAlchemyProp::ResetWorkingIngredient()
 {
 	// 다른 재료로 다시 초기화할 때 이전 재료 정보가 남지 않도록 초기화
 	WorkingIngredient = FCPLabIngredientInstance{};
+	AppliedProcessorIds.Reset();
+	ProcessMultiplier = 1;
 }
 
 

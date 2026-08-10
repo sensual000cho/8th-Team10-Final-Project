@@ -5,6 +5,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Lab/Actor/CPAlchemyProp.h"
 #include "Lab/Component/CPLabPotionSessionComponent.h"
+#include "Lab/Component/CPProcessorComponent.h"
 #include "PlayerState/CPLabPlayerState.h"
 
 namespace
@@ -18,6 +19,47 @@ namespace
 		PotionRequest.RequestId = RequestId;
 		PotionRequest.DisplayText = MoveTemp(DisplayText);
 		return PotionRequest;
+	}
+
+	// PR 이후 제거 예정: 현재 리퀘스트 페이즈 확인용 문자열 변환
+	FString GetDebugRequestPhaseText(ECPLabPotionRequestPhase Phase)
+	{
+		switch (Phase){
+		case ECPLabPotionRequestPhase::Queued:
+			return TEXT("대기");
+
+		case ECPLabPotionRequestPhase::Preparing:
+			return TEXT("재료 준비");
+
+		case ECPLabPotionRequestPhase::Processing:
+			return TEXT("가공");
+
+		case ECPLabPotionRequestPhase::PotionReady:
+			return TEXT("포션 완성");
+
+		case ECPLabPotionRequestPhase::Delivered:
+			return TEXT("납품 완료");
+
+		default:
+			return TEXT("알 수 없음");
+		}
+	}
+
+	// PR 이후 제거 예정: 현재 리퀘스트 페이즈 확인용 DebugMessage
+	void ShowDebugRequestPhase(const UCPLabPotionSessionComponent* Session)
+	{
+		if (!GEngine || !Session) return;
+
+		FCPLabPotionRequestState ActiveRequestState;
+		const FString RequestPhaseText = Session->GetActiveRequestState(ActiveRequestState)
+			? GetDebugRequestPhaseText(ActiveRequestState.Phase)
+			: TEXT("없음");
+
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			4.f,
+			FColor::Yellow,
+			FString::Printf(TEXT("리퀘스트 단계: %s"), *RequestPhaseText));
 	}
 }
 
@@ -57,6 +99,7 @@ bool ACPLabGameMode::TryStartLabSessionWithRequests(const TArray<FCPLabPotionReq
 void ACPLabGameMode::ResetLabSession()
 {
 	ClearSpawnedIngredients();
+	ResetProcessors();
 	
 	if (UCPLabPotionSessionComponent* Session = GetPotionSession()){
 		Session->ResetSession();
@@ -121,6 +164,13 @@ bool ACPLabGameMode::PlaceIngredient(int32 SlotIndex, ACPAlchemyProp* Ingredient
 	return Session && Session->PlaceIngredient(SlotIndex, Ingredient);
 }
 
+void ACPLabGameMode::RegisterProcessor(UCPProcessorComponent* ProcessorComponent)
+{
+	if (!IsValid(ProcessorComponent) || ProcessorPendings.Contains(ProcessorComponent)) return;
+	
+	ProcessorPendings.Add(ProcessorComponent);
+}
+
 void ACPLabGameMode::DebugAdvanceSessionPhase()
 {
 	// 월드 Actor가 완성되기 전 세션 진행 상태만 빠르게 확인하는 함수
@@ -131,9 +181,11 @@ void ACPLabGameMode::DebugAdvanceSessionPhase()
 
 	if (SessionState.Phase == ECPLabPotionSessionPhase::WaitingForBell){
 		const bool bStarted = TryStartLabSession();
+		ShowDebugRequestPhase(Session);
 		return;
 	}else if (SessionState.Phase == ECPLabPotionSessionPhase::Completed){
 		ResetLabSession();
+		ShowDebugRequestPhase(Session);
 		return;
 	}
 
@@ -160,6 +212,8 @@ void ACPLabGameMode::DebugAdvanceSessionPhase()
 	default:
 		break;
 	}
+
+	ShowDebugRequestPhase(Session);
 }
 
 ACPLabGameState* ACPLabGameMode::GetLabGameState() const
@@ -259,4 +313,14 @@ void ACPLabGameMode::ClearSpawnedIngredients()
 		}
 	}
 	SpawnedIngredients.Reset();
+}
+
+void ACPLabGameMode::ResetProcessors()
+{
+	for (UCPProcessorComponent* Processor : ProcessorPendings){
+		if (!IsValid(Processor)) continue;
+		Processor->ResetProcessor();
+	}
+	
+	ProcessorPendings.Reset();
 }
