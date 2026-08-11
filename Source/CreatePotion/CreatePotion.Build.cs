@@ -16,7 +16,8 @@ public class CreatePotion : ModuleRules
 			"EnhancedInput",
 			"UMG",
 			"Slate",
-			"GameplayTags",
+            "SlateCore",
+            "GameplayTags",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });

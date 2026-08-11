@@ -5,6 +5,7 @@
 #include "Components/UniformGridSlot.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Components/SizeBox.h"				// 사이즈 조절
 
 #include "CreatePotion.h"   // 로그용 헤더
 #include "UI/Widgets/Common/Container/CPItemSlotWidget.h"
@@ -46,9 +47,25 @@ void UCPContainerGridWidget::InitializeGrid(UCPItemContainerComponent* TargetCon
 			{
 				Row = i / TargetContainer->Columns;
 				Col = i % TargetContainer->Columns;
-			}
 
-			ItemGrid->AddChildToUniformGrid(BgSlot, Row, Col);
+				// Grid2D의 경우 UniformGrid에 바로 추가
+				ItemGrid->AddChildToUniformGrid(BgSlot, Row, Col);
+			}
+			else if (TargetContainer->ContainerType == EContainerType::Slot1D)
+			{
+				// Slot1D의 경우 1칸짜리 배경을 (Columns x Rows) 크기로 거대하게 그리기
+				float BigSlotSizeX = (TargetContainer->Columns * SlotSize) + FMath::Max(0, (TargetContainer->Columns - 1)) * SlotPadding;
+				float BigSlotSizeY = (TargetContainer->Rows * SlotSize) + FMath::Max(0, (TargetContainer->Rows - 1)) * SlotPadding;
+
+				// SizeBox를 동적으로 생성해서 배경 위젯을 감싼 뒤 강제로 크기를 늘림
+				USizeBox* SizeBox = NewObject<USizeBox>(this);
+				SizeBox->SetWidthOverride(BigSlotSizeX);
+				SizeBox->SetHeightOverride(BigSlotSizeY);
+				SizeBox->AddChild(BgSlot);
+
+				// 확장된 SizeBox를 UniformGrid에 추가 (가로로 일렬 배치)
+				ItemGrid->AddChildToUniformGrid(SizeBox, Row, Col);
+			}
 		}
 	}
 }
@@ -73,46 +90,57 @@ void UCPContainerGridWidget::UpdateGrid(const TArray<FContainerItem>& ContainerI
 
 		// 새로운 아이템 위젯을 생성
 		UCPItemSlotWidget* NewItemWidget = CreateWidget<UCPItemSlotWidget>(this, ItemWidgetClass);
-		if (!NewItemWidget) continue;
+		if (!NewItemWidget)
+		{
+			continue;
+		}
 
-		// 캔버스 패널에 먼저 추가
-		// NativeConstruct가 실행되며 ClearSlot이 호출됨
+		// 캔버스 패널에 먼저 추가 (NativeConstruct가 실행되며 ClearSlot이 호출됨)
 		UCanvasPanelSlot* CanvasSlot = ItemCanvas->AddChildToCanvas(NewItemWidget);
-
 		if (CanvasSlot)
 		{
-			// 캐싱해둔 Container의 Column
-			int32 Columns = CachedContainer->Columns;
+			float PosX = 0.0f;
+			float PosY = 0.0f;
 
-			// 만약 장비창 같은 Slot1D라면 가로로 길게 배치되도록 계산
-			if (CachedContainer->ContainerType == EContainerType::Slot1D)
-			{
-				Columns = CachedContainer->MaxSlots;
-			}
-
-			// index를 기반으로 현재 아이템의 Column, Row 위치 계산
-			int32 Col = Item.GridIndex % Columns;
-			int32 Row = Item.GridIndex / Columns;
-
-			// 아이템의 가로/세로 칸 수 (회전 고려)
+			// 아이템의 실제 크기 (패딩 포함)
 			int32 ItemW = Item.bIsRotated ? Item.ItemDataAsset->ContainerSizeY : Item.ItemDataAsset->ContainerSizeX;
 			int32 ItemH = Item.bIsRotated ? Item.ItemDataAsset->ContainerSizeX : Item.ItemDataAsset->ContainerSizeY;
 
-			// 위치(Position) 계산: (슬롯 크기 + 여백) * 인덱스
-			float PosX = Col * (SlotSize + SlotPadding);
-			float PosY = Row * (SlotSize + SlotPadding);
+			float ItemSizeX = (ItemW * SlotSize) + FMath::Max(0, (ItemW - 1)) * SlotPadding;
+			float ItemSizeY = (ItemH * SlotSize) + FMath::Max(0, (ItemH - 1)) * SlotPadding;
 
-			// 크기(Size) 계산: (차지하는 칸 수 * 슬롯 크기) + (칸 사이사이의 여백 개수 * 여백 크기)
-			float SizeX = (ItemW * SlotSize) + ((ItemW - 1) * SlotPadding);
-			float SizeY = (ItemH * SlotSize) + ((ItemH - 1) * SlotPadding);
+			if (CachedContainer->ContainerType == EContainerType::Slot1D)
+			{
+				// 배경(BigSlot)의 물리적 크기
+				float BigSlotSizeX = (CachedContainer->Columns * SlotSize) + FMath::Max(0, (CachedContainer->Columns - 1)) * SlotPadding;
+				float BigSlotSizeY = (CachedContainer->Rows * SlotSize) + FMath::Max(0, (CachedContainer->Rows - 1)) * SlotPadding;
 
-			// 캔버스 상의 위치와 크기를 적용
+				// 다음 거대 슬롯으로 넘어갈 때의 간격: (거대 슬롯 크기 + 패딩 1개)
+				float BasePosX = Item.GridIndex * (BigSlotSizeX + SlotPadding);
+				float BasePosY = 0.0f;
+
+				// 중앙 정렬
+				PosX = BasePosX + ((BigSlotSizeX - ItemSizeX) / 2.0f);
+				PosY = BasePosY + ((BigSlotSizeY - ItemSizeY) / 2.0f);
+			}
+			else
+			{
+				// 기존 Grid2D 로직
+				int32 Col = Item.GridIndex % CachedContainer->Columns;
+				int32 Row = Item.GridIndex / CachedContainer->Columns;
+
+				PosX = Col * (SlotSize + SlotPadding);
+				PosY = Row * (SlotSize + SlotPadding);
+			}
+
+			// 캔버스 상의 위치와 크기 적용
 			CanvasSlot->SetAutoSize(false);
 			CanvasSlot->SetPosition(FVector2D(PosX, PosY));
-			CanvasSlot->SetSize(FVector2D(SizeX, SizeY));
+			CanvasSlot->SetSize(FVector2D(ItemSizeX, ItemSizeY));
 
-			// 위치와 크기까지 캔버스에 다 잡힌 이후에, 마지막으로 그림과 텍스트를 업데이트
 			NewItemWidget->UpdateSlot(Item);
+			NewItemWidget->OwnerContainer = CachedContainer;
+			NewItemWidget->CachedItemData = Item;
 		}
 	}
 }
