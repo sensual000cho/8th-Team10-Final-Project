@@ -1,4 +1,4 @@
-// CPPlayerController.h
+﻿// CPPlayerController.h
 
 #pragma once
 
@@ -7,10 +7,8 @@
 #include "CPPlayerController.generated.h"
 
 class UInputMappingContext;
+class UCPItemContainerComponent;
 
-/**
- * 
- */
 UCLASS()
 class CREATEPOTION_API ACPPlayerController : public APlayerController
 {
@@ -28,5 +26,8 @@ protected:
 	/** Input mapping context setup */
 	virtual void SetupInputComponent() override;
 
-};
+public:
+	UPROPERTY(BlueprintReadWrite, Category = "Container")
+	UCPItemContainerComponent* CurrentInteractingContainer = nullptr;
 
+};
