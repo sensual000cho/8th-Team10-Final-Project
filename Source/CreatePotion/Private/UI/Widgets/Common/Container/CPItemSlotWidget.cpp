@@ -7,6 +7,7 @@
 #include "CreatePotion.h"   // 로그용 헤더
 #include "Data/CPForageableItemData.h"
 #include "Components/CPItemContainerComponent.h"	// CPContainerItem 구조체
+#include "Character/CPPlayerController.h"		// 상호작용하는 대상의 컨테이너를 가지고 있음
 
 void UCPItemSlotWidget::NativeConstruct()
 {
@@ -81,20 +82,30 @@ void UCPItemSlotWidget::ClearSlot()
 
 FReply UCPItemSlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
+	ACPPlayerController* PC = Cast<ACPPlayerController>(GetOwningPlayer());
+
+	// 빈 칸(유효한 데이터가 없음)이면 무시하고 부모 함수로 처리
+	if (!CachedItemData.ItemDataAsset || !OwnerContainer)
+	{
+		return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
+	}
+
 	// 좌클릭인 경우
 	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
-		// 빈 칸(데이터 없음)이면 무시하고 부모 함수로 처리
-		if (!CachedItemData.ItemDataAsset || !OwnerContainer)
-		{
-			return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
-		}
-
 		if (InMouseEvent.IsLeftControlDown())
 		{
 			// TODO: [Ctrl + 좌클릭] 아이템 빠른 이동 (Quick Transfer)
-			UE_LOG(LogContainer, Warning, TEXT("[%s] 아이템 이동"), 
-				*CachedItemData.ItemDataAsset->DisplayName.ToString());
+			if (PC && PC->CurrentInteractingContainer)
+			{
+				UE_LOG(LogContainer, Log, TEXT("[%s] 아이템 이동"), 
+					*CachedItemData.ItemDataAsset->DisplayName.ToString());
+				OwnerContainer->MoveItemToTargetContainer(CachedItemData.GridIndex, PC->CurrentInteractingContainer);
+			}
+			else
+			{
+				UE_LOG(LogContainer, Warning, TEXT("LCtrl : 아이템을 이동시킬 타겟 컨테이너가 없음"));
+			}
 			return FReply::Handled();	// 이벤트를 처리했음을 엔진에 알림, 
 			// 마우스 클릭 이벤트가 마무리 되며 뒤 UI는 클릭 이벤트가 실행되지 않음
 		}
