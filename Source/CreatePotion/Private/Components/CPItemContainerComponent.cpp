@@ -6,7 +6,7 @@
 
 UCPItemContainerComponent::UCPItemContainerComponent()
 {
-	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = false;
 }
 
 void UCPItemContainerComponent::BeginPlay()
@@ -212,4 +212,79 @@ bool UCPItemContainerComponent::FindSlotSpace(int32& OutGridIndex)
     }
 
     return false; // 모든 슬롯이 꽉 찼을 경우
+}
+
+bool UCPItemContainerComponent::RemoveItemFromContainer(int32 TargetGridIndex, int32 AmountToRemove) 
+{
+    for (int32 i = 0; i < ContainerItems.Num(); ++i)
+    {
+        if (ContainerItems[i].GridIndex == TargetGridIndex)
+        {
+            // 가진 개수가 뺄 개수보다 많거나 같을 때만 허용
+            if (ContainerItems[i].Stacked >= AmountToRemove)
+            {
+                ContainerItems[i].Stacked -= AmountToRemove;
+
+                // 만약 다 빼서 0개가 되었다면 배열에서 삭제
+                if (ContainerItems[i].Stacked <= 0)
+                {
+                    ContainerItems.RemoveAt(i);
+                }
+
+                // UI 갱신 Broadcast
+                OnContainerUpdated.Broadcast();
+                return true;
+            }
+            break;
+        }
+    }
+    return false;
+}
+
+bool UCPItemContainerComponent::MoveItemToTargetContainer(int32 SourceGridIndex, UCPItemContainerComponent* TargetContainer)
+{
+    // 옮기려는 컨테이너가 유효하지 않거나 자기 자신에게 옮기는 시도라면 무시
+    if (!TargetContainer || TargetContainer == this)
+    {
+        UE_LOG(LogContainer, Log, TEXT("대상 컨테이너가 유효하지 않습니다."))
+        return false;
+    }
+
+    // 옮길 아이템 찾기
+    FContainerItem* ItemToMove = nullptr;
+    for (FContainerItem& Item : ContainerItems)
+    {
+        if (Item.GridIndex == SourceGridIndex)
+        {
+            ItemToMove = &Item;
+            break;
+        }
+    }
+
+    // 아이템이 없거나 데이터가 비어있으면 실패
+    if (!ItemToMove || !ItemToMove->ItemDataAsset)
+    {
+        return false;
+    }
+
+    // 2. 안전하게 데이터 복사해두기 (배열이 수정될 수 있으므로)
+    UCPForageableItemData* DataAsset = ItemToMove->ItemDataAsset;
+    int32 OriginalCount = ItemToMove->Stacked;
+
+    // 3. 대상(Target) 컨테이너에 아이템 밀어 넣기
+    int32 LeftoverCount = TargetContainer->TryGetItem(DataAsset, OriginalCount);
+    int32 TransferredCount = OriginalCount - LeftoverCount;
+
+    // 4. 단 1개라도 성공적으로 넘어갔다면 내 인벤토리에서 차감
+    if (TransferredCount > 0)
+    {
+        RemoveItemFromContainer(SourceGridIndex, TransferredCount);
+        UE_LOG(LogContainer, Log, TEXT("[%s] 로 아이템 이동 성공 (총 %d개 중 %d개 이동)"), 
+            *DataAsset->DisplayName.ToString(), OriginalCount, TransferredCount);
+        return true;
+    }
+
+    UE_LOG(LogContainer, Warning, TEXT("[%s] 대상 컨테이너 공간 부족"), 
+        *DataAsset->DisplayName.ToString());
+    return false;
 }
