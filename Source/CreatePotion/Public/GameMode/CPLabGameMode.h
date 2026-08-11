@@ -78,6 +78,12 @@ private:
 	UCPLabPotionSessionComponent* GetPotionSession() const;
 	FName GetActiveRequestId() const;
 	
+	// PR이후 삭제 예정 / 프로토타입 퀘스트를 Accepted 상태로 등록
+	void AcceptProtoTypeQuest() const;
+	
+	// 퀘스트를 QuestOrder 순서대로 공방 리퀘스트로 변환
+	TArray<FCPLabPotionRequest> BuildQuestRequests() const;
+	
 	// 재료를 Spawn할 Actor 탐색
 	void CollectSlotActors(TArray<AActor*>& OutSlotActors) const;
 	

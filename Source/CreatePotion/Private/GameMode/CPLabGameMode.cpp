@@ -7,6 +7,7 @@
 #include "Lab/Component/CPLabPotionSessionComponent.h"
 #include "Lab/Component/CPProcessorComponent.h"
 #include "PlayerState/CPLabPlayerState.h"
+#include "Quest/QuestManager.h"
 
 namespace
 {
@@ -81,7 +82,9 @@ ACPLabGameMode::ACPLabGameMode()
 
 bool ACPLabGameMode::TryStartLabSession()
 {
-	return TryStartLabSessionWithRequests(DefaultTestRequests);
+	// 관련 사항 구현 후 삭제(프로토타입 퀘스트를 Accepted 상태로 변경)
+	AcceptProtoTypeQuest();
+	return TryStartLabSessionWithRequests(BuildQuestRequests());
 }
 
 bool ACPLabGameMode::TryStartLabSessionWithRequests(const TArray<FCPLabPotionRequest>& PotionRequests)
@@ -306,6 +309,41 @@ FName ACPLabGameMode::GetActiveRequestId() const
 	return Session->GetActiveRequestState(ActiveRequestState)
 		? ActiveRequestState.PotionRequest.RequestId
 		: NAME_None;
+}
+
+void ACPLabGameMode::AcceptProtoTypeQuest() const
+{
+	UGameInstance* GameInstance = GetGameInstance();
+	UQuestManager* QuestManager = GameInstance ? GameInstance->GetSubsystem<UQuestManager>() : nullptr;
+	if (!QuestManager) return;
+	
+	QuestManager->AcceptQuest(FName(TEXT("Origin_Q001")));
+}
+
+TArray<FCPLabPotionRequest> ACPLabGameMode::BuildQuestRequests() const
+{
+	TArray<FCPLabPotionRequest> PotionRequests;
+	
+	const UGameInstance* GameInstance = GetGameInstance();
+	const UQuestManager* QuestManager = GameInstance ? GameInstance->GetSubsystem<UQuestManager>() : nullptr;
+	
+	if (!QuestManager) return PotionRequests;
+	
+	const TArray<FName> TrackedQuestIds = QuestManager->GetAllTrackedQuestIDs();
+	PotionRequests.Reserve(FMath::Min(TrackedQuestIds.Num(), CPLabPotionRequestRules::MaxRequestCount));
+	
+	for (const FName& QuestId : TrackedQuestIds){
+		if (PotionRequests.Num() >= CPLabPotionRequestRules::MaxRequestCount) break;
+		if (QuestId.IsNone() || QuestManager->GetQuestState(QuestId) != EQuestState::Accepted) continue;
+		
+		FCPLabPotionRequest PotionRequest;
+		PotionRequest.RequestId = QuestId;
+		PotionRequest.DisplayText = QuestManager->GetQuestSummaryText(QuestId);
+		
+		PotionRequests.Add(PotionRequest);
+	}
+	
+	return PotionRequests;
 }
 
 void ACPLabGameMode::CollectSlotActors(TArray<AActor*>& OutSlotActors) const
