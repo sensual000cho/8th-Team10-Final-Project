@@ -22,6 +22,8 @@ public:
 protected:
 	virtual bool CanProcess(const ACPAlchemyProp* ItemInstance) const override;
 	virtual void ApplyProcess(ACPAlchemyProp* ItemInstance) override;
+	//세션 당 1회 조건이 달려있어 Evaluate를 override 해 사용불가 사유를 return 하기 위해서 필요
+	virtual EProcessorBlockReason EvaluateIngredient(const ACPAlchemyProp* ItemInstance) const override;
 	
 	virtual bool NeedsResetRequestEnd() const override;
 private:

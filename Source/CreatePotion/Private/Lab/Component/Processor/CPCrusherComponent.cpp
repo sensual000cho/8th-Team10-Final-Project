@@ -27,6 +27,24 @@ void UCPCrusherComponent::ApplyProcess(ACPAlchemyProp* ItemInstance)
 	UsedCount++;
 }
 
+EProcessorBlockReason UCPCrusherComponent::EvaluateIngredient(const ACPAlchemyProp* ItemInstance) const
+{
+	const EProcessorBlockReason BaseReason =
+	Super::EvaluateIngredient(ItemInstance);
+
+	if (BaseReason != EProcessorBlockReason::None)
+	{
+		return BaseReason;
+	}
+
+	if (UsedCount >= MaxUseCount)
+	{
+		return EProcessorBlockReason::SessionUseLimitReached;
+	}
+
+	return EProcessorBlockReason::None;
+}
+
 bool UCPCrusherComponent::NeedsResetRequestEnd() const
 {
 	return UsedCount > 0;

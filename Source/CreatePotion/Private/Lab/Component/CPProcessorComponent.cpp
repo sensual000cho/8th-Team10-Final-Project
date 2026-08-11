@@ -124,27 +124,27 @@ FText UCPProcessorComponent::GetInteractionPrompt() const
 
 	case EProcessorBlockReason::Disabled:
 		return FText::FromString(
-			TEXT("사용 불가: 현재 사용할 수 없습니다"));
+			TEXT("현재 사용할 수 없습니다"));
 
 	case EProcessorBlockReason::NotProcessingPhase:
 		return FText::FromString(
-			TEXT("사용 불가: 지금은 가공 단계가 아닙니다"));
+			TEXT("지금은 가공 단계가 아닙니다"));
 
 	case EProcessorBlockReason::NoHeldIngredient:
 		return FText::FromString(
-			TEXT("사용 불가: 가공할 재료를 들어 주세요"));
+			TEXT("가공할 재료를 들어 주세요"));
 
 	case EProcessorBlockReason::InvalidIngredient:
 		return FText::FromString(
-			TEXT("사용 불가: 이 재료는 가공할 수 없습니다"));
+			TEXT("이 재료는 가공할 수 없습니다"));
 
 	case EProcessorBlockReason::AlreadyApplied:
 		return FText::FromString(
-			TEXT("사용 불가: 이미 이 재료에 사용했습니다"));
+			TEXT("이미 이 재료에 사용했습니다"));
 
 	case EProcessorBlockReason::SessionUseLimitReached:
 		return FText::FromString(
-			TEXT("사용 불가: 이번 제조에서 이미 사용했습니다"));
+			TEXT("이번 제조에서 이미 사용했습니다"));
 
 	default:
 		return FText::FromString(
