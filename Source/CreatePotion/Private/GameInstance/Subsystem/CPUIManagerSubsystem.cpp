@@ -69,6 +69,29 @@ void UCPUIManagerSubsystem::BringWidgetToFront(UUserWidget* Widget)
 	}
 }
 
+UUserWidget* UCPUIManagerSubsystem::ToggleWidget(TSubclassOf<UUserWidget> WidgetClass)
+{
+	if (!WidgetClass) return nullptr;
+	
+	int32 FoundIndex = OpenWidgets.IndexOfByPredicate([WidgetClass](const FPopupEntry& Entry)
+	{
+		return Entry.Widget && Entry.Widget->GetClass() == WidgetClass;
+	});
+	
+	if (FoundIndex != INDEX_NONE)
+	{
+		UUserWidget* TargetWidget = OpenWidgets[FoundIndex].Widget;
+		CloseWidget(TargetWidget);
+		return nullptr;
+	}
+	else
+	{
+		{
+			return PushWidget(WidgetClass);
+		}
+	}
+}
+
 void UCPUIManagerSubsystem::CloseTopWidget()
 {
 	if (OpenWidgets.Num() == 0) return;

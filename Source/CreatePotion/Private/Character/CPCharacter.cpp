@@ -9,10 +9,13 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
+#include "GameFramework/HUD.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "CreatePotion.h"
+#include "Character/CPPlayerController.h"
+#include "GameCore/Interface/CPLevelUIInterface.h"
 
 
 ACPCharacter::ACPCharacter()
@@ -71,6 +74,9 @@ void ACPCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		
 		// Interacting
 		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ACPCharacter::OnInteractPressed);
+		
+		// Quest Toggling
+		EnhancedInputComponent->BindAction(QuestToggleAction, ETriggerEvent::Started, this, &ACPCharacter::OnQuestTogglePressed);
 	}
 	else
 	{
@@ -143,5 +149,16 @@ void ACPCharacter::OnInteractPressed()
 	if (InteractionComponent)
 	{
 		InteractionComponent->TryInteract();
+	}
+}
+
+void ACPCharacter::OnQuestTogglePressed()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Tab키 입력"));
+	
+	ACPPlayerController* PC = Cast<ACPPlayerController>(GetWorld()->GetFirstPlayerController());
+	if (PC)
+	{
+		PC->OnQuestTogglePressed();
 	}
 }
