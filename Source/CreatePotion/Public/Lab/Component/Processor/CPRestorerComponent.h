@@ -9,7 +9,7 @@
 /**
  * 
  */
-UCLASS()
+UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class CREATEPOTION_API UCPRestorerComponent : public UCPProcessorComponent
 {
 	GENERATED_BODY()

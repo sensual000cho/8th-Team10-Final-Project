@@ -34,6 +34,25 @@ void ACPAlchemyProp::InitializeFromItemData(UCPForageableItemData* ItemData)
 	OnAlchemyPropChanged.Broadcast();
 }
 
+void ACPAlchemyProp::InitializeFromEffects(UCPForageableItemData* ItemData, const TArray<FAlchemyProperty>& Effects)
+{
+	ResetWorkingIngredient();
+	
+	if (!ItemData){
+		OnAlchemyPropChanged.Broadcast();
+		return;
+	}
+	
+	WorkingIngredient.SourceItemData = ItemData;
+	for (const FAlchemyProperty& Property : Effects){
+		if (!Property.Tag.IsValid()) continue;
+		
+		WorkingIngredient.CurrentEffects.Add(Property.Tag, Property.Value);
+	}
+	
+	OnAlchemyPropChanged.Broadcast();
+}
+
 FCPLabIngredientInstance
 ACPAlchemyProp::GetWorkingIngredient() const
 {

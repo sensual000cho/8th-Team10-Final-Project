@@ -5,6 +5,7 @@
 #include "Lab/CPLabPotionRequestTypes.h"
 #include "CPAlchemyProp.generated.h"
 
+struct FAlchemyProperty;
 class UStaticMeshComponent;
 class UCPForageableItemData;
 
@@ -26,6 +27,9 @@ public:
 	// ItemData의 원본 효과값을 복사해 새 작업 재료로 초기화
 	UFUNCTION(BlueprintCallable, Category = "Lab|Ingredient")
 	void InitializeFromItemData(UCPForageableItemData* ItemData);
+	
+	UFUNCTION(BlueprintCallable, Category = "Lab|Ingredient")
+	void InitializeFromEffects(UCPForageableItemData* ItemData, const TArray<FAlchemyProperty>& Effects);
 	
 	UFUNCTION(BlueprintPure, Category = "Lab|Ingredient")
 	FCPLabIngredientInstance GetWorkingIngredient() const;
