@@ -8,9 +8,6 @@
 #include "Lab/Component/CPProcessorComponent.h"
 #include "PlayerState/CPLabPlayerState.h"
 
-#include "EngineUtils.h"		// Iterator
-#include "Lab/Actor/CPLabContainerActor.h"
-
 namespace
 {
 	// 실제 리퀘스트 시스템이 연결되기 전 사용할 간단한 테스트 데이터 생성
@@ -290,17 +287,6 @@ void ACPLabGameMode::SetIngredientsDataAsset(const TArray<UCPForageableItemData*
 void ACPLabGameMode::BeginPlay()
 {
 	Super::BeginPlay();
-
-	for (TActorIterator<ACPLabContainerActor> It(GetWorld()); It; ++It)
-	{
-		if (ACPLabContainerActor* LabActor = *It)
-		{
-			// 찾은 액터의 컴포넌트를 캐싱
-			CachedLabContainer = LabActor->LabContainerComponent;
-			UE_LOG(LogTemp, Warning, TEXT("[GameMode] Lab Container Cached"));
-			break;
-		}
-	}
 }
 
 ACPLabGameState* ACPLabGameMode::GetLabGameState() const
