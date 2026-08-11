@@ -10,6 +10,7 @@ class ACPAlchemyProp;
 class ACPLabGameState;
 class UCPLabPotionSessionComponent;
 class UCPForageableItemData;
+class UCPLabContainerComponent;
 
 // Blueprint와 월드 Actor가 포션 세션 기능을 호출하는 입구
 UCLASS()
@@ -72,6 +73,9 @@ public:
 	// 재료 생성 단계에서 Spawn 할 재료의 DA 지정
 	UFUNCTION(BlueprintCallable, Category = "Lab|Debug")
 	void SetIngredientsDataAsset(const TArray<UCPForageableItemData*>& IngredientsDataAsset);
+	
+protected:
+	virtual void BeginPlay() override;
 
 private:
 	ACPLabGameState* GetLabGameState() const;
@@ -90,6 +94,11 @@ private:
 	// 등록된 가공 기구 상태 초기화
 	void ResetProcessors();
 	
+public:
+	// 재료 선택 UI에 사용할 컨테이너 컴포넌트
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Container")
+	UCPLabContainerComponent* CachedLabContainer = nullptr;
+
 private:
 	// 실제 리퀘스트 시스템이 연결되기 전 사용할 테스트 데이터
 	UPROPERTY(EditDefaultsOnly, Category = "Lab|Debug")
