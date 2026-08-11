@@ -74,6 +74,15 @@ bool ACPAlchemyProp::MarkProcessedBy(FName InProcessorId)
 	return true;
 }
 
+bool ACPAlchemyProp::ResetToItemData()
+{
+	UCPForageableItemData* ItemData = GetSourceItemData();
+	if (!ItemData) return false;
+	
+	InitializeFromItemData(ItemData);
+	return true;
+}
+
 float ACPAlchemyProp::GetProcessMultiplier() const
 {
 	return ProcessMultiplier;

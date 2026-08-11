@@ -59,6 +59,9 @@ public:
 	// 리퀘스트 종료 시 초기화할 가공기구 등록
 	void RegisterProcessor(UCPProcessorComponent* ProcessorComponent);
 	
+	// Prop을 되돌릴 때 등록된 processor들에게 해당 Prop의 사용 제한 복구 요구
+	bool RestoreUseLimit(const ACPAlchemyProp* ItemInstance);
+	
 	// 현재 상태를 다음 단계로 넘기는 테스트 전용 함수
 	UFUNCTION(BlueprintCallable, Category = "Lab|Debug")
 	void DebugAdvanceSessionPhase();

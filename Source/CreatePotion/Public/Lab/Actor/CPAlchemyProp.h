@@ -42,6 +42,8 @@ public:
 	bool HasBeenProcessedBy(FName InProcessorId) const;
 	bool MarkProcessedBy(FName InProcessorId);
 	
+	bool ResetToItemData();
+	
 	float GetProcessMultiplier() const;
 	void SetProcessMultiplier(float InMultiplier);
 

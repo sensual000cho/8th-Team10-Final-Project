@@ -171,6 +171,21 @@ void ACPLabGameMode::RegisterProcessor(UCPProcessorComponent* ProcessorComponent
 	ProcessorPendings.Add(ProcessorComponent);
 }
 
+bool ACPLabGameMode::RestoreUseLimit(const ACPAlchemyProp* ItemInstance)
+{
+	if (!IsValid(ItemInstance)) return false;
+	
+	bool bForgotAny = false;
+	for (UCPProcessorComponent* Processor : ProcessorPendings){
+		if (!IsValid(Processor)) continue;
+		// Processor가 이 Prop 떄문에 소모된 사용 제한을 복구한다
+		if (Processor->RestoreUseLimit(ItemInstance)){
+			bForgotAny = true;
+		}
+	}
+	return bForgotAny;
+}
+
 void ACPLabGameMode::DebugAdvanceSessionPhase()
 {
 	// 월드 Actor가 완성되기 전 세션 진행 상태만 빠르게 확인하는 함수
