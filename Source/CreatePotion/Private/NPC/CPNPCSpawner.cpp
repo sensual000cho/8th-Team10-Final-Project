@@ -1,14 +1,14 @@
-#include "NPC/CPNPCSpawner.h"
+﻿#include "NPC/CPNPCSpawner.h"
 #include "NPC/CPBaseNPC.h"
 #include "Data/CPNPCDataAsset.h"
 #include "Kismet/GameplayStatics.h"
 #include "Quest/QuestManager.h"
-#include "Math/UnrealMathUtility.h" 
 
 ACPNPCSpawner::ACPNPCSpawner()
 {
 	PrimaryActorTick.bCanEverTick = false;
 }
+
 void ACPNPCSpawner::BeginPlay()
 {
 	Super::BeginPlay();
@@ -28,13 +28,14 @@ void ACPNPCSpawner::StartSpawningSession()
 
 	const TArray<FName>& AcceptedQuests = QuestManager->AcceptedQuestOrder;
 
+	// 수락된 퀘스트 순서대로 NPCSpawnConfigArray에서 알맞은 NPC 설정 필터링
 	for (const FName& QuestID : AcceptedQuests)
 	{
-		for (UCPNPCDataAsset* Data : NPCDataArray)
+		for (const FNPCSpawnConfig& Config : NPCSpawnConfigArray)
 		{
-			if (Data && Data->LabQuestIDs.Contains(QuestID))
+			if (Config.NPCData && Config.NPCData->LabQuestIDs.Contains(QuestID))
 			{
-				FilteredNPCsToSpawn.Add(Data);
+				FilteredNPCsToSpawn.Add(Config);
 				break;
 			}
 		}
@@ -61,18 +62,18 @@ void ACPNPCSpawner::SpawnNextNPC()
 		return;
 	}
 
-	UCPNPCDataAsset* Data = FilteredNPCsToSpawn[CurrentSpawnIndex];
+	const FNPCSpawnConfig& Config = FilteredNPCsToSpawn[CurrentSpawnIndex];
 
-	if (Data && SpawnTransforms.Num() > 0)
+	if (Config.NPCData)
 	{
-		int32 RandomIndex = FMath::RandRange(0, SpawnTransforms.Num() - 1);
-		FTransform RandomTransform = SpawnTransforms[RandomIndex];
+		// 개별 트랜스폼 체크 시 CustomTransform, 미체크 시 DefaultSpawnTransform 적용
+		FTransform FinalTransform = Config.bUseCustomTransform ? Config.CustomTransform : DefaultSpawnTransform;
 
-		ACPBaseNPC* SpawnedNPC = GetWorld()->SpawnActorDeferred<ACPBaseNPC>(NPCClass, RandomTransform);
+		ACPBaseNPC* SpawnedNPC = GetWorld()->SpawnActorDeferred<ACPBaseNPC>(NPCClass, FinalTransform);
 		if (SpawnedNPC)
 		{
-			SpawnedNPC->NPCData = Data;
-			UGameplayStatics::FinishSpawningActor(SpawnedNPC, RandomTransform);
+			SpawnedNPC->NPCData = Config.NPCData;
+			UGameplayStatics::FinishSpawningActor(SpawnedNPC, FinalTransform);
 		}
 	}
 

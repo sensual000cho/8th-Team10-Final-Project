@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "UI/Widgets/Base/CPBasePopupWidget.h"
@@ -7,6 +7,7 @@
 class UTextBlock;
 class UHorizontalBox;
 class UCPNPCDialogueButtonWidget;
+class UCPTagSelectionWidget;
 
 UCLASS()
 class CREATEPOTION_API UCPNPCDialogueWidget : public UCPBasePopupWidget {
@@ -15,6 +16,10 @@ class CREATEPOTION_API UCPNPCDialogueWidget : public UCPBasePopupWidget {
 public:
     UFUNCTION(BlueprintCallable, Category = "Dialogue")
     void InitDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const FText& InDialogueText);
+
+protected:
+    virtual void BindEvents() override;
+    virtual void UnbindEvents() override;
 
 private:
     UFUNCTION()
@@ -36,6 +41,9 @@ protected:
 
     UPROPERTY(EditDefaultsOnly, Category = "Dialogue")
     TSubclassOf<UCPNPCDialogueButtonWidget> DialogueButtonClass;
+
+    UPROPERTY(EditDefaultsOnly, Category = "UI")
+    TSubclassOf<UCPTagSelectionWidget> TagSelectionWidgetClass;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue|Typewriter")
     float TypewriterSpeed = 0.05f;

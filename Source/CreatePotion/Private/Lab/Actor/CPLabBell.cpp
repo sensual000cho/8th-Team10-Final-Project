@@ -59,6 +59,7 @@ bool ACPLabBell::TryRingBell()
 			: nullptr;
 	bool bSessionStarted = LabMode && LabMode->TryStartLabSession();
 
+	// NPC 스폰
 	if (bSessionStarted)
 	{
 		ACPNPCSpawner* Spawner = Cast<ACPNPCSpawner>(UGameplayStatics::GetActorOfClass(World, ACPNPCSpawner::StaticClass()));

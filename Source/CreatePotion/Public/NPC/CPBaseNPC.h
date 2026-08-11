@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
@@ -22,7 +22,7 @@ public:
 	virtual FText GetInteractionPrompt_Implementation() override;
 	virtual bool CanInteract_Implementation(AActor* Interactor) override;
 
-	// ³ªÁß¿¡ ÇÒ StateTree¿ë ÇöÀç »óÈ²°ú °¨Á¤¿¡ ¸Â´Â ´ë»ç ¹× ¾Ö´Ï¸ŞÀÌ¼Ç ¸ùÅ¸ÁÖ µ¥ÀÌÅÍ ¹İÈ¯
+	// ë‚˜ì¤‘ì— í•  StateTreeìš© í˜„ì¬ ìƒí™©ê³¼ ê°ì •ì— ë§ëŠ” ëŒ€ì‚¬ ë° ì• ë‹ˆë©”ì´ì…˜ ëª½íƒ€ì£¼ ë°ì´í„° ë°˜í™˜
 	UFUNCTION(BlueprintCallable, Category = "NPC|Dialogue")
 	bool GetDialogueEntryForCurrentState(FCPNPCDialogueEntry& OutEntry) const;
 

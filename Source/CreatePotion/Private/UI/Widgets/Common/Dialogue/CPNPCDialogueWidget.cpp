@@ -5,6 +5,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "Quest/QuestManager.h"
 #include "TimerManager.h"
+#include "UI/Widgets/Lab/TagChoice/CPTagSelectionWidget.h"
+#include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
 
 void UCPNPCDialogueWidget::InitDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const FText& InDialogueText)
 {
@@ -41,6 +43,20 @@ void UCPNPCDialogueWidget::InitDialogue(bool bIsWorkshopQuest, FName InQuestID, 
     }
 
     PlayTypewriterEffect(TextToPlay);
+}
+
+void UCPNPCDialogueWidget::BindEvents()
+{
+    Super::BindEvents();
+}
+
+void UCPNPCDialogueWidget::UnbindEvents()
+{
+    if (GetWorld())
+    {
+        GetWorld()->GetTimerManager().ClearTimer(TypewriterTimerHandle);
+    }
+    Super::UnbindEvents();
 }
 
 void UCPNPCDialogueWidget::PlayTypewriterEffect(const FText& InDialogueText)
@@ -128,6 +144,7 @@ void UCPNPCDialogueWidget::OnChoiceSelected(const FString& ButtonText) {
     if (!GI) { return; }
 
     UQuestManager* QuestManager = GI->GetSubsystem<UQuestManager>();
+    UCPUIManagerSubsystem* UIManager = GI->GetSubsystem<UCPUIManagerSubsystem>();
 
     if (ButtonText == TEXT("네")) {
         if (QuestManager && !CurrentQuestID.IsNone()) {
@@ -137,8 +154,13 @@ void UCPNPCDialogueWidget::OnChoiceSelected(const FString& ButtonText) {
     }
     else if (ButtonText == TEXT("알겠습니다")) {
         RequestClose();
-        // TODO : 태그 선택 UI
-        UE_LOG(LogTemp, Log, TEXT("태그 선택 시작"));
+        if (UIManager && TagSelectionWidgetClass) {
+            UUserWidget* CreatedWidget = UIManager->PushWidgetBP(TagSelectionWidgetClass);
+
+            if (UCPTagSelectionWidget* TagSelectionPopup = Cast<UCPTagSelectionWidget>(CreatedWidget)) {
+                TagSelectionPopup->InitTagSelectionWidget(CurrentQuestID);
+            }
+        }
     }
     else if (ButtonText == TEXT("네? 그게 뭐죠?")) {
         if (QuestManager && !CurrentQuestID.IsNone()) {
@@ -146,7 +168,6 @@ void UCPNPCDialogueWidget::OnChoiceSelected(const FString& ButtonText) {
             CurrentHintLevel++;
             QuestManager->SetQuestHintLevel(CurrentQuestID, CurrentHintLevel);
 
-            // 단계에 맞는 텍스트 가져와 출력
             FText NextHint;
             if (CurrentHintLevel == 1) {
                 NextHint = QuestManager->GetSessionHintTextDetailed(CurrentQuestID);
