@@ -39,7 +39,7 @@ public:
 	virtual void OnReleaseToPool_Implementation() override;
 	
 	// 상호작용 하이라이트 관련
-	virtual void SetHighLight_Implementation(bool bHighLighted) override;
+	virtual void SetHighlight_Implementation(bool bHighLighted) override;
 	
 	UPROPERTY(EditDefaultsOnly, category = "Highlight")
 	TObjectPtr<UMaterialInterface> HighlightMaterial;
