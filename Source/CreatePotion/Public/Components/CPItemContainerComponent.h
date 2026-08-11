@@ -32,7 +32,10 @@ public:
     int32 FindGridSpace(UCPForageableItemData* ItemData, bool& bOutIsRotated);
 
     UFUNCTION(BlueprintCallable, Category = "Container|Action")
-    bool GetItemFromContainer(int32 TargetGridIndex, int32 AmountToRemove);
+    bool RemoveItemFromContainer(int32 TargetGridIndex, int32 AmountToRemove);
+    
+    UFUNCTION(BlueprintCallable, Category = "Container|Action")
+    bool MoveItemToTargetContainer(int32 SourceGridIndex, UCPItemContainerComponent* TargetContainer);
 
 protected:
 	virtual void BeginPlay() override;
