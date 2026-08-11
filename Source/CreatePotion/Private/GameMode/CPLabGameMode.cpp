@@ -212,6 +212,13 @@ bool ACPLabGameMode::TryDeliverActivePotion()
 	PotionDeliveryResult.DeliveryGrade = QuestManager->TryDeliver(QuestId, PotionResult);
 	PotionDeliveryResult.CurrentEffects = PotionResult;
 	
+	if (PotionDeliveryResult.DeliveryGrade == EDeliveryGrade::Fail){
+		PotionDeliveryResult.RewardAmount = 0;
+	}else if (PotionDeliveryResult.DeliveryGrade == EDeliveryGrade::Good || 
+		PotionDeliveryResult.DeliveryGrade == EDeliveryGrade::Okay){
+		PotionDeliveryResult.RewardAmount *= 0.5f;
+	}
+	
 	// 최소/최대 목표를 저장
 	for (const FQuestEffectRequirement& Requirement : TargetRequirements){
 		FAlchemyProperty MinTargetEffect;
@@ -336,6 +343,9 @@ void ACPLabGameMode::DebugAdvanceSessionPhase()
 void ACPLabGameMode::SetIngredientsDataAsset(const TArray<UCPForageableItemData*>& IngredientsDataAsset)
 {
 	if (IngredientsDataAsset.Num() <= 0) return;
+		TryBeginActiveRequestProcessing();
+		return;
+	}
 	
 	Ingredients.Reset();
 	Ingredients.Reserve(IngredientsDataAsset.Num());
