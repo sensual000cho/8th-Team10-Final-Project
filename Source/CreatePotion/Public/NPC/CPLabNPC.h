@@ -24,4 +24,7 @@ public:
 private:
 	bool bRequestConfirmed = false;
 
+	UPROPERTY()
+	class UCPNPCDialogueWidget* ActiveDialogueWidget;
+
 };

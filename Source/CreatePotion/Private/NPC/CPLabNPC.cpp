@@ -8,6 +8,11 @@
 
 void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 {
+	if (ActiveDialogueWidget && ActiveDialogueWidget->IsInViewport())
+	{
+		return;
+	} 
+
 	if (!NPCData || NPCData->LabQuestIDs.Num() == 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[%s] DA에 지정된 공방 퀘스트가 없습니다."), *GetName());
@@ -35,10 +40,12 @@ void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 
 			if (DialogueWidgetClass)
 			{
-				if (UCPNPCDialogueWidget* DialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidgetBP(DialogueWidgetClass)))
+				ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidgetBP(DialogueWidgetClass));
+
+				if (ActiveDialogueWidget)
 				{
 					FText NPCNameText = FText::FromName(NPCData->NPCName);
-					DialogueWidget->InitDialogue(true, QuestID, NPCNameText, FirstHint, this);
+					ActiveDialogueWidget->InitDialogue(true, QuestID, NPCNameText, FirstHint, this);
 				}
 			}
 			break;
