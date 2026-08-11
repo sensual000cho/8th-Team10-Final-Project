@@ -16,8 +16,8 @@ class CREATEPOTION_API UCPLabSlotComponent : public UCPLabInteractActionComponen
 public:
 	UCPLabSlotComponent();
 	
-	virtual bool ExecuteInteraction(AActor* Interacter) override;
-	virtual bool CanExecuteInteraction(AActor* Interacter) const override;
+	virtual bool ExecuteInteraction(AActor* Interactor) override;
+	virtual bool CanExecuteInteraction(AActor* Interactor) const override;
 	
 private:
 	UCPLabPotionSessionComponent* GetPotionSession() const;

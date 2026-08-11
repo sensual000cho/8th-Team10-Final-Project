@@ -47,6 +47,9 @@ public:
 	// 가공 중인 리퀘스트를 포션 완성 상태로 전환
 	UFUNCTION(BlueprintCallable, Category = "Lab|Request")
 	bool TryFinishActivePotion();
+	
+	// 포션 Prop을 만들고 현재 결과값을 저장하여 포션 완성 상태로 전환
+	bool FinalizePotionAtActor(const AActor* SpawnActor);
 
 	// 완성된 포션을 납품 처리
 	UFUNCTION(BlueprintCallable, Category = "Lab|Request")
@@ -59,9 +62,16 @@ public:
 	// 리퀘스트 종료 시 초기화할 가공기구 등록
 	void RegisterProcessor(UCPProcessorComponent* ProcessorComponent);
 	
+	// Prop을 되돌릴 때 등록된 processor들에게 해당 Prop의 사용 제한 복구 요구
+	bool RestoreUseLimit(const ACPAlchemyProp* ItemInstance);
+	
 	// 현재 상태를 다음 단계로 넘기는 테스트 전용 함수
 	UFUNCTION(BlueprintCallable, Category = "Lab|Debug")
 	void DebugAdvanceSessionPhase();
+	
+	// 재료 생성 단계에서 Spawn 할 재료의 DA 지정
+	UFUNCTION(BlueprintCallable, Category = "Lab|Debug")
+	void SetIngredientsDataAsset(const TArray<UCPForageableItemData*>& IngredientsDataAsset);
 
 private:
 	ACPLabGameState* GetLabGameState() const;
@@ -85,10 +95,14 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Lab|Debug")
 	TArray<FCPLabPotionRequest> DefaultTestRequests;
 	
-	// 실제 DA가 넘어오기 전 사용할 임시 지정값
-	UPROPERTY(EditDefaultsOnly, Category = "Lab|Debug")
-	TArray<TObjectPtr<UCPForageableItemData>> TestIngredients;
+	// 초기 재료 배치에 사용할 DA
+	UPROPERTY(EditDefaultsOnly, Category = "Lab|Ingredients")
+	TArray<TObjectPtr<UCPForageableItemData>> Ingredients;
 	
+	// 포션 Prop을 만들 때 사용할 DA
+	UPROPERTY(EditDefaultsOnly, Category = "Lab|Potion")
+	TObjectPtr<UCPForageableItemData> PotionItemData;
+		
 	// 재료를 놓을 SlotActor 탐색용 태그
 	UPROPERTY(EditDefaultsOnly, Category = "Lab|Debug")
 	FName SlotActorTag;
