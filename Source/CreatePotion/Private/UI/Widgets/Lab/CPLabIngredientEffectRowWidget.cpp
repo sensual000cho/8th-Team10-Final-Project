@@ -35,11 +35,14 @@ void UCPLabIngredientEffectRowWidget::SetEffectData(
 		return;
 	}
 
-	if (InPreviewLevel > InCurrentLevel)
+	const int32 CurrentMagnitude = FMath::Abs(InCurrentLevel);
+	const int32 PreviewMagnitude = FMath::Abs(InPreviewLevel);
+
+	if (PreviewMagnitude > CurrentMagnitude)
 	{
 		DeltaState = ECPLabIngredientEffectDeltaState::Increased;
 	}
-	else if (InPreviewLevel < InCurrentLevel)
+	else if (PreviewMagnitude < CurrentMagnitude)
 	{
 		DeltaState = ECPLabIngredientEffectDeltaState::Decreased;
 	}
