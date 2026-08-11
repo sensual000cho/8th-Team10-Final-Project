@@ -41,6 +41,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float TraceDistance = 200.f; // 감지 거리
 	
+	UFUNCTION(BlueprintPure, Category = "Interaction")
+	AActor* GetCurrentTarget() const { return CurrentTarget.Get();}
+
 private:
 	void PerformTrace(); // 타이머로 주기 실행
 	void ClearCurrentTarget();

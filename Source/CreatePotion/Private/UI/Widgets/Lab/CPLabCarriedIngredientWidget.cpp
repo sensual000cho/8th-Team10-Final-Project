@@ -1,17 +1,19 @@
 #include "UI/Widgets/Lab/CPLabCarriedIngredientWidget.h"
 
+#include "Character/CPInteractionComponent.h"
+#include "GameFramework/Pawn.h"
 #include "GameState/CPLabGameState.h"
 #include "Lab/Actor/CPAlchemyProp.h"
 #include "Lab/Component/CPLabPotionSessionComponent.h"
-
-#define LOCTEXT_NAMESPACE "CPLabCarriedIngredientWidget"
+#include "Lab/Component/CPProcessorComponent.h"
+#include "TimerManager.h"
 
 void UCPLabCarriedIngredientWidget::NativeConstruct()
 {
 	// Super 호출 중 UCPBaseUserWidget이 가상 BindEvents를 호출하므로 세션 바인딩은 이미 끝난 상태다.
 	Super::NativeConstruct();
 
-	SetHeaderText(LOCTEXT("CarryHeader", "현재 운반중인 재료"));
+	SetHeaderText(FText::FromString(TEXT("현재 운반중인 재료")));
 	SetVisibility(ESlateVisibility::HitTestInvisible);
 	RefreshHeldIngredient();
 }
@@ -34,10 +36,37 @@ void UCPLabCarriedIngredientWidget::BindEvents()
 			}
 		}
 	}
+
+	if (APawn* OwningPawn = GetOwningPlayerPawn())
+	{
+		BoundInteractionComponent = OwningPawn->FindComponentByClass<UCPInteractionComponent>();
+		if (BoundInteractionComponent.IsValid())
+		{
+			BoundInteractionComponent->OnPromptChanged.AddUniqueDynamic(
+				this,
+				&UCPLabCarriedIngredientWidget::HandleInteractionFocusChanged);
+
+			if (AActor* CurrentTarget = BoundInteractionComponent->GetCurrentTarget())
+			{
+				FocusedProcessor = CurrentTarget->FindComponentByClass<UCPProcessorComponent>();
+			}
+		}
+	}
 }
 
 void UCPLabCarriedIngredientWidget::UnbindEvents()
 {
+	if (BoundInteractionComponent.IsValid())
+	{
+		BoundInteractionComponent->OnPromptChanged.RemoveDynamic(
+			this,
+			&UCPLabCarriedIngredientWidget::HandleInteractionFocusChanged);
+	}
+
+	BoundInteractionComponent.Reset();
+	FocusedProcessor.Reset();
+	UnbindPreviewIngredient();
+
 	if (BoundPotionSession)
 	{
 		BoundPotionSession->OnSessionChanged.RemoveDynamic(
@@ -54,6 +83,35 @@ void UCPLabCarriedIngredientWidget::HandleSessionChanged()
 	RefreshHeldIngredient();
 }
 
+void UCPLabCarriedIngredientWidget::HandleInteractionFocusChanged(FText Prompt, FName TargetName)
+{
+	(void)Prompt;
+	(void)TargetName;
+
+	FocusedProcessor.Reset();
+
+	AActor* TargetActor = BoundInteractionComponent.IsValid()
+		? BoundInteractionComponent->GetCurrentTarget()
+		: nullptr;
+
+	if (IsValid(TargetActor))
+	{
+		FocusedProcessor = TargetActor->FindComponentByClass<UCPProcessorComponent>();
+	}
+
+	RefreshProcessorPreview();
+}
+
+void UCPLabCarriedIngredientWidget::HandlePreviewIngredientChanged()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimerForNextTick(
+			this,
+			&UCPLabCarriedIngredientWidget::RefreshProcessorPreview);
+	}
+}
+
 void UCPLabCarriedIngredientWidget::RefreshHeldIngredient()
 {
 	// 슬롯 호버 카드와 달리 운반 카드는 빈손이어도 "비어 있음" 상태로 계속 표시한다.
@@ -61,7 +119,9 @@ void UCPLabCarriedIngredientWidget::RefreshHeldIngredient()
 
 	if (!BoundPotionSession)
 	{
+		UnbindPreviewIngredient();
 		ClearObservedIngredient();
+		ClearPreviewEffects();
 		return;
 	}
 
@@ -69,10 +129,58 @@ void UCPLabCarriedIngredientWidget::RefreshHeldIngredient()
 	if (IsValid(HeldIngredientProp))
 	{
 		SetObservedIngredient(HeldIngredientProp);
+		BindPreviewIngredient(HeldIngredientProp);
+		RefreshProcessorPreview();
 		return;
 	}
 
+	UnbindPreviewIngredient();
 	ClearObservedIngredient();
+	ClearPreviewEffects();
 }
 
-#undef LOCTEXT_NAMESPACE
+void UCPLabCarriedIngredientWidget::RefreshProcessorPreview()
+{
+	UCPProcessorComponent* Processor = FocusedProcessor.Get();
+	ACPAlchemyProp* IngredientProp = PreviewIngredient.Get();
+
+	if (!IsValid(Processor) || !IsValid(IngredientProp))
+	{
+		ClearPreviewEffects();
+		return;
+	}
+
+	TMap<FGameplayTag, int32> CalculatedPreviewEffects;
+	if (Processor->TryBuildPreviewEffects(IngredientProp, CalculatedPreviewEffects))
+	{
+		SetPreviewEffects(CalculatedPreviewEffects);
+		return;
+	}
+
+	ClearPreviewEffects();
+}
+
+void UCPLabCarriedIngredientWidget::BindPreviewIngredient(ACPAlchemyProp* IngredientProp)
+{
+	if (PreviewIngredient.Get() == IngredientProp) return;
+
+	UnbindPreviewIngredient();
+	if (!IsValid(IngredientProp)) return;
+
+	PreviewIngredient = IngredientProp;
+	IngredientProp->OnAlchemyPropChanged.AddUniqueDynamic(
+		this,
+		&UCPLabCarriedIngredientWidget::HandlePreviewIngredientChanged);
+}
+
+void UCPLabCarriedIngredientWidget::UnbindPreviewIngredient()
+{
+	if (ACPAlchemyProp* IngredientProp = PreviewIngredient.Get())
+	{
+		IngredientProp->OnAlchemyPropChanged.RemoveDynamic(
+			this,
+			&UCPLabCarriedIngredientWidget::HandlePreviewIngredientChanged);
+	}
+
+	PreviewIngredient.Reset();
+}
