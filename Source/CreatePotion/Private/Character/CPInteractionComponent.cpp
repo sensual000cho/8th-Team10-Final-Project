@@ -9,6 +9,8 @@
 #include "GameCore/Interface/CPHighlightable.h"
 #include "HAL/IConsoleManager.h"
 
+
+
 // 에디터에서 콘솔창에 cp.Debug.Interaction를 입력해서 Debug On/Off 가능
 // cp.Debug.Interaction 1 --> Debug On
 // cp.Debug.Interaction 0 --> Debug Off 
@@ -216,7 +218,8 @@ void UCPInteractionComponent::PerformTrace()
 		SetActorHighlight(FoundActor, true);
 		
 		const FText Prompt = ICPInteractable::Execute_GetInteractionPrompt(FoundActor);
-		OnPromptChanged.Broadcast(Prompt);
+		const FName TargetName = ICPInteractable::Execute_GetInteractionName(FoundActor);
+		OnPromptChanged.Broadcast(Prompt, TargetName);
 	}
 	else
 	{
@@ -237,7 +240,7 @@ void UCPInteractionComponent::ClearCurrentTarget()
 	}
 
 	CurrentTarget.Reset();
-	OnPromptChanged.Broadcast(FText::GetEmpty());
+	OnPromptChanged.Broadcast(FText::GetEmpty(), NAME_None);
 }
 
 void UCPInteractionComponent::TryInteract()
