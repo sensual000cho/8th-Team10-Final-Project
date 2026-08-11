@@ -95,11 +95,7 @@ bool ACPLabGameMode::TryStartLabSessionWithRequests(const TArray<FCPLabPotionReq
 	UCPLabPotionSessionComponent* Session = GetPotionSession();
 	if (!Session) return false;
 	
-	const bool bStarted = Session->StartSession(PotionRequests);
-	if (bStarted && SpawnIngredients()){
-		TryBeginActiveRequestProcessing();
-	}
-	return bStarted;
+	return Session->StartSession(PotionRequests);
 }
 
 void ACPLabGameMode::ResetLabSession()
@@ -198,10 +194,69 @@ bool ACPLabGameMode::TryDeliverActivePotion()
 	UCPLabPotionSessionComponent* Session = GetPotionSession();
 	if (!Session) return false;
 	
-	const bool bDelivered = Session->TryMarkRequestDelivered(GetActiveRequestId());
+	FCPLabPotionRequestState ActiveRequestState;
+	if (!Session->GetActiveRequestState(ActiveRequestState) || 
+		ActiveRequestState.Phase != ECPLabPotionRequestPhase::PotionReady) return false;
+	
+	UQuestManager* QuestManager = GetGameInstance() ? GetGameInstance()->GetSubsystem<UQuestManager>() : nullptr;
+	if (!QuestManager) return false;
+	
+	// 퀘스트 Id, 완성한 포션 Tag, 목표 Tag
+	const FName QuestId = ActiveRequestState.PotionRequest.RequestId;
+	const TArray<FAlchemyProperty>& PotionResult = Session->GetPotionResult();
+	const TArray<FQuestEffectRequirement> TargetRequirements = QuestManager->GetQuestEffectRequirements(QuestId);
+	
+	// 현재 납품 결과로 다시 구성한다
+	PotionDeliveryResult = FCPPotionDeliveryResult{};
+	PotionDeliveryResult.QuestId = QuestId;
+	PotionDeliveryResult.DeliveryGrade = QuestManager->TryDeliver(QuestId, PotionResult);
+	PotionDeliveryResult.CurrentEffects = PotionResult;
+	
+	// 최소/최대 목표를 저장
+	for (const FQuestEffectRequirement& Requirement : TargetRequirements){
+		FAlchemyProperty MinTargetEffect;
+		MinTargetEffect.Tag = Requirement.Axis;
+		MinTargetEffect.Value = Requirement.MinValue;
+		PotionDeliveryResult.MinTargetEffects.Add(MinTargetEffect);
+		
+		FAlchemyProperty MaxTargetEffect;
+		MaxTargetEffect.Tag = Requirement.Axis;
+		MaxTargetEffect.Value = Requirement.MaxValue;
+		PotionDeliveryResult.MaxTargetEffects.Add(MaxTargetEffect);
+	}
+	
+	return true;
+}
+
+FCPPotionDeliveryResult ACPLabGameMode::GetPotionDeliveryResult() const
+{
+	return PotionDeliveryResult;
+}
+
+bool ACPLabGameMode::ConfirmPotionDeliveryResult()
+{
+	// QuestId가 저장되었을 때에만 진행
+	if (PotionDeliveryResult.QuestId.IsNone()) return false;
+	
+	UCPLabPotionSessionComponent* Session = GetPotionSession();
+	if (!Session) return false;
+	
+	// Phase 전환(Delivered)
+	const bool bDelivered = Session->TryMarkRequestDelivered(PotionDeliveryResult.QuestId);
 	if (!bDelivered) return false;
 	
-	ResetLabSession();
+	// PotionDeliveryResult 초기화
+	PotionDeliveryResult = FCPPotionDeliveryResult{};
+	
+	// 모든 Request가 끝났으면 세션 종료
+	if (Session->GetSessionState().Phase == ECPLabPotionSessionPhase::Completed){
+		ResetLabSession();
+		return true;
+	}
+	
+	// Request가 남아있으면 재료와 가공 기구만 정리
+	ClearSpawnedIngredients();
+	ResetProcessors();
 	return true;
 }
 
@@ -287,6 +342,11 @@ void ACPLabGameMode::SetIngredientsDataAsset(const TArray<UCPForageableItemData*
 	
 	for (UCPForageableItemData* IngredientItemData : IngredientsDataAsset){
 		Ingredients.Add(IngredientItemData);
+	}
+	
+	// 배치 성공하면 제조 Phase로 전환
+	if (SpawnIngredients()){
+		TryBeginActiveRequestProcessing();
 	}
 }
 
