@@ -8,6 +8,7 @@
 
 class UCPContainerGridWidget;
 class UCPItemContainerComponent;
+class UBorder;
 
 UCLASS()
 class CREATEPOTION_API UCPContainerMainWidget : public UCPBaseFixedWidget
@@ -22,6 +23,11 @@ public:
 	// 아이템 획득/사용 시 UI를 새로고침하는 함수
 	UFUNCTION(BlueprintCallable, Category = "Container|UI")
 	void UpdateUI();
+
+protected:
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual FReply NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual FReply NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	
 protected:
 	// 실제 데이터를 가져올 컨테이너 컴포넌트
@@ -31,5 +37,12 @@ protected:
 	// 실제 아이템을 가지고 있을 Grid
 	UPROPERTY(meta = (BindWidget))
 	UCPContainerGridWidget* ContainerGrid;
+
+	// 컨테이너를 드래그 할 수 있는 Bar
+	UPROPERTY(meta = (BindWidget))
+	UBorder* DragBorder;
+
+	bool bIsDraggingWindow = false;
+
 
 };

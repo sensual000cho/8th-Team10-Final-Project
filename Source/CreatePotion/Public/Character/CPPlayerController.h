@@ -1,4 +1,4 @@
-// CPPlayerController.h
+﻿// CPPlayerController.h
 
 #pragma once
 
@@ -9,14 +9,17 @@
 
 class UInputAction;
 class UInputMappingContext;
+class UCPItemContainerComponent;
+class UCPContainerMainWidget;
 
-/**
- * 
- */
 UCLASS()
 class CREATEPOTION_API ACPPlayerController : public APlayerController
 {
 	GENERATED_BODY()
+
+public:
+	UFUNCTION(BlueprintCallable, Category = "Test")
+	void ToggleLabUI();
 	
 protected:
 
@@ -30,6 +33,17 @@ protected:
 	/** Input mapping context setup */
 	virtual void SetupInputComponent() override;
 
+public:
+	UPROPERTY(BlueprintReadWrite, Category = "Container")
+	UCPItemContainerComponent* CurrentInteractingContainer = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<UCPContainerMainWidget> LabUIClass;
+
+	UPROPERTY()
+	UCPContainerMainWidget* LabUIInstance;
+
+
 #pragma region UI
 public:
 	UFUNCTION(BlueprintCallable, Category = "UI")
@@ -42,4 +56,3 @@ protected:
 	
 #pragma endregion
 };
-

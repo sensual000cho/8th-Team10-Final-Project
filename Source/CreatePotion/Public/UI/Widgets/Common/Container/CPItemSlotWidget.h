@@ -9,6 +9,7 @@
 
 class UImage;
 class UTextBlock;
+class UCPItemContainerComponent;
 
 UCLASS()
 class CREATEPOTION_API UCPItemSlotWidget : public UCPBaseUserWidget
@@ -27,12 +28,19 @@ public:
 protected:
 	virtual void NativeConstruct() override;
 
-	// virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	// 마우스를 클릭했을 때
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 
-protected:
+public:
+	// 현재 이 슬롯을 소유중인 컨테이너
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Container|Data")
+	UCPItemContainerComponent* OwnerContainer;
+
+	// 현재 이 슬롯이 소유중인 아이템
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|Slot")
 	FContainerItem CachedItemData;
 
+protected:
 	UPROPERTY(meta = (BindWidget))
 	UImage* ItemIcon;
 
