@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
 #include "CPCharacter.generated.h"
@@ -23,13 +24,13 @@ class CREATEPOTION_API ACPCharacter : public ACharacter
 	/** Camera boom positioning the camera behind the character */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	USpringArmComponent* CameraBoom;
-
+	
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
 
 protected:
-
+	
 	/** Jump Input Action */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* JumpAction;
@@ -37,11 +38,11 @@ protected:
 	/** Move Input Action */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* MoveAction;
-
+	
 	/** Look Input Action */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* LookAction;
-
+	
 	/** Mouse Look Input Action */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* MouseLookAction;
@@ -52,17 +53,21 @@ protected:
 	
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* MouseInteractAction;
-
+	
+	/** QuestList Input Action */
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* QuestToggleAction;
+	
 public:
 
 	/** Constructor */
 	ACPCharacter();	
-
+	
 protected:
-
+	
 	/** Initialize input action bindings */
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
+	
 protected:
 
 	/** Called for movement input */
@@ -88,7 +93,7 @@ public:
 	/** Handles jump pressed inputs from either controls or UI interfaces */
 	UFUNCTION(BlueprintCallable, Category="Input")
 	virtual void DoJumpEnd();
-
+	
 public:
 
 	/** Returns CameraBoom subobject **/
@@ -96,10 +101,14 @@ public:
 
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
-
+	
 protected:
 	UPROPERTY(VisibleAnywhere, Category="Interaction")
 	UCPInteractionComponent* InteractionComponent;
 	
+	UPROPERTY(EditAnywhere, Category = "UI|Tags")
+	FGameplayTag QuestToggleTag;
+	
 	void OnInteractPressed(); // 입력 바인딩용
+	void OnQuestTogglePressed(); // 퀘스트 입력 바인딩
 };

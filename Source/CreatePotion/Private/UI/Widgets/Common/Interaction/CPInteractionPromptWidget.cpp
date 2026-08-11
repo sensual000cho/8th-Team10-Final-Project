@@ -30,12 +30,13 @@ void UCPInteractionPromptWidget::UnbindEvents()
 	}
 }
 
-void UCPInteractionPromptWidget::OnPromptChanged(FText Prompt)
+void UCPInteractionPromptWidget::OnPromptChanged(FText Prompt, FName TargetName)
 {
 	bool bHasTarget = !Prompt.IsEmpty();
 	
 	if (bHasTarget && TextBlock_InteractionPrompt)
 	{
+		TextBlock_ActorName->SetText(FText::FromName(TargetName));
 		TextBlock_InteractionPrompt->SetText(Prompt);
 	}
 	
