@@ -5,6 +5,6 @@
 UCPLabContainerComponent::UCPLabContainerComponent()
 {
 	ContainerType = EContainerType::Slot1D;
-	MaxSlots = 1;
+	MaxSlots = 3;
 	MaxStack = 1;
 }
