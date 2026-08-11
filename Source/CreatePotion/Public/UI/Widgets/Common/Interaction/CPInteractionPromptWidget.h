@@ -21,12 +21,14 @@ protected:
 	virtual void UnbindEvents() override;
 	
 	UFUNCTION()
-	void OnPromptChanged(FText Prompt);
-public:
+	void OnPromptChanged(FText Prompt, FName TargetName);
 
 protected:
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* TextBlock_InteractionPrompt;
+	
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* TextBlock_ActorName;
 	
 	UPROPERTY()
 	UCPInteractionComponent* BoundInteractionComponent;

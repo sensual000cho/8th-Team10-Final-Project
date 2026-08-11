@@ -11,14 +11,14 @@ UCPLabInteractActionComponent::UCPLabInteractActionComponent()
 	bEnabled = true;
 }
 
-bool UCPLabInteractActionComponent::ExecuteInteraction(AActor* Interacter)
+bool UCPLabInteractActionComponent::ExecuteInteraction(AActor* Interactor)
 {
-	return CanExecuteInteraction(Interacter);
+	return CanExecuteInteraction(Interactor);
 }
 
-bool UCPLabInteractActionComponent::CanExecuteInteraction(AActor* Interacter) const
+bool UCPLabInteractActionComponent::CanExecuteInteraction(AActor* Interactor) const
 {
-	return bEnabled && Interacter != nullptr;
+	return bEnabled && Interactor != nullptr;
 }
 
 FText UCPLabInteractActionComponent::GetInteractionPrompt() const

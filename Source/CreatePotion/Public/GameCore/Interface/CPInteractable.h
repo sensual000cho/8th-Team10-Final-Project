@@ -28,5 +28,8 @@ public:
 	FText GetInteractionPrompt(); // "채집하기", "대화하기", "제조대 사용" 등 UI 텍스트
 
 	UFUNCTION(BlueprintNativeEvent)
+	FName GetInteractionName(); // 액터 상호작용 시 표시할 이름
+	
+	UFUNCTION(BlueprintNativeEvent)
 	bool CanInteract(AActor* Interactor); // 조건 체크 (레벨, 아이템 소지 등)
 };
