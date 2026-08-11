@@ -6,6 +6,7 @@
 #include "UI/Widgets/Base/CPBaseFixedWidget.h"
 #include "CPLabIngredientSelectWidget.generated.h"
 
+class UButton;
 /**
  * 
  */
@@ -14,7 +15,7 @@ class CREATEPOTION_API UCPLabIngredientSelectWidget : public UCPBaseFixedWidget
 {
 	GENERATED_BODY()
 	
-private:
+public:
 	// 바인딩
 	UPROPERTY(meta=(BindWidget))
 	UButton* Button_Confirm;
