@@ -120,7 +120,12 @@ private:
 
 	// 퀘스트별 힌트 열람 단계 저장소 (0: 기본, 1: 디테일1, 2: 디테일2)
 	UPROPERTY()
+
 	TMap<FName, int32> QuestHintLevels;
+	// 수락한 순서를 기록하는 배열
+	UPROPERTY()
+	TArray<FName> QuestOrder;
+
 
 protected:
 	// Subsystem 생성 시 자동 호출됨. QuestScriptTable/QuestAnswerTable을 자동으로 찾아 연결함.
