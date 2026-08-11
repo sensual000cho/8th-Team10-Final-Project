@@ -9,6 +9,19 @@ class ACPResourceNodeActor;
 class UCPResourceDefinition;
 class UBoxComponent;
 
+// 채집물 스폰 가중치를 위한 구조체
+USTRUCT(BlueprintType)
+struct FCPResourceSpawnEntry
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UCPResourceDefinition> ResourceDefinition;
+	
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0"))
+	float Weight = 1.f;
+};
+
 UCLASS()
 class CREATEPOTION_API ACPResourceSpawner : public AActor
 {
@@ -35,6 +48,9 @@ private:
 	// 개별 스폰
 	void SpawnSlot(int32 SlotIndex);
 	
+	// 스폰될 채집물 선택
+	const FCPResourceSpawnEntry* SelectResource(int32 SlotIndex, int32 Generation) const;
+	
 	// 키 생성
 	FCPResourceNodeKey MakeNodeKey(int32 SlotIndex) const;
 	
@@ -42,7 +58,7 @@ private:
 	FTransform CalculateSpawnTransform(int32 SlotIndex, int32 Generation) const;
 	
 	// 스폰 시드 생성
-	int32 MakeSpawnSeed(int32 SlotIndex, int32 Generation) const;
+	int32 MakeSpawnSeed(int32 SlotIndex, int32 Generation, int32 Salt) const;
 	
 	// 현재 스포너가 속한 레벨 Id 가져오기
 	FName GetLevelId() const;
@@ -59,11 +75,7 @@ private:
 	TSubclassOf<ACPResourceNodeActor> ResourceNodeActorClass;
 	
 	UPROPERTY(EditAnywhere, Category = "Resource")
-	TSoftObjectPtr<UCPResourceDefinition> ResourceDefinition;
-	
-	// Soft Reference 로드 이후 사용하는 runtime cache
-	UPROPERTY(Transient)
-	TObjectPtr<UCPResourceDefinition> LoadedResourceDefinition;
+	TArray<FCPResourceSpawnEntry> SpawnEntries;
 	
 	// 스폰 수
 	UPROPERTY(EditAnywhere, Category = "Resource", meta = (ClampMin = "1"))
