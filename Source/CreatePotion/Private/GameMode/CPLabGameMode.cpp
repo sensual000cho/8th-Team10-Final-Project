@@ -231,6 +231,18 @@ void ACPLabGameMode::DebugAdvanceSessionPhase()
 	ShowDebugRequestPhase(Session);
 }
 
+void ACPLabGameMode::SetIngredientsDataAssets(const TArray<UCPForageableItemData*>& IngredientsDataAsset)
+{
+	if (IngredientsDataAsset.Num() <= 0) return;
+	
+	TestIngredients.Reset();
+	TestIngredients.Reserve(IngredientsDataAsset.Num());
+	
+	for (UCPForageableItemData* IngredientItemData : IngredientsDataAsset){
+		TestIngredients.Add(IngredientItemData);
+	}
+}
+
 ACPLabGameState* ACPLabGameMode::GetLabGameState() const
 {
 	return Cast<ACPLabGameState>(GameState);

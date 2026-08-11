@@ -65,6 +65,10 @@ public:
 	// 현재 상태를 다음 단계로 넘기는 테스트 전용 함수
 	UFUNCTION(BlueprintCallable, Category = "Lab|Debug")
 	void DebugAdvanceSessionPhase();
+	
+	// 재료 생성 단계에서 Spawn 할 재료의 DA 지정
+	UFUNCTION(BlueprintCallable, Category = "Lab|Debug")
+	void SetIngredientsDataAssets(const TArray<UCPForageableItemData*>& IngredientsDataAsset);
 
 private:
 	ACPLabGameState* GetLabGameState() const;
