@@ -6,7 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "CPInteractionComponent.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPromptChanged, FText, Prompt);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPromptChanged, FText, Prompt, FName, TargetName);
 
 // 상호작용 프로그레스 델리게이트
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInteractionStarted);

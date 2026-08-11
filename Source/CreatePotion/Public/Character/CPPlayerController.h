@@ -3,9 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "GameFramework/PlayerController.h"
 #include "CPPlayerController.generated.h"
 
+class UInputAction;
 class UInputMappingContext;
 class UCPItemContainerComponent;
 class UCPContainerMainWidget;
@@ -41,4 +43,16 @@ public:
 	UPROPERTY()
 	UCPContainerMainWidget* LabUIInstance;
 
+
+#pragma region UI
+public:
+	UFUNCTION(BlueprintCallable, Category = "UI")
+	void OnQuestTogglePressed();
+	
+protected:
+	UPROPERTY(EditAnywhere, Category = "UI|Tags")
+	FGameplayTag QuestToggleTag;
+	
+	
+#pragma endregion
 };

@@ -5,6 +5,8 @@
 #include "EnhancedInputSubsystems.h"
 #include "Engine/LocalPlayer.h"
 #include "InputMappingContext.h"
+#include "GameCore/Interface/CPLevelUIInterface.h"
+#include "GameFramework/HUD.h"
 
 #include "GameMode/CPLabGameMode.h"		// Lab에서 재료 선택 컨테이너 사용
 #include "UI/Widgets/Common/Container/CPContainerMainWidget.h"
@@ -80,3 +82,27 @@ void ACPPlayerController::ToggleLabUI()
 		}
 	}
 }
+
+void ACPPlayerController::OnQuestTogglePressed()
+{
+	AHUD* CurrentHUD = GetHUD();
+	
+	if (CurrentHUD)
+	{
+		if (CurrentHUD->Implements<UCPLevelUIInterface>())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[PC] HUD 인터페이스 확인 완료"));
+			
+			ICPLevelUIInterface::Execute_TogglePopup(CurrentHUD, QuestToggleTag);
+		}
+	}
+	else
+	{
+		{
+			UE_LOG(LogTemp, Error, TEXT("[PC] 현재 레벨에 HUD가 없습니다."));
+		}
+	}
+}
+
+
+

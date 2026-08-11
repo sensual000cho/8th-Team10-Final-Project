@@ -31,13 +31,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void CloseWidget(UUserWidget* Widget);
 	
+	// 가장 위에 열려있는 위젯을 닫기
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void CloseTopWidget();
 	
+	// 위젯을 가장 위로 가져오기
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void BringWidgetToFront(UUserWidget* Widget);
 	
-	
+	// 위젯 토글 함수
+	UFUNCTION(BlueprintCallable, Category = "UI")
+	UUserWidget* ToggleWidget(TSubclassOf<UUserWidget> WidgetClass);
 	
 private:
 	struct FPopupEntry
