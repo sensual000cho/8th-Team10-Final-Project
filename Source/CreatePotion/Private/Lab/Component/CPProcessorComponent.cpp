@@ -102,16 +102,54 @@ bool UCPProcessorComponent::CanExecuteInteraction(AActor* Interacter) const
 {
 	if (!Super::CanExecuteInteraction(Interacter)) return false;
 	
-	const UWorld* World = GetWorld();
-	const ACPLabGameState* LabGameState = World ? World->GetGameState<ACPLabGameState>() : nullptr;
-	const UCPLabPotionSessionComponent* Session = LabGameState ? LabGameState->GetPotionSession() : nullptr;
-	if (!Session) return false;
-	
-	FCPLabPotionRequestState ActiveRequestState;
-	if (!Session->GetActiveRequestState(ActiveRequestState) || 
-		ActiveRequestState.Phase != ECPLabPotionRequestPhase::Processing) return false;
-	
-	return CanProcess(Session->GetHeldIngredientProp());
+	// const UWorld* World = GetWorld();
+	// const ACPLabGameState* LabGameState = World ? World->GetGameState<ACPLabGameState>() : nullptr;
+	// const UCPLabPotionSessionComponent* Session = LabGameState ? LabGameState->GetPotionSession() : nullptr;
+	// if (!Session) return false;
+	//
+	// FCPLabPotionRequestState ActiveRequestState;
+	// if (!Session->GetActiveRequestState(ActiveRequestState) || 
+	// 	ActiveRequestState.Phase != ECPLabPotionRequestPhase::Processing) return false;
+	//
+	// return CanProcess(Session->GetHeldIngredientProp());
+	return EvaluateInteraction() ==	EProcessorBlockReason::None;
+}
+
+FText UCPProcessorComponent::GetInteractionPrompt() const
+{
+	switch (EvaluateInteraction())
+	{
+	case EProcessorBlockReason::None:
+		return Super::GetInteractionPrompt();
+
+	case EProcessorBlockReason::Disabled:
+		return FText::FromString(
+			TEXT("사용 불가: 현재 사용할 수 없습니다"));
+
+	case EProcessorBlockReason::NotProcessingPhase:
+		return FText::FromString(
+			TEXT("사용 불가: 지금은 가공 단계가 아닙니다"));
+
+	case EProcessorBlockReason::NoHeldIngredient:
+		return FText::FromString(
+			TEXT("사용 불가: 가공할 재료를 들어 주세요"));
+
+	case EProcessorBlockReason::InvalidIngredient:
+		return FText::FromString(
+			TEXT("사용 불가: 이 재료는 가공할 수 없습니다"));
+
+	case EProcessorBlockReason::AlreadyApplied:
+		return FText::FromString(
+			TEXT("사용 불가: 이미 이 재료에 사용했습니다"));
+
+	case EProcessorBlockReason::SessionUseLimitReached:
+		return FText::FromString(
+			TEXT("사용 불가: 이번 제조에서 이미 사용했습니다"));
+
+	default:
+		return FText::FromString(
+			TEXT("사용할 수 없습니다"));
+	}
 }
 
 void UCPProcessorComponent::ResetProcessor()
@@ -121,9 +159,11 @@ void UCPProcessorComponent::ResetProcessor()
 
 bool UCPProcessorComponent::CanProcess(const ACPAlchemyProp* ItemInstance) const
 {
-	if (!IsValid(ItemInstance) || ProcessorId.IsNone()) return false;
+	// if (!IsValid(ItemInstance) || ProcessorId.IsNone()) return false;
+	//
+	// return ItemInstance->GetSourceItemData() != nullptr && !ItemInstance->HasBeenProcessedBy(ProcessorId);
 	
-	return ItemInstance->GetSourceItemData() != nullptr && !ItemInstance->HasBeenProcessedBy(ProcessorId);
+	return EvaluateIngredient(ItemInstance) ==	EProcessorBlockReason::None;
 }
 
 void UCPProcessorComponent::ApplyProcess(ACPAlchemyProp* ItemInstance)
@@ -134,4 +174,71 @@ void UCPProcessorComponent::ApplyProcess(ACPAlchemyProp* ItemInstance)
 bool UCPProcessorComponent::NeedsResetRequestEnd() const
 {
 	return false;
+}
+
+EProcessorBlockReason UCPProcessorComponent::EvaluateInteraction() const
+{
+	if (!bEnabled)
+	{
+		return EProcessorBlockReason::Disabled;
+	}
+
+	const UWorld* World = GetWorld();
+	const ACPLabGameState* LabGameState =
+		World ? World->GetGameState<ACPLabGameState>() : nullptr;
+
+	const UCPLabPotionSessionComponent* Session =
+		LabGameState ? LabGameState->GetPotionSession() : nullptr;
+
+	if (!Session)
+	{
+		return EProcessorBlockReason::NotProcessingPhase;
+	}
+
+	FCPLabPotionRequestState ActiveRequestState;
+	if (!Session->GetActiveRequestState(ActiveRequestState) ||
+		ActiveRequestState.Phase !=
+			ECPLabPotionRequestPhase::Processing)
+	{
+		return EProcessorBlockReason::NotProcessingPhase;
+	}
+
+	const ACPAlchemyProp* HeldIngredient =
+		Session->GetHeldIngredientProp();
+
+	if (!IsValid(HeldIngredient))
+	{
+		return EProcessorBlockReason::NoHeldIngredient;
+	}
+
+	const EProcessorBlockReason IngredientReason =
+		EvaluateIngredient(HeldIngredient);
+
+	if (IngredientReason != EProcessorBlockReason::None)
+	{
+		return IngredientReason;
+	}
+
+	// 건조기·증류기 자식 클래스의 추가 CanProcess 조건 확인
+	if (!CanProcess(HeldIngredient))
+	{
+		return EProcessorBlockReason::InvalidIngredient;
+	}
+
+	return EProcessorBlockReason::None;
+}
+
+EProcessorBlockReason UCPProcessorComponent::EvaluateIngredient(const ACPAlchemyProp* ItemInstance) const
+{
+	if (!IsValid(ItemInstance) || ProcessorId.IsNone() || ItemInstance->GetSourceItemData() == nullptr)
+	{
+		return EProcessorBlockReason::InvalidIngredient;
+	}
+
+	if (ItemInstance->HasBeenProcessedBy(ProcessorId))
+	{
+		return EProcessorBlockReason::AlreadyApplied;
+	}
+
+	return EProcessorBlockReason::None;
 }

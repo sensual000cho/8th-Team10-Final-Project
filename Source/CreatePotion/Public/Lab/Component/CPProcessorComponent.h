@@ -7,6 +7,17 @@
 #include "Components/ActorComponent.h"
 #include "CPProcessorComponent.generated.h"
 
+enum class EProcessorBlockReason
+{
+	None,
+	Disabled,
+	NotProcessingPhase,
+	NoHeldIngredient,
+	InvalidIngredient,
+	AlreadyApplied,
+	SessionUseLimitReached
+};
+
 class ACPAlchemyProp;
 
 UCLASS(Abstract, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -26,6 +37,8 @@ public:
 	// 현재 들고 있는 재료를 이 기구로 가공할 수 있는지 확인
 	virtual bool CanExecuteInteraction(AActor* Interacter) const override;
 	
+	virtual FText GetInteractionPrompt() const override;
+	
 	// 퀘스트 전환 시 초기화할 값이 있는 기구에서 구현(한 퀘스트 내에서 n회 제한)
 	UFUNCTION(BlueprintCallable, Category = "Processor")
 	virtual void ResetProcessor();
@@ -35,6 +48,9 @@ protected:
 	virtual void ApplyProcess(ACPAlchemyProp* ItemInstance);
 	
 	virtual bool NeedsResetRequestEnd() const;
+	
+	virtual EProcessorBlockReason EvaluateInteraction() const;
+	virtual EProcessorBlockReason EvaluateIngredient(const ACPAlchemyProp* ItemInstance) const;
 	
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Processor")
