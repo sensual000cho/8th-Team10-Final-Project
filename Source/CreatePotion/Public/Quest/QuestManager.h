@@ -39,6 +39,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Quest|Events")
 	FOnQuestUpdated OnQuestUpdated;
 
+	// 플레이어가 퀘스트를 수락한 순서대로 QuestID를 저장하는 배열
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Quest")
+	TArray<FName> AcceptedQuestOrder;
+	
 	// ===================================================================
 	// [퀘스트 수락/상태 관리]
 	// ===================================================================
@@ -121,6 +125,7 @@ public:
 	// 데이터 입력 실수(한쪽에만 등록)를 개발 중 로그로 잡아내기 위한 함수
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	void ValidateQuestTablesMatch();
+
 
 private:
 	// 퀘스트별 현재 진행 상태 저장소 (QuestID → 상태)

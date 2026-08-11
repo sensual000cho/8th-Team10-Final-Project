@@ -20,9 +20,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC")
 	TSoftObjectPtr<USkeletalMesh> NPCMesh;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC")
-	FTransform SpawnTransform;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Capsule")
 	float CapsuleRadiusRatio = 0.3f;
 
