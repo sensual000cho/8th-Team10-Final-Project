@@ -38,6 +38,11 @@ FText ACPResourceNodeActor::GetInteractionPrompt_Implementation()
 	return FText::FromString(TEXT("채집하기"));
 }
 
+FName ACPResourceNodeActor::GetInteractionName_Implementation()
+{
+	return FName(*ResourceDefinition->HarvestedItem->DisplayName.ToString());
+}
+
 bool ACPResourceNodeActor::CanInteract_Implementation(AActor* Interactor)
 {
 	return Interactor != nullptr

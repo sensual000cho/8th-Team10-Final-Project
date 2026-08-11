@@ -26,6 +26,8 @@ public:
 	
 	virtual FText GetInteractionPrompt_Implementation() override;
 	
+	virtual FName GetInteractionName_Implementation() override;
+	
 	virtual bool CanInteract_Implementation(AActor* Interactor) override;
 	
 	// 오브젝트 풀링 인터페이스 관련

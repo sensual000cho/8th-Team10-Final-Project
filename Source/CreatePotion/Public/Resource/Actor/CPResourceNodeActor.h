@@ -29,6 +29,8 @@ public:
 	
 	virtual FText GetInteractionPrompt_Implementation() override;
 	
+	virtual FName GetInteractionName_Implementation() override;
+	
 	virtual bool CanInteract_Implementation(AActor* Interactor) override;
 	
 	virtual float GetInteractionDuration_Implementation(AActor* Interactor) override;
