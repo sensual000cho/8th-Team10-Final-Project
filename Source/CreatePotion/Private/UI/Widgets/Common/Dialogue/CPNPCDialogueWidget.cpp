@@ -7,11 +7,15 @@
 #include "TimerManager.h"
 #include "UI/Widgets/Lab/TagChoice/CPTagSelectionWidget.h"
 #include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
+#include "GameState/CPLabGameState.h" 
+#include "Lab/Component/CPLabPotionSessionComponent.h"
+#include "NPC/CPLabNPC.h"
 
-void UCPNPCDialogueWidget::InitDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const FText& InDialogueText)
+void UCPNPCDialogueWidget::InitDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const FText& InDialogueText, ACPLabNPC* InSourceLabNPC)
 {
     CurrentQuestID = InQuestID;
     bCurrentIsWorkshopQuest = bIsWorkshopQuest;
+    SourceLabNPC = InSourceLabNPC;
 
     // 기본적으로 NPC가 넘겨준 텍스트를 사용하도록 설정
     FText TextToPlay = InDialogueText;
@@ -153,7 +157,12 @@ void UCPNPCDialogueWidget::OnChoiceSelected(const FString& ButtonText) {
         RequestClose();
     }
     else if (ButtonText == TEXT("알겠습니다")) {
-        RequestClose();
+      
+        if (ACPLabNPC* LabNPC = SourceLabNPC.Get())
+        {
+            LabNPC->SetRequestConfirmed(true);
+        }
+
         if (UIManager && TagSelectionWidgetClass) {
             UUserWidget* CreatedWidget = UIManager->PushWidgetBP(TagSelectionWidgetClass);
 
@@ -161,10 +170,11 @@ void UCPNPCDialogueWidget::OnChoiceSelected(const FString& ButtonText) {
                 TagSelectionPopup->InitTagSelectionWidget(CurrentQuestID);
             }
         }
+
+        RequestClose();
     }
     else if (ButtonText == TEXT("네? 그게 뭐죠?")) {
         if (QuestManager && !CurrentQuestID.IsNone()) {
-         
             CurrentHintLevel++;
             QuestManager->SetQuestHintLevel(CurrentQuestID, CurrentHintLevel);
 

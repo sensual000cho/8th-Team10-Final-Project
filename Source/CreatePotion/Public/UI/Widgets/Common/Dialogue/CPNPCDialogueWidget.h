@@ -15,7 +15,7 @@ class CREATEPOTION_API UCPNPCDialogueWidget : public UCPBasePopupWidget {
 
 public:
     UFUNCTION(BlueprintCallable, Category = "Dialogue")
-    void InitDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const FText& InDialogueText);
+    void InitDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const FText& InDialogueText, class ACPLabNPC* InSourceLabNPC = nullptr);
 
 protected:
     virtual void BindEvents() override;
@@ -59,5 +59,7 @@ private:
     int32 CurrentHintLevel = 0;
 
     bool bCurrentIsWorkshopQuest = false;
+
+    TWeakObjectPtr<class ACPLabNPC> SourceLabNPC;
 
 };

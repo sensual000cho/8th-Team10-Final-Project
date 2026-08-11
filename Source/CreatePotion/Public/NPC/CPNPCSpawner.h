@@ -6,6 +6,7 @@
 
 class ACPBaseNPC;
 class UCPNPCDataAsset;
+class UQuestManager;
 
 // DA와 개별 스폰 트랜스폼을 액터에서 설정하기 위한 구조체
 USTRUCT(BlueprintType)
@@ -36,6 +37,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "NPC Spawner")
 	void StartSpawningSession();
+
+	// 현재 Accepted 상태인 Lab 퀘스트 ID들만 추려서 반환 (포션 리퀘스트 생성용)
+	TArray<FName> GetAcceptedLabQuestIDs(const UQuestManager* QuestManager) const;
 
 protected:
 	virtual void BeginPlay() override;

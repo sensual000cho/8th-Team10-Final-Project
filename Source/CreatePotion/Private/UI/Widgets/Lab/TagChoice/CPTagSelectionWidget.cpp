@@ -7,6 +7,8 @@
 #include "Components/TextBlock.h"
 #include "Components/Button.h"
 #include "GameplayTagsManager.h"
+#include "GameState/CPLabGameState.h"
+#include "Lab/Component/CPLabPotionSessionComponent.h"
 
 void UCPTagSelectionWidget::BindEvents()
 {
@@ -35,6 +37,15 @@ void UCPTagSelectionWidget::InitTagSelectionWidget(FName InQuestID, const TArray
 	CurrentQuestID = InQuestID;
 	SavedTagValues = InExistingSavedValues;
 
+	if (UWorld* World = GetWorld()) {
+		if (ACPLabGameState* LabState = World->GetGameState<ACPLabGameState>()) {
+			if (UCPLabPotionSessionComponent* SessionComp = LabState->GetPotionSession()) {
+
+				SessionComp->TrySetRequestPhase(CurrentQuestID, ECPLabPotionRequestPhase::Preparing);
+
+			}
+		}
+	}
 	if (InExistingSelectedTags.Num() > 0)
 	{
 		SelectedTags = InExistingSelectedTags;

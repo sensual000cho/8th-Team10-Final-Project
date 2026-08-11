@@ -54,11 +54,20 @@ void UCPTagRangeWidget::InitTagRangeWidget(FName InQuestID, const TArray<FGamepl
 	}
 }
 
-TArray<FAlchemyProperty> UCPTagRangeWidget::GetFinalizedTagValues() const
+TArray<FTagConfirmData> UCPTagRangeWidget::GetFinalizedTagValues() const
 {
-	TArray<FAlchemyProperty> FinalizedValues;
+	TArray<FTagConfirmData> FinalizedValues;
 
 	if (!ScrollBox_Entries) return FinalizedValues;
+
+	UGameInstance* GI = GetGameInstance();
+	UQuestManager* QuestManager = GI ? GI->GetSubsystem<UQuestManager>() : nullptr;
+	FQuestAnswerData* Answer = nullptr;
+
+	if (QuestManager && QuestManager->QuestAnswerTable)
+	{
+		Answer = QuestManager->QuestAnswerTable->FindRow<FQuestAnswerData>(CurrentQuestID, TEXT("Evaluation"));
+	}
 
 	TArray<UWidget*> ChildWidgets = ScrollBox_Entries->GetAllChildren();
 	for (UWidget* Child : ChildWidgets)
@@ -66,11 +75,25 @@ TArray<FAlchemyProperty> UCPTagRangeWidget::GetFinalizedTagValues() const
 		UCPTagRangeEntryWidget* Entry = Cast<UCPTagRangeEntryWidget>(Child);
 		if (!Entry) continue;
 
-		FAlchemyProperty Prop;
-		Prop.Tag = Entry->GetEntryTag();
-		Prop.Value = Entry->GetCurrentSliderValue();
+		FTagConfirmData Data;
+		Data.Tag = Entry->GetEntryTag();
+		Data.Value = Entry->GetCurrentSliderValue();
+		Data.ResultStr = TEXT("?");
 
-		FinalizedValues.Add(Prop);
+		// 정답 판정
+		if (Answer)
+		{
+			const FQuestEffectRequirement* MatchingReq = Answer->RequestedEffects.FindByPredicate(
+				[&](const FQuestEffectRequirement& Req) { return Req.Axis == Data.Tag; }
+			);
+
+			if (!MatchingReq) Data.ResultStr = TEXT("X");
+			else if (Data.Value < MatchingReq->MinValue) Data.ResultStr = TEXT("UP");
+			else if (Data.Value > MatchingReq->MaxValue) Data.ResultStr = TEXT("DOWN");
+			else Data.ResultStr = TEXT("O");
+		}
+
+		FinalizedValues.Add(Data);
 	}
 
 	return FinalizedValues;
@@ -78,51 +101,25 @@ TArray<FAlchemyProperty> UCPTagRangeWidget::GetFinalizedTagValues() const
 
 void UCPTagRangeWidget::OnEvaluateClicked()
 {
-	UGameInstance* GI = GetGameInstance();
-	if (!GI) return;
-
-	UQuestManager* QuestManager = GI->GetSubsystem<UQuestManager>();
-	if (!QuestManager) return;
-
-	if (!QuestManager->QuestAnswerTable) return;
-	FQuestAnswerData* Answer = QuestManager->QuestAnswerTable->FindRow<FQuestAnswerData>(CurrentQuestID, TEXT("UI_Evaluation"));
-	if (!Answer) return;
+	TArray<FTagConfirmData> EvaluatedData = GetFinalizedTagValues();
 
 	TArray<UWidget*> ChildWidgets = ScrollBox_Entries->GetAllChildren();
-	for (UWidget* Child : ChildWidgets)
+	for (int32 i = 0; i < ChildWidgets.Num(); ++i)
 	{
-		UCPTagRangeEntryWidget* Entry = Cast<UCPTagRangeEntryWidget>(Child);
-		if (!Entry) continue;
-
-		FGameplayTag EntryTag = Entry->GetEntryTag();
-		int32 EntryValue = Entry->GetCurrentSliderValue();
-
-		const FQuestEffectRequirement* MatchingReq = Answer->RequestedEffects.FindByPredicate(
-			[&](const FQuestEffectRequirement& Req) { return Req.Axis == EntryTag; }
-		);
-
-		if (!MatchingReq)
+		if (UCPTagRangeEntryWidget* Entry = Cast<UCPTagRangeEntryWidget>(ChildWidgets[i]))
 		{
-			Entry->SetFeedbackText(TEXT("X"));
-		}
-		else if (EntryValue < MatchingReq->MinValue)
-		{
-			Entry->SetFeedbackText(TEXT("UP"));
-		}
-		else if (EntryValue > MatchingReq->MaxValue)
-		{
-			Entry->SetFeedbackText(TEXT("DOWN"));
-		}
-		else
-		{
-			Entry->SetFeedbackText(TEXT("O"));
+			if (EvaluatedData.IsValidIndex(i))
+			{
+				Entry->SetFeedbackText(EvaluatedData[i].ResultStr);
+			}
 		}
 	}
 }
+
 void UCPTagRangeWidget::OnConfirmClicked()
 {
 	// 사용자가 세팅한 최종 태그+수치 배열을 가져옴
-	TArray<FAlchemyProperty> FinalData = GetFinalizedTagValues();
+	TArray<FTagConfirmData> FinalData = GetFinalizedTagValues();
 	UE_LOG(LogTemp, Warning, TEXT("퀘스트 ID: %s"), *CurrentQuestID.ToString());
 	UE_LOG(LogTemp, Warning, TEXT("확정된 태그 개수: %d개"), FinalData.Num());
 
@@ -130,10 +127,11 @@ void UCPTagRangeWidget::OnConfirmClicked()
 	{
 		FString TagNameStr = FinalData[i].Tag.IsValid() ? FinalData[i].Tag.GetTagName().ToString() : TEXT("None");
 
-		UE_LOG(LogTemp, Log, TEXT(" [%d] 태그: %s | 설정값: %d"),
+		UE_LOG(LogTemp, Log, TEXT(" [%d] 태그: %s | 설정값: %2d | 판정: %s"),
 			i,
 			*TagNameStr,
-			FinalData[i].Value);
+			FinalData[i].Value,
+			*FinalData[i].ResultStr);
 	}
 	//TODO : 재료 선택 UI 연결
 

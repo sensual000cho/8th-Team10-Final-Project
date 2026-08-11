@@ -3,6 +3,8 @@
 #include "Data/CPNPCDataAsset.h"
 #include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
 #include "UI/Widgets/Common/Dialogue/CPNPCDialogueWidget.h"
+#include "GameState/CPLabGameState.h" 
+#include "Lab/Component/CPLabPotionSessionComponent.h"
 
 void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 {
@@ -36,7 +38,7 @@ void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 				if (UCPNPCDialogueWidget* DialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidgetBP(DialogueWidgetClass)))
 				{
 					FText NPCNameText = FText::FromName(NPCData->NPCName);
-					DialogueWidget->InitDialogue(true, QuestID, NPCNameText, FirstHint);
+					DialogueWidget->InitDialogue(true, QuestID, NPCNameText, FirstHint, this);
 				}
 			}
 			break;
@@ -46,25 +48,30 @@ void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 
 bool ACPLabNPC::CanInteract_Implementation(AActor* Interactor)
 {
-	if (!NPCData || !GetGameInstance()) { return false; }
-
+	if (!NPCData || NPCData->LabQuestIDs.IsEmpty() || !GetGameInstance()) { return false; }
 	UQuestManager* QuestManager = GetGameInstance()->GetSubsystem<UQuestManager>();
 	if (!QuestManager) { return false; }
+	FName QuestID = NPCData->LabQuestIDs[0];
+	if (QuestID.IsNone()) { return false; }
+	if (QuestManager->GetQuestState(QuestID) != EQuestState::Accepted) {
+		return false;
+	}
 
-	for (const FName& QuestID : NPCData->LabQuestIDs)
+	if (!bRequestConfirmed)
 	{
-		if (QuestID.IsNone()) { continue; }
-		if (QuestManager->GetQuestState(QuestID) == EQuestState::Accepted)
-		{
-			int32 CurrentHintLevel = QuestManager->GetQuestHintLevel(QuestID);
+		return true;
+	}
 
-			// 힌트 단계가 2(마지막) 미만일 때만 상호작용 가능
-			if (CurrentHintLevel < 2)
-			{
-				return true;
+	if (UWorld* World = GetWorld()) {
+		if (ACPLabGameState* LabState = World->GetGameState<ACPLabGameState>()) {
+			if (UCPLabPotionSessionComponent* SessionComp = LabState->GetPotionSession()) {
+				FCPLabPotionRequestState RequestState;
+				if (SessionComp->GetRequestState(QuestID, RequestState)) {
+					return RequestState.Phase == ECPLabPotionRequestPhase::PotionReady;
+				}
 			}
 		}
 	}
-	return false;
 
+	return false;
 }

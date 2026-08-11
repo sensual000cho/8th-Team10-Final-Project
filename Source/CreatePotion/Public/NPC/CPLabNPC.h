@@ -16,8 +16,12 @@ public:
 	virtual void OnInteract_Implementation(AActor* Interactor) override;
 	virtual bool CanInteract_Implementation(AActor* Interactor) override;
 
+	void SetRequestConfirmed(bool bConfirmed) { bRequestConfirmed = bConfirmed; }
+
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UCPNPCDialogueWidget> DialogueWidgetClass;
+private:
+	bool bRequestConfirmed = false;
 
 };
