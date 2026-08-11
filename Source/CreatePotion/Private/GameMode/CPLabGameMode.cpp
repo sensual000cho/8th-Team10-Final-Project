@@ -90,8 +90,8 @@ bool ACPLabGameMode::TryStartLabSessionWithRequests(const TArray<FCPLabPotionReq
 	if (!Session) return false;
 	
 	const bool bStarted = Session->StartSession(PotionRequests);
-	if (bStarted){
-		SpawnIngredients();
+	if (bStarted && SpawnIngredients()){
+		TryBeginActiveRequestProcessing();
 	}
 	return bStarted;
 }
