@@ -90,8 +90,8 @@ bool ACPLabGameMode::TryStartLabSessionWithRequests(const TArray<FCPLabPotionReq
 	if (!Session) return false;
 	
 	const bool bStarted = Session->StartSession(PotionRequests);
-	if (bStarted){
-		SpawnIngredients();
+	if (bStarted && SpawnIngredients()){
+		TryBeginActiveRequestProcessing();
 	}
 	return bStarted;
 }
@@ -146,6 +146,47 @@ bool ACPLabGameMode::TryFinishActivePotion()
 	return bFinished;
 }
 
+bool ACPLabGameMode::FinalizePotionAtActor(const AActor* SpawnActor)
+{
+	UWorld* World = GetWorld();
+	UCPLabPotionSessionComponent* Session = GetPotionSession();
+	if (!World || !Session || !PotionItemData || !IsValid(SpawnActor)) return false;
+	
+	UClass* PotionPropClass = PotionItemData->AlchemyPropClass.LoadSynchronous();
+	if (!PotionPropClass) return false;
+	
+	ACPAlchemyProp* PotionProp = World->SpawnActor<ACPAlchemyProp>(PotionPropClass, SpawnActor->GetActorTransform());
+	if (!PotionProp) return false;
+	
+	// 기구, Potion의 경계 계산
+	FVector SpawnActorOrigin, SpawnActorExtent;
+	FVector PotionOrigin, PotionExtent;
+	SpawnActor->GetActorBounds(true, SpawnActorOrigin, SpawnActorExtent);
+	PotionProp->GetActorBounds(true, PotionOrigin, PotionExtent);
+	
+	// 보정할 Z 값 계산
+	const float SpawnActorTopZ = SpawnActorOrigin.Z + SpawnActorExtent.Z;
+	const float PotionBottomZ = PotionOrigin.Z - PotionExtent.Z;
+	const float ZOffset = SpawnActorTopZ - PotionBottomZ;
+	
+	// Z 값 보정
+	PotionProp->AddActorWorldOffset(FVector(0.f, 0.f, ZOffset), false);
+	
+	if (!Session->FinalizePotionResult(PotionProp, PotionItemData)){
+		PotionProp->Destroy();
+		return false;
+	}
+	
+	if (!TryFinishActivePotion()){
+		PotionProp->Destroy();
+		return false;
+	}
+	
+	SpawnedIngredients.Add(PotionProp);
+	return true;
+}
+
+
 bool ACPLabGameMode::TryDeliverActivePotion()
 {
 	UCPLabPotionSessionComponent* Session = GetPotionSession();
@@ -169,6 +210,21 @@ void ACPLabGameMode::RegisterProcessor(UCPProcessorComponent* ProcessorComponent
 	if (!IsValid(ProcessorComponent) || ProcessorPendings.Contains(ProcessorComponent)) return;
 	
 	ProcessorPendings.Add(ProcessorComponent);
+}
+
+bool ACPLabGameMode::RestoreUseLimit(const ACPAlchemyProp* ItemInstance)
+{
+	if (!IsValid(ItemInstance)) return false;
+	
+	bool bForgotAny = false;
+	for (UCPProcessorComponent* Processor : ProcessorPendings){
+		if (!IsValid(Processor)) continue;
+		// Processor가 이 Prop 떄문에 소모된 사용 제한을 복구한다
+		if (Processor->RestoreUseLimit(ItemInstance)){
+			bForgotAny = true;
+		}
+	}
+	return bForgotAny;
 }
 
 void ACPLabGameMode::DebugAdvanceSessionPhase()
@@ -214,6 +270,18 @@ void ACPLabGameMode::DebugAdvanceSessionPhase()
 	}
 
 	ShowDebugRequestPhase(Session);
+}
+
+void ACPLabGameMode::SetIngredientsDataAsset(const TArray<UCPForageableItemData*>& IngredientsDataAsset)
+{
+	if (IngredientsDataAsset.Num() <= 0) return;
+	
+	Ingredients.Reset();
+	Ingredients.Reserve(IngredientsDataAsset.Num());
+	
+	for (UCPForageableItemData* IngredientItemData : IngredientsDataAsset){
+		Ingredients.Add(IngredientItemData);
+	}
 }
 
 ACPLabGameState* ACPLabGameMode::GetLabGameState() const
@@ -267,7 +335,7 @@ bool ACPLabGameMode::SpawnIngredients()
 	CollectSlotActors(IngredientSlotActors);
 	
 	const int32 SpawnCount = FMath::Min3(
-		TestIngredients.Num(), IngredientSlotActors.Num(), CPLabPotionRequestRules::IngredientSlotCapacity);
+		Ingredients.Num(), IngredientSlotActors.Num(), CPLabPotionRequestRules::IngredientSlotCapacity);
 	if (SpawnCount <= 0) return false;
 	
 	bool bPlacedAnyIngredient = false;
@@ -276,7 +344,7 @@ bool ACPLabGameMode::SpawnIngredients()
 	if (!Session) return false;
 	
 	for (int32 SlotIndex = 0; SlotIndex < SpawnCount; ++SlotIndex){
-		UCPForageableItemData* ItemData = TestIngredients[SlotIndex];
+		UCPForageableItemData* ItemData = Ingredients[SlotIndex];
 		AActor* SlotActor = IngredientSlotActors[SlotIndex];
 		
 		if (!ItemData || !SlotActor) continue;

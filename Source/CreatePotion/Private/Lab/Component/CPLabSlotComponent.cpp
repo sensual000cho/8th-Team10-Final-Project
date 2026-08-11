@@ -3,26 +3,10 @@
 
 #include "Lab/Component/CPLabSlotComponent.h"
 
-#include "Data/CPForageableItemData.h"
 #include "GameState/CPLabGameState.h"
 #include "Lab/CPLabPotionRequestTypes.h"
 #include "Lab/Actor/CPAlchemyProp.h"
 #include "Lab/Component/CPLabPotionSessionComponent.h"
-
-namespace
-{
-	// PR 이후 제거 예정: 슬롯 상호작용 확인용 재료 이름 표시
-	FString GetDebugIngredientName(const ACPAlchemyProp* IngredientProp)
-	{
-		if (!IsValid(IngredientProp)) return TEXT("없음");
-
-		const UCPForageableItemData* ItemData = IngredientProp->GetSourceItemData();
-		if (!ItemData) return IngredientProp->GetName();
-
-		const FString DisplayName = ItemData->DisplayName.ToString();
-		return DisplayName.IsEmpty() ? IngredientProp->GetName() : DisplayName;
-	}
-}
 
 UCPLabSlotComponent::UCPLabSlotComponent()
 {
@@ -31,51 +15,19 @@ UCPLabSlotComponent::UCPLabSlotComponent()
 	SlotIndex = INDEX_NONE;
 }
 
-bool UCPLabSlotComponent::ExecuteInteraction(AActor* Interacter)
+bool UCPLabSlotComponent::ExecuteInteraction(AActor* Interactor)
 {
-	if (!CanExecuteInteraction(Interacter)) return false;
+	if (!CanExecuteInteraction(Interactor)) return false;
 	
 	UCPLabPotionSessionComponent* Session = GetPotionSession();
 	if (!Session) return false;
 
-	ACPAlchemyProp* BeforeSlotProp = nullptr;
-	Session->GetIngredientPropFromSlot(SlotIndex, BeforeSlotProp);
-	ACPAlchemyProp* BeforeHeldProp = Session->GetHeldIngredientProp();
-
-	const bool bInteracted = Session->InteractIngredientSlot(SlotIndex);
-
-	ACPAlchemyProp* AfterSlotProp = nullptr;
-	Session->GetIngredientPropFromSlot(SlotIndex, AfterSlotProp);
-	ACPAlchemyProp* AfterHeldProp = Session->GetHeldIngredientProp();
-
-	// PR 이후 제거 예정: DebugMessage에 Actor 인스턴스명 대신 DataAsset 표시 이름 출력
-	const FString BeforeSlotName = GetDebugIngredientName(BeforeSlotProp);
-	const FString BeforeHeldName = GetDebugIngredientName(BeforeHeldProp);
-	const FString AfterSlotName = GetDebugIngredientName(AfterSlotProp);
-	const FString AfterHeldName = GetDebugIngredientName(AfterHeldProp);
-
-	// PR 이후 제거 예정: PR 확인을 위한 임시 DebugMessage
-	if (GEngine){
-		GEngine->AddOnScreenDebugMessage(
-			-1,
-			4.f,
-			bInteracted ? FColor::Green : FColor::Red,
-			FString::Printf(
-				TEXT("슬롯 %d 상호작용: %s\n슬롯: %s -> %s\n손: %s -> %s"),
-				SlotIndex,
-				bInteracted ? TEXT("성공") : TEXT("실패"),
-				*BeforeSlotName,
-				*AfterSlotName,
-				*BeforeHeldName,
-				*AfterHeldName));
-	}
-
-	return bInteracted;
+	return Session->InteractIngredientSlot(SlotIndex);
 }
 
-bool UCPLabSlotComponent::CanExecuteInteraction(AActor* Interacter) const
+bool UCPLabSlotComponent::CanExecuteInteraction(AActor* Interactor) const
 {
-	if (!Super::CanExecuteInteraction(Interacter)) return false;
+	if (!Super::CanExecuteInteraction(Interactor)) return false;
 	
 	const UCPLabPotionSessionComponent* Session = GetPotionSession();
 	if (!Session || SlotIndex == INDEX_NONE) return false;

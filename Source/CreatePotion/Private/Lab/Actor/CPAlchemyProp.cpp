@@ -34,6 +34,25 @@ void ACPAlchemyProp::InitializeFromItemData(UCPForageableItemData* ItemData)
 	OnAlchemyPropChanged.Broadcast();
 }
 
+void ACPAlchemyProp::InitializeFromEffects(UCPForageableItemData* ItemData, const TArray<FAlchemyProperty>& Effects)
+{
+	ResetWorkingIngredient();
+	
+	if (!ItemData){
+		OnAlchemyPropChanged.Broadcast();
+		return;
+	}
+	
+	WorkingIngredient.SourceItemData = ItemData;
+	for (const FAlchemyProperty& Property : Effects){
+		if (!Property.Tag.IsValid()) continue;
+		
+		WorkingIngredient.CurrentEffects.Add(Property.Tag, Property.Value);
+	}
+	
+	OnAlchemyPropChanged.Broadcast();
+}
+
 FCPLabIngredientInstance
 ACPAlchemyProp::GetWorkingIngredient() const
 {
@@ -71,6 +90,15 @@ bool ACPAlchemyProp::MarkProcessedBy(FName InProcessorId)
 	if (InProcessorId.IsNone() || AppliedProcessorIds.Contains(InProcessorId)) return false;
 	
 	AppliedProcessorIds.Add(InProcessorId);
+	return true;
+}
+
+bool ACPAlchemyProp::ResetToItemData()
+{
+	UCPForageableItemData* ItemData = GetSourceItemData();
+	if (!ItemData) return false;
+	
+	InitializeFromItemData(ItemData);
 	return true;
 }
 

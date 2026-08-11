@@ -9,8 +9,7 @@ class UCPForageableItemData;
 class ACPAlchemyProp;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FCPOnLabSessionChanged);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
-	FCPOnLabPotionResultChanged, const TArray<FAlchemyProperty>&, EffectTotals);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FCPOnLabPotionResultChanged, const TArray<FAlchemyProperty>&, EffectTotals);
 
 // 포션 세션과 공방 슬롯 상태를 한곳에서 관리
 UCLASS()
@@ -76,6 +75,9 @@ public:
 	// 들고 있는 재료 Prop 참조를 꺼내고 보유 상태를 비움
 	UFUNCTION(BlueprintCallable, Category = "Lab|Carry")
 	bool TryReleaseHeldIngredient(ACPAlchemyProp*& OutIngredientProp);
+	
+	// 현재 포션 결과값을 PotionProp에 저장하고 손에 든 Prop으로 등록
+	bool FinalizePotionResult(ACPAlchemyProp* PotionProp, UCPForageableItemData* PotionItemData);
 	
 	// 들고 있는 재료와 Slot간 교체, 놓기, 들기
 	bool InteractIngredientSlot(int32 SlotIndex);
