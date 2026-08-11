@@ -111,7 +111,7 @@ public:
 
 	// 조건 하나하나에 대한 세부 판정 (O/Up/Down/태그오답)
 	UFUNCTION(BlueprintCallable, Category = "Quest")
-	TArray<EConditionMatchResult> EvaluateConditions(FName QuestID, const TArray<FAlchemyProperty>& PotionResult) const;
+	TArray<FConditionEvaluation> EvaluateConditions(FName QuestID, const TArray<FAlchemyProperty>& PotionResult) const;
 
 	// ===================================================================
 	// [검증 - 개발 중 확인용]
