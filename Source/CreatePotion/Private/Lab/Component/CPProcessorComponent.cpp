@@ -59,7 +59,10 @@ bool UCPProcessorComponent::ProcessItem(ACPAlchemyProp* ItemInstance)
 	const FCPLabIngredientInstance BeforeIngredient = ItemInstance->GetWorkingIngredient();
 	
 	ApplyProcess(ItemInstance);
-	ItemInstance->MarkProcessedBy(ProcessorId);
+	
+	if (!ProcessorId.IsNone()){
+		ItemInstance->MarkProcessedBy(ProcessorId);
+	}
 	
 	if (NeedsResetRequestEnd()){
 		ACPLabGameMode* LabGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ACPLabGameMode>() : nullptr;
@@ -87,9 +90,9 @@ bool UCPProcessorComponent::ProcessItem(ACPAlchemyProp* ItemInstance)
 	return true;
 }
 
-bool UCPProcessorComponent::ExecuteInteraction(AActor* Interacter)
+bool UCPProcessorComponent::ExecuteInteraction(AActor* Interactor)
 {
-	if (!CanExecuteInteraction(Interacter)) return false;
+	if (!CanExecuteInteraction(Interactor)) return false;
 	
 	const UWorld* World = GetWorld();
 	const ACPLabGameState* LabGameState = World->GetGameState<ACPLabGameState>();
@@ -98,58 +101,20 @@ bool UCPProcessorComponent::ExecuteInteraction(AActor* Interacter)
 	return ProcessItem(Session->GetHeldIngredientProp());
 }
 
-bool UCPProcessorComponent::CanExecuteInteraction(AActor* Interacter) const
+bool UCPProcessorComponent::CanExecuteInteraction(AActor* Interactor) const
 {
-	if (!Super::CanExecuteInteraction(Interacter)) return false;
+	if (!Super::CanExecuteInteraction(Interactor)) return false;
 	
-	// const UWorld* World = GetWorld();
-	// const ACPLabGameState* LabGameState = World ? World->GetGameState<ACPLabGameState>() : nullptr;
-	// const UCPLabPotionSessionComponent* Session = LabGameState ? LabGameState->GetPotionSession() : nullptr;
-	// if (!Session) return false;
-	//
-	// FCPLabPotionRequestState ActiveRequestState;
-	// if (!Session->GetActiveRequestState(ActiveRequestState) || 
-	// 	ActiveRequestState.Phase != ECPLabPotionRequestPhase::Processing) return false;
-	//
-	// return CanProcess(Session->GetHeldIngredientProp());
-	return EvaluateInteraction() ==	EProcessorBlockReason::None;
-}
-
-FText UCPProcessorComponent::GetInteractionPrompt() const
-{
-	switch (EvaluateInteraction())
-	{
-	case EProcessorBlockReason::None:
-		return Super::GetInteractionPrompt();
-
-	case EProcessorBlockReason::Disabled:
-		return FText::FromString(
-			TEXT("현재 사용할 수 없습니다"));
-
-	case EProcessorBlockReason::NotProcessingPhase:
-		return FText::FromString(
-			TEXT("지금은 가공 단계가 아닙니다"));
-
-	case EProcessorBlockReason::NoHeldIngredient:
-		return FText::FromString(
-			TEXT("가공할 재료를 들어 주세요"));
-
-	case EProcessorBlockReason::InvalidIngredient:
-		return FText::FromString(
-			TEXT("이 재료는 가공할 수 없습니다"));
-
-	case EProcessorBlockReason::AlreadyApplied:
-		return FText::FromString(
-			TEXT("이미 이 재료에 사용했습니다"));
-
-	case EProcessorBlockReason::SessionUseLimitReached:
-		return FText::FromString(
-			TEXT("이번 제조에서 이미 사용했습니다"));
-
-	default:
-		return FText::FromString(
-			TEXT("사용할 수 없습니다"));
-	}
+	const UWorld* World = GetWorld();
+	const ACPLabGameState* LabGameState = World ? World->GetGameState<ACPLabGameState>() : nullptr;
+	const UCPLabPotionSessionComponent* Session = LabGameState ? LabGameState->GetPotionSession() : nullptr;
+	if (!Session) return false;
+	
+	FCPLabPotionRequestState ActiveRequestState;
+	if (!Session->GetActiveRequestState(ActiveRequestState) || 
+		ActiveRequestState.Phase != ECPLabPotionRequestPhase::Processing) return false;
+	
+	return CanProcess(Session->GetHeldIngredientProp());
 }
 
 void UCPProcessorComponent::ResetProcessor()
@@ -157,13 +122,17 @@ void UCPProcessorComponent::ResetProcessor()
 	// 필요한 기구에서 상속하여 구현
 }
 
+bool UCPProcessorComponent::RestoreUseLimit(const ACPAlchemyProp* ItemInstance)
+{
+	// Prop 단위 사용 제한을 관리하는 기구에서만 구현
+	return false;
+}
+
 bool UCPProcessorComponent::CanProcess(const ACPAlchemyProp* ItemInstance) const
 {
-	// if (!IsValid(ItemInstance) || ProcessorId.IsNone()) return false;
-	//
-	// return ItemInstance->GetSourceItemData() != nullptr && !ItemInstance->HasBeenProcessedBy(ProcessorId);
+	if (!IsValid(ItemInstance) || ItemInstance->GetSourceItemData() == nullptr) return false;
 	
-	return EvaluateIngredient(ItemInstance) ==	EProcessorBlockReason::None;
+	return ProcessorId.IsNone() || !ItemInstance->HasBeenProcessedBy(ProcessorId);
 }
 
 void UCPProcessorComponent::ApplyProcess(ACPAlchemyProp* ItemInstance)
@@ -174,71 +143,4 @@ void UCPProcessorComponent::ApplyProcess(ACPAlchemyProp* ItemInstance)
 bool UCPProcessorComponent::NeedsResetRequestEnd() const
 {
 	return false;
-}
-
-EProcessorBlockReason UCPProcessorComponent::EvaluateInteraction() const
-{
-	if (!bEnabled)
-	{
-		return EProcessorBlockReason::Disabled;
-	}
-
-	const UWorld* World = GetWorld();
-	const ACPLabGameState* LabGameState =
-		World ? World->GetGameState<ACPLabGameState>() : nullptr;
-
-	const UCPLabPotionSessionComponent* Session =
-		LabGameState ? LabGameState->GetPotionSession() : nullptr;
-
-	if (!Session)
-	{
-		return EProcessorBlockReason::NotProcessingPhase;
-	}
-
-	FCPLabPotionRequestState ActiveRequestState;
-	if (!Session->GetActiveRequestState(ActiveRequestState) ||
-		ActiveRequestState.Phase !=
-			ECPLabPotionRequestPhase::Processing)
-	{
-		return EProcessorBlockReason::NotProcessingPhase;
-	}
-
-	const ACPAlchemyProp* HeldIngredient =
-		Session->GetHeldIngredientProp();
-
-	if (!IsValid(HeldIngredient))
-	{
-		return EProcessorBlockReason::NoHeldIngredient;
-	}
-
-	const EProcessorBlockReason IngredientReason =
-		EvaluateIngredient(HeldIngredient);
-
-	if (IngredientReason != EProcessorBlockReason::None)
-	{
-		return IngredientReason;
-	}
-
-	// 건조기·증류기 자식 클래스의 추가 CanProcess 조건 확인
-	if (!CanProcess(HeldIngredient))
-	{
-		return EProcessorBlockReason::InvalidIngredient;
-	}
-
-	return EProcessorBlockReason::None;
-}
-
-EProcessorBlockReason UCPProcessorComponent::EvaluateIngredient(const ACPAlchemyProp* ItemInstance) const
-{
-	if (!IsValid(ItemInstance) || ProcessorId.IsNone() || ItemInstance->GetSourceItemData() == nullptr)
-	{
-		return EProcessorBlockReason::InvalidIngredient;
-	}
-
-	if (ItemInstance->HasBeenProcessedBy(ProcessorId))
-	{
-		return EProcessorBlockReason::AlreadyApplied;
-	}
-
-	return EProcessorBlockReason::None;
 }
