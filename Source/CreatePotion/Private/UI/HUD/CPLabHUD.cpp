@@ -2,6 +2,7 @@
 
 #include "UI/HUD/CPLabHUD.h"
 
+#include "Character/CPPlayerController.h"
 #include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
 #include "UI/Widgets/Lab/CPLabIngredientSelectWidget.h"
 #include "UI/Widgets/Lab/TagChoice/CPTagRangeWidget.h"
@@ -96,6 +97,16 @@ void ACPLabHUD::HandleTagRangeConfirmed()
 		// 클래스 할당 안됨
 		UE_LOG(LogTemp, Error, TEXT("[HUD] LabIngredientWidgetClass가 비어있습니다! BP_HUD에서 클래스를 지정해주세요."));
 		return;
+	}
+	
+	if (ACPPlayerController* PC = Cast<ACPPlayerController>(GetOwningPlayerController()))
+	{
+		PC->ToggleLabUI();
+		UE_LOG(LogTemp, Warning, TEXT("[LabHUD] 재료 선택 UI 열기 성공"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LabHUD] 재료 선택 UI 열기 성공"));
 	}
 }
 
