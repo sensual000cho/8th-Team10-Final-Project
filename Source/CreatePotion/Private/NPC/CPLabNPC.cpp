@@ -5,13 +5,8 @@
 #include "GameMode/CPLabGameMode.h"
 #include "UI/Widgets/Common/Dialogue/CPNPCDialogueWidget.h"
 #include "UI/Widgets/Lab/CPLabResultWidget.h"
-#include "UI/Widgets/Lab/TagChoice/CPTagSelectionWidget.h"
 #include "GameState/CPLabGameState.h" 
 #include "Lab/Component/CPLabPotionSessionComponent.h"
-#include "GameplayTagContainer.h"
-#include "Components/StateTreeComponent.h"
-#include "Components/CapsuleComponent.h"
-#include "Character/CPInteractionComponent.h"
 
 void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 {
