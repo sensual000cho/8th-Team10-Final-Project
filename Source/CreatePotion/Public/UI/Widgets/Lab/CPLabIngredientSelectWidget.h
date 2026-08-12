@@ -45,7 +45,6 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "UI")
 	FOnIngredientConfirmedDelegate OnIngredientConfirmed;
 	
-	
 public:
 	// 테스트용 아이템 저장 변수
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Test")

@@ -62,7 +62,7 @@ void ACPLabHUD::BindTagSelectionWidget(UCPTagSelectionWidget* TargetWidget)
 {
 	if (TargetWidget)
 	{
-		TargetWidget->OnTagSelectionConfirmed.AddDynamic(this, &ACPLabHUD::HandleTagSelectionConfirmed);
+		TargetWidget->OnTagSelectionConfirmed.AddUniqueDynamic(this, &ACPLabHUD::HandleTagSelectionConfirmed);
 		UE_LOG(LogTemp, Warning, TEXT("[LabHUD] TagSelectionWidget 델리게이트 바인딩 완료"))
 	}
 }
@@ -71,14 +71,18 @@ void ACPLabHUD::BindTagRangeWidget(UCPTagRangeWidget* TargetWidget)
 {
 	if (TargetWidget)
 	{
-		TargetWidget->OnTagRangeConfirmed.AddDynamic(this, &ACPLabHUD::HandleTagRangeConfirmed);
-		UE_LOG(LogTemp, Warning, TEXT("[LabHUD] TagSelectionWidget 델리게이트 바인딩 완료"))
+		TargetWidget->OnTagRangeConfirmed.AddUniqueDynamic(this, &ACPLabHUD::HandleTagRangeConfirmed);
+		UE_LOG(LogTemp, Warning, TEXT("[LabHUD] TagRangeWidget 델리게이트 바인딩 완료"))
 	}
 }
 
 void ACPLabHUD::BindLabIngredientSelectWidget(UCPLabIngredientSelectWidget* TargetWidget)
 {
-	
+	if (TargetWidget)
+	{
+		TargetWidget->OnIngredientConfirmed.AddUniqueDynamic(this, &ACPLabHUD::HandleIngredientSelectionConfirmed);
+		UE_LOG(LogTemp, Warning, TEXT("[LabHUD] IngredientSelectionWidget 델리게이트 바인딩 완료"))
+	}
 }
 
 void ACPLabHUD::HandleTagRangeConfirmed()
@@ -91,8 +95,13 @@ void ACPLabHUD::HandleTagRangeConfirmed()
 	
 	if (LabIngredientSelectWidgetClass)
 	{
-		UIManager->PushWidget(LabIngredientSelectWidgetClass);
-        
+		UUserWidget* CreatedWidget = UIManager->PushWidget(LabIngredientSelectWidgetClass);
+		
+		if (UCPLabIngredientSelectWidget* IngredientWidget = Cast<UCPLabIngredientSelectWidget>(CreatedWidget))
+		{
+			BindLabIngredientSelectWidget(IngredientWidget);
+		}
+		
 		UE_LOG(LogTemp, Warning, TEXT("[HUD] 태그 범위 설정 완료 -> 재료 선택 창 정상 오픈!"));
 	}
 	else
@@ -111,6 +120,8 @@ void ACPLabHUD::HandleTagRangeConfirmed()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[LabHUD] 재료 선택 UI 열기 성공"));
 	}
+	
+	
 }
 
 void ACPLabHUD::HandleTagSelectionConfirmed(const FTagSelectionData& SelectionData)
@@ -131,7 +142,7 @@ void ACPLabHUD::HandleTagSelectionConfirmed(const FTagSelectionData& SelectionDa
 			SelectionData.SavedValues
 		);
 		
-		RangeWidget->OnTagRangeConfirmed.AddDynamic(this, &ACPLabHUD::HandleTagRangeConfirmed);
+		BindTagRangeWidget(RangeWidget);
 		
 		UE_LOG(LogTemp, Warning, TEXT("[LabHUD] 태그 범위 위젯 오픈 및 초기화 완료!"));
 	}
