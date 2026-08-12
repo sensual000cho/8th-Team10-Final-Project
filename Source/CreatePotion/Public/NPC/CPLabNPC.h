@@ -19,6 +19,9 @@ public:
 
 	void SetRequestConfirmed(bool bConfirmed) { bRequestConfirmed = bConfirmed; }
 
+	UFUNCTION()
+	void OpenResultWidget();
+
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UCPNPCDialogueWidget> DialogueWidgetClass;
@@ -28,7 +31,7 @@ public:
 	TSubclassOf<UCPLabResultWidget> ResultWidgetClass;
 private:
 	bool bRequestConfirmed = false;
-	
+
 	//Result UI 결과 송출용 함수들
 	UFUNCTION()
 	void HandleResultAccepted();
