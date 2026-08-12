@@ -14,7 +14,7 @@ class UInputAction;
 class UCPInteractionComponent;
 struct FInputActionValue;
 
-class UCPItemContainerComponent;
+class UCPInventoryComponent;
 class UCPContainerMainWidget;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
@@ -72,6 +72,8 @@ protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	virtual void BeginPlay() override;
+
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
 protected:
 
@@ -123,9 +125,9 @@ private:
 	void ToggleInventoryUI();
 
 public:
-	// 컨테이너 컴포넌트 - 인벤토리
+	// 인벤토리 컴포넌트 - 인벤토리
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
-	UCPItemContainerComponent* InventoryComponent;
+	UCPInventoryComponent* InventoryComponent;
 
 	// 인벤토리 UI 위젯
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")

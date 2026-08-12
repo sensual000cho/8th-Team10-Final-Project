@@ -18,7 +18,8 @@
 #include "GameCore/Interface/CPLevelUIInterface.h"
 
 #include "UI/Widgets/Common/Container/CPContainerMainWidget.h"		// Container
-#include "Components/CPItemContainerComponent.h"					// Container
+#include "Components/CPInventoryComponent.h"						// Container
+#include "GameInstance/Subsystem/CPInventorySubsystem.h"			// Container Subsystem
 
 
 ACPCharacter::ACPCharacter()
@@ -59,7 +60,7 @@ ACPCharacter::ACPCharacter()
 	InteractionComponent = CreateDefaultSubobject<UCPInteractionComponent>(TEXT("InteractionComponent"));
 
 	// 인벤토리 컴포넌트
-	InventoryComponent = CreateDefaultSubobject<UCPItemContainerComponent>(TEXT("InventoryComponent"));
+	InventoryComponent = CreateDefaultSubobject<UCPInventoryComponent>(TEXT("CPPlayerInventoryComponent"));
 }
 
 void ACPCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -199,6 +200,23 @@ void ACPCharacter::OnQuestTogglePressed()
 	{
 		PC->OnQuestTogglePressed();
 	}
+}
+
+void ACPCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (InventoryComponent)
+	{
+		if (UGameInstance* GI = GetGameInstance())
+		{
+			if (UCPInventorySubsystem* InvSubsystem = GI->GetSubsystem<UCPInventorySubsystem>()) // 게임 인스턴스를 통해 서브시스템에 접근
+			{
+				InvSubsystem->SaveInventoryData(InventoryComponent->ContainerItems);
+				// 현재 인벤토리 컴포넌트의 배열 데이터를 통째로 서브시스템에 저장
+			}
+		}
+	}
+
+	Super::EndPlay(EndPlayReason);
 }
 
 #pragma region Container
