@@ -8,7 +8,7 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "NPC/CPNPCSpawner.h"
-#include "Quest/QuestManager.h"
+#include "UI/HUD/CPLabHUD.h"
 
 ACPLabBell::ACPLabBell()
 {
@@ -31,6 +31,16 @@ ACPLabBell::ACPLabBell()
 void ACPLabBell::OnInteract_Implementation(AActor* Interactor)
 {
 	TryRingBell();
+	if (APawn* InteractorPawn = Cast<APawn>(Interactor))
+	{
+		if (APlayerController* PC = Cast<APlayerController>(InteractorPawn->GetController()))
+		{
+			if (ACPLabHUD* LabHUD = Cast<ACPLabHUD>(PC->GetHUD()))
+			{
+				LabHUD->StartLabCraftingFlow();
+			}
+		}
+	}
 }
 
 FText ACPLabBell::GetInteractionPrompt_Implementation()

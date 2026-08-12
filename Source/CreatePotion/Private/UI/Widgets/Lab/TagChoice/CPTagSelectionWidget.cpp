@@ -9,6 +9,7 @@
 #include "GameplayTagsManager.h"
 #include "GameState/CPLabGameState.h"
 #include "Lab/Component/CPLabPotionSessionComponent.h"
+#include "UI/HUD/CPLabHUD.h"
 
 void UCPTagSelectionWidget::BindEvents()
 {
@@ -19,6 +20,14 @@ void UCPTagSelectionWidget::BindEvents()
 	if (Button_Slot1) Button_Slot1->OnClicked.AddDynamic(this, &UCPTagSelectionWidget::OnSlot1Clicked);
 	if (Button_Slot2) Button_Slot2->OnClicked.AddDynamic(this, &UCPTagSelectionWidget::OnSlot2Clicked);
 	if (Button_Slot3) Button_Slot3->OnClicked.AddDynamic(this, &UCPTagSelectionWidget::OnSlot3Clicked);
+	
+	if (APlayerController* PC = GetOwningLocalPlayer()->GetPlayerController(0))
+	{
+		if (ACPLabHUD* LabHUD = Cast<ACPLabHUD>(PC->GetHUD()))
+		{
+			LabHUD->BindTagSelectionWidget(this);
+		}
+	}
 }
 
 void UCPTagSelectionWidget::UnbindEvents()
@@ -153,8 +162,6 @@ void UCPTagSelectionWidget::OnSlot3Clicked()
 
 void UCPTagSelectionWidget::OnConfirmClicked()
 {
-	RequestClose();
-
 	TArray<FGameplayTag> ValidTags;
 	for (const FGameplayTag& Tag : SelectedTags)
 	{
@@ -164,17 +171,26 @@ void UCPTagSelectionWidget::OnConfirmClicked()
 		}
 	}
 
-	if (UGameInstance* GI = GetGameInstance())
-	{
-		if (UCPUIManagerSubsystem* UIManager = GI->GetSubsystem<UCPUIManagerSubsystem>())
-		{
-			if (UUserWidget* CreatedWidget = UIManager->PushWidgetBP(TagRangeWidgetClass))
-			{
-				if (UCPTagRangeWidget* TagRangeWidget = Cast<UCPTagRangeWidget>(CreatedWidget))
-				{
-					TagRangeWidget->InitTagRangeWidget(CurrentQuestID, ValidTags, SavedTagValues);
-				}
-			}
-		}
-	}
+	// if (UGameInstance* GI = GetGameInstance())
+	// {
+	// 	if (UCPUIManagerSubsystem* UIManager = GI->GetSubsystem<UCPUIManagerSubsystem>())
+	// 	{
+	// 		if (UUserWidget* CreatedWidget = UIManager->PushWidget(TagRangeWidgetClass))
+	// 		{
+	// 			if (UCPTagRangeWidget* TagRangeWidget = Cast<UCPTagRangeWidget>(CreatedWidget))
+	// 			{
+	// 				TagRangeWidget->InitTagRangeWidget(CurrentQuestID, ValidTags, SavedTagValues);
+	// 			}
+	// 		}
+	// 	}
+	// }
+	
+	FTagSelectionData Data;
+	Data.QuestID = CurrentQuestID;
+	Data.SelectedTags = ValidTags;
+	Data.SavedValues = SavedTagValues;
+	
+	OnTagSelectionConfirmed.Broadcast(Data);
+	
+	RequestClose();
 }
