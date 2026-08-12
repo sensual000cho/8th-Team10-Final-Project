@@ -25,7 +25,18 @@ public:
 	
 	// 위젯 띄우는 템플릿
 	template<typename T>
-	T* PushWidget(TSubclassOf<T> WidgetClass);
+	T* PushWidget(TSubclassOf<T> WidgetClass)
+	{
+		{
+			T* Widget = CreateWidget<T>(GetWorld(), WidgetClass);
+		
+			if (Widget)
+			{
+				RegisterPushedWidget(Widget);
+			}
+			return Widget;
+		}
+	}
 	
 	// 특정 위젯을 지정해서 닫기 (순서무관)
 	UFUNCTION(BlueprintCallable, Category = "UI")
@@ -59,6 +70,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UI|Debug")
 	UUserWidget* PushWidgetBP(TSubclassOf<UUserWidget> WidgetClass);
 	
+	void RegisterPushedWidget(UUserWidget* Widget);
 };
 
 
