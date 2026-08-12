@@ -12,3 +12,18 @@ UCPLabContainerComponent::UCPLabContainerComponent()
 	Columns = 3;
 	Rows = 3;
 }
+
+TArray<UCPForageableItemData*> UCPLabContainerComponent::GetIngredientsData() const
+{
+	TArray<UCPForageableItemData*> SelectedIngredients;
+
+	for (const FContainerItem& Item : ContainerItems)
+	{
+		if (Item.ItemDataAsset)
+		{
+			SelectedIngredients.Add(Item.ItemDataAsset);
+		}
+	}
+
+	return SelectedIngredients;
+}
