@@ -342,7 +342,11 @@ void ACPLabGameMode::DebugAdvanceSessionPhase()
 
 void ACPLabGameMode::SetIngredientsDataAsset(const TArray<UCPForageableItemData*>& IngredientsDataAsset)
 {
-	if (IngredientsDataAsset.Num() <= 0) return;
+	// 동작 구현 전 테스트를 위한 주석 처리 
+	//if (IngredientsDataAsset.Num() <= 0) return;
+	
+	// 재료 선택 UI 구현 후 삭제
+	if (SpawnIngredients()){
 		TryBeginActiveRequestProcessing();
 		return;
 	}

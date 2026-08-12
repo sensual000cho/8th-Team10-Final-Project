@@ -57,10 +57,6 @@ void ACPNPCSpawner::StartSpawningSession()
 	}
 	if (FilteredNPCsToSpawn.Num() > 0)
 	{
-		if (ACPLabGameMode* LabMode = Cast<ACPLabGameMode>(GetWorld()->GetAuthGameMode()))
-		{
-			LabMode->TryStartLabSessionWithRequests(PotionRequests);
-		}
 		GetWorld()->GetTimerManager().SetTimer(
 			SpawnTimerHandle,
 			this,
