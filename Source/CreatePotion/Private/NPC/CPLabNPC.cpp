@@ -5,6 +5,7 @@
 #include "GameMode/CPLabGameMode.h"
 #include "UI/Widgets/Common/Dialogue/CPNPCDialogueWidget.h"
 #include "UI/Widgets/Lab/CPLabResultWidget.h"
+#include "UI/Widgets/Lab/TagChoice/CPTagSelectionWidget.h"
 #include "GameState/CPLabGameState.h" 
 #include "Lab/Component/CPLabPotionSessionComponent.h"
 #include "GameplayTagContainer.h"
@@ -145,22 +146,22 @@ void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 			switch (DeliveryResult.DeliveryGrade)
 			{
 			case EDeliveryGrade::Perfect:
-				ResultDialogueText = FText::FromString(TEXT("와!정말 마음에 드는 포션이에요! 정말 감사합니다."));
+				ResultDialogueText = FText::FromString(TEXT("와! 정말 마음에 드는 포션이에요!Perfect!"));
 				//EventTagName = FName("NPC.Event.DeliverySuccess");
 				break;
 			case EDeliveryGrade::Good:
-				ResultDialogueText = FText::FromString(TEXT("와! 너무 괜찮네요~ 고생하셨어요"));
+				ResultDialogueText = FText::FromString(TEXT("오~ 괜찮네요! 고생하셨어요.Good!"));
 				//EventTagName = FName("NPC.Event.DeliverySuccess");
 				break;
 
 			case EDeliveryGrade::Okay:
-				ResultDialogueText = FText::FromString(TEXT("음... 요청한 성분과 약간 차이가 있지만, 그런대로 쓸 수 있겠네요."));
+				ResultDialogueText = FText::FromString(TEXT("음... 요청한 성분과 약간 차이가 있지만, 그런대로 쓸 수 있겠네요.Okay!"));
 				//EventTagName = FName("NPC.Event.DeliveryPartialFail");
 				break;
 
 			case EDeliveryGrade::Fail:
 			default:
-				ResultDialogueText = FText::FromString(TEXT("이건 제가 부탁한 포션이 전혀 아니에요! 다시 만들어 주시겠어요?"));
+				ResultDialogueText = FText::FromString(TEXT("이건 제가 부탁한 포션이 전혀 아니에요! Fail!"));
 				//EventTagName = FName("NPC.Event.DeliveryFail");
 				break;
 			}
@@ -281,6 +282,21 @@ void ACPLabNPC::HandleResultAccepted()
 		return;
 	}
 
+	//퀘스트 완료 처리
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UQuestManager* QuestManager = GameInstance->GetSubsystem<UQuestManager>())
+		{
+			for (const FName& QuestID : NPCData->LabQuestIDs)
+			{
+				if (!QuestID.IsNone() && QuestManager->GetQuestState(QuestID) == EQuestState::Accepted)
+				{
+					QuestManager->CompleteQuest(QuestID);
+					break;
+				}
+			}
+		}
+	}
 	if (IsValid(ActiveResultWidget))
 	{
 		ActiveResultWidget->RequestClose();
@@ -293,6 +309,8 @@ void ACPLabNPC::HandleResultAccepted()
 // 재시도 버튼 클릭 시 (결과창만 닫고 NPC는 유지)
 void ACPLabNPC::HandleResultRetryRequested()
 {
+	// TODO : 재시도 
+
 	if (IsValid(ActiveResultWidget))
 	{
 		ActiveResultWidget->RequestClose();
