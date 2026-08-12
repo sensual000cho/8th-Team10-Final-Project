@@ -3,7 +3,10 @@
 #include "UI/HUD/CPLabHUD.h"
 
 #include "Character/CPPlayerController.h"
+#include "Components/CPLabContainerComponent.h"
 #include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
+#include "GameMode/CPLabGameMode.h"
+#include "Lab/Actor/CPLabContainerActor.h"
 #include "UI/Widgets/Lab/CPLabIngredientSelectWidget.h"
 #include "UI/Widgets/Lab/TagChoice/CPTagRangeWidget.h"
 #include "UI/Widgets/Lab/TagChoice/CPTagSelectionWidget.h"
@@ -132,4 +135,28 @@ void ACPLabHUD::HandleTagSelectionConfirmed(const FTagSelectionData& SelectionDa
 		
 		UE_LOG(LogTemp, Warning, TEXT("[LabHUD] 태그 범위 위젯 오픈 및 초기화 완료!"));
 	}
+}
+
+void ACPLabHUD::HandleIngredientSelectionConfirmed()
+{
+	// 게임모드 가져오기
+	ACPLabGameMode* GM = Cast<ACPLabGameMode>(UGameplayStatics::GetGameMode(this));
+	if (!GM)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LabHUD] LabGameMode 찾을 수 없음"));
+		return;
+	}
+	
+	// LabContainer 찾기
+	AActor* LabActor = UGameplayStatics::GetActorOfClass(GetWorld(), ACPLabContainerActor::StaticClass());
+	UCPLabContainerComponent* LabContainer = LabActor ? LabActor->FindComponentByClass<UCPLabContainerComponent>() : nullptr;
+	
+	if (!LabContainer)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LabHUD] 월드에서 LabContainer를 찾을 수 없습니다."));
+		return;
+	}
+	
+	const TArray<UCPForageableItemData*>& SelectedItems = LabContainer->GetIngredientsData();
+	GM->SetIngredientsDataAsset(SelectedItems);
 }

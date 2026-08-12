@@ -8,7 +8,7 @@
 #include "UI/Widgets/Base/CPBasePopupWidget.h"
 #include "CPLabIngredientSelectWidget.generated.h"
 
-
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnIngredientConfirmedDelegate);
 
 class UButton;
 class UCPItemContainerComponent;
@@ -24,7 +24,8 @@ class CREATEPOTION_API UCPLabIngredientSelectWidget : public UCPBasePopupWidget
 	
 public:
 	void NativeConstruct() override;
-
+	void BindEvents() override;
+	
 protected:
 	// 바인딩
 	UPROPERTY(meta=(BindWidget))
@@ -35,12 +36,23 @@ protected:
 	
 	UPROPERTY(meta=(BindWidget), BlueprintReadWrite, Category = "UI")
 	UCPContainerMainWidget* SelectSlotWidget;
+
+	UFUNCTION(BlueprintCallable, Category = "UI")
+	void OnConfirmClicked();
+public:
+	// 태그 확정 완료 델리게이트
+	UPROPERTY(BlueprintAssignable, Category = "UI")
+	FOnIngredientConfirmedDelegate OnIngredientConfirmed;
+	
 	
 public:
+	// 테스트용 아이템 저장 변수
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Test")
+	TArray<UCPForageableItemData*> TestItemDatas;
+	
 	// 테스트용 아이템 추가 함수
 	void AddTestItems();
 	
-protected:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Test")
-	TArray<UCPForageableItemData*> TestItemDatas;
+	
+
 };

@@ -9,6 +9,7 @@
 class UCPTagSelectionWidget;
 class UCPLabIngredientSelectWidget;
 class UCPTagRangeWidget;
+class UCPForageableItemData;
 
 UCLASS()
 class CREATEPOTION_API ACPLabHUD : public ACPHUDBase
@@ -35,8 +36,8 @@ public:
 	UFUNCTION()
 	void HandleTagSelectionConfirmed(const FTagSelectionData& SelectionData);
 	
-	// UFUNCTION()
-	// void HandleIngredientSelectionConfirmed(const );
+	UFUNCTION()
+	void HandleIngredientSelectionConfirmed();
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UCPTagSelectionWidget> TagSelectionWidgetClass;

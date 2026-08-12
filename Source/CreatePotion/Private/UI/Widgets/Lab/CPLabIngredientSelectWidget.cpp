@@ -3,6 +3,7 @@
 
 #include "UI/Widgets/Lab/CPLabIngredientSelectWidget.h"
 
+#include "Character/CPPlayerController.h"
 #include "Components/CPInventoryComponent.h"
 #include "Components/CPItemContainerComponent.h"
 #include "Components/CPLabContainerComponent.h"
@@ -10,6 +11,7 @@
 #include "UI/Widgets/Common/Container/CPContainerMainWidget.h"
 #include "GameFramework/Character.h"
 #include "Lab/Actor/CPLabContainerActor.h"
+#include "Components/Button.h"
 
 
 void UCPLabIngredientSelectWidget::NativeConstruct()
@@ -37,6 +39,27 @@ void UCPLabIngredientSelectWidget::NativeConstruct()
 	
 	// 디버그용 아이템 추가
 	AddTestItems();
+}
+
+void UCPLabIngredientSelectWidget::BindEvents()
+{
+	Super::BindEvents();
+	if (Button_Confirm)
+	{
+		Button_Confirm->OnClicked.AddDynamic(this, &UCPLabIngredientSelectWidget::OnConfirmClicked);
+	}
+}
+
+
+void UCPLabIngredientSelectWidget::OnConfirmClicked()
+{
+	OnIngredientConfirmed.Broadcast();
+	RequestClose();
+	
+	if (ACPPlayerController* PC = GetOwningPlayer<ACPPlayerController>())
+	{
+		PC->ToggleLabUI();
+	}
 }
 
 void UCPLabIngredientSelectWidget::AddTestItems()
