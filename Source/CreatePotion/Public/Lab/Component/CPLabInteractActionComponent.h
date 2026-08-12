@@ -16,8 +16,8 @@ public:
 	// Sets default values for this component's properties
 	UCPLabInteractActionComponent();
 	
-	virtual bool ExecuteInteraction(AActor* Interacter);
-	virtual bool CanExecuteInteraction(AActor* Interacter) const;
+	virtual bool ExecuteInteraction(AActor* Interactor);
+	virtual bool CanExecuteInteraction(AActor* Interactor) const;
 	virtual FText GetInteractionPrompt() const;
 
 protected:

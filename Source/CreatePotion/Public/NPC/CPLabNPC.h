@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -16,8 +16,12 @@ public:
 	virtual void OnInteract_Implementation(AActor* Interactor) override;
 	virtual bool CanInteract_Implementation(AActor* Interactor) override;
 
+	void SetRequestConfirmed(bool bConfirmed) { bRequestConfirmed = bConfirmed; }
+
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UCPNPCDialogueWidget> DialogueWidgetClass;
+private:
+	bool bRequestConfirmed = false;
 
 };

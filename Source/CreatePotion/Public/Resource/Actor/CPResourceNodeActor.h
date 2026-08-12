@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameCore/Interface/CPInteractable.h"
+#include "GameCore/Interface/CPPoolable.h"
 #include "GameCore/Interface/CPTimedInteractable.h"
 #include "GameFramework/Actor.h"
 #include "Resource/CPResourceType.h"
@@ -11,7 +12,8 @@ class UCPResourceDefinition;
 class ACPDroppedItemBase;
 
 UCLASS()
-class CREATEPOTION_API ACPResourceNodeActor : public AActor, public ICPInteractable, public ICPTimedInteractable
+class CREATEPOTION_API ACPResourceNodeActor : public AActor, public ICPInteractable, public ICPTimedInteractable,
+											  public ICPPoolable
 {
 	GENERATED_BODY()
 	
@@ -26,9 +28,16 @@ public:
 	
 	virtual FText GetInteractionPrompt_Implementation() override;
 	
+	virtual FName GetInteractionName_Implementation() override;
+	
 	virtual bool CanInteract_Implementation(AActor* Interactor) override;
 	
 	virtual float GetInteractionDuration_Implementation(AActor* Interactor) override;
+	
+	// 오브젝트 풀링 관련
+	virtual void OnAcquireFromPool_Implementation() override;
+	
+	virtual void OnReleaseToPool_Implementation() override;
 	
 private:
 	// 채집물에 해당하는 정보 적용

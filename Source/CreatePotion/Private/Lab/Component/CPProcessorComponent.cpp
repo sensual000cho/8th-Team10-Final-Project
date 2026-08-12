@@ -59,7 +59,10 @@ bool UCPProcessorComponent::ProcessItem(ACPAlchemyProp* ItemInstance)
 	const FCPLabIngredientInstance BeforeIngredient = ItemInstance->GetWorkingIngredient();
 	
 	ApplyProcess(ItemInstance);
-	ItemInstance->MarkProcessedBy(ProcessorId);
+	
+	if (!ProcessorId.IsNone()){
+		ItemInstance->MarkProcessedBy(ProcessorId);
+	}
 	
 	if (NeedsResetRequestEnd()){
 		ACPLabGameMode* LabGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ACPLabGameMode>() : nullptr;
@@ -87,9 +90,9 @@ bool UCPProcessorComponent::ProcessItem(ACPAlchemyProp* ItemInstance)
 	return true;
 }
 
-bool UCPProcessorComponent::ExecuteInteraction(AActor* Interacter)
+bool UCPProcessorComponent::ExecuteInteraction(AActor* Interactor)
 {
-	if (!CanExecuteInteraction(Interacter)) return false;
+	if (!CanExecuteInteraction(Interactor)) return false;
 	
 	const UWorld* World = GetWorld();
 	const ACPLabGameState* LabGameState = World->GetGameState<ACPLabGameState>();
@@ -98,9 +101,9 @@ bool UCPProcessorComponent::ExecuteInteraction(AActor* Interacter)
 	return ProcessItem(Session->GetHeldIngredientProp());
 }
 
-bool UCPProcessorComponent::CanExecuteInteraction(AActor* Interacter) const
+bool UCPProcessorComponent::CanExecuteInteraction(AActor* Interactor) const
 {
-	if (!Super::CanExecuteInteraction(Interacter)) return false;
+	if (!Super::CanExecuteInteraction(Interactor)) return false;
 	
 	const UWorld* World = GetWorld();
 	const ACPLabGameState* LabGameState = World ? World->GetGameState<ACPLabGameState>() : nullptr;
@@ -119,16 +122,44 @@ void UCPProcessorComponent::ResetProcessor()
 	// 필요한 기구에서 상속하여 구현
 }
 
+bool UCPProcessorComponent::RestoreUseLimit(const ACPAlchemyProp* ItemInstance)
+{
+	// Prop 단위 사용 제한을 관리하는 기구에서만 구현
+	return false;
+}
+
+bool UCPProcessorComponent::TryBuildPreviewEffects(
+	const ACPAlchemyProp* ItemInstance,
+	TMap<FGameplayTag, int32>& OutPreviewEffects) const
+{
+	OutPreviewEffects.Reset();
+
+	if (!CanProcess(ItemInstance)) return false;
+
+	const FCPLabIngredientInstance Ingredient = ItemInstance->GetWorkingIngredient();
+	if (!Ingredient.IsValid()) return false;
+
+	OutPreviewEffects = Ingredient.CurrentEffects;
+	return BuildPreviewEffects(ItemInstance, OutPreviewEffects);
+}
+
 bool UCPProcessorComponent::CanProcess(const ACPAlchemyProp* ItemInstance) const
 {
-	if (!IsValid(ItemInstance) || ProcessorId.IsNone()) return false;
+	if (!IsValid(ItemInstance) || ItemInstance->GetSourceItemData() == nullptr) return false;
 	
-	return ItemInstance->GetSourceItemData() != nullptr && !ItemInstance->HasBeenProcessedBy(ProcessorId);
+	return ProcessorId.IsNone() || !ItemInstance->HasBeenProcessedBy(ProcessorId);
 }
 
 void UCPProcessorComponent::ApplyProcess(ACPAlchemyProp* ItemInstance)
 {
 	// 상속한 각 기구에서 구현
+}
+
+bool UCPProcessorComponent::BuildPreviewEffects(
+	const ACPAlchemyProp* ItemInstance,
+	TMap<FGameplayTag, int32>& InOutPreviewEffects) const
+{
+	return false;
 }
 
 bool UCPProcessorComponent::NeedsResetRequestEnd() const
