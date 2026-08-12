@@ -6,6 +6,8 @@
 #include "GameFramework/GameModeBase.h"
 #include "CPGameModeBase.generated.h"
 
+class APlayerStart;
+
 UCLASS()
 class CREATEPOTION_API ACPGameModeBase : public AGameModeBase
 {

@@ -11,7 +11,6 @@
  * 
  */
 class UWorld;
-class APlayerStart;
 
 UCLASS()
 class CREATEPOTION_API UCPLevelTravelSubsystem : public UGameInstanceSubsystem
