@@ -6,7 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "CPInteractionComponent.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPromptChanged, FText, Prompt);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPromptChanged, FText, Prompt, FName, TargetName);
 
 // 상호작용 프로그레스 델리게이트
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInteractionStarted);
@@ -41,6 +41,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float TraceDistance = 200.f; // 감지 거리
 	
+	UFUNCTION(BlueprintPure, Category = "Interaction")
+	AActor* GetCurrentTarget() const { return CurrentTarget.Get();}
+
 private:
 	void PerformTrace(); // 타이머로 주기 실행
 	void ClearCurrentTarget();

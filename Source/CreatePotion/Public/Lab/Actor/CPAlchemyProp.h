@@ -5,6 +5,7 @@
 #include "Lab/CPLabPotionRequestTypes.h"
 #include "CPAlchemyProp.generated.h"
 
+struct FAlchemyProperty;
 class UStaticMeshComponent;
 class UCPForageableItemData;
 
@@ -27,6 +28,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Lab|Ingredient")
 	void InitializeFromItemData(UCPForageableItemData* ItemData);
 	
+	UFUNCTION(BlueprintCallable, Category = "Lab|Ingredient")
+	void InitializeFromEffects(UCPForageableItemData* ItemData, const TArray<FAlchemyProperty>& Effects);
+	
 	UFUNCTION(BlueprintPure, Category = "Lab|Ingredient")
 	FCPLabIngredientInstance GetWorkingIngredient() const;
 	
@@ -41,6 +45,8 @@ public:
 	
 	bool HasBeenProcessedBy(FName InProcessorId) const;
 	bool MarkProcessedBy(FName InProcessorId);
+	
+	bool ResetToItemData();
 	
 	float GetProcessMultiplier() const;
 	void SetProcessMultiplier(float InMultiplier);

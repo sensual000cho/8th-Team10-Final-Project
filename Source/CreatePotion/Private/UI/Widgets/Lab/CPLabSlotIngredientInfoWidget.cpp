@@ -4,8 +4,6 @@
 #include "Lab/Actor/CPAlchemyProp.h"
 #include "Lab/Component/CPLabPotionSessionComponent.h"
 
-#define LOCTEXT_NAMESPACE "CPLabSlotIngredientInfoWidget"
-
 void UCPLabSlotIngredientInfoWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -97,9 +95,9 @@ void UCPLabSlotIngredientInfoWidget::RefreshHoveredSlot()
 		return;
 	}
 
-	SetHeaderText(FText::Format(
-		LOCTEXT("SlotHeader", "슬롯 {0}"),
-		FText::AsNumber(HoveredSlotIndex + 1)));
+	SetHeaderText(FText::FromString(FString::Printf(
+		TEXT("슬롯 %d"),
+		HoveredSlotIndex + 1)));
 	SetObservedIngredient(IngredientProp);
 	SetVisibility(ESlateVisibility::HitTestInvisible);
 }
@@ -110,5 +108,3 @@ void UCPLabSlotIngredientInfoWidget::HideSlotInfo()
 	ClearObservedIngredient();
 	SetVisibility(ESlateVisibility::Collapsed);
 }
-
-#undef LOCTEXT_NAMESPACE

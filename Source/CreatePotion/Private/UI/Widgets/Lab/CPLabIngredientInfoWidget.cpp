@@ -195,31 +195,22 @@ void UCPLabIngredientInfoWidget::RebuildEffectRows()
 	{
 		return;
 	}
-
-	// TMap 순회 순서는 보장되지 않으므로, 기획자가 DataAsset에 작성한 TagAxes 순서를 사용한다.
-	for (const FAlchemyProperty& Property : ItemData->TagAxes)
-	{
-		if (!Property.Tag.IsValid())
-		{
-			continue;
-		}
-
-		const int32 CurrentValue = Ingredient.CurrentEffects.FindRef(Property.Tag);
-		const int32* PreviewValue = PreviewEffects.Find(Property.Tag);
-
-		UCPLabIngredientEffectRowWidget* EffectRow =
+	
+	// 재료의 현재 효과를 기반으로 Tag 구성
+	for (const TPair<FGameplayTag, int32>& Effect : Ingredient.CurrentEffects){
+		if (!Effect.Key.IsValid()) continue;
+		const int32* PreviewValue = PreviewEffects.Find(Effect.Key);
+		
+		UCPLabIngredientEffectRowWidget* EffectRow = 
 			CreateWidget<UCPLabIngredientEffectRowWidget>(GetOwningPlayer(), EffectRowWidgetClass);
-		if (!EffectRow)
-		{
-			continue;
-		}
-
+		if (!EffectRow) continue;
+		
 		EffectRow->SetEffectData(
-			GetEffectDisplayName(Property.Tag),
-			CurrentValue,
-			PreviewValue != nullptr,
-			PreviewValue ? *PreviewValue : CurrentValue);
-
+			GetEffectDisplayName(Effect.Key), 
+			Effect.Value, 
+			PreviewValue != nullptr, 
+			PreviewValue ? *PreviewValue : Effect.Value);
+		
 		VerticalBox_EffectRows->AddChildToVerticalBox(EffectRow);
 	}
 }
