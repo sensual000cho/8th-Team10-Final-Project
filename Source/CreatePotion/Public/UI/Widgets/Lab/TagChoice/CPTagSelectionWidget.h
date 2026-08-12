@@ -5,6 +5,24 @@
 #include "GameplayTagContainer.h"
 #include "CPTagSelectionWidget.generated.h"
 
+
+USTRUCT(BlueprintType)
+struct FTagSelectionData
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(BlueprintReadWrite)
+	FName QuestID;
+	
+	UPROPERTY(BlueprintReadWrite)
+	TArray<FGameplayTag> SelectedTags;
+	
+	UPROPERTY(BLueprintReadWrite)
+	TMap<FGameplayTag, int32> SavedValues;
+};
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTagSelectionConfirmed, const FTagSelectionData&, SelectionData);
+
 class UScrollBox;
 class UTextBlock;
 class UButton;
@@ -74,4 +92,10 @@ private:
 	TMap<FGameplayTag, int32> SavedTagValues;
 
 	const int32 MaxSelectableTags = 3;
+	
+public:
+	// 선택 완료 델리게이트
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnTagSelectionConfirmed OnTagSelectionConfirmed;
+	
 };

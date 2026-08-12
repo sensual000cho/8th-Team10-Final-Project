@@ -74,7 +74,7 @@ void ACPPlayerController::ToggleLabUI()
 		SetInputMode(FInputModeGameOnly());
 		return;
 	}
-
+	
 	UCPLabContainerComponent* FoundLabComp = nullptr;
 	// TODO : 현재 Toggle시 매 번 레벨에서 모든 액터를 순회를 돌며 찾도록 되어있음
 	for (TActorIterator<ACPLabContainerActor> It(GetWorld()); It; ++It)
@@ -87,14 +87,14 @@ void ACPPlayerController::ToggleLabUI()
 	{
 		return;
 	}
-
+	
 	if (LabUIClass)
 	{
 		LabUIInstance = CreateWidget<UCPContainerMainWidget>(this, LabUIClass);
 		if (LabUIInstance)
 		{
 			LabUIInstance->AddToViewport();
-
+			
 			LabUIInstance->BindContainer(FoundLabComp);
 			CurrentInteractingContainer = FoundLabComp;
 
@@ -104,4 +104,5 @@ void ACPPlayerController::ToggleLabUI()
 	}
 }
 #pragma endregion
+
 
