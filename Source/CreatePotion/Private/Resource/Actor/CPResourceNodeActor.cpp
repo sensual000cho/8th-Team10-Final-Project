@@ -78,22 +78,6 @@ void ACPResourceNodeActor::OnReleaseToPool_Implementation()
 	Mesh->SetStaticMesh(nullptr);
 }
 
-void ACPResourceNodeActor::SetHighlight_Implementation(bool bHighLighted)
-{
-	if (!Mesh) return;
-	if (!HighlightMaterial) return;
-	
-	if (bHighLighted)
-	{
-		Mesh->SetOverlayMaterial(HighlightMaterial);
-	}
-
-	else
-	{
-		Mesh->SetOverlayMaterial(nullptr);
-	}
-}
-
 void ACPResourceNodeActor::ApplyDefinition()
 {
 	if (!ResourceDefinition) return;
