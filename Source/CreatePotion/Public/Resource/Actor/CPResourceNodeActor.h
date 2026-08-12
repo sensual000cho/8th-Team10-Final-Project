@@ -1,7 +1,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameCore/Interface/CPHighlightable.h"
 #include "GameCore/Interface/CPInteractable.h"
 #include "GameCore/Interface/CPPoolable.h"
 #include "GameCore/Interface/CPTimedInteractable.h"
@@ -14,7 +13,7 @@ class ACPDroppedItemBase;
 
 UCLASS()
 class CREATEPOTION_API ACPResourceNodeActor : public AActor, public ICPInteractable, public ICPTimedInteractable,
-											  public ICPPoolable, public ICPHighlightable
+											  public ICPPoolable
 {
 	GENERATED_BODY()
 	
@@ -29,6 +28,8 @@ public:
 	
 	virtual FText GetInteractionPrompt_Implementation() override;
 	
+	virtual FName GetInteractionName_Implementation() override;
+	
 	virtual bool CanInteract_Implementation(AActor* Interactor) override;
 	
 	virtual float GetInteractionDuration_Implementation(AActor* Interactor) override;
@@ -37,12 +38,6 @@ public:
 	virtual void OnAcquireFromPool_Implementation() override;
 	
 	virtual void OnReleaseToPool_Implementation() override;
-	
-	// 상호작용 하이라이트 관련
-	virtual void SetHighlight_Implementation(bool bHighLighted) override;
-	
-	UPROPERTY(EditDefaultsOnly, category = "Highlight")
-	TObjectPtr<UMaterialInterface> HighlightMaterial;
 	
 private:
 	// 채집물에 해당하는 정보 적용
