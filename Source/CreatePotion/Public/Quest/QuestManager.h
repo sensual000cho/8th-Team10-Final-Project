@@ -59,6 +59,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	TArray<FName> GetAllTrackedQuestIDs() const;
 
+	// 퀘스트 완료 처리 함수
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	void CompleteQuest(FName QuestID);
+
 	// ===================================================================
 	// [텍스트 조회 - UI 전용 참조 함수]
 	// ===================================================================
@@ -109,7 +113,7 @@ public:
 	// [납품 판정 - 퍼즐 시스템과의 연결 지점]
 	// ===================================================================
 
-	// 퀘스트가 요구하는 조건과 비교, 등급을 매기고 만족 시 상태를 Completed로 전환
+	// 퀘스트가 요구하는 조건과 비교, 등급을 매김
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	EDeliveryGrade TryDeliver(FName QuestID, const TArray<FAlchemyProperty>& PotionResult);
 
