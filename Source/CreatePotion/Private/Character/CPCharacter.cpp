@@ -101,6 +101,18 @@ void ACPCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (InventoryComponent)
+	{
+		if (UGameInstance* GI = GetGameInstance())
+		{
+			if (UCPInventorySubsystem* InvSubsystem = GI->GetSubsystem<UCPInventorySubsystem>())
+			{
+				// 백업된 데이터가 있다면 InventoryComponent의 배열을 덮어씌우기
+				InvSubsystem->LoadInventoryData(InventoryComponent->ContainerItems);
+			}
+		}
+	}
+
 	// 위젯 생성 및 초기 설정
 	if (InventoryUIClass)
 	{
