@@ -17,6 +17,9 @@
 #include "Character/CPPlayerController.h"
 #include "GameCore/Interface/CPLevelUIInterface.h"
 
+#include "UI/Widgets/Common/Container/CPContainerMainWidget.h"		// Container
+#include "Components/CPItemContainerComponent.h"					// Container
+
 
 ACPCharacter::ACPCharacter()
 {
@@ -54,6 +57,9 @@ ACPCharacter::ACPCharacter()
 
 	// InteractionComponent
 	InteractionComponent = CreateDefaultSubobject<UCPInteractionComponent>(TEXT("InteractionComponent"));
+
+	// 인벤토리 컴포넌트
+	InventoryComponent = CreateDefaultSubobject<UCPItemContainerComponent>(TEXT("InventoryComponent"));
 }
 
 void ACPCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -77,10 +83,42 @@ void ACPCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		
 		// Quest Toggling
 		EnhancedInputComponent->BindAction(QuestToggleAction, ETriggerEvent::Started, this, &ACPCharacter::OnQuestTogglePressed);
+	
+		// 인벤토리 Toggle
+		if (ToggleInventoryAction)
+		{
+			EnhancedInputComponent->BindAction(ToggleInventoryAction, ETriggerEvent::Started, this, &ACPCharacter::ToggleInventoryUI);
+		}
 	}
 	else
 	{
 		UE_LOG(LogCreatePotion, Error, TEXT("'%s' Failed to find an Enhanced Input component! This template is built to use the Enhanced Input system. If you intend to use the legacy system, then you will need to update this C++ file."), *GetNameSafe(this));
+	}
+}
+
+void ACPCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// 위젯 생성 및 초기 설정
+	if (InventoryUIClass)
+	{
+		APlayerController* PC = Cast<APlayerController>(GetController());
+		if (PC)
+		{
+			// 위젯 생성
+			InventoryUIInstance = CreateWidget<UCPContainerMainWidget>(PC, InventoryUIClass);
+			if (InventoryUIInstance)
+			{
+				InventoryUIInstance->AddToViewport();
+
+				// 인벤토리 컴포넌트와 UI 연동
+				InventoryUIInstance->BindContainer(InventoryComponent);
+
+				// 처음엔 Collapsed 처리
+				InventoryUIInstance->SetVisibility(ESlateVisibility::Collapsed);
+			}
+		}
 	}
 }
 
@@ -162,3 +200,46 @@ void ACPCharacter::OnQuestTogglePressed()
 		PC->OnQuestTogglePressed();
 	}
 }
+
+#pragma region Container
+void ACPCharacter::ToggleInventoryUI()
+{
+	if (!InventoryUIInstance)
+	{
+		return;
+	}
+
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC)
+	{
+		return;
+	}
+
+	// 현재 숨겨져 있는 상태라면 -> 열기 (Visible)
+	if (InventoryUIInstance->GetVisibility() == ESlateVisibility::Collapsed ||
+		InventoryUIInstance->GetVisibility() == ESlateVisibility::Hidden)
+	{
+		InventoryUIInstance->SetVisibility(ESlateVisibility::Visible);
+
+		// 마우스 켜기 & Game And UI 모드 전환
+		PC->bShowMouseCursor = true;
+
+		FInputModeGameAndUI InputMode;
+		InputMode.SetWidgetToFocus(InventoryUIInstance->TakeWidget()); // UI에 포커스 맞추기
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		PC->SetInputMode(InputMode);
+	}
+	// 현재 열려 있는 상태라면 -> 닫기 (Collapsed)
+	else
+	{
+		InventoryUIInstance->SetVisibility(ESlateVisibility::Collapsed);
+
+		// 마우스 숨기기 & Game Only 모드 전환
+		PC->bShowMouseCursor = false;
+
+		FInputModeGameOnly InputMode;
+		PC->SetInputMode(InputMode);
+	}
+}
+
+#pragma endregion

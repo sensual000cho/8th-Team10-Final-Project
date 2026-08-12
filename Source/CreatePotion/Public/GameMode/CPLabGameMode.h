@@ -141,11 +141,6 @@ private:
 	// 등록된 가공 기구 상태 초기화
 	void ResetProcessors();
 	
-public:
-	// 재료 선택 UI에 사용할 컨테이너 컴포넌트
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Container")
-	UCPLabContainerComponent* CachedLabContainer = nullptr;
-
 private:
 	// 실제 리퀘스트 시스템이 연결되기 전 사용할 테스트 데이터
 	UPROPERTY(EditDefaultsOnly, Category = "Lab|Debug")
