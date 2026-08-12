@@ -67,6 +67,11 @@ FText ACPDroppedItemBase::GetInteractionPrompt_Implementation()
 	return FText::FromString(TEXT("줍기"));
 }
 
+FName ACPDroppedItemBase::GetInteractionName_Implementation()
+{
+	return FName(*ItemData->DisplayName.ToString());
+}
+
 bool ACPDroppedItemBase::CanInteract_Implementation(AActor* Interactor)
 {
 	return Interactor != nullptr && ItemData != nullptr && Amount > 0;

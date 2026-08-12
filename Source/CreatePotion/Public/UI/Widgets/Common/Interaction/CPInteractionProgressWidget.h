@@ -3,14 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/Widgets/Base/CPBasePopupWidget.h"
+#include "UI/Widgets/Base/CPBaseFixedWidget.h"
 #include "CPInteractionProgressWidget.generated.h"
 
 class UCPInteractionComponent;
 
 // 상호작용 진행도 프로그레스바 위젯
 UCLASS()
-class CREATEPOTION_API UCPInteractionProgressWidget : public UCPBasePopupWidget
+class CREATEPOTION_API UCPInteractionProgressWidget : public UCPBaseFixedWidget
 {
 	GENERATED_BODY()
 	

@@ -9,6 +9,7 @@ void UCPInteractionProgressWidget::NativeConstruct()
 	Super::NativeConstruct();
 	
 	ResetProgress();
+	HideWidget();
 }
 
 
@@ -37,6 +38,8 @@ void UCPInteractionProgressWidget::BindEvents()
 	if (!InteractionComponent) return;
 	
 	InteractionComponent->OnInteractionProgressChanged.AddDynamic(this, &ThisClass::SetProgress);
+	InteractionComponent->OnInteractionStarted.AddDynamic(this, &ThisClass::ShowWidget);
+	InteractionComponent->OnInteractionCompleted.AddDynamic(this, &ThisClass::HideWidget);
 }
 
 void UCPInteractionProgressWidget::UnbindEvents()
