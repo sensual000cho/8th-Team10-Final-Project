@@ -44,7 +44,7 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 				*FullScript.ToString());
 			if (DialogueWidgetClass)
 			{
-				ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidgetBP(DialogueWidgetClass));
+				ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
 
 				if (ActiveDialogueWidget)
 				{

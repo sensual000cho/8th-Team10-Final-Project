@@ -25,6 +25,7 @@ class CREATEPOTION_API UCPLabIngredientSelectWidget : public UCPBasePopupWidget
 public:
 	void NativeConstruct() override;
 	void BindEvents() override;
+
 	
 protected:
 	// 바인딩

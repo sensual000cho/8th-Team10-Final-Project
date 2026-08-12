@@ -168,7 +168,7 @@ void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 			// 대화 위젯 띄우기
 			if (DialogueWidgetClass)
 			{
-				ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidgetBP(DialogueWidgetClass));
+				ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
 
 				if (ActiveDialogueWidget)
 				{
@@ -192,7 +192,7 @@ void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 		// 포션 준비 단계 아니라면 기존 힌트 대화 출력
 		if (DialogueWidgetClass)
 		{
-			ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidgetBP(DialogueWidgetClass));
+			ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
 
 			if (ActiveDialogueWidget)
 			{
@@ -245,7 +245,7 @@ void ACPLabNPC::OpenResultWidget()
 	if (!UIManager || !LabGameMode || !ResultWidgetClass) return;
 
 	const FCPPotionDeliveryResult DeliveryResult = LabGameMode->GetPotionDeliveryResult();
-	UCPLabResultWidget* ResultWidget = Cast<UCPLabResultWidget>(UIManager->PushWidgetBP(ResultWidgetClass));
+	UCPLabResultWidget* ResultWidget = Cast<UCPLabResultWidget>(UIManager->PushWidget(ResultWidgetClass));
 
 	if (!ResultWidget)
 	{

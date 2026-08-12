@@ -50,7 +50,6 @@ void UCPLabIngredientSelectWidget::BindEvents()
 	}
 }
 
-
 void UCPLabIngredientSelectWidget::OnConfirmClicked()
 {
 	OnIngredientConfirmed.Broadcast();
@@ -69,7 +68,11 @@ void UCPLabIngredientSelectWidget::AddTestItems()
 	
 	// 캐릭터에서 인벤토리 컴포넌트 찾아내기
 	UCPInventoryComponent* InventoryComp = PlayerCharacter->FindComponentByClass<UCPInventoryComponent>();
-	if (!InventoryComp) return;
+	if (!InventoryComp)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[IngredientSelectWidget] 캐릭터 인벤토리 컴포넌트 미발견"));
+		return;
+	}
 	
 	if (TestItemDatas.Num() > 0)
 	{
