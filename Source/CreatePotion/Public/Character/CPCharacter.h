@@ -14,6 +14,9 @@ class UInputAction;
 class UCPInteractionComponent;
 struct FInputActionValue;
 
+class UCPItemContainerComponent;
+class UCPContainerMainWidget;
+
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
 UCLASS()
@@ -67,6 +70,8 @@ protected:
 	
 	/** Initialize input action bindings */
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	virtual void BeginPlay() override;
 	
 protected:
 
@@ -111,4 +116,29 @@ protected:
 	
 	void OnInteractPressed(); // 입력 바인딩용
 	void OnQuestTogglePressed(); // 퀘스트 입력 바인딩
+
+#pragma region Container
+private:
+	// 인벤토리 상호작용 키(I키 등)를 눌렀을 때 실행될 토글 함수
+	void ToggleInventoryUI();
+
+public:
+	// 컨테이너 컴포넌트 - 인벤토리
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
+	UCPItemContainerComponent* InventoryComponent;
+
+	// 인벤토리 UI 위젯
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<UCPContainerMainWidget> InventoryUIClass;
+
+protected:
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* ToggleInventoryAction;
+
+private:
+	// 생성된 위젯 인스턴스를 보관할 변수
+	UPROPERTY()
+	UCPContainerMainWidget* InventoryUIInstance;
+#pragma endregion
+
 };

@@ -14,5 +14,7 @@ class CREATEPOTION_API UCPLabContainerComponent : public UCPItemContainerCompone
 public:
 	UCPLabContainerComponent();
 
+	TArray<UCPForageableItemData*> GetIngredientsData() const;
+
 
 };

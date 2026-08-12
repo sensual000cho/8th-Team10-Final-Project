@@ -20,8 +20,13 @@ public:
 protected:
 	virtual bool CanProcess(const ACPAlchemyProp* ItemInstance) const override;
 	virtual void ApplyProcess(ACPAlchemyProp* ItemInstance) override;
+	virtual bool BuildPreviewEffects(
+		const ACPAlchemyProp* ItemInstance,
+		TMap<FGameplayTag, int32>& InOutPreviewEffects) const override;
 	
 private:
+	static int32 CalculateDistilledValue(int32 CurrentValue, int32 AppliedAmount);
+
 	UPROPERTY(EditDefaultsOnly, Category = "Lab/Processor")
 	int32 ProcessAmount;
 };

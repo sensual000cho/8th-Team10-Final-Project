@@ -518,7 +518,7 @@ void UCPLabPotionSessionComponent::ReBuildResult()
 	CurrentPotionResult.Reserve(EffectTotalMap.Num());
 	
 	for (const TPair<FGameplayTag, int32>& Effect : EffectTotalMap){
-		if (Effect.Value <= 0) continue;
+		if (Effect.Value == 0) continue;
 		FAlchemyProperty EffectTotal;
 		EffectTotal.Tag = Effect.Key;
 		EffectTotal.Value = Effect.Value;

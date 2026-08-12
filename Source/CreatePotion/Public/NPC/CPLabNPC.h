@@ -7,6 +7,7 @@
 #include "CPLabNPC.generated.h"
 
 class UCPNPCDialogueWidget;
+class UCPLabResultWidget;
 
 UCLASS()
 class CREATEPOTION_API ACPLabNPC : public ACPBaseNPC
@@ -18,10 +19,30 @@ public:
 
 	void SetRequestConfirmed(bool bConfirmed) { bRequestConfirmed = bConfirmed; }
 
+	UFUNCTION()
+	void OpenResultWidget();
+
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UCPNPCDialogueWidget> DialogueWidgetClass;
+	
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<UCPLabResultWidget> ResultWidgetClass;
 private:
 	bool bRequestConfirmed = false;
+
+	//Result UI 결과 송출용 함수들
+	UFUNCTION()
+	void HandleResultAccepted();
+
+	UFUNCTION()
+	void HandleResultRetryRequested();
+
+	UPROPERTY(Transient)
+	TObjectPtr<UCPLabResultWidget> ActiveResultWidget;
+
+	UPROPERTY()
+	class UCPNPCDialogueWidget* ActiveDialogueWidget;
 
 };

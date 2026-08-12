@@ -3,14 +3,47 @@
 #include "CoreMinimal.h"
 #include "GameMode/CPGameModeBase.h"
 #include "Lab/CPLabPotionRequestTypes.h"
+#include "Quest/QuestManager.h"
 #include "CPLabGameMode.generated.h"
 
+enum class EDeliveryGrade : uint8;
+enum class EConditionMatchResult : uint8;
 class UCPProcessorComponent;
 class ACPAlchemyProp;
 class ACPLabGameState;
 class UCPLabPotionSessionComponent;
 class UCPForageableItemData;
 class UCPLabContainerComponent;
+
+USTRUCT(BlueprintType)
+struct FCPPotionDeliveryResult
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Lab|Result")
+	FName QuestId = NAME_None;
+	
+	// 최종 납품 등급
+	UPROPERTY(BlueprintReadOnly, Category = "Lab|Result")
+	EDeliveryGrade DeliveryGrade = EDeliveryGrade::Fail;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Lab|Result")
+	TArray<FAlchemyProperty> MinTargetEffects;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Lab|Result")
+	TArray<FAlchemyProperty> MaxTargetEffects;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Lab|Result")
+	TArray<FAlchemyProperty> CurrentEffects;
+	
+	// 기본 보상
+	UPROPERTY(BlueprintReadOnly, Category = "Lab|Result")
+	int32 RewardAmount = 100;
+	
+	// 보너스, 팁을 합산
+	UPROPERTY(BlueprintReadOnly, Category = "Lab|Result")
+	int32 TipAmount = 0;
+};
 
 // Blueprint와 월드 Actor가 포션 세션 기능을 호출하는 입구
 UCLASS()
@@ -55,6 +88,14 @@ public:
 	// 완성된 포션을 납품 처리
 	UFUNCTION(BlueprintCallable, Category = "Lab|Request")
 	bool TryDeliverActivePotion();
+	
+	// 포션 납품 판정 결과 조회
+	UFUNCTION(BlueprintPure, Category = "Lab|Result")
+	FCPPotionDeliveryResult GetPotionDeliveryResult() const;
+	
+	// 다음 리퀘스트 또는 세션 종료 처리
+	UFUNCTION(BlueprintCallable, Category = "Lab|Request")
+	bool ConfirmPotionDeliveryResult();
 
 	// 지정한 슬롯에 재료 배치 요청
 	UFUNCTION(BlueprintCallable, Category = "Lab|Request")
@@ -82,6 +123,12 @@ private:
 	UCPLabPotionSessionComponent* GetPotionSession() const;
 	FName GetActiveRequestId() const;
 	
+	// PR이후 삭제 예정 / 프로토타입 퀘스트를 Accepted 상태로 등록
+	void AcceptProtoTypeQuest() const;
+	
+	// 퀘스트를 QuestOrder 순서대로 공방 리퀘스트로 변환
+	TArray<FCPLabPotionRequest> BuildQuestRequests() const;
+	
 	// 재료를 Spawn할 Actor 탐색
 	void CollectSlotActors(TArray<AActor*>& OutSlotActors) const;
 	
@@ -94,11 +141,6 @@ private:
 	// 등록된 가공 기구 상태 초기화
 	void ResetProcessors();
 	
-public:
-	// 재료 선택 UI에 사용할 컨테이너 컴포넌트
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Container")
-	UCPLabContainerComponent* CachedLabContainer = nullptr;
-
 private:
 	// 실제 리퀘스트 시스템이 연결되기 전 사용할 테스트 데이터
 	UPROPERTY(EditDefaultsOnly, Category = "Lab|Debug")
@@ -123,4 +165,8 @@ private:
 	// 초기화할 가공기구를 관리하는 배열
 	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Debug")
 	TArray<TObjectPtr<UCPProcessorComponent>> ProcessorPendings;
+	
+	// 납품 판정 결과
+	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Result")
+	FCPPotionDeliveryResult PotionDeliveryResult;
 };

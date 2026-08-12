@@ -249,11 +249,14 @@ EDeliveryGrade UQuestManager::TryDeliver(FName QuestID, const TArray<FAlchemyPro
 		Grade = EDeliveryGrade::Okay;
 	}
 
+	/*
+	퀘스트 완료 처리 연결 시 복구
 	if (Grade != EDeliveryGrade::Fail)
 	{
 		QuestStates.Add(QuestID, EQuestState::Completed);
 		OnQuestUpdated.Broadcast(QuestID, EQuestState::Completed);
 	}
+	*/
 
 	UE_LOG(LogTemp, Warning, TEXT("퀘스트 %s 납품 결과: %d/%d 조건 만족"), *QuestID.ToString(), CorrectCount, TotalCount);
 
@@ -323,6 +326,16 @@ TArray<FConditionEvaluation> UQuestManager::EvaluateConditions(FName QuestID, co
 	}
 
 	return Results;
+}
+
+TArray<FQuestEffectRequirement> UQuestManager::GetQuestEffectRequirements(FName QuestId) const
+{
+	if (!QuestAnswerTable) return {};
+	
+	FQuestAnswerData* Answer = QuestAnswerTable->FindRow<FQuestAnswerData>(QuestId, TEXT(""));
+	if (!Answer) return {};
+	
+	return Answer->RequestedEffects;
 }
 
 // ===================================================================
