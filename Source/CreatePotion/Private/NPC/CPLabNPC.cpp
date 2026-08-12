@@ -4,6 +4,7 @@
 #include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
 #include "GameMode/CPLabGameMode.h"
 #include "UI/Widgets/Common/Dialogue/CPNPCDialogueWidget.h"
+#include "UI/Widgets/Lab/CPLabResultWidget.h"
 #include "GameState/CPLabGameState.h" 
 #include "Lab/Component/CPLabPotionSessionComponent.h"
 
@@ -131,10 +132,12 @@ void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 			결과 UI를 열고, 결과 UI에서 GetPotionDeliveryResult()로 표시 데이터를 가져간다.
 			결과 UI 확인 버튼에서 ConfirmPotionDeliveryResult()를 호출한다.
 			*/
+			const FCPPotionDeliveryResult DeliveryResult = LabGameMode->GetPotionDeliveryResult();
+			UCPLabResultWidget* ResultWidget = Cast<UCPLabResultWidget>(UIManager->PushWidgetBP(ResultWidgetClass));
 			
 			// 결과 UI가 없어 구조체 값을 화면에 출력한다(UI 대체 이후 삭제)
-			const FCPPotionDeliveryResult DeliveryResult = LabGameMode->GetPotionDeliveryResult();
-			ShowPotionDeliveryResultDebugMessage(DeliveryResult);
+			//const FCPPotionDeliveryResult DeliveryResult = LabGameMode->GetPotionDeliveryResult();
+			//ShowPotionDeliveryResultDebugMessage(DeliveryResult);
 
 			if (DialogueWidgetClass)
 			{
@@ -148,7 +151,24 @@ void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 			}
 			break;
 			// 결과 UI 구현 전 테스트용: 결과 출력 후 바로 납품 확인 처리(UI 대체 이후 삭제)
-			LabGameMode->ConfirmPotionDeliveryResult();
+			//LabGameMode->ConfirmPotionDeliveryResult();
+			if (!ResultWidget)
+			{
+				return;
+			}
+
+			if (!ResultWidget->InitializeResult(DeliveryResult))
+			{
+				ResultWidget->RequestClose();
+				return;
+			}
+			
+			ActiveResultWidget = ResultWidget;
+			//결과 버튼들 바인딩용 함수들
+			ResultWidget->OnConfirmRequested.AddUniqueDynamic(this,	&ACPLabNPC::HandleResultAccepted);
+			ResultWidget->OnContinueRequested.AddUniqueDynamic(this, &ACPLabNPC::HandleResultAccepted);
+			ResultWidget->OnRetryRequested.AddUniqueDynamic(this, &ACPLabNPC::HandleResultRetryRequested);
+			
 			return;
 		}
 
@@ -194,4 +214,32 @@ bool ACPLabNPC::CanInteract_Implementation(AActor* Interactor)
 	}
 
 	return false;
+}
+
+void ACPLabNPC::HandleResultAccepted()
+{
+	ACPLabGameMode* LabGameMode = GetWorld() ? Cast<ACPLabGameMode>(GetWorld()->GetAuthGameMode()) : nullptr;
+
+	if (!LabGameMode)
+	{
+		return;
+	}
+
+	if (!LabGameMode->ConfirmPotionDeliveryResult())
+	{
+		return;
+	}
+
+	if (IsValid(ActiveResultWidget))
+	{
+		ActiveResultWidget->RequestClose();
+	}
+
+	ActiveResultWidget = nullptr;
+}
+
+void ACPLabNPC::HandleResultRetryRequested()
+{
+	//아직 구현 안되어 있음. 더미 확인용
+	UE_LOG(LogTemp, Warning, TEXT("재시도 요청: 아직 재시도 상태 전환 기능이 구현되지 않았습니다."));
 }
