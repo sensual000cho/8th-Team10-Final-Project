@@ -52,12 +52,12 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 					ActiveDialogueWidget->InitDialogue(false, QuestID, NPCNameText, FullScript);
 				}
 			}
-			if (StateTreeComponent)
+			/*if (StateTreeComponent)
 			{
 				FStateTreeEvent Event;
 				Event.Tag = FGameplayTag::RequestGameplayTag(FName("NPC.Event.Talk"));
 				StateTreeComponent->SendStateTreeEvent(Event);
-			}
+			}*/
 			break;
 		}
 	}
