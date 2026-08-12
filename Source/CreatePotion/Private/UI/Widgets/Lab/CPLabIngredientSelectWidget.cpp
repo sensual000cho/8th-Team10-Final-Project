@@ -3,12 +3,14 @@
 
 #include "UI/Widgets/Lab/CPLabIngredientSelectWidget.h"
 
+#include "Components/CPInventoryComponent.h"
 #include "Components/CPItemContainerComponent.h"
 #include "Components/CPLabContainerComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "UI/Widgets/Common/Container/CPContainerMainWidget.h"
 #include "GameFramework/Character.h"
 #include "Lab/Actor/CPLabContainerActor.h"
+
 
 void UCPLabIngredientSelectWidget::NativeConstruct()
 {
@@ -30,6 +32,30 @@ void UCPLabIngredientSelectWidget::NativeConstruct()
 	{
 		SelectSlotWidget->BindContainer(SelectSlot);
 		UE_LOG(LogTemp, Warning, TEXT("[재료 선택 위젯] 선택 슬롯 위젯 바인딩 성공"));
+	}
+	
+	// 디버그용 아이템 추가
+	AddTestItems();
+}
+
+void UCPLabIngredientSelectWidget::AddTestItems()
+{
+	ACharacter* PlayerCharacter = UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
+	if (!PlayerCharacter) return;
+	
+	// 캐릭터에서 인벤토리 컴포넌트 찾아내기
+	UCPInventoryComponent* InventoryComp = PlayerCharacter->FindComponentByClass<UCPInventoryComponent>();
+	if (!InventoryComp) return;
+	
+	if (TestItemDatas.Num() > 0)
+	{
+		for (UCPForageableItemData* ItemData : TestItemDatas)
+		{
+			if (ItemData)
+			{
+				InventoryComp->TryGetItem(ItemData, 1);
+			}
+		}
 	}
 }
 

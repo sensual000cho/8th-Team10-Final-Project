@@ -68,6 +68,23 @@ UUserWidget* UCPUIManagerSubsystem::ToggleWidget(TSubclassOf<UUserWidget> Widget
 	}
 }
 
+UUserWidget* UCPUIManagerSubsystem::FindOpenWidget(TSubclassOf<UUserWidget> WidgetClass)
+{
+	if (!WidgetClass)
+	{
+		return nullptr;
+	}
+	
+	for (FPopupEntry PopupEntry : OpenWidgets)
+	{
+		if (PopupEntry.Widget && PopupEntry.Widget->IsA(WidgetClass))
+		{
+			return PopupEntry.Widget;
+		}
+	}
+	return nullptr;
+}
+
 void UCPUIManagerSubsystem::CloseTopWidget()
 {
 	if (OpenWidgets.Num() == 0) return;
@@ -121,7 +138,7 @@ void UCPUIManagerSubsystem::UpdateInputMode()
 	}
 }
 
-UUserWidget* UCPUIManagerSubsystem::PushWidgetBP(TSubclassOf<UUserWidget> WidgetClass)
+UUserWidget* UCPUIManagerSubsystem::PushWidget(TSubclassOf<UUserWidget> WidgetClass)
 {
 	if (!WidgetClass) return nullptr;
 	

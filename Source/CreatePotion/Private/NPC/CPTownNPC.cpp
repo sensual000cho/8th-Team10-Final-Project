@@ -38,7 +38,7 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 				*FullScript.ToString());
 			if (DialogueWidgetClass)
 			{
-				if (UCPNPCDialogueWidget* DialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidgetBP(DialogueWidgetClass)))
+				if (UCPNPCDialogueWidget* DialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass)))
 				{
 					FText NPCNameText = FText::FromName(NPCData->NPCName);
 					DialogueWidget->InitDialogue(false, QuestID, NPCNameText, FullScript);

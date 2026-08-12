@@ -140,7 +140,7 @@ void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 
 		if (DialogueWidgetClass)
 		{
-			if (UCPNPCDialogueWidget* DialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidgetBP(DialogueWidgetClass)))
+			if (UCPNPCDialogueWidget* DialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass)))
 			{
 				FText NPCNameText = FText::FromName(NPCData->NPCName);
 				DialogueWidget->InitDialogue(true, QuestID, NPCNameText, FirstHint, this);

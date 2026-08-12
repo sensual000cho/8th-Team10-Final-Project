@@ -142,31 +142,21 @@ void UCPTagRangeWidget::OnConfirmClicked()
 	}
 	//TODO : 재료 선택 UI 연결
 
-	AActor* LabActor = UGameplayStatics::GetActorOfClass(GetWorld(), ACPLabContainerActor::StaticClass());
-	UCPItemContainerComponent* TargetContainer = nullptr;
+	// AActor* LabActor = UGameplayStatics::GetActorOfClass(GetWorld(), ACPLabContainerActor::StaticClass());
+	// UCPItemContainerComponent* TargetContainer = nullptr;
+	//
+	// if (LabActor)
+	// {
+	// 	TargetContainer = LabActor->FindComponentByClass<UCPLabContainerComponent>();
+	// }
+	//
+	// if (!TargetContainer)
+	// {
+	// 	UE_LOG(LogTemp, Error, TEXT("[TagRangeWidget] 월드 내 LabContainer 컴포넌트 미발견"));
+	// 	return;
+	// }
 	
-	if (LabActor)
-	{
-		TargetContainer = LabActor->FindComponentByClass<UCPLabContainerComponent>();
-	}
-	
-	if (!TargetContainer)
-	{
-		UE_LOG(LogTemp, Error, TEXT("[TagRangeWidget] 월드 내 LabContainer 컴포넌트 미발견"));
-		return;
-	}
-	
-	if (UGameInstance* GI = GetGameInstance())
-	{
-		if (UCPUIManagerSubsystem* UIManager = GI->GetSubsystem<UCPUIManagerSubsystem>())
-		{
-			if (LabIngredientWidgetClass)
-			{
-				UUserWidget* CreatedWidget = UIManager->PushWidget(LabIngredientWidgetClass);
-			}
-		}
-	}
-	
+	OnTagRangeConfirmed.Broadcast();
 	RequestClose();
 }
 
@@ -188,7 +178,7 @@ void UCPTagRangeWidget::OnBackClicked()
 	{
 		if (UCPUIManagerSubsystem* UIManager = GI->GetSubsystem<UCPUIManagerSubsystem>())
 		{
-			if (UUserWidget* CreatedWidget = UIManager->PushWidgetBP(TagSelectionWidgetClass))
+			if (UUserWidget* CreatedWidget = UIManager->PushWidget(TagSelectionWidgetClass))
 			{
 				if (UCPTagSelectionWidget* TagSelectionWidget = Cast<UCPTagSelectionWidget>(CreatedWidget))
 				{

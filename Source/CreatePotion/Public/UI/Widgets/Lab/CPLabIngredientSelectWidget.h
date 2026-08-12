@@ -3,13 +3,17 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Kismet/GameplayStatics.h"
 #include "UI/Widgets/Base/CPBaseFixedWidget.h"
 #include "UI/Widgets/Base/CPBasePopupWidget.h"
 #include "CPLabIngredientSelectWidget.generated.h"
 
+
+
 class UButton;
 class UCPItemContainerComponent;
 class UCPContainerMainWidget;
+class UCPForageableItemData;
 /**
  * 
  */
@@ -32,4 +36,11 @@ protected:
 	UPROPERTY(meta=(BindWidget), BlueprintReadWrite, Category = "UI")
 	UCPContainerMainWidget* SelectSlotWidget;
 	
+public:
+	// 테스트용 아이템 추가 함수
+	void AddTestItems();
+	
+protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Test")
+	TArray<UCPForageableItemData*> TestItemDatas;
 };

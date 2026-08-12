@@ -6,6 +6,8 @@
 #include "Quest/QuestTypes.h"
 #include "CPTagRangeWidget.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTagConfirmedDelegate);
+
 USTRUCT(BlueprintType)
 struct FTagConfirmData
 {
@@ -83,7 +85,9 @@ private:
 	TArray<FGameplayTag> SelectedTags;
 	TMap<FGameplayTag, int32> SavedTagValues; // 이전 설정 수치 기억용
 	
-protected:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
-	TSubclassOf<UCPLabIngredientSelectWidget> LabIngredientWidgetClass;
+public:
+	// 태그 확정 완료 델리게이트
+	UPROPERTY(BlueprintAssignable, Category = "UI")
+	FOnTagConfirmedDelegate OnTagRangeConfirmed;
+	
 };
