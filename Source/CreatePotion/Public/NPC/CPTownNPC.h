@@ -18,4 +18,9 @@ public:
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UCPNPCDialogueWidget> DialogueWidgetClass;
+
+private:
+	UPROPERTY()
+	class UCPNPCDialogueWidget* ActiveDialogueWidget;
+
 };
