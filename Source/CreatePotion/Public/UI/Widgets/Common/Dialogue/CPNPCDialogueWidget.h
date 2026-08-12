@@ -17,6 +17,8 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Dialogue")
     void InitDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const FText& InDialogueText, class ACPLabNPC* InSourceLabNPC = nullptr);
 
+    UFUNCTION(BlueprintCallable, Category = "Dialogue")
+    void InitResultDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const FText& InDialogueText, class ACPLabNPC* InSourceLabNPC = nullptr);
 protected:
     virtual void BindEvents() override;
     virtual void UnbindEvents() override;
@@ -45,6 +47,7 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "UI")
     TSubclassOf<UCPTagSelectionWidget> TagSelectionWidgetClass;
 
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue|Typewriter")
     float TypewriterSpeed = 0.05f;
 
@@ -61,5 +64,7 @@ private:
     bool bCurrentIsWorkshopQuest = false;
 
     TWeakObjectPtr<class ACPLabNPC> SourceLabNPC;
+
+    bool bIsPotionResultDialogue = false; // 납품 결과 대사인지 여부
 
 };
