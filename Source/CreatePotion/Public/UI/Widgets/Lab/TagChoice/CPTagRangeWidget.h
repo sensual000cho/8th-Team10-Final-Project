@@ -27,6 +27,8 @@ class UButton;
 class UCPTagRangeEntryWidget;
 class UCPHintWidget;
 class UCPTagSelectionWidget;
+class UCPContainerMainWidget;
+class UCPLabIngredientSelectWidget;
 
 UCLASS()
 class CREATEPOTION_API UCPTagRangeWidget : public UCPBasePopupWidget
@@ -80,4 +82,8 @@ private:
 	FName CurrentQuestID;
 	TArray<FGameplayTag> SelectedTags;
 	TMap<FGameplayTag, int32> SavedTagValues; // 이전 설정 수치 기억용
+	
+protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
+	TSubclassOf<UCPLabIngredientSelectWidget> LabIngredientWidgetClass;
 };

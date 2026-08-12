@@ -3,3 +3,34 @@
 
 #include "UI/Widgets/Lab/CPLabIngredientSelectWidget.h"
 
+#include "Components/CPItemContainerComponent.h"
+#include "Components/CPLabContainerComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "UI/Widgets/Common/Container/CPContainerMainWidget.h"
+#include "GameFramework/Character.h"
+#include "Lab/Actor/CPLabContainerActor.h"
+
+void UCPLabIngredientSelectWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+	
+	ACharacter* PlayerCharacter = UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
+	UCPItemContainerComponent* Inventory = PlayerCharacter ? PlayerCharacter->FindComponentByClass<UCPItemContainerComponent>() : nullptr;
+	
+	AActor* LabActor = UGameplayStatics::GetActorOfClass(GetWorld(), ACPLabContainerActor::StaticClass());
+	UCPLabContainerComponent* SelectSlot = LabActor ? LabActor->FindComponentByClass<UCPLabContainerComponent>() : nullptr;
+
+	if (InventoryWidget && Inventory)
+	{
+		InventoryWidget->BindContainer(Inventory);
+		UE_LOG(LogTemp, Warning, TEXT("[재료 선택 위젯] 인벤토리 위젯 바인딩 성공"));
+	}
+	
+	if (SelectSlotWidget && SelectSlot)
+	{
+		SelectSlotWidget->BindContainer(SelectSlot);
+		UE_LOG(LogTemp, Warning, TEXT("[재료 선택 위젯] 선택 슬롯 위젯 바인딩 성공"));
+	}
+}
+
+
