@@ -12,76 +12,6 @@
 #include "Components/CapsuleComponent.h"
 #include "Character/CPInteractionComponent.h"
 
-// UI 연결 전 디버깅용
-namespace
-{
-	FString GetDeliveryGradeText(EDeliveryGrade DeliveryGrade)
-	{
-		switch (DeliveryGrade) {
-		case EDeliveryGrade::Fail:
-			return TEXT("Fail");
-
-		case EDeliveryGrade::Okay:
-			return TEXT("Okay");
-
-		case EDeliveryGrade::Good:
-			return TEXT("Good");
-
-		case EDeliveryGrade::Perfect:
-			return TEXT("Perfect");
-
-		default:
-			return TEXT("Unknown");
-		}
-	}
-
-	void ShowPotionDeliveryResultDebugMessage(const FCPPotionDeliveryResult& Result)
-	{
-		if (!GEngine) return;
-
-		GEngine->AddOnScreenDebugMessage(
-			-1,
-			5.f,
-			FColor::Yellow,
-			FString::Printf(
-				TEXT("납품 결과 | QuestId: %s | Grade: %s | Reward: %d | Tip: %d"),
-				*Result.QuestId.ToString(),
-				*GetDeliveryGradeText(Result.DeliveryGrade),
-				Result.RewardAmount,
-				Result.TipAmount));
-
-		for (const FAlchemyProperty& CurrentEffect : Result.CurrentEffects) {
-			GEngine->AddOnScreenDebugMessage(
-				-1,
-				5.f,
-				FColor::Cyan,
-				FString::Printf(
-					TEXT("현재 효과 | %s : %d"),
-					*CurrentEffect.Tag.ToString(),
-					CurrentEffect.Value));
-		}
-
-		for (int32 Index = 0; Index < Result.MinTargetEffects.Num(); ++Index) {
-			const FAlchemyProperty& MinTargetEffect = Result.MinTargetEffects[Index];
-
-			FString MaxValueText = TEXT("None");
-			if (Result.MaxTargetEffects.IsValidIndex(Index)) {
-				MaxValueText = FString::FromInt(Result.MaxTargetEffects[Index].Value);
-			}
-
-			GEngine->AddOnScreenDebugMessage(
-				-1,
-				5.f,
-				FColor::Green,
-				FString::Printf(
-					TEXT("목표 효과 | %s : Min %d / Max %s"),
-					*MinTargetEffect.Tag.ToString(),
-					MinTargetEffect.Value,
-					*MaxValueText));
-		}
-	}
-}
-
 void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 {
 	if (ActiveDialogueWidget && ActiveDialogueWidget->IsInViewport())
@@ -137,7 +67,6 @@ void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 			결과 UI 확인 버튼에서 ConfirmPotionDeliveryResult()를 호출한다.
 			*/
 			const FCPPotionDeliveryResult DeliveryResult = LabGameMode->GetPotionDeliveryResult();
-			ShowPotionDeliveryResultDebugMessage(DeliveryResult);
 
 			FText ResultDialogueText;
 			FName EventTagName = NAME_None;
