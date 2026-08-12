@@ -3,9 +3,15 @@
 #include "Data/CPNPCDataAsset.h"
 #include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
 #include "UI/Widgets/Common/Dialogue/CPNPCDialogueWidget.h"
+#include "GameplayTagContainer.h"
+#include "Components/StateTreeComponent.h"
 
 void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 {
+	if (ActiveDialogueWidget && ActiveDialogueWidget->IsInViewport())
+	{
+		return;
+	}
 	if (!NPCData || NPCData->TownQuestIDs.Num() == 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[%s] DA에 지정된 마을 퀘스트가 없습니다."), *GetName());
@@ -38,13 +44,20 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 				*FullScript.ToString());
 			if (DialogueWidgetClass)
 			{
-				if (UCPNPCDialogueWidget* DialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass)))
+				ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidgetBP(DialogueWidgetClass));
+
+				if (ActiveDialogueWidget)
 				{
 					FText NPCNameText = FText::FromName(NPCData->NPCName);
-					DialogueWidget->InitDialogue(false, QuestID, NPCNameText, FullScript);
+					ActiveDialogueWidget->InitDialogue(false, QuestID, NPCNameText, FullScript);
 				}
 			}
-
+			if (StateTreeComponent)
+			{
+				FStateTreeEvent Event;
+				Event.Tag = FGameplayTag::RequestGameplayTag(FName("NPC.Event.Talk"));
+				StateTreeComponent->SendStateTreeEvent(Event);
+			}
 			break;
 		}
 	}

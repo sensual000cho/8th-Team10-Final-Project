@@ -16,6 +16,7 @@ void UCPNPCDialogueWidget::InitDialogue(bool bIsWorkshopQuest, FName InQuestID, 
     CurrentQuestID = InQuestID;
     bCurrentIsWorkshopQuest = bIsWorkshopQuest;
     SourceLabNPC = InSourceLabNPC;
+    bIsPotionResultDialogue = false;
 
     // 기본적으로 NPC가 넘겨준 텍스트를 사용하도록 설정
     FText TextToPlay = InDialogueText;
@@ -47,6 +48,20 @@ void UCPNPCDialogueWidget::InitDialogue(bool bIsWorkshopQuest, FName InQuestID, 
     }
 
     PlayTypewriterEffect(TextToPlay);
+}
+
+void UCPNPCDialogueWidget::InitResultDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const FText& InDialogueText, ACPLabNPC* InSourceLabNPC)
+{
+    CurrentQuestID = InQuestID;
+    bCurrentIsWorkshopQuest = bIsWorkshopQuest;
+    SourceLabNPC = InSourceLabNPC;
+    bIsPotionResultDialogue = true; 
+
+    if (Text_NPCName) {
+        Text_NPCName->SetText(InNPCName);
+    }
+
+    PlayTypewriterEffect(InDialogueText);
 }
 
 void UCPNPCDialogueWidget::BindEvents()
@@ -112,6 +127,18 @@ void UCPNPCDialogueWidget::CreateChoiceButtons()
 
     HBox_ChoiceList->ClearChildren();
 
+    //결과 보기 버튼
+    if (bIsPotionResultDialogue)
+    {
+        UCPNPCDialogueButtonWidget* NewButton = CreateWidget<UCPNPCDialogueButtonWidget>(this, DialogueButtonClass);
+        if (NewButton) {
+            NewButton->SetButtonText(FText::FromString(TEXT("결과 보기")));
+            NewButton->OnButtonClickedEvent.AddDynamic(this, &UCPNPCDialogueWidget::OnChoiceSelected);
+            HBox_ChoiceList->AddChild(NewButton);
+        }
+        return;
+    }
+
     if (!bCurrentIsWorkshopQuest) {
         // [마을 퀘스트] "네" 버튼 생성
         UCPNPCDialogueButtonWidget* NewButton = CreateWidget<UCPNPCDialogueButtonWidget>(this, DialogueButtonClass);
@@ -150,6 +177,16 @@ void UCPNPCDialogueWidget::OnChoiceSelected(const FString& ButtonText) {
     UQuestManager* QuestManager = GI->GetSubsystem<UQuestManager>();
     UCPUIManagerSubsystem* UIManager = GI->GetSubsystem<UCPUIManagerSubsystem>();
 
+    if (ButtonText == TEXT("결과 보기"))
+    {
+        if (ACPLabNPC* LabNPC = SourceLabNPC.Get())
+        {
+            // NPC에게 명령해서 ResultWidget을 열도록 함
+            LabNPC->OpenResultWidget();
+        }
+        RequestClose(); // 대화창 닫기
+        return;
+    }
     if (ButtonText == TEXT("네")) {
         if (QuestManager && !CurrentQuestID.IsNone()) {
             QuestManager->AcceptQuest(CurrentQuestID);
