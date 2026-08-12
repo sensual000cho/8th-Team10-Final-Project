@@ -15,9 +15,9 @@ public class CreatePotion : ModuleRules
 			"InputCore",
 			"EnhancedInput",
 			"UMG",
-			"Slate",
-            "SlateCore",
             "GameplayTags",
+			"StateTreeModule",
+			"GameplayStateTreeModule"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
@@ -27,7 +27,7 @@ public class CreatePotion : ModuleRules
 		});
 
 		// Uncomment if you are using Slate UI
-		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 
 		// Uncomment if you are using online features
 		// PrivateDependencyModuleNames.Add("OnlineSubsystem");

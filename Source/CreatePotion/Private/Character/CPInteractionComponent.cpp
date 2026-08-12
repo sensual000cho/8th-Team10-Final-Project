@@ -229,11 +229,12 @@ void UCPInteractionComponent::PerformTrace()
 
 void UCPInteractionComponent::ClearCurrentTarget()
 {
-	if (!CurrentTarget.IsValid())
+	if (CurrentTarget.IsExplicitlyNull())
 	{
-		return;
+		return; // 이미 비어있는 상태면 중복 브로드캐스트 방지
+
 	}
-	
+
 	if (AActor* Target = CurrentTarget.Get())
 	{
 		SetActorHighlight(Target, false);
