@@ -117,6 +117,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	TArray<FConditionEvaluation> EvaluateConditions(FName QuestID, const TArray<FAlchemyProperty>& PotionResult) const;
 
+	// 요구 조건 조회
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	TArray<FQuestEffectRequirement> GetQuestEffectRequirements(FName QuestId) const;
+	
 	// ===================================================================
 	// [검증 - 개발 중 확인용]
 	// ===================================================================

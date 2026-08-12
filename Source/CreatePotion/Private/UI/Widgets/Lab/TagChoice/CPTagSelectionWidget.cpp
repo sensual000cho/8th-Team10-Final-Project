@@ -37,15 +37,6 @@ void UCPTagSelectionWidget::InitTagSelectionWidget(FName InQuestID, const TArray
 	CurrentQuestID = InQuestID;
 	SavedTagValues = InExistingSavedValues;
 
-	if (UWorld* World = GetWorld()) {
-		if (ACPLabGameState* LabState = World->GetGameState<ACPLabGameState>()) {
-			if (UCPLabPotionSessionComponent* SessionComp = LabState->GetPotionSession()) {
-
-				SessionComp->TrySetRequestPhase(CurrentQuestID, ECPLabPotionRequestPhase::Preparing);
-
-			}
-		}
-	}
 	if (InExistingSelectedTags.Num() > 0)
 	{
 		SelectedTags = InExistingSelectedTags;

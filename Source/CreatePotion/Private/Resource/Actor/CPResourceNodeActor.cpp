@@ -38,6 +38,11 @@ FText ACPResourceNodeActor::GetInteractionPrompt_Implementation()
 	return FText::FromString(TEXT("채집하기"));
 }
 
+FName ACPResourceNodeActor::GetInteractionName_Implementation()
+{
+	return FName(*ResourceDefinition->HarvestedItem->DisplayName.ToString());
+}
+
 bool ACPResourceNodeActor::CanInteract_Implementation(AActor* Interactor)
 {
 	return Interactor != nullptr
@@ -71,22 +76,6 @@ void ACPResourceNodeActor::OnReleaseToPool_Implementation()
 	ResourceDefinition = nullptr;
 	
 	Mesh->SetStaticMesh(nullptr);
-}
-
-void ACPResourceNodeActor::SetHighlight_Implementation(bool bHighLighted)
-{
-	if (!Mesh) return;
-	if (!HighlightMaterial) return;
-	
-	if (bHighLighted)
-	{
-		Mesh->SetOverlayMaterial(HighlightMaterial);
-	}
-
-	else
-	{
-		Mesh->SetOverlayMaterial(nullptr);
-	}
 }
 
 void ACPResourceNodeActor::ApplyDefinition()
