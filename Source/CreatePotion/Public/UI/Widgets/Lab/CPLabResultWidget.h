@@ -16,6 +16,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FCPOnLabResultActionRequested);
  * 계산이 끝난 결과를 화면에 표시하고 사용자 선택을 외부로 전달한다.
  * 판정, 보상 계산, 퀘스트 처리, 재시도 초기화는 담당하지 않는다.
  */
+
+struct FCPPotionDeliveryResult;
+
 UCLASS()
 class CREATEPOTION_API UCPLabResultWidget : public UCPBasePopupWidget
 {
@@ -73,6 +76,9 @@ public:
 	// 부분 성공 또는 실패 결과에서 넘어가기 버튼을 눌렀을 때 외부 처리 담당자에게 알린다.
 	UPROPERTY(BlueprintAssignable, Category = "Lab|Result|Actions")
 	FCPOnLabResultActionRequested OnContinueRequested;
+	
+	//UI 내용 채우는 함수
+	bool InitializeResult(const FCPPotionDeliveryResult& DeliveryResult);
 
 protected:
 	// WBP 생성이 끝난 뒤 두 버튼의 OnClicked 이벤트를 C++ 처리 함수에 연결한다.
@@ -137,6 +143,8 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_SecondaryAction;
 
+
+	
 private:
 	// 주 버튼의 현재 역할에 따라 확인 또는 재시도 Delegate를 호출한다.
 	UFUNCTION()

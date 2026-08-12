@@ -5,6 +5,9 @@
 #include "Components/VerticalBox.h"
 #include "UI/Widgets/Lab/CPLabResultConditionRowWidget.h"
 #include "UI/Widgets/Lab/CPLabResultLabelValueRowWidget.h"
+#include "GameMode/CPLabGameMode.h"
+#include "Quest/QuestManager.h"
+#include "UI/Widgets/Lab/Helper/CPLabResultUICalc.h"
 
 void UCPLabResultWidget::ResetResultView()
 {
@@ -92,6 +95,24 @@ void UCPLabResultWidget::UnbindEvents()
 	Button_Primary->OnClicked.RemoveDynamic(this, &UCPLabResultWidget::HandlePrimaryAction);
 	Button_Secondary->OnClicked.RemoveDynamic(this, &UCPLabResultWidget::HandleSecondaryAction);
 	Super::UnbindEvents();
+}
+
+bool UCPLabResultWidget::InitializeResult(const FCPPotionDeliveryResult& DeliveryResult)
+{
+	UGameInstance* GameInstance = GetGameInstance();
+	if (!GameInstance)
+	{
+		return false;
+	}
+
+	UQuestManager* QuestManager = GameInstance->GetSubsystem<UQuestManager>();
+
+	if (!QuestManager)
+	{
+		return false;
+	}
+
+	return FCPLabResultUICalc::ApplyDeliveryResult(DeliveryResult, QuestManager, this);
 }
 
 void UCPLabResultWidget::HandlePrimaryAction()
