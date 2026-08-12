@@ -128,6 +128,21 @@ bool UCPProcessorComponent::RestoreUseLimit(const ACPAlchemyProp* ItemInstance)
 	return false;
 }
 
+bool UCPProcessorComponent::TryBuildPreviewEffects(
+	const ACPAlchemyProp* ItemInstance,
+	TMap<FGameplayTag, int32>& OutPreviewEffects) const
+{
+	OutPreviewEffects.Reset();
+
+	if (!CanProcess(ItemInstance)) return false;
+
+	const FCPLabIngredientInstance Ingredient = ItemInstance->GetWorkingIngredient();
+	if (!Ingredient.IsValid()) return false;
+
+	OutPreviewEffects = Ingredient.CurrentEffects;
+	return BuildPreviewEffects(ItemInstance, OutPreviewEffects);
+}
+
 bool UCPProcessorComponent::CanProcess(const ACPAlchemyProp* ItemInstance) const
 {
 	if (!IsValid(ItemInstance) || ItemInstance->GetSourceItemData() == nullptr) return false;
@@ -138,6 +153,13 @@ bool UCPProcessorComponent::CanProcess(const ACPAlchemyProp* ItemInstance) const
 void UCPProcessorComponent::ApplyProcess(ACPAlchemyProp* ItemInstance)
 {
 	// 상속한 각 기구에서 구현
+}
+
+bool UCPProcessorComponent::BuildPreviewEffects(
+	const ACPAlchemyProp* ItemInstance,
+	TMap<FGameplayTag, int32>& InOutPreviewEffects) const
+{
+	return false;
 }
 
 bool UCPProcessorComponent::NeedsResetRequestEnd() const
