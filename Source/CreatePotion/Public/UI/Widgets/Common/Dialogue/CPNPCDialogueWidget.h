@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "UI/Widgets/Base/CPBasePopupWidget.h"
@@ -7,6 +7,7 @@
 class UTextBlock;
 class UHorizontalBox;
 class UCPNPCDialogueButtonWidget;
+class UCPTagSelectionWidget;
 
 UCLASS()
 class CREATEPOTION_API UCPNPCDialogueWidget : public UCPBasePopupWidget {
@@ -14,7 +15,13 @@ class CREATEPOTION_API UCPNPCDialogueWidget : public UCPBasePopupWidget {
 
 public:
     UFUNCTION(BlueprintCallable, Category = "Dialogue")
-    void InitDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const FText& InDialogueText);
+    void InitDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const FText& InDialogueText, class ACPLabNPC* InSourceLabNPC = nullptr);
+
+    UFUNCTION(BlueprintCallable, Category = "Dialogue")
+    void InitResultDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const FText& InDialogueText, class ACPLabNPC* InSourceLabNPC = nullptr);
+protected:
+    virtual void BindEvents() override;
+    virtual void UnbindEvents() override;
 
 private:
     UFUNCTION()
@@ -37,6 +44,10 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "Dialogue")
     TSubclassOf<UCPNPCDialogueButtonWidget> DialogueButtonClass;
 
+    UPROPERTY(EditDefaultsOnly, Category = "UI")
+    TSubclassOf<UCPTagSelectionWidget> TagSelectionWidgetClass;
+
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue|Typewriter")
     float TypewriterSpeed = 0.05f;
 
@@ -51,5 +62,9 @@ private:
     int32 CurrentHintLevel = 0;
 
     bool bCurrentIsWorkshopQuest = false;
+
+    TWeakObjectPtr<class ACPLabNPC> SourceLabNPC;
+
+    bool bIsPotionResultDialogue = false; // 납품 결과 대사인지 여부
 
 };

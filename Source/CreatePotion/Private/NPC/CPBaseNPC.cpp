@@ -1,6 +1,7 @@
 #include "NPC/CPBaseNPC.h"
 #include "Data/CPNPCDataAsset.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/StateTreeComponent.h"
 #include "Animation/AnimSequence.h"
 #include "Kismet/GameplayStatics.h"
 #include "Quest/QuestManager.h"
@@ -14,6 +15,7 @@ ACPBaseNPC::ACPBaseNPC()
         GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
         GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Block);
     }
+    //StateTreeComponent = CreateDefaultSubobject<UStateTreeComponent>(TEXT("StateTreeComponent"));
 
 }
 

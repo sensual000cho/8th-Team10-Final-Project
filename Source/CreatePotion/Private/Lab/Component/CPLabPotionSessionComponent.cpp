@@ -237,6 +237,21 @@ bool UCPLabPotionSessionComponent::TryReleaseHeldIngredient(ACPAlchemyProp*& Out
 	return true;
 }
 
+bool UCPLabPotionSessionComponent::FinalizePotionResult(ACPAlchemyProp* PotionProp,	UCPForageableItemData* PotionItemData)
+{
+	if (!HasActiveSession() || !IsValid(PotionProp) || !PotionItemData) return false;
+	
+	FCPLabPotionRequestState ActiveRequestState;
+	if (!GetActiveRequestState(ActiveRequestState) || 
+		ActiveRequestState.Phase != ECPLabPotionRequestPhase::Processing) return false;
+	
+	PotionProp->InitializeFromEffects(PotionItemData, CurrentPotionResult);
+	HeldIngredientProp = PotionProp;
+	
+	NotifySessionChanged();
+	return true;
+}
+
 bool UCPLabPotionSessionComponent::InteractIngredientSlot(int32 SlotIndex)
 {
 	if (!HasActiveSession() || !IsValidSlotIndex(SlotIndex)) return false;
@@ -503,6 +518,7 @@ void UCPLabPotionSessionComponent::ReBuildResult()
 	CurrentPotionResult.Reserve(EffectTotalMap.Num());
 	
 	for (const TPair<FGameplayTag, int32>& Effect : EffectTotalMap){
+		if (Effect.Value == 0) continue;
 		FAlchemyProperty EffectTotal;
 		EffectTotal.Tag = Effect.Key;
 		EffectTotal.Value = Effect.Value;

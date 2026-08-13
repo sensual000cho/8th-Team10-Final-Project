@@ -6,7 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "CPInteractionComponent.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPromptChanged, FText, Prompt);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPromptChanged, FText, Prompt, FName, TargetName);
 
 // 상호작용 프로그레스 델리게이트
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInteractionStarted);
@@ -14,6 +14,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInteractionProgressChanged, float
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInteractionCompleted);
 
 class UCameraComponent;
+class UInputAction;
+class UInputMappingContext;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class CREATEPOTION_API UCPInteractionComponent : public UActorComponent
@@ -41,6 +43,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float TraceDistance = 200.f; // 감지 거리
 	
+	UFUNCTION(BlueprintPure, Category = "Interaction")
+	AActor* GetCurrentTarget() const { return CurrentTarget.Get();}
+
 private:
 	void PerformTrace(); // 타이머로 주기 실행
 	void ClearCurrentTarget();
@@ -79,4 +84,21 @@ private:
 	float InteractionElapsedTime = 0.f;
 	// 진행도 갱신 주기
 	float InteractionUpdateInterval = 0.05f;
+
+#pragma region InputMappingContext
+public:
+	UPROPERTY(EditAnywhere, Category = "Interaction|IMC")
+	UInputMappingContext* InteractionMappingContext;
+
+	UPROPERTY(EditAnywhere, Category = "Interaction|Input")
+	UInputAction* InteractAction;
+
+private:
+	void TryBindInputMappingContext();	// 추가로 IMC를 바인딩 하는 것을 시도할 함수
+
+private:
+	int32 BindRetryCount = 0;
+
+	FTimerHandle IMCBindingTimerHandle;		// IMC를 바인딩 할 타이머 핸들
+#pragma endregion
 };

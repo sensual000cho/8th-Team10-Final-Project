@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "CPLabInteractActionComponent.h"
 #include "Components/ActorComponent.h"
+#include "GameplayTagContainer.h"
 #include "CPProcessorComponent.generated.h"
 
 class ACPAlchemyProp;
@@ -22,22 +23,32 @@ public:
 	bool ProcessItem(ACPAlchemyProp* ItemInstance);
 	
 	// 상호작용 시 재료를 가공
-	virtual bool ExecuteInteraction(AActor* Interacter) override;
+	virtual bool ExecuteInteraction(AActor* Interactor) override;
 	// 현재 들고 있는 재료를 이 기구로 가공할 수 있는지 확인
-	virtual bool CanExecuteInteraction(AActor* Interacter) const override;
+	virtual bool CanExecuteInteraction(AActor* Interactor) const override;
 	
 	// 퀘스트 전환 시 초기화할 값이 있는 기구에서 구현(한 퀘스트 내에서 n회 제한)
 	UFUNCTION(BlueprintCallable, Category = "Processor")
 	virtual void ResetProcessor();
 	
+	// ItemInstance 때문에 소모된 사용 제한이 있다면 복구한다
+	virtual bool RestoreUseLimit(const ACPAlchemyProp* ItemInstance);
+
+	// 실제 재료를 변경하지 않고 이 가공기를 적용했을 때의 예상 효과를 계산한다.
+	bool TryBuildPreviewEffects(
+		const ACPAlchemyProp* ItemInstance,
+		TMap<FGameplayTag, int32>& OutPreviewEffects) const;
+	
 protected:
 	virtual bool CanProcess(const ACPAlchemyProp* ItemInstance) const;
 	virtual void ApplyProcess(ACPAlchemyProp* ItemInstance);
+	virtual bool BuildPreviewEffects(
+		const ACPAlchemyProp* ItemInstance,
+		TMap<FGameplayTag, int32>& InOutPreviewEffects) const;
 	
 	virtual bool NeedsResetRequestEnd() const;
 	
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Processor")
 	FName ProcessorId;
-		
 };

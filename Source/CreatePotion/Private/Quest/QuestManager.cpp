@@ -82,6 +82,20 @@ TArray<FName> UQuestManager::GetAllTrackedQuestIDs() const
 	return QuestOrder;
 }
 
+void UQuestManager::CompleteQuest(FName QuestID)
+{
+	if (QuestID.IsNone()) return;
+
+	if (GetQuestState(QuestID) == EQuestState::Completed)
+	{
+		return;
+	}
+
+	QuestStates.Add(QuestID, EQuestState::Completed);
+	OnQuestUpdated.Broadcast(QuestID, EQuestState::Completed);
+	UE_LOG(LogTemp, Warning, TEXT("퀘스트 [%s] 완료 처리"), *QuestID.ToString());
+}
+
 // ===================================================================
 // [텍스트 조회 - UI 전용 참조 함수]
 // DT_QuestScript(텍스트 전용 DataTable)에서 값을 가져옴
@@ -249,53 +263,84 @@ EDeliveryGrade UQuestManager::TryDeliver(FName QuestID, const TArray<FAlchemyPro
 		Grade = EDeliveryGrade::Okay;
 	}
 
-	if (Grade != EDeliveryGrade::Fail)
-	{
-		QuestStates.Add(QuestID, EQuestState::Completed);
-		OnQuestUpdated.Broadcast(QuestID, EQuestState::Completed);
-	}
-
 	UE_LOG(LogTemp, Warning, TEXT("퀘스트 %s 납품 결과: %d/%d 조건 만족"), *QuestID.ToString(), CorrectCount, TotalCount);
 
 	return Grade;
 }
 
 // 조건 하나하나에 대한 세부 판정 (O/Up/Down/태그오답)
-// 좋은 피자 위대한 피자 방식의 항목별 피드백 UI에 사용
-TArray<EConditionMatchResult> UQuestManager::EvaluateConditions(FName QuestID, const TArray<FAlchemyProperty>& PotionResult) const
+// - 1단계: 정답이 요구하는 조건들을 기준으로, 포션이 각각 만족했는지 확인
+// - 2단계: 포션에 들어있는 태그 중, 정답이 요구하지 않은 "쓸데없는 태그"가 섞였는지 확인
+//   (정답 개수만 기준으로 돌면, 포션에 여분으로 섞인 태그를 놓치는 문제가 있어 추가함)
+TArray<FConditionEvaluation> UQuestManager::EvaluateConditions(FName QuestID, const TArray<FAlchemyProperty>& PotionResult) const
 {
-	TArray<EConditionMatchResult> Results;
+	TArray<FConditionEvaluation> Results;
 
 	if (!QuestAnswerTable) return Results;
 
 	FQuestAnswerData* Answer = QuestAnswerTable->FindRow<FQuestAnswerData>(QuestID, TEXT(""));
 	if (!Answer) return Results;
 
+	// 1. 정답 기준으로 순회 - 요구한 각 조건이 맞는지 확인
 	for (const FQuestEffectRequirement& Req : Answer->RequestedEffects)
 	{
+		FConditionEvaluation Eval;
+		Eval.Axis = Req.Axis;
+		Eval.bWasRequested = true;
+
 		const FAlchemyProperty* Matching = PotionResult.FindByPredicate(
 			[&](const FAlchemyProperty& P) { return P.Tag == Req.Axis; }
 		);
 
 		if (!Matching)
 		{
-			Results.Add(EConditionMatchResult::WrongTag);
+			Eval.Result = EConditionMatchResult::WrongTag;
 		}
 		else if (Matching->Value < Req.MinValue)
 		{
-			Results.Add(EConditionMatchResult::TooLow);
+			Eval.Result = EConditionMatchResult::TooLow;
 		}
 		else if (Matching->Value > Req.MaxValue)
 		{
-			Results.Add(EConditionMatchResult::TooHigh);
+			Eval.Result = EConditionMatchResult::TooHigh;
 		}
 		else
 		{
-			Results.Add(EConditionMatchResult::Correct);
+			Eval.Result = EConditionMatchResult::Correct;
+		}
+
+		Results.Add(Eval);
+	}
+
+	// 2. 포션 기준으로 순회 - 정답에 없는데 플레이어가 넣은 태그(잡내)를 찾아냄
+	for (const FAlchemyProperty& Prop : PotionResult)
+	{
+		bool bIsRequested = Answer->RequestedEffects.ContainsByPredicate(
+			[&](const FQuestEffectRequirement& Req) { return Req.Axis == Prop.Tag; }
+		);
+
+		if (!bIsRequested)
+		{
+			FConditionEvaluation Eval;
+			Eval.Axis = Prop.Tag;
+			Eval.Result = EConditionMatchResult::WrongTag;
+			Eval.bWasRequested = false;  // 여분 태그임을 표시
+
+			Results.Add(Eval);
 		}
 	}
 
 	return Results;
+}
+
+TArray<FQuestEffectRequirement> UQuestManager::GetQuestEffectRequirements(FName QuestId) const
+{
+	if (!QuestAnswerTable) return {};
+	
+	FQuestAnswerData* Answer = QuestAnswerTable->FindRow<FQuestAnswerData>(QuestId, TEXT(""));
+	if (!Answer) return {};
+	
+	return Answer->RequestedEffects;
 }
 
 // ===================================================================

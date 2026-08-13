@@ -39,6 +39,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Quest|Events")
 	FOnQuestUpdated OnQuestUpdated;
 
+	// 플레이어가 퀘스트를 수락한 순서대로 QuestID를 저장하는 배열
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Quest")
+	TArray<FName> AcceptedQuestOrder;
+	
 	// ===================================================================
 	// [퀘스트 수락/상태 관리]
 	// ===================================================================
@@ -54,6 +58,10 @@ public:
 	// 저널 UI 목록 구성용 - 현재 추적 중인(수락됨/완료됨) 퀘스트 ID 전체, 수락 순서대로 반환
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	TArray<FName> GetAllTrackedQuestIDs() const;
+
+	// 퀘스트 완료 처리 함수
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	void CompleteQuest(FName QuestID);
 
 	// ===================================================================
 	// [텍스트 조회 - UI 전용 참조 함수]
@@ -105,14 +113,18 @@ public:
 	// [납품 판정 - 퍼즐 시스템과의 연결 지점]
 	// ===================================================================
 
-	// 퀘스트가 요구하는 조건과 비교, 등급을 매기고 만족 시 상태를 Completed로 전환
+	// 퀘스트가 요구하는 조건과 비교, 등급을 매김
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	EDeliveryGrade TryDeliver(FName QuestID, const TArray<FAlchemyProperty>& PotionResult);
 
 	// 조건 하나하나에 대한 세부 판정 (O/Up/Down/태그오답)
 	UFUNCTION(BlueprintCallable, Category = "Quest")
-	TArray<EConditionMatchResult> EvaluateConditions(FName QuestID, const TArray<FAlchemyProperty>& PotionResult) const;
+	TArray<FConditionEvaluation> EvaluateConditions(FName QuestID, const TArray<FAlchemyProperty>& PotionResult) const;
 
+	// 요구 조건 조회
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	TArray<FQuestEffectRequirement> GetQuestEffectRequirements(FName QuestId) const;
+	
 	// ===================================================================
 	// [검증 - 개발 중 확인용]
 	// ===================================================================
@@ -121,6 +133,7 @@ public:
 	// 데이터 입력 실수(한쪽에만 등록)를 개발 중 로그로 잡아내기 위한 함수
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	void ValidateQuestTablesMatch();
+
 
 private:
 	// 퀘스트별 현재 진행 상태 저장소 (QuestID → 상태)

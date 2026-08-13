@@ -96,3 +96,22 @@ enum class EConditionMatchResult : uint8
 	TooLow,    // Down - 요구치보다 낮음
 	WrongTag   // 태그오답 - 요청하지 않은 축이거나 아예 없음
 };
+
+// 조건 판정 결과 하나 (어떤 축에 대한 결과인지 + 판정 결과)
+USTRUCT(BlueprintType)
+struct FConditionEvaluation
+{
+	GENERATED_BODY()
+
+	// 어떤 축(태그)에 대한 결과인지
+	UPROPERTY(BlueprintReadOnly)
+	FGameplayTag Axis;
+
+	// 판정 결과
+	UPROPERTY(BlueprintReadOnly)
+	EConditionMatchResult Result = EConditionMatchResult::Correct;
+
+	// 이게 정답이 요구한 조건인지(true), 아니면 포션에 여분으로 섞인 태그인지(false)
+	UPROPERTY(BlueprintReadOnly)
+	bool bWasRequested = true;
+};

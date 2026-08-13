@@ -5,11 +5,18 @@
 #include "Kismet/GameplayStatics.h"
 #include "Quest/QuestManager.h"
 #include "TimerManager.h"
+#include "UI/Widgets/Lab/TagChoice/CPTagSelectionWidget.h"
+#include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
+#include "GameState/CPLabGameState.h" 
+#include "Lab/Component/CPLabPotionSessionComponent.h"
+#include "NPC/CPLabNPC.h"
 
-void UCPNPCDialogueWidget::InitDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const FText& InDialogueText)
+void UCPNPCDialogueWidget::InitDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const FText& InDialogueText, ACPLabNPC* InSourceLabNPC)
 {
     CurrentQuestID = InQuestID;
     bCurrentIsWorkshopQuest = bIsWorkshopQuest;
+    SourceLabNPC = InSourceLabNPC;
+    bIsPotionResultDialogue = false;
 
     // 기본적으로 NPC가 넘겨준 텍스트를 사용하도록 설정
     FText TextToPlay = InDialogueText;
@@ -41,6 +48,34 @@ void UCPNPCDialogueWidget::InitDialogue(bool bIsWorkshopQuest, FName InQuestID, 
     }
 
     PlayTypewriterEffect(TextToPlay);
+}
+
+void UCPNPCDialogueWidget::InitResultDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const FText& InDialogueText, ACPLabNPC* InSourceLabNPC)
+{
+    CurrentQuestID = InQuestID;
+    bCurrentIsWorkshopQuest = bIsWorkshopQuest;
+    SourceLabNPC = InSourceLabNPC;
+    bIsPotionResultDialogue = true; 
+
+    if (Text_NPCName) {
+        Text_NPCName->SetText(InNPCName);
+    }
+
+    PlayTypewriterEffect(InDialogueText);
+}
+
+void UCPNPCDialogueWidget::BindEvents()
+{
+    Super::BindEvents();
+}
+
+void UCPNPCDialogueWidget::UnbindEvents()
+{
+    if (GetWorld())
+    {
+        GetWorld()->GetTimerManager().ClearTimer(TypewriterTimerHandle);
+    }
+    Super::UnbindEvents();
 }
 
 void UCPNPCDialogueWidget::PlayTypewriterEffect(const FText& InDialogueText)
@@ -92,6 +127,18 @@ void UCPNPCDialogueWidget::CreateChoiceButtons()
 
     HBox_ChoiceList->ClearChildren();
 
+    //결과 보기 버튼
+    if (bIsPotionResultDialogue)
+    {
+        UCPNPCDialogueButtonWidget* NewButton = CreateWidget<UCPNPCDialogueButtonWidget>(this, DialogueButtonClass);
+        if (NewButton) {
+            NewButton->SetButtonText(FText::FromString(TEXT("결과 보기")));
+            NewButton->OnButtonClickedEvent.AddDynamic(this, &UCPNPCDialogueWidget::OnChoiceSelected);
+            HBox_ChoiceList->AddChild(NewButton);
+        }
+        return;
+    }
+
     if (!bCurrentIsWorkshopQuest) {
         // [마을 퀘스트] "네" 버튼 생성
         UCPNPCDialogueButtonWidget* NewButton = CreateWidget<UCPNPCDialogueButtonWidget>(this, DialogueButtonClass);
@@ -128,7 +175,18 @@ void UCPNPCDialogueWidget::OnChoiceSelected(const FString& ButtonText) {
     if (!GI) { return; }
 
     UQuestManager* QuestManager = GI->GetSubsystem<UQuestManager>();
+    UCPUIManagerSubsystem* UIManager = GI->GetSubsystem<UCPUIManagerSubsystem>();
 
+    if (ButtonText == TEXT("결과 보기"))
+    {
+        if (ACPLabNPC* LabNPC = SourceLabNPC.Get())
+        {
+            // NPC에게 명령해서 ResultWidget을 열도록 함
+            LabNPC->OpenResultWidget();
+        }
+        RequestClose(); // 대화창 닫기
+        return;
+    }
     if (ButtonText == TEXT("네")) {
         if (QuestManager && !CurrentQuestID.IsNone()) {
             QuestManager->AcceptQuest(CurrentQuestID);
@@ -136,17 +194,27 @@ void UCPNPCDialogueWidget::OnChoiceSelected(const FString& ButtonText) {
         RequestClose();
     }
     else if (ButtonText == TEXT("알겠습니다")) {
+      
+        if (ACPLabNPC* LabNPC = SourceLabNPC.Get())
+        {
+            LabNPC->SetRequestConfirmed(true);
+        }
+
+        if (UIManager && TagSelectionWidgetClass) {
+            UUserWidget* CreatedWidget = UIManager->PushWidget(TagSelectionWidgetClass);
+
+            if (UCPTagSelectionWidget* TagSelectionPopup = Cast<UCPTagSelectionWidget>(CreatedWidget)) {
+                TagSelectionPopup->InitTagSelectionWidget(CurrentQuestID);
+            }
+        }
+
         RequestClose();
-        // TODO : 태그 선택 UI
-        UE_LOG(LogTemp, Log, TEXT("태그 선택 시작"));
     }
     else if (ButtonText == TEXT("네? 그게 뭐죠?")) {
         if (QuestManager && !CurrentQuestID.IsNone()) {
-         
             CurrentHintLevel++;
             QuestManager->SetQuestHintLevel(CurrentQuestID, CurrentHintLevel);
 
-            // 단계에 맞는 텍스트 가져와 출력
             FText NextHint;
             if (CurrentHintLevel == 1) {
                 NextHint = QuestManager->GetSessionHintTextDetailed(CurrentQuestID);
