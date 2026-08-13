@@ -41,9 +41,6 @@ public:
 	TSubclassOf<UCPContainerMainWidget> InventoryUIClass;
 
 	UPROPERTY(EditAnywhere, Category = "Container|Input")
-	UInputMappingContext* InventoryMappingContext;
-
-	UPROPERTY(EditAnywhere, Category = "Container|Input")
 	UInputAction* ToggleInventoryAction;
 
 private:

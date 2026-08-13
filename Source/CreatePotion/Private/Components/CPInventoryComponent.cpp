@@ -2,7 +2,6 @@
 
 #include "Components/CPInventoryComponent.h"
 #include "EnhancedInputComponent.h"
-#include "EnhancedInputSubsystems.h"
 #include "Engine/LocalPlayer.h"
 #include "CreatePotion.h"   // 로그용 헤더
 
@@ -53,7 +52,7 @@ void UCPInventoryComponent::BeginPlay()
 
 void UCPInventoryComponent::TryBindInput()
 {
-	if (!ToggleInventoryAction || !InventoryMappingContext)
+	if (!ToggleInventoryAction)
 	{
 		// 액션이 할당 안 되어 있으면 시도할 필요조차 없으니 타이머 즉시 종료
 		GetWorld()->GetTimerManager().ClearTimer(InputBindingTimerHandle);
@@ -63,12 +62,6 @@ void UCPInventoryComponent::TryBindInput()
 	APlayerController* PC = GetWorld()->GetFirstPlayerController();
 	if (PC && PC->InputComponent)
 	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
-		{
-			// 인벤토리용 IMC를 추가, priority = 1, 값이 높을 수록 우선
-			Subsystem->AddMappingContext(InventoryMappingContext, 1);
-		}
-
 		if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PC->InputComponent))
 		{
 			EnhancedInputComponent->BindAction(ToggleInventoryAction, ETriggerEvent::Started, this, &UCPInventoryComponent::ToggleInventoryUI);
@@ -94,8 +87,11 @@ void UCPInventoryComponent::TryBindInput()
 
 void UCPInventoryComponent::ToggleInventoryUI()
 {
+	UE_LOG(LogTemp, Warning, TEXT("[Inventory] 토글 버튼 눌림!"));
+
 	if (!InventoryUIInstance)
 	{
+		UE_LOG(LogTemp, Error, TEXT("[Inventory] UI 인스턴스가 없어서 리턴됨!"));
 		return;
 	}
 
