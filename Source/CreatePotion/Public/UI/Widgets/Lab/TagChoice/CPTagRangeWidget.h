@@ -6,6 +6,8 @@
 #include "Quest/QuestTypes.h"
 #include "CPTagRangeWidget.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTagConfirmedDelegate);
+
 USTRUCT(BlueprintType)
 struct FTagConfirmData
 {
@@ -27,6 +29,8 @@ class UButton;
 class UCPTagRangeEntryWidget;
 class UCPHintWidget;
 class UCPTagSelectionWidget;
+class UCPContainerMainWidget;
+class UCPLabIngredientSelectWidget;
 
 UCLASS()
 class CREATEPOTION_API UCPTagRangeWidget : public UCPBasePopupWidget
@@ -80,4 +84,10 @@ private:
 	FName CurrentQuestID;
 	TArray<FGameplayTag> SelectedTags;
 	TMap<FGameplayTag, int32> SavedTagValues; // 이전 설정 수치 기억용
+	
+public:
+	// 태그 확정 완료 델리게이트
+	UPROPERTY(BlueprintAssignable, Category = "UI")
+	FOnTagConfirmedDelegate OnTagRangeConfirmed;
+	
 };

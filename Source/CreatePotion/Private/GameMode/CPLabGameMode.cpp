@@ -9,81 +9,16 @@
 #include "PlayerState/CPLabPlayerState.h"
 #include "Quest/QuestManager.h"
 
-namespace
-{
-	// 실제 리퀘스트 시스템이 연결되기 전 사용할 간단한 테스트 데이터 생성
-	FCPLabPotionRequest MakeTestRequest(
-		FName RequestId,
-		FText DisplayText)
-	{
-		FCPLabPotionRequest PotionRequest;
-		PotionRequest.RequestId = RequestId;
-		PotionRequest.DisplayText = MoveTemp(DisplayText);
-		return PotionRequest;
-	}
-
-	// PR 이후 제거 예정: 현재 리퀘스트 페이즈 확인용 문자열 변환
-	FString GetDebugRequestPhaseText(ECPLabPotionRequestPhase Phase)
-	{
-		switch (Phase){
-		case ECPLabPotionRequestPhase::Queued:
-			return TEXT("대기");
-
-		case ECPLabPotionRequestPhase::Preparing:
-			return TEXT("재료 준비");
-
-		case ECPLabPotionRequestPhase::Processing:
-			return TEXT("가공");
-
-		case ECPLabPotionRequestPhase::PotionReady:
-			return TEXT("포션 완성");
-
-		case ECPLabPotionRequestPhase::Delivered:
-			return TEXT("납품 완료");
-
-		default:
-			return TEXT("알 수 없음");
-		}
-	}
-
-	// PR 이후 제거 예정: 현재 리퀘스트 페이즈 확인용 DebugMessage
-	void ShowDebugRequestPhase(const UCPLabPotionSessionComponent* Session)
-	{
-		if (!GEngine || !Session) return;
-
-		FCPLabPotionRequestState ActiveRequestState;
-		const FString RequestPhaseText = Session->GetActiveRequestState(ActiveRequestState)
-			? GetDebugRequestPhaseText(ActiveRequestState.Phase)
-			: TEXT("없음");
-
-		GEngine->AddOnScreenDebugMessage(
-			-1,
-			4.f,
-			FColor::Yellow,
-			FString::Printf(TEXT("리퀘스트 단계: %s"), *RequestPhaseText));
-	}
-}
-
 ACPLabGameMode::ACPLabGameMode()
 {
 	GameStateClass = ACPLabGameState::StaticClass();
 	PlayerStateClass = ACPLabPlayerState::StaticClass();
-
-	// 현재 프로토타입은 리퀘스트 하나로 전체 제조 흐름 확인
-	DefaultTestRequests =
-	{
-		MakeTestRequest(
-			FName(TEXT("TestPotionRequest01")),
-			FText::FromString(TEXT("Create the first test potion.")))
-	};
 	
 	SlotActorTag = FName(TEXT("IngredientSlot"));
 }
 
 bool ACPLabGameMode::TryStartLabSession()
 {
-	// 관련 사항 구현 후 삭제(프로토타입 퀘스트를 Accepted 상태로 변경)
-	AcceptProtoTypeQuest();
 	return TryStartLabSessionWithRequests(BuildQuestRequests());
 }
 
@@ -292,61 +227,9 @@ bool ACPLabGameMode::RestoreUseLimit(const ACPAlchemyProp* ItemInstance)
 	return bForgotAny;
 }
 
-void ACPLabGameMode::DebugAdvanceSessionPhase()
-{
-	// 월드 Actor가 완성되기 전 세션 진행 상태만 빠르게 확인하는 함수
-	UCPLabPotionSessionComponent* Session = GetPotionSession();
-	if (!Session) return;
-
-	const FCPLabPotionSessionState SessionState = Session->GetSessionState();
-
-	if (SessionState.Phase == ECPLabPotionSessionPhase::WaitingForBell){
-		const bool bStarted = TryStartLabSession();
-		ShowDebugRequestPhase(Session);
-		return;
-	}else if (SessionState.Phase == ECPLabPotionSessionPhase::Completed){
-		ResetLabSession();
-		ShowDebugRequestPhase(Session);
-		return;
-	}
-
-	FCPLabPotionRequestState ActiveRequestState;
-	if (!Session->GetActiveRequestState(ActiveRequestState)) return;
-
-	switch (ActiveRequestState.Phase){
-	case ECPLabPotionRequestPhase::Queued:
-		TryAcceptActiveRequest();
-		break;
-
-	case ECPLabPotionRequestPhase::Preparing:
-		TryBeginActiveRequestProcessing();
-		break;
-
-	case ECPLabPotionRequestPhase::Processing:
-		TryFinishActivePotion();
-		break;
-
-	case ECPLabPotionRequestPhase::PotionReady:
-		TryDeliverActivePotion();
-		break;
-
-	default:
-		break;
-	}
-
-	ShowDebugRequestPhase(Session);
-}
-
 void ACPLabGameMode::SetIngredientsDataAsset(const TArray<UCPForageableItemData*>& IngredientsDataAsset)
 {
-	// 동작 구현 전 테스트를 위한 주석 처리 
-	//if (IngredientsDataAsset.Num() <= 0) return;
-	
-	// 재료 선택 UI 구현 후 삭제
-	if (SpawnIngredients()){
-		TryBeginActiveRequestProcessing();
-		return;
-	}
+	if (IngredientsDataAsset.IsEmpty()) return;
 	
 	Ingredients.Reset();
 	Ingredients.Reserve(IngredientsDataAsset.Num());
@@ -354,6 +237,8 @@ void ACPLabGameMode::SetIngredientsDataAsset(const TArray<UCPForageableItemData*
 	for (UCPForageableItemData* IngredientItemData : IngredientsDataAsset){
 		Ingredients.Add(IngredientItemData);
 	}
+	
+	if (Ingredients.IsEmpty()) return;
 	
 	// 배치 성공하면 제조 Phase로 전환
 	if (SpawnIngredients()){
@@ -388,15 +273,6 @@ FName ACPLabGameMode::GetActiveRequestId() const
 	return Session->GetActiveRequestState(ActiveRequestState)
 		? ActiveRequestState.PotionRequest.RequestId
 		: NAME_None;
-}
-
-void ACPLabGameMode::AcceptProtoTypeQuest() const
-{
-	UGameInstance* GameInstance = GetGameInstance();
-	UQuestManager* QuestManager = GameInstance ? GameInstance->GetSubsystem<UQuestManager>() : nullptr;
-	if (!QuestManager) return;
-	
-	QuestManager->AcceptQuest(FName(TEXT("Origin_Q001")));
 }
 
 TArray<FCPLabPotionRequest> ACPLabGameMode::BuildQuestRequests() const

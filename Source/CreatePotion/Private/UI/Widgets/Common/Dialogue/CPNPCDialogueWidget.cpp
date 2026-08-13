@@ -201,7 +201,7 @@ void UCPNPCDialogueWidget::OnChoiceSelected(const FString& ButtonText) {
         }
 
         if (UIManager && TagSelectionWidgetClass) {
-            UUserWidget* CreatedWidget = UIManager->PushWidgetBP(TagSelectionWidgetClass);
+            UUserWidget* CreatedWidget = UIManager->PushWidget(TagSelectionWidgetClass);
 
             if (UCPTagSelectionWidget* TagSelectionPopup = Cast<UCPTagSelectionWidget>(CreatedWidget)) {
                 TagSelectionPopup->InitTagSelectionWidget(CurrentQuestID);

@@ -7,80 +7,6 @@
 #include "UI/Widgets/Lab/CPLabResultWidget.h"
 #include "GameState/CPLabGameState.h" 
 #include "Lab/Component/CPLabPotionSessionComponent.h"
-#include "GameplayTagContainer.h"
-#include "Components/StateTreeComponent.h"
-#include "Components/CapsuleComponent.h"
-#include "Character/CPInteractionComponent.h"
-
-// UI 연결 전 디버깅용
-namespace
-{
-	FString GetDeliveryGradeText(EDeliveryGrade DeliveryGrade)
-	{
-		switch (DeliveryGrade) {
-		case EDeliveryGrade::Fail:
-			return TEXT("Fail");
-
-		case EDeliveryGrade::Okay:
-			return TEXT("Okay");
-
-		case EDeliveryGrade::Good:
-			return TEXT("Good");
-
-		case EDeliveryGrade::Perfect:
-			return TEXT("Perfect");
-
-		default:
-			return TEXT("Unknown");
-		}
-	}
-
-	void ShowPotionDeliveryResultDebugMessage(const FCPPotionDeliveryResult& Result)
-	{
-		if (!GEngine) return;
-
-		GEngine->AddOnScreenDebugMessage(
-			-1,
-			5.f,
-			FColor::Yellow,
-			FString::Printf(
-				TEXT("납품 결과 | QuestId: %s | Grade: %s | Reward: %d | Tip: %d"),
-				*Result.QuestId.ToString(),
-				*GetDeliveryGradeText(Result.DeliveryGrade),
-				Result.RewardAmount,
-				Result.TipAmount));
-
-		for (const FAlchemyProperty& CurrentEffect : Result.CurrentEffects) {
-			GEngine->AddOnScreenDebugMessage(
-				-1,
-				5.f,
-				FColor::Cyan,
-				FString::Printf(
-					TEXT("현재 효과 | %s : %d"),
-					*CurrentEffect.Tag.ToString(),
-					CurrentEffect.Value));
-		}
-
-		for (int32 Index = 0; Index < Result.MinTargetEffects.Num(); ++Index) {
-			const FAlchemyProperty& MinTargetEffect = Result.MinTargetEffects[Index];
-
-			FString MaxValueText = TEXT("None");
-			if (Result.MaxTargetEffects.IsValidIndex(Index)) {
-				MaxValueText = FString::FromInt(Result.MaxTargetEffects[Index].Value);
-			}
-
-			GEngine->AddOnScreenDebugMessage(
-				-1,
-				5.f,
-				FColor::Green,
-				FString::Printf(
-					TEXT("목표 효과 | %s : Min %d / Max %s"),
-					*MinTargetEffect.Tag.ToString(),
-					MinTargetEffect.Value,
-					*MaxValueText));
-		}
-	}
-}
 
 void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 {
@@ -137,7 +63,6 @@ void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 			결과 UI 확인 버튼에서 ConfirmPotionDeliveryResult()를 호출한다.
 			*/
 			const FCPPotionDeliveryResult DeliveryResult = LabGameMode->GetPotionDeliveryResult();
-			ShowPotionDeliveryResultDebugMessage(DeliveryResult);
 
 			FText ResultDialogueText;
 			FName EventTagName = NAME_None;
@@ -145,22 +70,22 @@ void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 			switch (DeliveryResult.DeliveryGrade)
 			{
 			case EDeliveryGrade::Perfect:
-				ResultDialogueText = FText::FromString(TEXT("와!정말 마음에 드는 포션이에요! 정말 감사합니다."));
+				ResultDialogueText = FText::FromString(TEXT("와! 정말 마음에 드는 포션이에요!Perfect!"));
 				//EventTagName = FName("NPC.Event.DeliverySuccess");
 				break;
 			case EDeliveryGrade::Good:
-				ResultDialogueText = FText::FromString(TEXT("와! 너무 괜찮네요~ 고생하셨어요"));
+				ResultDialogueText = FText::FromString(TEXT("오~ 괜찮네요! 고생하셨어요.Good!"));
 				//EventTagName = FName("NPC.Event.DeliverySuccess");
 				break;
 
 			case EDeliveryGrade::Okay:
-				ResultDialogueText = FText::FromString(TEXT("음... 요청한 성분과 약간 차이가 있지만, 그런대로 쓸 수 있겠네요."));
+				ResultDialogueText = FText::FromString(TEXT("음... 요청한 성분과 약간 차이가 있지만, 그런대로 쓸 수 있겠네요.Okay!"));
 				//EventTagName = FName("NPC.Event.DeliveryPartialFail");
 				break;
 
 			case EDeliveryGrade::Fail:
 			default:
-				ResultDialogueText = FText::FromString(TEXT("이건 제가 부탁한 포션이 전혀 아니에요! 다시 만들어 주시겠어요?"));
+				ResultDialogueText = FText::FromString(TEXT("이건 제가 부탁한 포션이 전혀 아니에요! Fail!"));
 				//EventTagName = FName("NPC.Event.DeliveryFail");
 				break;
 			}
@@ -168,7 +93,7 @@ void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 			// 대화 위젯 띄우기
 			if (DialogueWidgetClass)
 			{
-				ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidgetBP(DialogueWidgetClass));
+				ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
 
 				if (ActiveDialogueWidget)
 				{
@@ -192,7 +117,7 @@ void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 		// 포션 준비 단계 아니라면 기존 힌트 대화 출력
 		if (DialogueWidgetClass)
 		{
-			ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidgetBP(DialogueWidgetClass));
+			ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
 
 			if (ActiveDialogueWidget)
 			{
@@ -245,7 +170,7 @@ void ACPLabNPC::OpenResultWidget()
 	if (!UIManager || !LabGameMode || !ResultWidgetClass) return;
 
 	const FCPPotionDeliveryResult DeliveryResult = LabGameMode->GetPotionDeliveryResult();
-	UCPLabResultWidget* ResultWidget = Cast<UCPLabResultWidget>(UIManager->PushWidgetBP(ResultWidgetClass));
+	UCPLabResultWidget* ResultWidget = Cast<UCPLabResultWidget>(UIManager->PushWidget(ResultWidgetClass));
 
 	if (!ResultWidget)
 	{
@@ -281,6 +206,21 @@ void ACPLabNPC::HandleResultAccepted()
 		return;
 	}
 
+	//퀘스트 완료 처리
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UQuestManager* QuestManager = GameInstance->GetSubsystem<UQuestManager>())
+		{
+			for (const FName& QuestID : NPCData->LabQuestIDs)
+			{
+				if (!QuestID.IsNone() && QuestManager->GetQuestState(QuestID) == EQuestState::Accepted)
+				{
+					QuestManager->CompleteQuest(QuestID);
+					break;
+				}
+			}
+		}
+	}
 	if (IsValid(ActiveResultWidget))
 	{
 		ActiveResultWidget->RequestClose();
@@ -293,6 +233,8 @@ void ACPLabNPC::HandleResultAccepted()
 // 재시도 버튼 클릭 시 (결과창만 닫고 NPC는 유지)
 void ACPLabNPC::HandleResultRetryRequested()
 {
+	// TODO : 재시도 
+
 	if (IsValid(ActiveResultWidget))
 	{
 		ActiveResultWidget->RequestClose();

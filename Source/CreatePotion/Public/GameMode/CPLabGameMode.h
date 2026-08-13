@@ -107,12 +107,8 @@ public:
 	// Prop을 되돌릴 때 등록된 processor들에게 해당 Prop의 사용 제한 복구 요구
 	bool RestoreUseLimit(const ACPAlchemyProp* ItemInstance);
 	
-	// 현재 상태를 다음 단계로 넘기는 테스트 전용 함수
-	UFUNCTION(BlueprintCallable, Category = "Lab|Debug")
-	void DebugAdvanceSessionPhase();
-	
 	// 재료 생성 단계에서 Spawn 할 재료의 DA 지정
-	UFUNCTION(BlueprintCallable, Category = "Lab|Debug")
+	UFUNCTION(BlueprintCallable, Category = "Lab|Ingredients")
 	void SetIngredientsDataAsset(const TArray<UCPForageableItemData*>& IngredientsDataAsset);
 	
 protected:
@@ -122,9 +118,6 @@ private:
 	ACPLabGameState* GetLabGameState() const;
 	UCPLabPotionSessionComponent* GetPotionSession() const;
 	FName GetActiveRequestId() const;
-	
-	// PR이후 삭제 예정 / 프로토타입 퀘스트를 Accepted 상태로 등록
-	void AcceptProtoTypeQuest() const;
 	
 	// 퀘스트를 QuestOrder 순서대로 공방 리퀘스트로 변환
 	TArray<FCPLabPotionRequest> BuildQuestRequests() const;
@@ -141,11 +134,7 @@ private:
 	// 등록된 가공 기구 상태 초기화
 	void ResetProcessors();
 	
-private:
-	// 실제 리퀘스트 시스템이 연결되기 전 사용할 테스트 데이터
-	UPROPERTY(EditDefaultsOnly, Category = "Lab|Debug")
-	TArray<FCPLabPotionRequest> DefaultTestRequests;
-	
+private:	
 	// 초기 재료 배치에 사용할 DA
 	UPROPERTY(EditDefaultsOnly, Category = "Lab|Ingredients")
 	TArray<TObjectPtr<UCPForageableItemData>> Ingredients;
@@ -155,15 +144,15 @@ private:
 	TObjectPtr<UCPForageableItemData> PotionItemData;
 		
 	// 재료를 놓을 SlotActor 탐색용 태그
-	UPROPERTY(EditDefaultsOnly, Category = "Lab|Debug")
+	UPROPERTY(EditDefaultsOnly, Category = "Lab|Session")
 	FName SlotActorTag;
 	
 	// 생성된 재료를 관리하는 배열
-	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Debug")
+	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Ingredients")
 	TArray<TObjectPtr<ACPAlchemyProp>> SpawnedIngredients;
 	
 	// 초기화할 가공기구를 관리하는 배열
-	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Debug")
+	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Processor")
 	TArray<TObjectPtr<UCPProcessorComponent>> ProcessorPendings;
 	
 	// 납품 판정 결과

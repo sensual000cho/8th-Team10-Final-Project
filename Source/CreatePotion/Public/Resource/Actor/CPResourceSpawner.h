@@ -36,10 +36,8 @@ protected:
 	// 초기 배치 시, 고유 Id 생성
 	virtual void PostActorCreated() override;
 	
-#if WITH_EDITOR
 	// Spawner 복제 시, GUid 복사 방지
 	virtual void PostEditImport() override;
-#endif
 	
 private:
 	// 전부 스폰

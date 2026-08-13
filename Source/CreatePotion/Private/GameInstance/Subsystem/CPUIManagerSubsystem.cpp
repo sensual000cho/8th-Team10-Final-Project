@@ -6,30 +6,6 @@
 #include "Blueprint/UserWidget.h"
 #include "UI/Widgets/Base/CPBasePopupWidget.h"
 
-template <typename T>
-T* UCPUIManagerSubsystem::PushWidget(TSubclassOf<T> WidgetClass)
-{
-	{
-		T* Widget = CreateWidget<T>(GetWorld(), WidgetClass);
-		
-		if (Widget)
-		{
-			Widget->AddToViewport(OpenWidgets.Num());
-			
-			ECPInputMode InputMode = ECPInputMode::GameAndUI; // 디폴트값
-			if (auto* PopupWidget = Cast<UCPBasePopupWidget>(Widget))
-			{
-				InputMode = PopupWidget->InputMode;
-			}
-			
-			// 열린 위젯 배열에 추가
-			OpenWidgets.Add({Widget, InputMode});
-			UpdateInputMode();
-		}
-		return Widget;
-	}
-}
-
 void UCPUIManagerSubsystem::CloseWidget(UUserWidget* Widget)
 {
 	UE_LOG(LogTemp, Warning, TEXT("[UIManager] CloseWidget 호출됨, Widget = %s, OpenWidgets.Num()=%d"),
@@ -92,6 +68,23 @@ UUserWidget* UCPUIManagerSubsystem::ToggleWidget(TSubclassOf<UUserWidget> Widget
 	}
 }
 
+UUserWidget* UCPUIManagerSubsystem::FindOpenWidget(TSubclassOf<UUserWidget> WidgetClass)
+{
+	if (!WidgetClass)
+	{
+		return nullptr;
+	}
+	
+	for (FPopupEntry PopupEntry : OpenWidgets)
+	{
+		if (PopupEntry.Widget && PopupEntry.Widget->IsA(WidgetClass))
+		{
+			return PopupEntry.Widget;
+		}
+	}
+	return nullptr;
+}
+
 void UCPUIManagerSubsystem::CloseTopWidget()
 {
 	if (OpenWidgets.Num() == 0) return;
@@ -145,7 +138,7 @@ void UCPUIManagerSubsystem::UpdateInputMode()
 	}
 }
 
-UUserWidget* UCPUIManagerSubsystem::PushWidgetBP(TSubclassOf<UUserWidget> WidgetClass)
+UUserWidget* UCPUIManagerSubsystem::PushWidget(TSubclassOf<UUserWidget> WidgetClass)
 {
 	if (!WidgetClass) return nullptr;
 	
@@ -166,6 +159,21 @@ UUserWidget* UCPUIManagerSubsystem::PushWidgetBP(TSubclassOf<UUserWidget> Widget
 		UpdateInputMode();
 	}
 	return Widget;
+}
+
+void UCPUIManagerSubsystem::RegisterPushedWidget(UUserWidget* Widget)
+{
+	Widget->AddToViewport(OpenWidgets.Num());
+			
+	ECPInputMode InputMode = ECPInputMode::GameAndUI; // 디폴트값
+	if (auto* PopupWidget = Cast<UCPBasePopupWidget>(Widget))
+	{
+		InputMode = PopupWidget->InputMode;
+	}
+			
+	// 열린 위젯 배열에 추가
+	OpenWidgets.Add({Widget, InputMode});
+	UpdateInputMode();
 }
 
 

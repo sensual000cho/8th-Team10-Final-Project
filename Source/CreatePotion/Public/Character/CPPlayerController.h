@@ -37,12 +37,12 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "Container")
 	UCPItemContainerComponent* CurrentInteractingContainer = nullptr;
 
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UCPContainerMainWidget> LabUIClass;
 
 	UPROPERTY()
 	UCPContainerMainWidget* LabUIInstance;
-
 
 #pragma region UI
 public:
@@ -52,7 +52,7 @@ public:
 protected:
 	UPROPERTY(EditAnywhere, Category = "UI|Tags")
 	FGameplayTag QuestToggleTag;
-	
-	
+
 #pragma endregion
+	
 };

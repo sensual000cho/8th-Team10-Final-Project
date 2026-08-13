@@ -15,7 +15,7 @@ ACPBaseNPC::ACPBaseNPC()
         GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
         GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Block);
     }
-    StateTreeComponent = CreateDefaultSubobject<UStateTreeComponent>(TEXT("StateTreeComponent"));
+    //StateTreeComponent = CreateDefaultSubobject<UStateTreeComponent>(TEXT("StateTreeComponent"));
 
 }
 

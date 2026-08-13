@@ -41,8 +41,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC")
 	TObjectPtr<UCPNPCDataAsset> NPCData;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI|StateTree")
-	TObjectPtr<UStateTreeComponent> StateTreeComponent;
+	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI|StateTree")
+	//TObjectPtr<UStateTreeComponent> StateTreeComponent;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|State")

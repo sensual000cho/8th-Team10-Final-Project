@@ -2,11 +2,18 @@
 #include "UI/Widgets/Lab/TagChoice/CPTagRangeEntryWidget.h"
 #include "UI/Widgets/Lab/TagChoice/CPHintWidget.h"
 #include "UI/Widgets/Lab/TagChoice/CPTagSelectionWidget.h"
+#include "UI/Widgets/Common/Container/CPContainerMainWidget.h"
+#include "UI/Widgets/Lab/CPLabIngredientSelectWidget.h"
 #include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
 #include "Components/ScrollBox.h"
 #include "Components/TextBlock.h"
 #include "Components/Button.h"
+#include "Components/CPItemContainerComponent.h"
+#include "Components/CPLabContainerComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Lab/Actor/CPLabContainerActor.h"
 #include "Quest/QuestManager.h"
+#include "GameFramework/Character.h"
 
 void UCPTagRangeWidget::BindEvents()
 {
@@ -135,6 +142,21 @@ void UCPTagRangeWidget::OnConfirmClicked()
 	}
 	//TODO : 재료 선택 UI 연결
 
+	// AActor* LabActor = UGameplayStatics::GetActorOfClass(GetWorld(), ACPLabContainerActor::StaticClass());
+	// UCPItemContainerComponent* TargetContainer = nullptr;
+	//
+	// if (LabActor)
+	// {
+	// 	TargetContainer = LabActor->FindComponentByClass<UCPLabContainerComponent>();
+	// }
+	//
+	// if (!TargetContainer)
+	// {
+	// 	UE_LOG(LogTemp, Error, TEXT("[TagRangeWidget] 월드 내 LabContainer 컴포넌트 미발견"));
+	// 	return;
+	// }
+	
+	OnTagRangeConfirmed.Broadcast();
 	RequestClose();
 }
 
@@ -156,7 +178,7 @@ void UCPTagRangeWidget::OnBackClicked()
 	{
 		if (UCPUIManagerSubsystem* UIManager = GI->GetSubsystem<UCPUIManagerSubsystem>())
 		{
-			if (UUserWidget* CreatedWidget = UIManager->PushWidgetBP(TagSelectionWidgetClass))
+			if (UUserWidget* CreatedWidget = UIManager->PushWidget(TagSelectionWidgetClass))
 			{
 				if (UCPTagSelectionWidget* TagSelectionWidget = Cast<UCPTagSelectionWidget>(CreatedWidget))
 				{
