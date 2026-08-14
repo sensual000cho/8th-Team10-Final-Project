@@ -1,6 +1,5 @@
 #include "UI/Widgets/Lab/Helper/CPLabResultUICalc.h"
 
-#include "Data/CPForageableItemData.h"
 #include "GameMode/CPLabGameMode.h"
 #include "Quest/QuestManager.h"
 #include "Quest/QuestTypes.h"
@@ -19,65 +18,61 @@ bool FCPLabResultUICalc::ApplyDeliveryResult(
 		GetGradeText(DeliveryResult.DeliveryGrade));
 	ResultWidget->SetDiagnosisText(GetDiagnosisText(DeliveryResult.DeliveryGrade));
 
-	TArray<FAlchemyProperty> SortedCurrentEffects = DeliveryResult.CurrentEffects;
-	SortedCurrentEffects.Sort([](const FAlchemyProperty& Left, const FAlchemyProperty& Right)
+	TArray<FGameplayTag> SortedCurrentEffects = DeliveryResult.CurrentEffects;
+	SortedCurrentEffects.Sort([](const FGameplayTag& Left, const FGameplayTag& Right)
 	{
-		const int32 LeftOrder = GetEffectDisplayOrder(Left.Tag);
-		const int32 RightOrder = GetEffectDisplayOrder(Right.Tag);
+		const int32 LeftOrder = GetEffectDisplayOrder(Left);
+		const int32 RightOrder = GetEffectDisplayOrder(Right);
 		return LeftOrder == RightOrder
-			? Left.Tag.ToString() < Right.Tag.ToString()
+			? Left.ToString() < Right.ToString()
 			: LeftOrder < RightOrder;
 	});
 
-	for (const FAlchemyProperty& Effect : SortedCurrentEffects)
+	for (const FGameplayTag& EffectTag : SortedCurrentEffects)
 	{
-		if (!Effect.Tag.IsValid()) continue;
+		if (!EffectTag.IsValid()) continue;
 		ResultWidget->AddEffectRow(
-			GetEffectDisplayName(Effect.Tag),
-			FormatSignedValue(Effect.Value));
+			GetEffectDisplayName(EffectTag),
+			FText::FromString(TEXT("있음")));
 	}
 
-	const TArray<FConditionEvaluation> ConditionEvaluations = QuestManager->EvaluateConditions(
-		DeliveryResult.QuestId,
-		DeliveryResult.CurrentEffects);
+	const TArray<FQuestEffectRequirement> Requirements =
+		QuestManager->GetQuestEffectRequirements(DeliveryResult.QuestId);
 
-	for (const FConditionEvaluation& Evaluation : ConditionEvaluations)
+	for (const FQuestEffectRequirement& Requirement : Requirements)
 	{
-		const FAlchemyProperty* CurrentEffect = FindEffect(
-			DeliveryResult.CurrentEffects,
-			Evaluation.Axis);
-		const FAlchemyProperty* MinTargetEffect = FindEffect(
-			DeliveryResult.MinTargetEffects,
-			Evaluation.Axis);
-		const FAlchemyProperty* MaxTargetEffect = FindEffect(
-			DeliveryResult.MaxTargetEffects,
-			Evaluation.Axis);
-
-		const FText ActualValueText = CurrentEffect
-			? FormatSignedValue(CurrentEffect->Value)
-			: FText::FromString(TEXT("없음"));
-		FText TargetValueText;
-		if (!Evaluation.bWasRequested)
-		{
-			TargetValueText = FText::FromString(TEXT("요청 없음"));
-		}
-		else if (!MinTargetEffect || !MaxTargetEffect)
-		{
-			TargetValueText = FText::FromString(TEXT("조건 데이터 오류"));
-		}
-		else
-		{
-			TargetValueText = FormatTargetRange(MinTargetEffect->Value, MaxTargetEffect->Value);
-		}
+		const bool bHasCurrentEffect = DeliveryResult.CurrentEffects.Contains(Requirement.Axis);
 
 		ResultWidget->AddConditionRow(
-			GetEffectDisplayName(Evaluation.Axis),
-			ActualValueText,
-			TargetValueText,
+			GetEffectDisplayName(Requirement.Axis),
+			bHasCurrentEffect ? FText::FromString(TEXT("있음")) : FText::FromString(TEXT("없음")),
+			FText::FromString(TEXT("요청됨")),
 			GetConditionStatusText(
-				Evaluation.Result,
-				Evaluation.bWasRequested,
-				CurrentEffect != nullptr));
+				bHasCurrentEffect ? EConditionMatchResult::Correct : EConditionMatchResult::WrongTag,
+				true,
+				bHasCurrentEffect));
+	}
+
+	for (const FGameplayTag& EffectTag : SortedCurrentEffects)
+	{
+		if (!EffectTag.IsValid()) continue;
+
+		const bool bWasRequested = Requirements.ContainsByPredicate(
+			[&EffectTag](const FQuestEffectRequirement& Requirement)
+			{
+				return Requirement.Axis == EffectTag;
+			});
+
+		if (bWasRequested) continue;
+
+		ResultWidget->AddConditionRow(
+			GetEffectDisplayName(EffectTag),
+			FText::FromString(TEXT("있음")),
+			FText::FromString(TEXT("요청 없음")),
+			GetConditionStatusText(
+				EConditionMatchResult::WrongTag,
+				false,
+				true));
 	}
 
 	// 현재 계약에서 TipAmount는 세부 사유 없이 합산된 추가 보상이다.
@@ -234,16 +229,6 @@ FText FCPLabResultUICalc::GetConditionStatusText(
 	default:
 		return FText::FromString(TEXT("판정 오류"));
 	}
-}
-
-const FAlchemyProperty* FCPLabResultUICalc::FindEffect(
-	const TArray<FAlchemyProperty>& Effects,
-	const FGameplayTag& EffectTag)
-{
-	return Effects.FindByPredicate([&EffectTag](const FAlchemyProperty& Effect)
-	{
-		return Effect.Tag == EffectTag;
-	});
 }
 
 int32 FCPLabResultUICalc::GetEffectDisplayOrder(const FGameplayTag& EffectTag)

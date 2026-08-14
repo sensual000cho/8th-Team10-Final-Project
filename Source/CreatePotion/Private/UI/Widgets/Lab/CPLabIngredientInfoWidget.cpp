@@ -59,9 +59,7 @@ void UCPLabIngredientInfoWidget::ApplyIngredientInfo(const FCPLabIngredientInsta
 {
 	if (!InIngredient.IsValid())
 	{
-		// 재료가 사라지면 이전 재료의 예상 효과도 함께 지워 잔상이 남지 않게 한다.
 		Ingredient = FCPLabIngredientInstance{};
-		PreviewEffects.Reset();
 		RefreshEmptyState();
 		return;
 	}
@@ -107,16 +105,8 @@ void UCPLabIngredientInfoWidget::UnbindEvents()
 	Super::UnbindEvents();
 }
 
-void UCPLabIngredientInfoWidget::SetPreviewEffects(
-	const TMap<FGameplayTag, int32>& InPreviewEffects)
-{
-	PreviewEffects = InPreviewEffects;
-	RebuildEffectRows();
-}
-
 void UCPLabIngredientInfoWidget::ClearPreviewEffects()
 {
-	PreviewEffects.Reset();
 	RebuildEffectRows();
 }
 
@@ -197,19 +187,14 @@ void UCPLabIngredientInfoWidget::RebuildEffectRows()
 	}
 	
 	// 재료의 현재 효과를 기반으로 Tag 구성
-	for (const TPair<FGameplayTag, int32>& Effect : Ingredient.CurrentEffects){
-		if (!Effect.Key.IsValid()) continue;
-		const int32* PreviewValue = PreviewEffects.Find(Effect.Key);
+	for (const FGameplayTag& EffectTag : Ingredient.CurrentEffects){
+		if (!EffectTag.IsValid()) continue;
 		
 		UCPLabIngredientEffectRowWidget* EffectRow = 
 			CreateWidget<UCPLabIngredientEffectRowWidget>(GetOwningPlayer(), EffectRowWidgetClass);
 		if (!EffectRow) continue;
 		
-		EffectRow->SetEffectData(
-			GetEffectDisplayName(Effect.Key), 
-			Effect.Value, 
-			PreviewValue != nullptr, 
-			PreviewValue ? *PreviewValue : Effect.Value);
+		EffectRow->SetEffectData(GetEffectDisplayName(EffectTag));
 		
 		VerticalBox_EffectRows->AddChildToVerticalBox(EffectRow);
 	}
