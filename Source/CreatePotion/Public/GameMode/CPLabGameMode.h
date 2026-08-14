@@ -26,13 +26,7 @@ struct FCPPotionDeliveryResult
 	EDeliveryGrade DeliveryGrade = EDeliveryGrade::Fail;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Lab|Result")
-	TArray<FAlchemyProperty> MinTargetEffects;
-	
-	UPROPERTY(BlueprintReadOnly, Category = "Lab|Result")
-	TArray<FAlchemyProperty> MaxTargetEffects;
-	
-	UPROPERTY(BlueprintReadOnly, Category = "Lab|Result")
-	TArray<FAlchemyProperty> CurrentEffects;
+	TArray<FGameplayTag> CurrentEffects;
 	
 	// 기본 보상
 	UPROPERTY(BlueprintReadOnly, Category = "Lab|Result")

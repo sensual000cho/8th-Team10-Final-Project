@@ -9,18 +9,6 @@
 
 class ACPAlchemyProp;
 
-USTRUCT(BlueprintType)
-struct FAlchemyProperty
-{
-	GENERATED_BODY()
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	FGameplayTag Tag;
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	int32 Value = 0;
-};
-
 UCLASS(BlueprintType)
 class CREATEPOTION_API UCPForageableItemData : public UDataAsset
 {
@@ -32,10 +20,7 @@ public:
 	
 	// Tag
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tag")
-	TArray<FAlchemyProperty> TagAxes;
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tag")
-	FAlchemyProperty SpecialProperty;
+	TArray<FGameplayTag> TagAxes;
 	
 	// 인벤토리
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory", meta = (ClampMin = "1"))

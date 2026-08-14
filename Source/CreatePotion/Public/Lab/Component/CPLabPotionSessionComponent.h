@@ -9,7 +9,7 @@ class UCPForageableItemData;
 class ACPAlchemyProp;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FCPOnLabSessionChanged);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FCPOnLabPotionResultChanged, const TArray<FAlchemyProperty>&, EffectTotals);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FCPOnLabPotionResultChanged, const TArray<FGameplayTag>&, EffectTotals);
 
 // 포션 세션과 공방 슬롯 상태를 한곳에서 관리
 UCLASS()
@@ -55,7 +55,7 @@ public:
 	bool FinalizePotionResult(ACPAlchemyProp* PotionProp, UCPForageableItemData* PotionItemData);
 	
 	UFUNCTION(BlueprintCallable, Category = "Lab|Result")
-	const TArray<FAlchemyProperty>& GetPotionResult() const;
+	const TArray<FGameplayTag>& GetPotionResult() const;
 
 private:
 	// 현재 상태에서 요청한 다음 상태로 이동할 수 있는지 확인
@@ -82,5 +82,5 @@ private:
 	TObjectPtr<ACPAlchemyProp> HeldAlchemyProp;
 	
 	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Result")
-	TArray<FAlchemyProperty> CurrentPotionResult;
+	TArray<FGameplayTag> CurrentPotionResult;
 };

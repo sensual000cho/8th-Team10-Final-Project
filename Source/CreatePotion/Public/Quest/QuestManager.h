@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-#include "Public/Data/CPForageableItemData.h" // FAlchemyProperty 참조용 (채집물/연금 태그 구조체)
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "QuestTypes.h"
@@ -122,11 +121,11 @@ public:
 
 	// 퀘스트가 요구하는 조건과 비교, 등급을 매김
 	UFUNCTION(BlueprintCallable, Category = "Quest")
-	EDeliveryGrade TryDeliver(FName QuestID, const TArray<FAlchemyProperty>& PotionResult);
+	EDeliveryGrade TryDeliver(FName QuestID, const TArray<FGameplayTag>& PotionResult);
 
 	// 조건 하나하나에 대한 세부 판정 (O/Up/Down/태그오답)
 	UFUNCTION(BlueprintCallable, Category = "Quest")
-	TArray<FConditionEvaluation> EvaluateConditions(FName QuestID, const TArray<FAlchemyProperty>& PotionResult) const;
+	TArray<FConditionEvaluation> EvaluateConditions(FName QuestID, const TArray<FGameplayTag>& PotionResult) const;
 
 	// 요구 조건 조회
 	UFUNCTION(BlueprintCallable, Category = "Quest")

@@ -6,7 +6,6 @@
 
 class ACPAlchemyProp;
 class UCPInteractionComponent;
-class UCPProcessorComponent;
 class UCPLabPotionSessionComponent;
 
 /**
@@ -34,7 +33,6 @@ private:
 	void HandlePreviewIngredientChanged();
 
 	void RefreshHeldIngredient();
-	void RefreshProcessorPreview();
 	void BindPreviewIngredient(ACPAlchemyProp* IngredientProp);
 	void UnbindPreviewIngredient();
 
@@ -44,9 +42,6 @@ private:
 
 	UPROPERTY(Transient)
 	TWeakObjectPtr<UCPInteractionComponent> BoundInteractionComponent;
-
-	UPROPERTY(Transient)
-	TWeakObjectPtr<UCPProcessorComponent> FocusedProcessor;
 
 	UPROPERTY(Transient)
 	TWeakObjectPtr<ACPAlchemyProp> PreviewIngredient;

@@ -104,7 +104,7 @@ bool UCPLabPotionSessionComponent::FinalizePotionResult(ACPAlchemyProp* PotionPr
 	return true;
 }
 
-const TArray<FAlchemyProperty>& UCPLabPotionSessionComponent::GetPotionResult() const
+const TArray<FGameplayTag>& UCPLabPotionSessionComponent::GetPotionResult() const
 {
 	return CurrentPotionResult;
 }
