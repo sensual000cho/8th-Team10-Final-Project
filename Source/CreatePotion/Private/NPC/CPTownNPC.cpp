@@ -3,8 +3,6 @@
 #include "Data/CPNPCDataAsset.h"
 #include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
 #include "UI/Widgets/Common/Dialogue/CPNPCDialogueWidget.h"
-#include "GameplayTagContainer.h"
-#include "Components/StateTreeComponent.h"
 
 void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 {
@@ -52,12 +50,6 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 					ActiveDialogueWidget->InitDialogue(false, QuestID, NPCNameText, FullScript);
 				}
 			}
-			/*if (StateTreeComponent)
-			{
-				FStateTreeEvent Event;
-				Event.Tag = FGameplayTag::RequestGameplayTag(FName("NPC.Event.Talk"));
-				StateTreeComponent->SendStateTreeEvent(Event);
-			}*/
 			break;
 		}
 	}

@@ -71,22 +71,18 @@ void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 			{
 			case EDeliveryGrade::Perfect:
 				ResultDialogueText = FText::FromString(TEXT("와! 정말 마음에 드는 포션이에요!Perfect!"));
-				//EventTagName = FName("NPC.Event.DeliverySuccess");
 				break;
 			case EDeliveryGrade::Good:
 				ResultDialogueText = FText::FromString(TEXT("오~ 괜찮네요! 고생하셨어요.Good!"));
-				//EventTagName = FName("NPC.Event.DeliverySuccess");
 				break;
 
 			case EDeliveryGrade::Okay:
 				ResultDialogueText = FText::FromString(TEXT("음... 요청한 성분과 약간 차이가 있지만, 그런대로 쓸 수 있겠네요.Okay!"));
-				//EventTagName = FName("NPC.Event.DeliveryPartialFail");
 				break;
 
 			case EDeliveryGrade::Fail:
 			default:
 				ResultDialogueText = FText::FromString(TEXT("이건 제가 부탁한 포션이 전혀 아니에요! Fail!"));
-				//EventTagName = FName("NPC.Event.DeliveryFail");
 				break;
 			}
 
@@ -102,14 +98,6 @@ void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 				}
 			}
 
-			/* StateTree 애니메이션 태그 송출 
-			if (StateTreeComponent && !EventTagName.IsNone())
-			{
-				FStateTreeEvent Event;
-				Event.Tag = FGameplayTag::RequestGameplayTag(EventTagName);
-				StateTreeComponent->SendStateTreeEvent(Event);
-			}
-			*/
 			break;
 		}
 		FText FirstHint = QuestManager->GetSessionHintText(QuestID);

@@ -1,7 +1,6 @@
 #include "NPC/CPBaseNPC.h"
 #include "Data/CPNPCDataAsset.h"
 #include "Components/CapsuleComponent.h"
-#include "Components/StateTreeComponent.h"
 #include "Animation/AnimSequence.h"
 #include "Kismet/GameplayStatics.h"
 #include "Quest/QuestManager.h"
@@ -15,7 +14,6 @@ ACPBaseNPC::ACPBaseNPC()
         GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
         GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Block);
     }
-    //StateTreeComponent = CreateDefaultSubobject<UStateTreeComponent>(TEXT("StateTreeComponent"));
 
 }
 
@@ -73,26 +71,6 @@ bool ACPBaseNPC::CanInteract_Implementation(AActor* Interactor)
         *GetName(),
         Interactor ? *Interactor->GetName() : TEXT("Unknown"));
     return true;
-}
-
-bool ACPBaseNPC::GetDialogueEntryForCurrentState(FCPNPCDialogueEntry& OutEntry) const
-{
-    if (!NPCData) { return false; }
-
-    if (const FCPNPCSituationData* SituationData = NPCData->SituationData.Find(CurrentSituation))
-    {
-        if (const FCPNPCDialogueEntry* Entry = SituationData->EmotionVariants.Find(CurrentEmotion))
-        {
-            OutEntry = *Entry;
-            return true;
-        }
-        else if (const FCPNPCDialogueEntry* DefaultEntry = SituationData->EmotionVariants.Find(ECPNPCEmotion::Neutral))
-        {
-            OutEntry = *DefaultEntry;
-            return true;
-        }
-    }
-    return false;
 }
 
 void ACPBaseNPC::OnConstruction(const FTransform& Transform)
