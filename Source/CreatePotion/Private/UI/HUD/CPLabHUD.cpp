@@ -12,6 +12,13 @@
 #include "UI/Widgets/Lab/TagChoice/CPTagSelectionWidget.h"
 
 
+void ACPLabHUD::OnMainHUDWidgetCreated()
+{
+	Super::OnMainHUDWidgetCreated();
+	
+	//TODO: 퀘스트 저널 토글 델리게이트 바인딩
+}
+
 void ACPLabHUD::StartLabCraftingFlow()
 {
 	UGameInstance* GI = GetGameInstance();
@@ -33,28 +40,6 @@ void ACPLabHUD::StartLabCraftingFlow()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[LabHUD] 태그 선택 위젯 바인딩 실패 - 위젯을 찾지 못함"));
 	}
-	
-		
-	
-	
-	// UUserWidget* CreatedWidget = UIManager->FindOpenWidget(TagSelectionWidgetClass);
-	// if (CreatedWidget)
-	// {
-	// 	if (UCPTagRangeWidget* TagWidget = Cast<UCPTagRangeWidget>(UIManager->FindOpenWidget(TagRangeWidgetClass)))
-	// 	{
-	// 		TagWidget->OnTagConfirmed.AddDynamic(this, &ACPLabHUD::HandleTagConfirmed);
-	// 		UE_LOG(LogTemp, Warning, TEXT("[LabHUD] 태그 위젯 바인딩 성공"));
-	// 	}
-	// 	else
-	// 	{
-	// 		UE_LOG(LogTemp, Warning, TEXT("[LabHUD] 태그 위젯 바인딩 실패 - 위젯은 찾았으나 캐스팅 실패"));
-	// 	}
-	// }
-	// else
-	// {
-	// 	UE_LOG(LogTemp, Warning, TEXT("[LabHUD] 태그 위젯 바인딩 실패 - 태그 위젯 찾기 실패"));
-	// }
-	
 	
 }
 
@@ -164,10 +149,28 @@ void ACPLabHUD::HandleIngredientSelectionConfirmed()
 	
 	if (!LabContainer)
 	{
-		UE_LOG(LogTemp, Error, TEXT("[LabHUD] 월드에서 LabContainer를 찾을 수 없습니다."));
+		UE_LOG(LogTemp, Error, TEXT("[LabHUD] 월드에서 LabContainer를 찾을 수 없음."));
 		return;
 	}
 	
 	const TArray<UCPForageableItemData*>& SelectedItems = LabContainer->GetIngredientsData();
 	GM->SetIngredientsDataAsset(SelectedItems);
+}
+
+void ACPLabHUD::HandleQuestJournalToggle()
+{
+	UE_LOG(LogTemp, Warning, TEXT("[LabHUD] HandleQuestJournalToggle 호출됨"));
+	UGameInstance* GI = GetGameInstance();
+	if (!GI) return;
+	UCPUIManagerSubsystem* UIManager = GI->GetSubsystem<UCPUIManagerSubsystem>();
+	if (!UIManager) return;
+	
+	if (QuestJournalWidgetClass)
+	{
+		UIManager->ToggleWidget(QuestJournalWidgetClass);	
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LabHUD] QuestJournalWidgetClass 미할당"));
+	}
 }
