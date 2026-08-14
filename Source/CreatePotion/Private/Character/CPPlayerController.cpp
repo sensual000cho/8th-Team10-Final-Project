@@ -38,27 +38,6 @@ void ACPPlayerController::SetupInputComponent()
 	}
 }
 
-void ACPPlayerController::OnQuestTogglePressed()
-{
-	AHUD* CurrentHUD = GetHUD();
-	
-	if (CurrentHUD)
-	{
-		if (CurrentHUD->Implements<UCPLevelUIInterface>())
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[PC] HUD 인터페이스 확인 완료"));
-			
-			ICPLevelUIInterface::Execute_TogglePopup(CurrentHUD, QuestToggleTag);
-		}
-	}
-	else
-	{
-		{
-			UE_LOG(LogTemp, Error, TEXT("[PC] 현재 레벨에 HUD가 없습니다."));
-		}
-	}
-}
-
 #pragma region Container
 void ACPPlayerController::ToggleLabUI()
 {

@@ -6,6 +6,7 @@
 #include "UI/HUD/CPHUDBase.h"
 #include "CPLabHUD.generated.h"
 
+struct FTagSelectionData;
 class UCPTagSelectionWidget;
 class UCPLabIngredientSelectWidget;
 class UCPTagRangeWidget;
@@ -17,6 +18,8 @@ class CREATEPOTION_API ACPLabHUD : public ACPHUDBase
 	GENERATED_BODY()
 	
 public:
+	void OnMainHUDWidgetCreated();
+	
 	// TODO: 나중에 포션 제작 UI 흐름 이쪽으로 옮기기
 	// 공방 포션 제작 UI 플로우 시작 함수
 	UFUNCTION(BlueprintCallable, Category = "UI Flow")
@@ -30,6 +33,7 @@ public:
 	
 	
 public:
+	// --- 위젯 델리게이트 콜백 함수 ---
 	UFUNCTION()
 	void HandleTagRangeConfirmed();
 	
@@ -38,7 +42,14 @@ public:
 	
 	UFUNCTION()
 	void HandleIngredientSelectionConfirmed();
+	
+	UFUNCTION()
+	void HandleQuestJournalToggle();
+	
 protected:
+	
+	// --- 위젯 클래스 ---
+	
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UCPTagSelectionWidget> TagSelectionWidgetClass;
 	
@@ -47,5 +58,4 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UCPLabIngredientSelectWidget> LabIngredientSelectWidgetClass;
-
 };
