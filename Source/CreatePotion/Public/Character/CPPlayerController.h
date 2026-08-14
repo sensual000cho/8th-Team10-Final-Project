@@ -44,15 +44,4 @@ public:
 	UPROPERTY()
 	UCPContainerMainWidget* LabUIInstance;
 
-#pragma region UI
-public:
-	UFUNCTION(BlueprintCallable, Category = "UI")
-	void OnQuestTogglePressed();
-	
-protected:
-	UPROPERTY(EditAnywhere, Category = "UI|Tags")
-	FGameplayTag QuestToggleTag;
-
-#pragma endregion
-	
 };
