@@ -7,12 +7,11 @@ class UCPLabResultWidget;
 class UQuestManager;
 enum class EConditionMatchResult : uint8;
 enum class EDeliveryGrade : uint8;
-struct FAlchemyProperty;
 struct FCPPotionDeliveryResult;
 
 /**
  * 납품 판정 결과를 Result Widget의 표시 형식으로 변환한다.
- * 조건 판정은 직접 계산하지 않고 UQuestManager::EvaluateConditions 결과를 사용한다.
+ * 요구 조건은 UQuestManager에서 조회하고, 현재 결과는 태그 존재 여부로 표시한다.
  */
 class CREATEPOTION_API FCPLabResultUICalc
 {
@@ -47,11 +46,6 @@ private:
 		EConditionMatchResult MatchResult,
 		bool bWasRequested,
 		bool bHasCurrentEffect);
-
-	// Effect 배열에서 같은 Tag를 가진 항목을 찾는다.
-	static const FAlchemyProperty* FindEffect(
-		const TArray<FAlchemyProperty>& Effects,
-		const FGameplayTag& EffectTag);
 
 	// 최종 효능 목록의 고정 표시 순서를 반환한다.
 	static int32 GetEffectDisplayOrder(const FGameplayTag& EffectTag);

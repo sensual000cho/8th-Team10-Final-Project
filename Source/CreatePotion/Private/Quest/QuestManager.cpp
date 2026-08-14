@@ -37,6 +37,18 @@ void UQuestManager::Initialize(FSubsystemCollectionBase& Collection)
 	{
 		UE_LOG(LogTemp, Error, TEXT("QuestAnswerTable 로드 실패 - 경로 확인 필요"));
 	}
+
+	// TODO: DT_RandomQuestAnswer 테이블 생성 후 주석 해제 및 경로 확인
+	/*
+	UDataTable* LoadedRandomAnswerTable = Cast<UDataTable>(
+		StaticLoadObject(UDataTable::StaticClass(), nullptr, TEXT("/Game/CreatePotion/Quest/DT_RandomQuestAnswer.DT_RandomQuestAnswer"))
+	);
+	if (LoadedRandomAnswerTable)
+	{
+		RandomQuestAnswerTable = LoadedRandomAnswerTable;
+		UE_LOG(LogTemp, Warning, TEXT("RandomQuestAnswerTable 로드 성공"));
+	}
+	*/
 }
 
 // ===================================================================
@@ -82,6 +94,7 @@ TArray<FName> UQuestManager::GetAllTrackedQuestIDs() const
 	return QuestOrder;
 }
 
+// 팀원 요청으로 분리된 완료 처리 함수 (TryDeliver 등 여러 곳에서 재사용 가능)
 void UQuestManager::CompleteQuest(FName QuestID)
 {
 	if (QuestID.IsNone()) return;
@@ -140,27 +153,21 @@ FText UQuestManager::GetQuestSummaryText(FName QuestID) const
 // 1차 힌트
 FText UQuestManager::GetSessionHintText(FName QuestID) const
 {
-	if (!QuestAnswerTable) return FText::GetEmpty();
-
-	FQuestAnswerData* Answer = QuestAnswerTable->FindRow<FQuestAnswerData>(QuestID, TEXT(""));
+	FQuestAnswerData* Answer = FindAnswerData(QuestID);
 	return Answer ? Answer->SessionHintText : FText::GetEmpty();
 }
 
 // 2차(상세) 힌트
 FText UQuestManager::GetSessionHintTextDetailed(FName QuestID) const
 {
-	if (!QuestAnswerTable) return FText::GetEmpty();
-
-	FQuestAnswerData* Answer = QuestAnswerTable->FindRow<FQuestAnswerData>(QuestID, TEXT(""));
+	FQuestAnswerData* Answer = FindAnswerData(QuestID);
 	return Answer ? Answer->SessionHintText_Detailed : FText::GetEmpty();
 }
 
 // 3차(최종) 힌트
 FText UQuestManager::GetSessionHintTextDetailed2(FName QuestID) const
 {
-	if (!QuestAnswerTable) return FText::GetEmpty();
-
-	FQuestAnswerData* Answer = QuestAnswerTable->FindRow<FQuestAnswerData>(QuestID, TEXT(""));
+	FQuestAnswerData* Answer = FindAnswerData(QuestID);
 	return Answer ? Answer->SessionHintText_Detailed2 : FText::GetEmpty();
 }
 
@@ -184,9 +191,7 @@ void UQuestManager::SetQuestHintLevel(FName QuestID, int32 NewLevel)
 // 저장된 힌트 단계에 맞는 텍스트를 자동으로 골라 반환 (UI는 이 함수 하나만 호출하면 됨)
 FText UQuestManager::GetCurrentSessionHintText(FName QuestID) const
 {
-	if (!QuestAnswerTable) return FText::GetEmpty();
-
-	FQuestAnswerData* Answer = QuestAnswerTable->FindRow<FQuestAnswerData>(QuestID, TEXT(""));
+	FQuestAnswerData* Answer = FindAnswerData(QuestID);
 	if (!Answer) return FText::GetEmpty();
 
 	int32 Level = GetQuestHintLevel(QuestID);
@@ -203,6 +208,41 @@ FText UQuestManager::GetCurrentSessionHintText(FName QuestID) const
 	return Answer->SessionHintText;
 }
 
+// 퀘스트 정답 찾기 함수 - QuestAnswerTable(고유)을 먼저 찾고, 없으면 RandomQuestAnswerTable(랜덤)에서 찾음
+FQuestAnswerData* UQuestManager::FindAnswerData(FName QuestID) const
+{
+	if (QuestAnswerTable)
+	{
+		if (FQuestAnswerData* Found = QuestAnswerTable->FindRow<FQuestAnswerData>(QuestID, TEXT("")))
+			return Found;
+	}
+	if (RandomQuestAnswerTable)
+	{
+		if (FQuestAnswerData* Found = RandomQuestAnswerTable->FindRow<FQuestAnswerData>(QuestID, TEXT("")))
+			return Found;
+	}
+	return nullptr;
+}
+
+// 퀘스트 완료 보상 골드 조회
+int32 UQuestManager::GetRewardGold(FName QuestID) const
+{
+	FQuestAnswerData* Answer = FindAnswerData(QuestID);
+	return Answer ? Answer->RewardGold : 0;
+}
+
+// 랜덤 퀘스트 하나를 무작위로 뽑아 반환 (모브 NPC 등장 시 사용)
+FName UQuestManager::GetRandomQuestID() const
+{
+	if (!RandomQuestAnswerTable) return NAME_None;
+
+	TArray<FName> AllIDs = RandomQuestAnswerTable->GetRowNames();
+	if (AllIDs.Num() == 0) return NAME_None;
+
+	int32 RandomIndex = FMath::RandRange(0, AllIDs.Num() - 1);
+	return AllIDs[RandomIndex];
+}
+
 // ===================================================================
 // [납품 판정 - 퍼즐 시스템과의 연결 지점]
 // ===================================================================
@@ -211,11 +251,11 @@ FText UQuestManager::GetCurrentSessionHintText(FName QuestID) const
 // 해당 퀘스트가 요구하는 조건(RequestedEffects)을 몇 개나 만족했는지 확인하고
 // 등급(Fail/Okay/Good/Perfect)을 넘겨주는 판정 함수
 //
-// - PotionResult: 퍼즐 시스템이 만든 최종 재료 태그+수치 배열 (TArray<FAlchemyProperty>)
+// - PotionResult: 퍼즐 시스템이 만든 최종 재료 태그 배열
 //   → 퍼즐 시스템이 이 결과물을 "어떻게" 만들었는지는 이 함수가 알 필요 없음
-//     오직 이 형태(태그+값 배열)로 결과가 들어오기만 하면 됨
-// - Fail이 아닌 경우 퀘스트 상태를 Completed로 전환하고 OnQuestUpdated 델리게이트를 방송함
-EDeliveryGrade UQuestManager::TryDeliver(FName QuestID, const TArray<FAlchemyProperty>& PotionResult)
+//     오직 이 형태(태그 배열)로 결과가 들어오기만 하면 됨
+// - Fail이 아닌 경우 CompleteQuest()를 호출해 퀘스트를 완료 처리하고, 보상 골드를 방송함
+EDeliveryGrade UQuestManager::TryDeliver(FName QuestID, const TArray<FGameplayTag>& PotionResult)
 {
 	if (GetQuestState(QuestID) == EQuestState::Completed)
 	{
@@ -223,9 +263,7 @@ EDeliveryGrade UQuestManager::TryDeliver(FName QuestID, const TArray<FAlchemyPro
 		return EDeliveryGrade::Fail;
 	}
 
-	if (!QuestAnswerTable) return EDeliveryGrade::Fail;
-
-	FQuestAnswerData* Answer = QuestAnswerTable->FindRow<FQuestAnswerData>(QuestID, TEXT(""));
+	FQuestAnswerData* Answer = FindAnswerData(QuestID);
 	if (!Answer) return EDeliveryGrade::Fail;
 
 	int32 CorrectCount = 0;
@@ -233,11 +271,7 @@ EDeliveryGrade UQuestManager::TryDeliver(FName QuestID, const TArray<FAlchemyPro
 
 	for (const FQuestEffectRequirement& Req : Answer->RequestedEffects)
 	{
-		const FAlchemyProperty* Matching = PotionResult.FindByPredicate(
-			[&](const FAlchemyProperty& P) { return P.Tag == Req.Axis; }
-		);
-
-		if (Matching && Matching->Value >= Req.MinValue && Matching->Value <= Req.MaxValue)
+		if (PotionResult.Contains(Req.Axis))
 		{
 			CorrectCount++;
 		}
@@ -263,6 +297,14 @@ EDeliveryGrade UQuestManager::TryDeliver(FName QuestID, const TArray<FAlchemyPro
 		Grade = EDeliveryGrade::Okay;
 	}
 
+	if (Grade != EDeliveryGrade::Fail)
+	{
+		CompleteQuest(QuestID);
+
+		int32 Gold = GetRewardGold(QuestID);
+		OnRewardGranted.Broadcast(Gold);
+	}
+
 	UE_LOG(LogTemp, Warning, TEXT("퀘스트 %s 납품 결과: %d/%d 조건 만족"), *QuestID.ToString(), CorrectCount, TotalCount);
 
 	return Grade;
@@ -272,13 +314,11 @@ EDeliveryGrade UQuestManager::TryDeliver(FName QuestID, const TArray<FAlchemyPro
 // - 1단계: 정답이 요구하는 조건들을 기준으로, 포션이 각각 만족했는지 확인
 // - 2단계: 포션에 들어있는 태그 중, 정답이 요구하지 않은 "쓸데없는 태그"가 섞였는지 확인
 //   (정답 개수만 기준으로 돌면, 포션에 여분으로 섞인 태그를 놓치는 문제가 있어 추가함)
-TArray<FConditionEvaluation> UQuestManager::EvaluateConditions(FName QuestID, const TArray<FAlchemyProperty>& PotionResult) const
+TArray<FConditionEvaluation> UQuestManager::EvaluateConditions(FName QuestID, const TArray<FGameplayTag>& PotionResult) const
 {
 	TArray<FConditionEvaluation> Results;
 
-	if (!QuestAnswerTable) return Results;
-
-	FQuestAnswerData* Answer = QuestAnswerTable->FindRow<FQuestAnswerData>(QuestID, TEXT(""));
+	FQuestAnswerData* Answer = FindAnswerData(QuestID);
 	if (!Answer) return Results;
 
 	// 1. 정답 기준으로 순회 - 요구한 각 조건이 맞는지 확인
@@ -288,21 +328,9 @@ TArray<FConditionEvaluation> UQuestManager::EvaluateConditions(FName QuestID, co
 		Eval.Axis = Req.Axis;
 		Eval.bWasRequested = true;
 
-		const FAlchemyProperty* Matching = PotionResult.FindByPredicate(
-			[&](const FAlchemyProperty& P) { return P.Tag == Req.Axis; }
-		);
-
-		if (!Matching)
+		if (!PotionResult.Contains(Req.Axis))
 		{
 			Eval.Result = EConditionMatchResult::WrongTag;
-		}
-		else if (Matching->Value < Req.MinValue)
-		{
-			Eval.Result = EConditionMatchResult::TooLow;
-		}
-		else if (Matching->Value > Req.MaxValue)
-		{
-			Eval.Result = EConditionMatchResult::TooHigh;
 		}
 		else
 		{
@@ -313,16 +341,16 @@ TArray<FConditionEvaluation> UQuestManager::EvaluateConditions(FName QuestID, co
 	}
 
 	// 2. 포션 기준으로 순회 - 정답에 없는데 플레이어가 넣은 태그(잡내)를 찾아냄
-	for (const FAlchemyProperty& Prop : PotionResult)
+	for (const FGameplayTag& EffectTag : PotionResult)
 	{
 		bool bIsRequested = Answer->RequestedEffects.ContainsByPredicate(
-			[&](const FQuestEffectRequirement& Req) { return Req.Axis == Prop.Tag; }
+			[&](const FQuestEffectRequirement& Req) { return Req.Axis == EffectTag; }
 		);
 
 		if (!bIsRequested)
 		{
 			FConditionEvaluation Eval;
-			Eval.Axis = Prop.Tag;
+			Eval.Axis = EffectTag;
 			Eval.Result = EConditionMatchResult::WrongTag;
 			Eval.bWasRequested = false;  // 여분 태그임을 표시
 
@@ -333,13 +361,12 @@ TArray<FConditionEvaluation> UQuestManager::EvaluateConditions(FName QuestID, co
 	return Results;
 }
 
-TArray<FQuestEffectRequirement> UQuestManager::GetQuestEffectRequirements(FName QuestId) const
+// 특정 퀘스트가 요구하는 조건 목록 원본을 그대로 반환 (필요 시 외부에서 직접 순회하고 싶을 때 사용)
+TArray<FQuestEffectRequirement> UQuestManager::GetQuestEffectRequirements(FName QuestID) const
 {
-	if (!QuestAnswerTable) return {};
-	
-	FQuestAnswerData* Answer = QuestAnswerTable->FindRow<FQuestAnswerData>(QuestId, TEXT(""));
-	if (!Answer) return {};
-	
+	FQuestAnswerData* Answer = FindAnswerData(QuestID);
+	if (!Answer) return TArray<FQuestEffectRequirement>();
+
 	return Answer->RequestedEffects;
 }
 

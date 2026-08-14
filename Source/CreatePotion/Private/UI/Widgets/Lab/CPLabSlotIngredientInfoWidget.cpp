@@ -81,25 +81,8 @@ void UCPLabSlotIngredientInfoWidget::HandleSessionChanged()
 
 void UCPLabSlotIngredientInfoWidget::RefreshHoveredSlot()
 {
-	if (HoveredSlotIndex == INDEX_NONE || !IsValid(BoundPotionSession))
-	{
-		HideSlotInfo();
-		return;
-	}
-
-	ACPAlchemyProp* IngredientProp = nullptr;
-	if (!BoundPotionSession->GetIngredientPropFromSlot(HoveredSlotIndex, IngredientProp) ||
-		!IsValid(IngredientProp))
-	{
-		HideSlotInfo();
-		return;
-	}
-
-	SetHeaderText(FText::FromString(FString::Printf(
-		TEXT("슬롯 %d"),
-		HoveredSlotIndex + 1)));
-	SetObservedIngredient(IngredientProp);
-	SetVisibility(ESlateVisibility::HitTestInvisible);
+	// 슬롯 재료 조회 API가 현재 세션에서 제거되어 표시할 재료를 가져올 수 없다.
+	HideSlotInfo();
 }
 
 void UCPLabSlotIngredientInfoWidget::HideSlotInfo()

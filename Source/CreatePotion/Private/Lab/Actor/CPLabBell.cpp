@@ -2,12 +2,9 @@
 
 #include "Components/StaticMeshComponent.h"
 #include "Engine/World.h"
-#include "GameMode/CPLabGameMode.h"
 #include "GameState/CPLabGameState.h"
 #include "Lab/Component/CPLabPotionSessionComponent.h"
 
-#include "Kismet/GameplayStatics.h"
-#include "NPC/CPNPCSpawner.h"
 #include "UI/HUD/CPLabHUD.h"
 
 ACPLabBell::ACPLabBell()
@@ -30,7 +27,7 @@ ACPLabBell::ACPLabBell()
 
 void ACPLabBell::OnInteract_Implementation(AActor* Interactor)
 {
-	TryRingBell();
+	if (!TryRingBell()) return;
 	if (APawn* InteractorPawn = Cast<APawn>(Interactor))
 	{
 		if (APlayerController* PC = Cast<APlayerController>(InteractorPawn->GetController()))
@@ -56,41 +53,10 @@ bool ACPLabBell::CanInteract_Implementation(AActor* Interactor)
 	const UCPLabPotionSessionComponent* Session =
 		LabState ? LabState->GetPotionSession() : nullptr;
 
-	return Session &&
-		Session->GetSessionState().Phase ==
-			ECPLabPotionSessionPhase::WaitingForBell;
+	return Session && !Session->HasActiveRequest();
 }
 
 bool ACPLabBell::TryRingBell()
 {
-	UWorld* World = GetWorld();
-	ACPLabGameMode* LabMode =
-		World
-		? World->GetAuthGameMode<ACPLabGameMode>()
-		: nullptr;
-	bool bSessionStarted = LabMode && LabMode->TryStartLabSession();
-
-	if (bSessionStarted)
-	{
-		ACPNPCSpawner* Spawner = Cast<ACPNPCSpawner>(UGameplayStatics::GetActorOfClass(World, ACPNPCSpawner::StaticClass()));
-		if (Spawner)
-		{
-			Spawner->StartSpawningSession();
-		}
-	}
-	return bSessionStarted;
-
-	/* //TryRingBell을 이 부분으로 바꾸면 테스트용 퀘스트가 아니라 NPC 퀘스트를 받을 수 있음
-	UWorld* World = GetWorld();
-	if (!World) return false;
-	// NPC 스폰
-	ACPNPCSpawner* Spawner = Cast<ACPNPCSpawner>(UGameplayStatics::GetActorOfClass(World, ACPNPCSpawner::StaticClass()));
-	if (Spawner)
-	{
-		Spawner->StartSpawningSession();
-		return true;
-	}
-
-	return false;
-	*/
+	return CanInteract_Implementation(nullptr);
 }

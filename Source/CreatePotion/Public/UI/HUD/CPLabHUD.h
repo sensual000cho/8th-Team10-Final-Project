@@ -8,9 +8,7 @@
 
 struct FTagSelectionData;
 class UCPTagSelectionWidget;
-class UCPLabIngredientSelectWidget;
 class UCPTagRangeWidget;
-class UCPForageableItemData;
 
 UCLASS()
 class CREATEPOTION_API ACPLabHUD : public ACPHUDBase
@@ -29,8 +27,6 @@ public:
 	// --- 위젯 델리게이트 바인딩 함수 ---
 	void BindTagSelectionWidget(UCPTagSelectionWidget* TargetWidget);
 	void BindTagRangeWidget(UCPTagRangeWidget* TargetWidget);
-	void BindLabIngredientSelectWidget(UCPLabIngredientSelectWidget* TargetWidget);
-	
 	
 public:
 	// --- 위젯 델리게이트 콜백 함수 ---
@@ -39,9 +35,6 @@ public:
 	
 	UFUNCTION()
 	void HandleTagSelectionConfirmed(const FTagSelectionData& SelectionData);
-	
-	UFUNCTION()
-	void HandleIngredientSelectionConfirmed();
 	
 	UFUNCTION()
 	void HandleQuestJournalToggle();
@@ -55,7 +48,4 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UCPTagRangeWidget> TagRangeWidgetClass;
-	
-	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	TSubclassOf<UCPLabIngredientSelectWidget> LabIngredientSelectWidgetClass;
 };
