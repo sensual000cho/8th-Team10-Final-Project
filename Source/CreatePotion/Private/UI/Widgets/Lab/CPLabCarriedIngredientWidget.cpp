@@ -125,7 +125,7 @@ void UCPLabCarriedIngredientWidget::RefreshHeldIngredient()
 		return;
 	}
 
-	ACPAlchemyProp* HeldIngredientProp = BoundPotionSession->GetHeldIngredientProp();
+	ACPAlchemyProp* HeldIngredientProp = BoundPotionSession->GetHeldAlchemyProp();
 	if (IsValid(HeldIngredientProp))
 	{
 		SetObservedIngredient(HeldIngredientProp);

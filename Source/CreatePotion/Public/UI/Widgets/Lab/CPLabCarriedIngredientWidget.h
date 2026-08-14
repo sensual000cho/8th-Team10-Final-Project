@@ -38,7 +38,7 @@ private:
 	void BindPreviewIngredient(ACPAlchemyProp* IngredientProp);
 	void UnbindPreviewIngredient();
 
-	// 세션이 가진 HeldIngredientProp 변경 알림을 받기 위해 런타임 동안만 보관한다.
+	// 세션이 가진 HeldAlchemyProp 변경 알림을 받기 위해 런타임 동안만 보관한다.
 	UPROPERTY(Transient)
 	TObjectPtr<UCPLabPotionSessionComponent> BoundPotionSession;
 
