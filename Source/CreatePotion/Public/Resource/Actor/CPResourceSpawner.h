@@ -53,7 +53,7 @@ private:
 	FCPResourceNodeKey MakeNodeKey(int32 SlotIndex) const;
 	
 	// 스폰 위치 / 회전 계산
-	FTransform CalculateSpawnTransform(int32 SlotIndex, int32 Generation) const;
+	bool TryCalculateSpawnTransform(int32 SlotIndex, int32 Generation, FTransform& OutTransform) const;
 	
 	// 스폰 시드 생성
 	int32 MakeSpawnSeed(int32 SlotIndex, int32 Generation, int32 Salt) const;
