@@ -13,6 +13,15 @@ enum class EContainerType : uint8
     Grid2D UMETA(DisplayName = "격자형 (인벤토리, 창고, 상점)")
 };
 
+UENUM(BlueprintType)
+enum class EUITargetContext : uint8
+{
+    InventoryOnly   UMETA(DisplayName = "인벤토리 단독"),
+    Lab             UMETA(DisplayName = "공방 가공기"),
+    Storage         UMETA(DisplayName = "창고"),
+    Shop            UMETA(DisplayName = "상점")
+};
+
 USTRUCT(BlueprintType)
 struct FContainerItem
 {
