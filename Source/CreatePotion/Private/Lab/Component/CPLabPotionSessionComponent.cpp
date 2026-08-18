@@ -97,7 +97,7 @@ bool UCPLabPotionSessionComponent::FinalizePotionResult(ACPAlchemyProp* PotionPr
 	if (!HasActiveRequest() || !IsValid(PotionProp) || !PotionItemData) return false;
 	if (ActiveRequestState.Phase != ECPLabPotionRequestPhase::Processing) return false;
 	
-	PotionProp->InitializeFromEffects(PotionItemData, CurrentPotionResult);
+	PotionProp->InitializeAlchemyProp(PotionItemData, CurrentPotionResult);
 	HeldAlchemyProp = PotionProp;
 	
 	OnSessionChanged.Broadcast();
