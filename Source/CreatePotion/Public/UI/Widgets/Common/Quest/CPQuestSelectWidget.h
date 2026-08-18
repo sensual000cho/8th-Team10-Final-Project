@@ -19,6 +19,13 @@ protected:
 	void BindEvents() override;
 	void UnbindEvents() override;
 	
+	// --- 버튼 콜백 함수 ---
+	UFUNCTION()
+	void HandleCallButtonClicked();
+	
+	UFUNCTION()
+	void HandleCancelButtonClicked();
+	
 protected:
 	// --- 버튼 바인딩 ---
 	UPROPERTY(meta = (BindWidget))
@@ -26,11 +33,4 @@ protected:
 	
 	UPROPERTY(meta = (BindWidget))
 	UButton* Button_Cancel;
-	
-	// --- 버튼 콜백 함수 ---
-	UFUNCTION()
-	void HandleCallButtonClicked();
-	
-	UFUNCTION()
-	void HandleCancelButtonClicked();
 };
