@@ -53,9 +53,11 @@ bool UCPCauldronComponent::ExecuteInteraction(AActor* Interactor)
 
 bool UCPCauldronComponent::CanExecuteInteraction(AActor* Interactor) const
 {
-	return Super::CanExecuteInteraction(Interactor) && 
-		BoundPotionSession && BoundPotionSession->HasActiveRequest() && IngredientInstances.Num() < MaxSlotCount;
+	//return Super::CanExecuteInteraction(Interactor) && 
+	//	BoundPotionSession && BoundPotionSession->HasActiveRequest() && IngredientInstances.Num() < MaxSlotCount;
 	
+	return Super::CanExecuteInteraction(Interactor) && 
+		BoundPotionSession && IngredientInstances.Num() < MaxSlotCount;
 }
 
 TArray<FGameplayTag> UCPCauldronComponent::GetEffectTags() const

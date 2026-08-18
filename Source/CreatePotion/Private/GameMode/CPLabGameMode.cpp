@@ -64,6 +64,21 @@ bool ACPLabGameMode::RefinePotion(const TArray<FGameplayTag>& EffectTags, const 
 	});
 	
 	return SpawnPotion(SortedEffectTags, SpawnTransform);
+	//return AdvancePotionRequest();
+}
+
+FCPPotionDeliveryResult ACPLabGameMode::GetPotionDeliveryResult(FName QuestId, const ACPAlchemyProp* PotionProp) const
+{
+	FCPPotionDeliveryResult Result;
+	Result.QuestId = QuestId;
+	
+	if (!IsValid(PotionProp)) return Result;
+	
+	const FCPLabIngredientInstance PotionIngredient = PotionProp->GetWorkingIngredient();
+	Result.CurrentEffects = PotionIngredient.CurrentEffects;
+	
+	// TODO: Quest 계산 로직 확정 후 수정
+	return Result;
 }
 
 ACPLabGameState* ACPLabGameMode::GetLabGameState() const
