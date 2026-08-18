@@ -46,10 +46,6 @@ class CREATEPOTION_API ACPLabGameMode : public ACPGameModeBase
 public:
 	ACPLabGameMode();
 
-	// 진행 중인 포션 세션을 벨 대기 상태로 초기화
-	UFUNCTION(BlueprintCallable, Category = "Lab|Session")
-	void ResetPotionRequest();
-
 	// 선택한 QuestId로 리퀘스트를 시작하고, 제조 상태로 진입
 	UFUNCTION(BlueprintCallable, Category = "Lab|Request")
 	bool StartPotionRequest(FName QuestId);
@@ -58,6 +54,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Lab|Request")
 	bool AdvancePotionRequest();
 	
+	// Tags 사전 순 정렬, (TODO)태그 조합 반영
+	UFUNCTION(BlueprintCallable, Category = "Lab|Potion")
+	bool RefinePotion(const TArray<FGameplayTag>& EffectTags, const FTransform& SpawnTransform);
+	
 private:
 	ACPLabGameState* GetLabGameState() const;
 	UCPLabPotionSessionComponent* GetPotionSession() const;
@@ -65,6 +65,9 @@ private:
 	
 	// Spawn된 재료 초기화
 	void ClearSpawnedIngredients();
+	
+	// Potion Spawn
+	bool SpawnPotion(const TArray<FGameplayTag>& EffectTags, const FTransform& SpawnTransform);
 
 private:	
 	// 초기 재료 배치에 사용할 DA

@@ -52,7 +52,7 @@ public:
 	bool ReleaseHeldAlchemyProp(ACPAlchemyProp*& OutAlchemyProp);
 	
 	// 현재 포션 결과값을 PotionProp에 저장하고 손에 든 Prop으로 등록
-	bool FinalizePotionResult(ACPAlchemyProp* PotionProp, UCPForageableItemData* PotionItemData);
+	bool FinalizePotionResult(ACPAlchemyProp* PotionProp, UCPForageableItemData* PotionItemData, const TArray<FGameplayTag>& PotionResult);
 	
 	UFUNCTION(BlueprintCallable, Category = "Lab|Result")
 	const TArray<FGameplayTag>& GetPotionResult() const;

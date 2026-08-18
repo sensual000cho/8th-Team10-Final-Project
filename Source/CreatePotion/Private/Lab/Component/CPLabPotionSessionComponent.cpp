@@ -94,17 +94,18 @@ bool UCPLabPotionSessionComponent::ReleaseHeldAlchemyProp(ACPAlchemyProp*& OutAl
 	return true;
 }
 
-bool UCPLabPotionSessionComponent::FinalizePotionResult(ACPAlchemyProp* PotionProp,	UCPForageableItemData* PotionItemData)
+bool UCPLabPotionSessionComponent::FinalizePotionResult(ACPAlchemyProp* PotionProp,
+	UCPForageableItemData* PotionItemData, const TArray<FGameplayTag>& PotionResult)
 {
-	if (!HasActiveRequest() || !IsValid(PotionProp) || !PotionItemData) return false;
-	if (ActiveRequestState.Phase != ECPLabPotionRequestPhase::Processing) return false;
+	if (!IsValid(PotionProp) || !PotionItemData) return false;
 	
+	CurrentPotionResult = PotionResult;
 	PotionProp->InitializeAlchemyProp(PotionItemData, CurrentPotionResult);
-	HeldAlchemyProp = PotionProp;
 	
 	OnSessionChanged.Broadcast();
 	return true;
 }
+
 
 const TArray<FGameplayTag>& UCPLabPotionSessionComponent::GetPotionResult() const
 {

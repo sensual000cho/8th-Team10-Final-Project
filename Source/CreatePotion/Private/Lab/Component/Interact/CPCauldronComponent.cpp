@@ -4,7 +4,9 @@
 #include "Lab/Component/Interact/CPCauldronComponent.h"
 
 #include "Data/CPForageableItemData.h"
+#include "GameMode/CPLabGameMode.h"
 #include "GameState/CPLabGameState.h"
+#include "Kismet/GameplayStatics.h"
 #include "Lab/Actor/CPAlchemyProp.h"
 #include "Lab/Component/CPLabPotionSessionComponent.h"
 
@@ -40,21 +42,11 @@ void UCPCauldronComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 bool UCPCauldronComponent::ExecuteInteraction(AActor* Interactor)
 {
-	if (!CanExecuteInteraction(Interactor)) return false;
+	if (!CanExecuteInteraction(Interactor) || !AddProp()) return false;
 	
-	if (!BoundPotionSession) return false;
-	
-	ACPAlchemyProp* HeldProp = nullptr;
-	if (!BoundPotionSession->ReleaseHeldAlchemyProp(HeldProp) || !IsValid(HeldProp)) return false;
-	
-	const FCPLabIngredientInstance Ingredient = HeldProp->GetWorkingIngredient();
-	if (!Ingredient.IsValid()) return false;
-	
-	IngredientInstances.Add(Ingredient);
-	HeldProp->Destroy();
-	
-	// UI 도입 or PR확인 이후 삭제
-	DebugPrintSlots();
+	if (IngredientInstances.Num() >= MaxSlotCount){
+		return ConfirmPotion();
+	}
 	
 	return true;
 }
@@ -62,7 +54,8 @@ bool UCPCauldronComponent::ExecuteInteraction(AActor* Interactor)
 bool UCPCauldronComponent::CanExecuteInteraction(AActor* Interactor) const
 {
 	return Super::CanExecuteInteraction(Interactor) && 
-		BoundPotionSession && BoundPotionSession->HasHeldAlchemyProp() && IngredientInstances.Num() < MaxSlotCount;
+		BoundPotionSession && BoundPotionSession->HasActiveRequest() && IngredientInstances.Num() < MaxSlotCount;
+	
 }
 
 TArray<FGameplayTag> UCPCauldronComponent::GetEffectTags() const
@@ -80,6 +73,53 @@ TArray<FGameplayTag> UCPCauldronComponent::GetEffectTags() const
 	}
 	
 	return CombinedTags;
+}
+
+bool UCPCauldronComponent::AddProp()
+{
+	if (IngredientInstances.Num() >= MaxSlotCount) return false;
+	
+	ACPAlchemyProp* HeldProp = BoundPotionSession->GetHeldAlchemyProp();
+	if (!IsValid(HeldProp)) return false;
+	
+	const FCPLabIngredientInstance Ingredient = HeldProp->GetWorkingIngredient();
+	if (!Ingredient.IsValid()) return false;
+	
+	ACPAlchemyProp* ReleaseProp = nullptr;
+	if (!BoundPotionSession->ReleaseHeldAlchemyProp(ReleaseProp) || ReleaseProp != HeldProp) return false;
+	
+	IngredientInstances.Add(Ingredient);
+	HeldProp->Destroy();
+	
+	DebugPrintSlots();
+	return true;
+}
+
+bool UCPCauldronComponent::ConfirmPotion()
+{
+	const UStaticMeshComponent* SpawnMesh =
+		Cast<UStaticMeshComponent>(PotionSpawnMesh.GetComponent(GetOwner()));
+	if (!SpawnMesh) return false;
+	
+	ACPLabGameMode* LabGameMode = Cast<ACPLabGameMode>(UGameplayStatics::GetGameMode(this));
+	if (!LabGameMode) return false;
+	
+	return LabGameMode->RefinePotion(GetEffectTags(), MakePotionTransform());
+}
+
+FTransform UCPCauldronComponent::MakePotionTransform() const
+{
+	const UStaticMeshComponent* SpawnMesh =
+		Cast<UStaticMeshComponent>(PotionSpawnMesh.GetComponent(GetOwner()));
+	if (!SpawnMesh) return FTransform::Identity;
+	
+	FTransform SpawnTransform = SpawnMesh->GetComponentTransform();
+	
+	FVector SpawnLocation = SpawnMesh->Bounds.Origin;
+	SpawnLocation.Z += SpawnMesh->Bounds.BoxExtent.Z;
+	
+	SpawnTransform.SetLocation(SpawnLocation);
+	return SpawnTransform;
 }
 
 void UCPCauldronComponent::HandleSessionChanged()
