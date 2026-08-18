@@ -5,7 +5,7 @@
 #include "Components/UniformGridSlot.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
-#include "Components/SizeBox.h"				// 사이즈 조절
+#include "Components/SizeBox.h"		// 사이즈 조절
 
 #include "CreatePotion.h"   // 로그용 헤더
 #include "UI/Widgets/Common/Container/CPItemSlotWidget.h"
