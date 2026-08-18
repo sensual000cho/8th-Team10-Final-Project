@@ -5,8 +5,6 @@
 #include "GameState/CPLabGameState.h"
 #include "Lab/Actor/CPAlchemyProp.h"
 #include "Lab/Component/CPLabPotionSessionComponent.h"
-#include "Lab/Component/CPProcessorComponent.h"
-#include "TimerManager.h"
 
 void UCPLabCarriedIngredientWidget::NativeConstruct()
 {
@@ -48,7 +46,8 @@ void UCPLabCarriedIngredientWidget::BindEvents()
 
 			if (AActor* CurrentTarget = BoundInteractionComponent->GetCurrentTarget())
 			{
-				FocusedProcessor = CurrentTarget->FindComponentByClass<UCPProcessorComponent>();
+				(void)CurrentTarget;
+				ClearPreviewEffects();
 			}
 		}
 	}
@@ -64,7 +63,6 @@ void UCPLabCarriedIngredientWidget::UnbindEvents()
 	}
 
 	BoundInteractionComponent.Reset();
-	FocusedProcessor.Reset();
 	UnbindPreviewIngredient();
 
 	if (BoundPotionSession)
@@ -88,28 +86,19 @@ void UCPLabCarriedIngredientWidget::HandleInteractionFocusChanged(FText Prompt, 
 	(void)Prompt;
 	(void)TargetName;
 
-	FocusedProcessor.Reset();
-
 	AActor* TargetActor = BoundInteractionComponent.IsValid()
 		? BoundInteractionComponent->GetCurrentTarget()
 		: nullptr;
 
 	if (IsValid(TargetActor))
 	{
-		FocusedProcessor = TargetActor->FindComponentByClass<UCPProcessorComponent>();
+		ClearPreviewEffects();
 	}
-
-	RefreshProcessorPreview();
 }
 
 void UCPLabCarriedIngredientWidget::HandlePreviewIngredientChanged()
 {
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().SetTimerForNextTick(
-			this,
-			&UCPLabCarriedIngredientWidget::RefreshProcessorPreview);
-	}
+	ClearPreviewEffects();
 }
 
 void UCPLabCarriedIngredientWidget::RefreshHeldIngredient()
@@ -125,38 +114,17 @@ void UCPLabCarriedIngredientWidget::RefreshHeldIngredient()
 		return;
 	}
 
-	ACPAlchemyProp* HeldIngredientProp = BoundPotionSession->GetHeldIngredientProp();
+	ACPAlchemyProp* HeldIngredientProp = BoundPotionSession->GetHeldAlchemyProp();
 	if (IsValid(HeldIngredientProp))
 	{
 		SetObservedIngredient(HeldIngredientProp);
 		BindPreviewIngredient(HeldIngredientProp);
-		RefreshProcessorPreview();
+		ClearPreviewEffects();
 		return;
 	}
 
 	UnbindPreviewIngredient();
 	ClearObservedIngredient();
-	ClearPreviewEffects();
-}
-
-void UCPLabCarriedIngredientWidget::RefreshProcessorPreview()
-{
-	UCPProcessorComponent* Processor = FocusedProcessor.Get();
-	ACPAlchemyProp* IngredientProp = PreviewIngredient.Get();
-
-	if (!IsValid(Processor) || !IsValid(IngredientProp))
-	{
-		ClearPreviewEffects();
-		return;
-	}
-
-	TMap<FGameplayTag, int32> CalculatedPreviewEffects;
-	if (Processor->TryBuildPreviewEffects(IngredientProp, CalculatedPreviewEffects))
-	{
-		SetPreviewEffects(CalculatedPreviewEffects);
-		return;
-	}
-
 	ClearPreviewEffects();
 }
 

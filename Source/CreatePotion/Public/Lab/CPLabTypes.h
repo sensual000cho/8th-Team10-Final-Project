@@ -33,7 +33,7 @@ struct FCPLabPotionRequest
 	}
 };
 
-// 원본 재료 정보와 가공 중 변하는 효과값을 함께 보관하는 작업용 데이터
+// 원본 재료 정보와 현재 효과 태그를 함께 보관하는 작업용 데이터
 USTRUCT(BlueprintType)
 struct FCPLabIngredientInstance
 {
@@ -43,9 +43,9 @@ struct FCPLabIngredientInstance
 	UPROPERTY(BlueprintReadOnly, Category = "Lab|Ingredient")
 	TObjectPtr<UCPForageableItemData> SourceItemData = nullptr;
 
-	// 원본에서 복사한 뒤 가공에 따라 변경되는 현재 효과값
+	// 원본에서 복사한 뒤 가공에 따라 변경되는 현재 효과 태그
 	UPROPERTY(BlueprintReadOnly, Category = "Lab|Ingredient")
-	TMap<FGameplayTag, int32> CurrentEffects;
+	TArray<FGameplayTag> CurrentEffects;
 
 	// 사용할 수 있는 원본 재료가 연결되어 있는지 확인
 	bool IsValid() const
@@ -53,8 +53,4 @@ struct FCPLabIngredientInstance
 		return SourceItemData != nullptr;
 	}
 
-	int32 GetEffectValue(const FGameplayTag& EffectTag) const
-	{
-		return CurrentEffects.FindRef(EffectTag);
-	}
 };

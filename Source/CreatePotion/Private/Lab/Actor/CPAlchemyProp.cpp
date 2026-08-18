@@ -24,17 +24,17 @@ void ACPAlchemyProp::InitializeFromItemData(UCPForageableItemData* ItemData)
 
 	WorkingIngredient.SourceItemData = ItemData;
 
-	// DataAsset의 원본 효과값을 복사해 Actor만의 작업값 생성
-	for (const FAlchemyProperty& Property : ItemData->TagAxes){
-		if (!Property.Tag.IsValid())continue;
+	// DataAsset의 원본 효과 태그를 복사해 Actor만의 작업값 생성
+	for (const FGameplayTag& EffectTag : ItemData->TagAxes){
+		if (!EffectTag.IsValid())continue;
 
-		WorkingIngredient.CurrentEffects.Add(Property.Tag, Property.Value);
+		WorkingIngredient.CurrentEffects.Add(EffectTag);
 	}
 	
 	OnAlchemyPropChanged.Broadcast();
 }
 
-void ACPAlchemyProp::InitializeFromEffects(UCPForageableItemData* ItemData, const TArray<FAlchemyProperty>& Effects)
+void ACPAlchemyProp::InitializeFromEffects(UCPForageableItemData* ItemData, const TArray<FGameplayTag>& Effects)
 {
 	ResetWorkingIngredient();
 	
@@ -44,10 +44,10 @@ void ACPAlchemyProp::InitializeFromEffects(UCPForageableItemData* ItemData, cons
 	}
 	
 	WorkingIngredient.SourceItemData = ItemData;
-	for (const FAlchemyProperty& Property : Effects){
-		if (!Property.Tag.IsValid()) continue;
+	for (const FGameplayTag& EffectTag : Effects){
+		if (!EffectTag.IsValid()) continue;
 		
-		WorkingIngredient.CurrentEffects.Add(Property.Tag, Property.Value);
+		WorkingIngredient.CurrentEffects.Add(EffectTag);
 	}
 	
 	OnAlchemyPropChanged.Broadcast();
@@ -73,11 +73,6 @@ bool ACPAlchemyProp::SetWorkingIngredient(const FCPLabIngredientInstance& Ingred
 UCPForageableItemData* ACPAlchemyProp::GetSourceItemData() const
 {
 	return WorkingIngredient.SourceItemData.Get();
-}
-
-int32 ACPAlchemyProp::GetEffectValue(const FGameplayTag& EffectTag) const
-{
-	return WorkingIngredient.GetEffectValue(EffectTag);
 }
 
 bool ACPAlchemyProp::HasBeenProcessedBy(FName InProcessorId) const

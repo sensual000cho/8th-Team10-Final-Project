@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-#include "Public/Data/CPForageableItemData.h" // FAlchemyProperty 참조용 (채집물/연금 태그 구조체)
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "QuestTypes.h"
@@ -8,6 +7,9 @@
 
 // 퀘스트 상태가 바뀔 때마다(수락/완료 등) 방송되는 이벤트
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnQuestUpdated, FName, QuestID, EQuestState, NewState);
+
+// 완료 보상 델리게이트
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRewardGranted, int32, GoldAmount);
 
 // 포션 납품 시 판정되는 등급.
 // TryDeliver()의 반환값으로 사용되며, 완성된 포션이 퀘스트 조건을
@@ -35,14 +37,18 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Quest")
 	UDataTable* QuestAnswerTable;
 
+	//랜덤퀘스트 전용 Datatable
+	UPROPERTY(EditDefaultsOnly, Category = "Quest")
+	UDataTable* RandomQuestAnswerTable;
+
 	// 퀘스트 상태 변경 알림 이벤트
 	UPROPERTY(BlueprintAssignable, Category = "Quest|Events")
 	FOnQuestUpdated OnQuestUpdated;
 
-	// 플레이어가 퀘스트를 수락한 순서대로 QuestID를 저장하는 배열
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Quest")
-	TArray<FName> AcceptedQuestOrder;
-	
+	// 보상 관련 알림 이벤트
+	UPROPERTY(BlueprintAssignable, Category = "Quest|Events")
+	FOnRewardGranted OnRewardGranted;
+
 	// ===================================================================
 	// [퀘스트 수락/상태 관리]
 	// ===================================================================
@@ -115,16 +121,24 @@ public:
 
 	// 퀘스트가 요구하는 조건과 비교, 등급을 매김
 	UFUNCTION(BlueprintCallable, Category = "Quest")
-	EDeliveryGrade TryDeliver(FName QuestID, const TArray<FAlchemyProperty>& PotionResult);
+	EDeliveryGrade TryDeliver(FName QuestID, const TArray<FGameplayTag>& PotionResult);
 
 	// 조건 하나하나에 대한 세부 판정 (O/Up/Down/태그오답)
 	UFUNCTION(BlueprintCallable, Category = "Quest")
-	TArray<FConditionEvaluation> EvaluateConditions(FName QuestID, const TArray<FAlchemyProperty>& PotionResult) const;
+	TArray<FConditionEvaluation> EvaluateConditions(FName QuestID, const TArray<FGameplayTag>& PotionResult) const;
 
 	// 요구 조건 조회
 	UFUNCTION(BlueprintCallable, Category = "Quest")
-	TArray<FQuestEffectRequirement> GetQuestEffectRequirements(FName QuestId) const;
-	
+	TArray<FQuestEffectRequirement> GetQuestEffectRequirements(FName QuestID) const;
+
+	// 보상 조회
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	int32 GetRewardGold(FName QuestID) const;
+
+	//랜덤 퀘스트 번호 조회
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	FName GetRandomQuestID() const;
+
 	// ===================================================================
 	// [검증 - 개발 중 확인용]
 	// ===================================================================
@@ -147,6 +161,9 @@ private:
 	// 수락한 순서를 기록하는 배열
 	UPROPERTY()
 	TArray<FName> QuestOrder;
+
+	//퀘스트 정답 일치하는지 확인
+	FQuestAnswerData* FindAnswerData(FName QuestID) const;
 
 protected:
 	// Subsystem 생성 시 자동 호출됨. QuestScriptTable/QuestAnswerTable을 자동으로 찾아 연결함.
