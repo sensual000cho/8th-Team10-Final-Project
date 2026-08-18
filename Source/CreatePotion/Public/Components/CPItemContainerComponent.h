@@ -11,6 +11,7 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnContainerUpdatedSignature);
 
 class UCPForageableItemData;
+class UCPContainerMainWidget;
 
 UCLASS( ClassGroup=(CPContainer), meta=(BlueprintSpawnableComponent) )
 class CREATEPOTION_API UCPItemContainerComponent : public UActorComponent
@@ -55,7 +56,7 @@ public:
 
     // Grid 모드일 때 사용할 가로/세로 크기
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container|Settings", meta = (EditCondition = "ContainerType == EContainerType::Grid2D"))
-    int32 Columns = 3;
+    int32 Columns = 8;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container|Settings", meta = (EditCondition = "ContainerType == EContainerType::Grid2D"))
     int32 Rows = 6;
 
@@ -68,4 +69,14 @@ public:
 
     UPROPERTY(BlueprintAssignable, Category = "Container|Event")
     FOnContainerUpdatedSignature OnContainerUpdated;
+
+#pragma region ExternalUI
+    // 해당 컨테이너가 열렸을 때 어떤 Context을 사용할 지 결정할 때 쓰이는 변수
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container|UI")
+    EUITargetContext TargetContext = EUITargetContext::Storage;
+
+    // Context에 맞춰 생성될 UI 클래스
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container|UI")
+    TSubclassOf<UCPContainerMainWidget> ContainerUIClass;
+#pragma endregion
 };
