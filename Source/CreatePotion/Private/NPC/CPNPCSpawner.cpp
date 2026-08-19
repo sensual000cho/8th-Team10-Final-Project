@@ -4,124 +4,70 @@
 #include "Kismet/GameplayStatics.h"
 #include "Quest/QuestManager.h"
 #include "GameMode/CPLabGameMode.h"
+#include "Lab/CPLabTypes.h"
 
 ACPNPCSpawner::ACPNPCSpawner()
 {
 	PrimaryActorTick.bCanEverTick = false;
 }
 
-void ACPNPCSpawner::BeginPlay()
-{
-	Super::BeginPlay();
-}
+// 퀘스트 ID 입력받아 그 퀘스트의 NPC 스폰
+// 퀘스트 선택 UI에서 '손님 호출' 버튼을 눌렀을 때
+// 
+// [적용 예시 코드]
+// FName TargetQuestID = GetSelectedQuestID(); // 현재 UI에서 선택된 퀘스트 ID 가져오기
+// if (!TargetQuestID.IsNone())
+// {
+//     // 맵에 있는 스포너를 찾아 선택한 퀘스트의 NPC를 즉시 소환
+//     if (ACPNPCSpawner* Spawner = Cast<ACPNPCSpawner>(UGameplayStatics::GetActorOfClass(GetWorld(), ACPNPCSpawner::StaticClass())))
+//     {
+//         Spawner->SpawnNPC(TargetQuestID);
+//     }
+// }
 
-void ACPNPCSpawner::StartSpawningSession()
+void ACPNPCSpawner::SpawnNPC(FName QuestID)
 {
-	if (!NPCClass) return;
+	if (!NPCClass || QuestID.IsNone()) return;
+
 	UGameInstance* GameInstance = GetGameInstance();
 	UQuestManager* QuestManager = GameInstance ? GameInstance->GetSubsystem<UQuestManager>() : nullptr;
-	if (!QuestManager) return;
-	FilteredNPCsToSpawn.Empty();
-	CurrentSpawnIndex = 0;
 
-	const TArray<FName> AllTrackedQuests = QuestManager->GetAllTrackedQuestIDs();
-	TArray<FName> AcceptedQuests;
-	for (const FName& QuestID : AllTrackedQuests)
+	if (QuestManager && QuestManager->GetQuestState(QuestID) != EQuestState::Accepted)
 	{
-		if (QuestManager->GetQuestState(QuestID) == EQuestState::Accepted)
-		{
-			AcceptedQuests.Add(QuestID);
-		}
-	}
-
-	// 게임모드에 전달할 리퀘스트(주문서) 목록을 담을 배열 생성
-	TArray<FCPLabPotionRequest> PotionRequests;
-
-	// 수락된 퀘스트 순서대로 NPCSpawnConfigArray에서 알맞은 NPC 설정 필터링
-	for (const FName& QuestID : AcceptedQuests)
-	{
-		for (const FNPCSpawnConfig& Config : NPCSpawnConfigArray)
-		{
-			if (Config.NPCData && Config.NPCData->LabQuestIDs.Contains(QuestID))
-			{
-				FilteredNPCsToSpawn.Add(Config);
-				FCPLabPotionRequest RealRequest;
-				RealRequest.RequestId = QuestID; // 진짜 퀘스트 ID (예: Origin_Q001)
-				RealRequest.DisplayText = QuestManager->GetSessionHintText(QuestID);
-
-				// 게임모드에 보낼 배열에 추가
-				PotionRequests.Add(RealRequest);
-				break;
-			}
-		}
-	}
-	if (FilteredNPCsToSpawn.Num() > 0)
-	{
-		GetWorld()->GetTimerManager().SetTimer(
-			SpawnTimerHandle,
-			this,
-			&ACPNPCSpawner::SpawnNextNPC,
-			SpawnInterval,
-			true,
-			0.0f
-		);
-	}
-}
-
-TArray<FName> ACPNPCSpawner::GetAcceptedLabQuestIDs(const UQuestManager* QuestManager) const
-{
-	TArray<FName> AcceptedLabQuestIDs;
-	if (!QuestManager) return AcceptedLabQuestIDs;
-
-	// 동일하게 QuestOrder + Accepted 상태 기준으로 필터링
-	const TArray<FName> AllTrackedQuests = QuestManager->GetAllTrackedQuestIDs();
-	for (const FName& QuestID : AllTrackedQuests)
-	{
-		if (QuestManager->GetQuestState(QuestID) != EQuestState::Accepted)
-		{
-			continue;
-		}
-
-		for (const FNPCSpawnConfig& Config : NPCSpawnConfigArray)
-		{
-			if (Config.NPCData && Config.NPCData->LabQuestIDs.Contains(QuestID))
-			{
-				AcceptedLabQuestIDs.Add(QuestID);
-				break;
-			}
-		}
-	}
-
-	return AcceptedLabQuestIDs;
-}
-
-void ACPNPCSpawner::SpawnNextNPC()
-{
-	if (CurrentSpawnIndex >= FilteredNPCsToSpawn.Num())
-	{
-		GetWorld()->GetTimerManager().ClearTimer(SpawnTimerHandle);
+		UE_LOG(LogTemp, Warning, TEXT("[CPNPCSpawner] 수락되지 않은 퀘스트라 스폰을 취소합니다: %s"), *QuestID.ToString());
 		return;
 	}
 
-	const FNPCSpawnConfig& Config = FilteredNPCsToSpawn[CurrentSpawnIndex];
-
-	if (Config.NPCData)
+	const FNPCSpawnConfig* FoundConfig = nullptr;
+	for (const FNPCSpawnConfig& Config : NPCSpawnConfigArray)
 	{
-		// 개별 트랜스폼 체크 시 CustomTransform, 미체크 시 DefaultSpawnTransform 적용
-		FTransform FinalTransform = Config.bUseCustomTransform ? Config.CustomTransform : DefaultSpawnTransform;
-
-		ACPBaseNPC* SpawnedNPC = GetWorld()->SpawnActorDeferred<ACPBaseNPC>(NPCClass, FinalTransform);
-		if (SpawnedNPC)
+		if (Config.NPCData && Config.NPCData->LabQuestIDs.Contains(QuestID))
 		{
-			SpawnedNPC->NPCData = Config.NPCData;
-			UGameplayStatics::FinishSpawningActor(SpawnedNPC, FinalTransform);
+			FoundConfig = &Config;
+			break;
 		}
 	}
 
-	CurrentSpawnIndex++;
+	if (!FoundConfig || !FoundConfig->NPCData) return;
 
-	if (CurrentSpawnIndex >= FilteredNPCsToSpawn.Num())
 	{
-		GetWorld()->GetTimerManager().ClearTimer(SpawnTimerHandle);
+		TArray<FCPLabPotionRequest> PotionRequests;
+		FCPLabPotionRequest Request;
+		Request.RequestId = QuestID;
+
+		Request.DisplayText = QuestManager->GetCurrentSessionHintText(QuestID);
+		PotionRequests.Add(Request);
+
 	}
+
+	const FTransform FinalTransform = FoundConfig->bUseCustomTransform ? FoundConfig->CustomTransform : DefaultSpawnTransform;
+
+	ACPBaseNPC* SpawnedNPC = GetWorld()->SpawnActorDeferred<ACPBaseNPC>(NPCClass, FinalTransform);
+	if (SpawnedNPC)
+	{
+		SpawnedNPC->NPCData = FoundConfig->NPCData;
+		UGameplayStatics::FinishSpawningActor(SpawnedNPC, FinalTransform);
+	}
+
+	// TODO : Lab게임 모드 쪽에 PotionRequests 전달
 }
