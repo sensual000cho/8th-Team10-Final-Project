@@ -19,13 +19,6 @@ void ACPPlayerController::BeginPlay()
 	Super::BeginPlay();
 
 	SetContextHandlerForTargetContext(EUITargetContext::InventoryOnly);
-	GetWorld()->GetTimerManager().SetTimer(
-		InventoryCacheRetryHandler, 
-		this, 
-		&ACPPlayerController::TryCacheInventoryComponent, 
-		0.1f, 
-		true
-	);
 }
 
 void ACPPlayerController::SetupInputComponent()
@@ -46,25 +39,34 @@ void ACPPlayerController::SetupInputComponent()
 	}
 }
 
+void ACPPlayerController::SetPawn(APawn* InPawn)
+{
+	Super::SetPawn(InPawn);
+
+	if (InPawn)
+	{
+		// 폰에 성공적으로 빙의되었을 때, 딱 한 번만 찾아서 캐싱
+		CachedInventoryComponent = InPawn->FindComponentByClass<UCPInventoryComponent>();
+
+		if (CachedInventoryComponent)
+		{
+			UE_LOG(LogContainer, Log, TEXT("인벤토리 컴포넌트 캐싱 완료"));
+		}
+	}
+	else
+	{
+		// 캐릭터가 사망하거나 빙의가 해제되면 nullptr로 안전하게 초기화
+		CachedInventoryComponent = nullptr;
+	}
+}
+
 void ACPPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	GetWorld()->GetTimerManager().ClearTimer(InventoryCacheRetryHandler);
-	
 	Super::EndPlay(EndPlayReason);
 }
 
 #pragma region Container
-void ACPPlayerController::TryCacheInventoryComponent()
-{
-	if (APawn* MyPawn = GetPawn())
-	{
-		if (UCPInventoryComponent* FoundComp = MyPawn->FindComponentByClass<UCPInventoryComponent>())
-		{
-			CachedInventoryComponent = FoundComp;
-			GetWorld()->GetTimerManager().ClearTimer(InventoryCacheRetryHandler);
-		}
-	}
-}
+
 
 void ACPPlayerController::SetContextHandlerForTargetContext(EUITargetContext InTargetContext)
 {

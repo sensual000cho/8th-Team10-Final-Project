@@ -34,6 +34,9 @@ protected:
 	/** Input mapping context setup */
 	virtual void SetupInputComponent() override;
 
+	// 폰 빙의가 변경될 때 엔진이 자동으로 호출해주는 함수
+	virtual void SetPawn(APawn* InPawn) override;
+
 #pragma region Container
 public:
 	// 대상 컨테이너의 ContainerUIClass를 읽어 UI를 열고 바인딩하는 범용 함수.
@@ -53,9 +56,6 @@ public:
 private:
 	void SetContextHandlerForTargetContext(EUITargetContext InTargetContext);
 
-	// Inventory Component 캐싱을 시도할 함수
-	void TryCacheInventoryComponent();
-
 public:
 	// 현재 상호작용 중인 컨테이너
 	// TODO[Container] : F키 또는 컨테이너 이용 시 이 값을 해당 ItemContainerComponent로 설정해주어야 합니다.
@@ -68,14 +68,12 @@ public:
 
 	// 캐싱할 Inventory Component
 	UPROPERTY()
-	UCPInventoryComponent* CachedInventoryComponent;
+	UCPInventoryComponent* CachedInventoryComponent = nullptr;
 
 protected:
 	// 현재 화면에 떠 있는 외부 컨테이너 UI 인스턴스 (Lab, Storage, Shop 공용)
 	UPROPERTY()
 	UCPContainerMainWidget* CurrentContainerUIInstance;
 
-private:
-	FTimerHandle InventoryCacheRetryHandler;
 #pragma endregion
 };
