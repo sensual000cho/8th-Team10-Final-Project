@@ -63,6 +63,10 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "Container")
 	UCPItemContainerComponent* CurrentInteractingContainer = nullptr;
 
+	// 마우스 클릭으로 "현재 들고 있는 아이템"을 보관할 Container
+	UPROPERTY(BlueprintReadWrite, Category = "Container|Drag")
+	UCPItemContainerComponent* LeftClickPickedContainer = nullptr;
+
 	// Context를 처리할 Handler
 	UPROPERTY()
 	UCPContainerContextBase* CurrentContextHandler;
