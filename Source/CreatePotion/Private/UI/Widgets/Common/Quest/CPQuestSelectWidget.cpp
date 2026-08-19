@@ -9,16 +9,16 @@ void UCPQuestSelectWidget::BindEvents()
 {
 	Super::BindEvents();
 	
+	UE_LOG(LogTemp, Warning, TEXT("[QuestSelectWidget] 퀘스트 선택 창 BindEvents 실행됨"));
 	Button_CallCustomer->OnClicked.AddDynamic(this, &UCPQuestSelectWidget::HandleCallButtonClicked);
 	Button_Cancel->OnClicked.AddDynamic(this, &UCPQuestSelectWidget::HandleCancelButtonClicked);
 }
 
 void UCPQuestSelectWidget::UnbindEvents()
 {
-	Super::UnbindEvents();
-	
 	Button_CallCustomer->OnClicked.RemoveDynamic(this, &UCPQuestSelectWidget::HandleCallButtonClicked);
 	Button_Cancel->OnClicked.RemoveDynamic(this, &UCPQuestSelectWidget::HandleCancelButtonClicked);
+	Super::UnbindEvents();
 }
 
 void UCPQuestSelectWidget::HandleCallButtonClicked()
@@ -28,6 +28,5 @@ void UCPQuestSelectWidget::HandleCallButtonClicked()
 
 void UCPQuestSelectWidget::HandleCancelButtonClicked()
 {
-	// TODO: UI 닫기 
 	CachedUIManager->CloseWidget(this);
 }
