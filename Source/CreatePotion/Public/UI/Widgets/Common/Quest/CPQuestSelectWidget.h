@@ -26,6 +26,9 @@ protected:
 	UFUNCTION()
 	void HandleCancelButtonClicked();
 	
+	// 임시 QuestID 탐색 함수
+	bool FirstAcceptedQuestId();
+	
 protected:
 	// --- 버튼 바인딩 ---
 	UPROPERTY(meta = (BindWidget))
@@ -33,4 +36,8 @@ protected:
 	
 	UPROPERTY(meta = (BindWidget))
 	UButton* Button_Cancel;
+	
+private:
+	// NPC 호출 시 사용할 QuestId;
+	FName SelectedQuestId;
 };

@@ -24,7 +24,7 @@ protected:
 
 private:
 	UFUNCTION()
-	void HandleSessionChanged();
+	void HandlePropChanged();
 
 	UFUNCTION()
 	void HandleInteractionFocusChanged(FText Prompt, FName TargetName);
@@ -32,7 +32,6 @@ private:
 	UFUNCTION()
 	void HandlePreviewIngredientChanged();
 
-	void RefreshHeldIngredient();
 	void BindPreviewIngredient(ACPAlchemyProp* IngredientProp);
 	void UnbindPreviewIngredient();
 
