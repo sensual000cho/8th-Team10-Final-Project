@@ -67,8 +67,9 @@ bool ACPLabGameMode::RefinePotion(const TArray<FGameplayTag>& EffectTags, const 
 		return A.ToString() < B.ToString();
 	});
 	
-	return SpawnPotion(SortedEffectTags, SpawnTransform);
-	//return AdvancePotionRequest();
+	if (!SpawnPotion(SortedEffectTags, SpawnTransform)) return false;
+	
+	return AdvancePotionRequest();
 }
 
 FCPPotionDeliveryResult ACPLabGameMode::GetPotionDeliveryResult(FName QuestId, const ACPAlchemyProp* PotionProp) const

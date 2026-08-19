@@ -77,8 +77,7 @@ bool UCPLabPotionSessionComponent::HoldAlchemyProp(ACPAlchemyProp* AlchemyProp)
 	if (HasHeldAlchemyProp() || !IsValid(AlchemyProp)) return false;
 	
 	HeldAlchemyProp = AlchemyProp;
-	// 다른 델리게이트로 변경 예정
-	//OnSessionChanged.Broadcast();
+	OnHeldAlchemyPropChanged.Broadcast();
 	return true;
 }
 
@@ -89,8 +88,7 @@ bool UCPLabPotionSessionComponent::ReleaseHeldAlchemyProp(ACPAlchemyProp*& OutAl
 	
 	OutAlchemyProp = HeldAlchemyProp;
 	HeldAlchemyProp = nullptr;
-	// 다른 델리게이트로 변경 예정
-	//OnSessionChanged.Broadcast();
+	OnHeldAlchemyPropChanged.Broadcast();
 	return true;
 }
 
