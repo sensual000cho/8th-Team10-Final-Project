@@ -1,5 +1,6 @@
 #include "GameMode/CPLabGameMode.h"
 
+#include "Data/CPForageableItemData.h"
 #include "GameState/CPLabGameState.h"
 #include "Lab/Actor/CPAlchemyProp.h"
 #include "Lab/Component/CPLabPotionSessionComponent.h"
@@ -12,15 +13,6 @@ ACPLabGameMode::ACPLabGameMode()
 	PlayerStateClass = ACPLabPlayerState::StaticClass();
 	
 	SlotActorTag = FName(TEXT("IngredientSlot"));
-}
-
-void ACPLabGameMode::ResetPotionRequest()
-{
-	ClearSpawnedIngredients();
-	
-	if (UCPLabPotionSessionComponent* Session = GetPotionSession()){
-		Session->ResetRequest();
-	}
 }
 
 bool ACPLabGameMode::StartPotionRequest(FName QuestId)
@@ -62,6 +54,33 @@ bool ACPLabGameMode::AdvancePotionRequest()
 	return false;
 }
 
+bool ACPLabGameMode::RefinePotion(const TArray<FGameplayTag>& EffectTags, const FTransform& SpawnTransform)
+{
+	TArray<FGameplayTag> SortedEffectTags = EffectTags;
+	// 사전 순 정렬
+	SortedEffectTags.Sort([](const FGameplayTag& A, const FGameplayTag& B)
+	{
+		return A.ToString() < B.ToString();
+	});
+	
+	return SpawnPotion(SortedEffectTags, SpawnTransform);
+	//return AdvancePotionRequest();
+}
+
+FCPPotionDeliveryResult ACPLabGameMode::GetPotionDeliveryResult(FName QuestId, const ACPAlchemyProp* PotionProp) const
+{
+	FCPPotionDeliveryResult Result;
+	Result.QuestId = QuestId;
+	
+	if (!IsValid(PotionProp)) return Result;
+	
+	const FCPLabIngredientInstance PotionIngredient = PotionProp->GetWorkingIngredient();
+	Result.CurrentEffects = PotionIngredient.CurrentEffects;
+	
+	// TODO: Quest 계산 로직 확정 후 수정
+	return Result;
+}
+
 ACPLabGameState* ACPLabGameMode::GetLabGameState() const
 {
 	return Cast<ACPLabGameState>(GameState);
@@ -95,4 +114,29 @@ void ACPLabGameMode::ClearSpawnedIngredients()
 		}
 	}
 	SpawnedIngredients.Reset();
+}
+
+bool ACPLabGameMode::SpawnPotion(const TArray<FGameplayTag>& EffectTags, const FTransform& SpawnTransform)
+{
+	UWorld* World = GetWorld();
+	if (!World || !PotionItemData) return false;
+	
+	UClass* PotionPropClass = PotionItemData->AlchemyPropClass.LoadSynchronous();
+	if (!PotionPropClass) return false;
+	
+	ACPAlchemyProp* PotionProp = World->SpawnActor<ACPAlchemyProp>(PotionPropClass, SpawnTransform);
+	if (!IsValid(PotionProp)) return false;
+	
+	FVector PotionBoundsOrigin, PotionBoundsExtent;
+	PotionProp->GetActorBounds(false, PotionBoundsOrigin, PotionBoundsExtent);
+	
+	// 추가로 보정할 Potion의 Z값 계산 및 보정
+	const float PotionBottomZ = PotionBoundsOrigin.Z - PotionBoundsExtent.Z;
+	const float SpawnSurfaceZ = SpawnTransform.GetLocation().Z;
+	PotionProp->AddActorWorldOffset(FVector(0.f, 0.f, SpawnSurfaceZ - PotionBottomZ));
+	
+	// 정렬된 Tags로 초기화
+	PotionProp->InitializeAlchemyProp(PotionItemData, EffectTags);
+	return true;
+	//return AdvancePotionRequest();
 }

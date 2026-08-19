@@ -221,10 +221,10 @@ FText FCPLabResultUICalc::GetConditionStatusText(
 	{
 	case EConditionMatchResult::Correct:
 		return FText::FromString(TEXT("충족"));
-	case EConditionMatchResult::TooHigh:
+	/*case EConditionMatchResult::TooHigh:
 		return FText::FromString(TEXT("초과"));
 	case EConditionMatchResult::TooLow:
-		return FText::FromString(TEXT("부족"));
+		return FText::FromString(TEXT("부족"));*/
 	case EConditionMatchResult::WrongTag:
 	default:
 		return FText::FromString(TEXT("판정 오류"));

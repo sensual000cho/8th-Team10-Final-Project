@@ -6,6 +6,7 @@
 #include "EngineUtils.h"
 #include "GameFramework/PlayerStart.h"
 #include "GameInstance/Subsystem/CPLevelTravelSubsystem.h"
+#include "GameInstance/Subsystem/CPTimeSubsystem.h"
 
 ACPGameModeBase::ACPGameModeBase()
 {
@@ -51,6 +52,17 @@ AActor* ACPGameModeBase::ChoosePlayerStart_Implementation(AController* Player)
 	
 	// Default 태그도 없다면 Unreal 기본 로직 사용
 	return Super::ChoosePlayerStart_Implementation(Player);
+}
+
+void ACPGameModeBase::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	UCPTimeSubsystem* TimeSubsystem = GetGameInstance()->GetSubsystem<UCPTimeSubsystem>();
+	if (TimeSubsystem)
+	{
+		TimeSubsystem->StartTime();
+	}
 }
 
 APlayerStart* ACPGameModeBase::FindPlayerStartByTag(FName SpawnPointId) const

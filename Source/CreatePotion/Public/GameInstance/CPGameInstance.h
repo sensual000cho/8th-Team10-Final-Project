@@ -11,4 +11,7 @@ class CREATEPOTION_API UCPGameInstance : public UGameInstance
 {
 	GENERATED_BODY()
 	
+public:
+	virtual void Init() override;
+	virtual void Shutdown() override;
 };

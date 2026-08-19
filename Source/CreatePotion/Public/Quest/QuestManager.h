@@ -79,12 +79,15 @@ public:
 
 	// [텍스트-원문] 마을 NPC가 퀘스트를 제안할 때 하는 원문 대사
 	UFUNCTION(BlueprintCallable, Category = "Quest")
-	FText GetQuestFullText(FName QuestID) const;
+	TArray<FText> GetQuestScriptLines(FName QuestID) const;
 
 	// [텍스트-요약] 수락 후 퀘스트 저널에서 다시 확인할 때 보여줄 요약
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	FText GetQuestSummaryText(FName QuestID) const;
 
+	// [임시] InitDialogue가 배열 지원 전까지 사용할 임시 함수. NPC 담당자 협의 후 제거 예정.
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	FText GetQuestFullTextJoined(FName QuestID) const;
 	// ===================================================================
 	// [세션 힌트 - 단계별 조회 및 현재 단계 자동 관리]
 	// GetSessionHintText/Detailed/Detailed2 : 단계별 개별 조회 (저수준)
@@ -169,3 +172,4 @@ protected:
 	// Subsystem 생성 시 자동 호출됨. QuestScriptTable/QuestAnswerTable을 자동으로 찾아 연결함.
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 };
+
