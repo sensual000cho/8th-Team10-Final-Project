@@ -57,10 +57,7 @@ void UCPLabIngredientSelectWidget::OnConfirmClicked()
 	
 	if (ACPPlayerController* PC = GetOwningPlayer<ACPPlayerController>())
 	{
-		if (PC->CurrentInteractingContainer)
-		{
-			PC->ToggleExternalContainerUI(PC->CurrentInteractingContainer);
-		}
+		PC->ToggleLabUI();
 	}
 }
 
