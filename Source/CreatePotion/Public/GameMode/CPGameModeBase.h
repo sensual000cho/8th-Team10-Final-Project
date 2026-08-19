@@ -18,6 +18,7 @@ public:
 	
 protected:
 	virtual AActor* ChoosePlayerStart_Implementation(AController* Player) override;
+	virtual void BeginPlay() override;
 	
 private:
 	APlayerStart* FindPlayerStartByTag(FName SpawnPointId) const;
