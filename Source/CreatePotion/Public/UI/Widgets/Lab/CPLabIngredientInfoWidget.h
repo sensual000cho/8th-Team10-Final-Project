@@ -35,10 +35,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Lab|UI|Ingredient")
 	void ClearObservedIngredient();
 
-	// 가공 전후 비교처럼 현재 효과와 나란히 보여줄 예상 효과를 지정한다.
-	UFUNCTION(BlueprintCallable, Category = "Lab|UI|Ingredient")
-	void SetPreviewEffects(const TMap<FGameplayTag, int32>& InPreviewEffects);
-
 	UFUNCTION(BlueprintCallable, Category = "Lab|UI|Ingredient")
 	void ClearPreviewEffects();
 
@@ -95,9 +91,6 @@ private:
 
 	UPROPERTY(Transient)
 	FCPLabIngredientInstance Ingredient;
-
-	UPROPERTY(Transient)
-	TMap<FGameplayTag, int32> PreviewEffects;
 
 	// Actor의 생명주기를 UI가 연장하지 않도록 약한 참조로 관찰한다.
 	UPROPERTY(Transient)

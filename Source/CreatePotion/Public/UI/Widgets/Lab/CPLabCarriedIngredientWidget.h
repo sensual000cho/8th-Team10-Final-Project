@@ -6,7 +6,6 @@
 
 class ACPAlchemyProp;
 class UCPInteractionComponent;
-class UCPProcessorComponent;
 class UCPLabPotionSessionComponent;
 
 /**
@@ -34,19 +33,15 @@ private:
 	void HandlePreviewIngredientChanged();
 
 	void RefreshHeldIngredient();
-	void RefreshProcessorPreview();
 	void BindPreviewIngredient(ACPAlchemyProp* IngredientProp);
 	void UnbindPreviewIngredient();
 
-	// 세션이 가진 HeldIngredientProp 변경 알림을 받기 위해 런타임 동안만 보관한다.
+	// 세션이 가진 HeldAlchemyProp 변경 알림을 받기 위해 런타임 동안만 보관한다.
 	UPROPERTY(Transient)
 	TObjectPtr<UCPLabPotionSessionComponent> BoundPotionSession;
 
 	UPROPERTY(Transient)
 	TWeakObjectPtr<UCPInteractionComponent> BoundInteractionComponent;
-
-	UPROPERTY(Transient)
-	TWeakObjectPtr<UCPProcessorComponent> FocusedProcessor;
 
 	UPROPERTY(Transient)
 	TWeakObjectPtr<ACPAlchemyProp> PreviewIngredient;

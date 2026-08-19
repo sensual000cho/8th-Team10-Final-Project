@@ -2,10 +2,8 @@
 
 #include "Data/CPForageableItemData.h"
 #include "GameState/CPLabGameState.h"
-#include "Kismet/GameplayStatics.h"
 #include "Lab/Actor/CPAlchemyProp.h"
 #include "Lab/Component/CPLabPotionSessionComponent.h"
-#include "Lab/Component/CPProcessorComponent.h"
 #include "PlayerState/CPLabPlayerState.h"
 #include "Quest/QuestManager.h"
 
@@ -17,238 +15,70 @@ ACPLabGameMode::ACPLabGameMode()
 	SlotActorTag = FName(TEXT("IngredientSlot"));
 }
 
-bool ACPLabGameMode::TryStartLabSession()
+bool ACPLabGameMode::StartPotionRequest(FName QuestId)
 {
-	return TryStartLabSessionWithRequests(BuildQuestRequests());
-}
-
-bool ACPLabGameMode::TryStartLabSessionWithRequests(const TArray<FCPLabPotionRequest>& PotionRequests)
-{
+	if (QuestId.IsNone()) return false;
+	
+	UQuestManager* QuestManager = GetGameInstance() ? GetGameInstance()->GetSubsystem<UQuestManager>() : nullptr;
+	if (!QuestManager || QuestManager->GetQuestState(QuestId) != EQuestState::Accepted) return false;
+	
+	FCPLabPotionRequest PotionRequest;
+	PotionRequest.RequestId = QuestId;
+	PotionRequest.DisplayText = QuestManager->GetQuestSummaryText(QuestId);
+	
 	UCPLabPotionSessionComponent* Session = GetPotionSession();
 	if (!Session) return false;
 	
-	return Session->StartSession(PotionRequests);
+	return Session->StartRequest(PotionRequest);
 }
 
-void ACPLabGameMode::ResetLabSession()
-{
-	ClearSpawnedIngredients();
-	ResetProcessors();
-	
-	if (UCPLabPotionSessionComponent* Session = GetPotionSession()){
-		Session->ResetSession();
-	}
-}
-
-bool ACPLabGameMode::TrySelectRequest(FName RequestId)
-{
-	UCPLabPotionSessionComponent* Session = GetPotionSession();
-	return Session && Session->TrySetActiveRequest(RequestId);
-}
-
-bool ACPLabGameMode::TryAcceptActiveRequest()
-{
-	UCPLabPotionSessionComponent* Session = GetPotionSession();
-	const bool bAccepted = Session &&
-		Session->TrySetRequestPhase(
-			GetActiveRequestId(),
-			ECPLabPotionRequestPhase::Preparing);
-
-	return bAccepted;
-}
-
-bool ACPLabGameMode::TryBeginActiveRequestProcessing()
-{
-	UCPLabPotionSessionComponent* Session = GetPotionSession();
-	const bool bProcessing = Session &&
-		Session->TrySetRequestPhase(
-			GetActiveRequestId(),
-			ECPLabPotionRequestPhase::Processing);
-
-	return bProcessing;
-}
-
-bool ACPLabGameMode::TryFinishActivePotion()
-{
-	UCPLabPotionSessionComponent* Session = GetPotionSession();
-	if (!Session) return false;
-	
-	const bool bFinished = Session->TrySetRequestPhase(
-		GetActiveRequestId(),
-		ECPLabPotionRequestPhase::PotionReady);
-
-	return bFinished;
-}
-
-bool ACPLabGameMode::FinalizePotionAtActor(const AActor* SpawnActor)
-{
-	UWorld* World = GetWorld();
-	UCPLabPotionSessionComponent* Session = GetPotionSession();
-	if (!World || !Session || !PotionItemData || !IsValid(SpawnActor)) return false;
-	
-	UClass* PotionPropClass = PotionItemData->AlchemyPropClass.LoadSynchronous();
-	if (!PotionPropClass) return false;
-	
-	ACPAlchemyProp* PotionProp = World->SpawnActor<ACPAlchemyProp>(PotionPropClass, SpawnActor->GetActorTransform());
-	if (!PotionProp) return false;
-	
-	// 기구, Potion의 경계 계산
-	FVector SpawnActorOrigin, SpawnActorExtent;
-	FVector PotionOrigin, PotionExtent;
-	SpawnActor->GetActorBounds(true, SpawnActorOrigin, SpawnActorExtent);
-	PotionProp->GetActorBounds(true, PotionOrigin, PotionExtent);
-	
-	// 보정할 Z 값 계산
-	const float SpawnActorTopZ = SpawnActorOrigin.Z + SpawnActorExtent.Z;
-	const float PotionBottomZ = PotionOrigin.Z - PotionExtent.Z;
-	const float ZOffset = SpawnActorTopZ - PotionBottomZ;
-	
-	// Z 값 보정
-	PotionProp->AddActorWorldOffset(FVector(0.f, 0.f, ZOffset), false);
-	
-	if (!Session->FinalizePotionResult(PotionProp, PotionItemData)){
-		PotionProp->Destroy();
-		return false;
-	}
-	
-	if (!TryFinishActivePotion()){
-		PotionProp->Destroy();
-		return false;
-	}
-	
-	SpawnedIngredients.Add(PotionProp);
-	return true;
-}
-
-
-bool ACPLabGameMode::TryDeliverActivePotion()
+bool ACPLabGameMode::AdvancePotionRequest()
 {
 	UCPLabPotionSessionComponent* Session = GetPotionSession();
 	if (!Session) return false;
 	
 	FCPLabPotionRequestState ActiveRequestState;
-	if (!Session->GetActiveRequestState(ActiveRequestState) || 
-		ActiveRequestState.Phase != ECPLabPotionRequestPhase::PotionReady) return false;
+	if (!Session->GetActiveRequestState(ActiveRequestState)) return false;
 	
-	UQuestManager* QuestManager = GetGameInstance() ? GetGameInstance()->GetSubsystem<UQuestManager>() : nullptr;
-	if (!QuestManager) return false;
-	
-	// 퀘스트 Id, 완성한 포션 Tag, 목표 Tag
-	const FName QuestId = ActiveRequestState.PotionRequest.RequestId;
-	const TArray<FAlchemyProperty>& PotionResult = Session->GetPotionResult();
-	const TArray<FQuestEffectRequirement> TargetRequirements = QuestManager->GetQuestEffectRequirements(QuestId);
-	
-	// 현재 납품 결과로 다시 구성한다
-	PotionDeliveryResult = FCPPotionDeliveryResult{};
-	PotionDeliveryResult.QuestId = QuestId;
-	PotionDeliveryResult.DeliveryGrade = QuestManager->TryDeliver(QuestId, PotionResult);
-	PotionDeliveryResult.CurrentEffects = PotionResult;
-	
-	if (PotionDeliveryResult.DeliveryGrade == EDeliveryGrade::Fail){
-		PotionDeliveryResult.RewardAmount = 0;
-	}else if (PotionDeliveryResult.DeliveryGrade == EDeliveryGrade::Good || 
-		PotionDeliveryResult.DeliveryGrade == EDeliveryGrade::Okay){
-		PotionDeliveryResult.RewardAmount *= 0.5f;
+	if (ActiveRequestState.Phase == ECPLabPotionRequestPhase::Processing){
+		return Session->SetRequestPhase(ECPLabPotionRequestPhase::PotionReady);
 	}
 	
-	// 최소/최대 목표를 저장
-	for (const FQuestEffectRequirement& Requirement : TargetRequirements){
-		FAlchemyProperty MinTargetEffect;
-		MinTargetEffect.Tag = Requirement.Axis;
-		MinTargetEffect.Value = Requirement.MinValue;
-		PotionDeliveryResult.MinTargetEffects.Add(MinTargetEffect);
+	if (ActiveRequestState.Phase == ECPLabPotionRequestPhase::PotionReady){
+		Session->ResetRequest();
 		
-		FAlchemyProperty MaxTargetEffect;
-		MaxTargetEffect.Tag = Requirement.Axis;
-		MaxTargetEffect.Value = Requirement.MaxValue;
-		PotionDeliveryResult.MaxTargetEffects.Add(MaxTargetEffect);
-	}
-	
-	return true;
-}
-
-FCPPotionDeliveryResult ACPLabGameMode::GetPotionDeliveryResult() const
-{
-	return PotionDeliveryResult;
-}
-
-bool ACPLabGameMode::ConfirmPotionDeliveryResult()
-{
-	// QuestId가 저장되었을 때에만 진행
-	if (PotionDeliveryResult.QuestId.IsNone()) return false;
-	
-	UCPLabPotionSessionComponent* Session = GetPotionSession();
-	if (!Session) return false;
-	
-	// Phase 전환(Delivered)
-	const bool bDelivered = Session->TryMarkRequestDelivered(PotionDeliveryResult.QuestId);
-	if (!bDelivered) return false;
-	
-	// PotionDeliveryResult 초기화
-	PotionDeliveryResult = FCPPotionDeliveryResult{};
-	
-	// 모든 Request가 끝났으면 세션 종료
-	if (Session->GetSessionState().Phase == ECPLabPotionSessionPhase::Completed){
-		ResetLabSession();
+		PotionDeliveryResult = FCPPotionDeliveryResult{};
+		ClearSpawnedIngredients();
 		return true;
 	}
-	
-	// Request가 남아있으면 재료와 가공 기구만 정리
-	ClearSpawnedIngredients();
-	ResetProcessors();
-	return true;
+	return false;
 }
 
-bool ACPLabGameMode::PlaceIngredient(int32 SlotIndex, ACPAlchemyProp* Ingredient)
+bool ACPLabGameMode::RefinePotion(const TArray<FGameplayTag>& EffectTags, const FTransform& SpawnTransform)
 {
-	UCPLabPotionSessionComponent* Session = GetPotionSession();
-	return Session && Session->PlaceIngredient(SlotIndex, Ingredient);
+	TArray<FGameplayTag> SortedEffectTags = EffectTags;
+	// 사전 순 정렬
+	SortedEffectTags.Sort([](const FGameplayTag& A, const FGameplayTag& B)
+	{
+		return A.ToString() < B.ToString();
+	});
+	
+	return SpawnPotion(SortedEffectTags, SpawnTransform);
+	//return AdvancePotionRequest();
 }
 
-void ACPLabGameMode::RegisterProcessor(UCPProcessorComponent* ProcessorComponent)
+FCPPotionDeliveryResult ACPLabGameMode::GetPotionDeliveryResult(FName QuestId, const ACPAlchemyProp* PotionProp) const
 {
-	if (!IsValid(ProcessorComponent) || ProcessorPendings.Contains(ProcessorComponent)) return;
+	FCPPotionDeliveryResult Result;
+	Result.QuestId = QuestId;
 	
-	ProcessorPendings.Add(ProcessorComponent);
-}
-
-bool ACPLabGameMode::RestoreUseLimit(const ACPAlchemyProp* ItemInstance)
-{
-	if (!IsValid(ItemInstance)) return false;
+	if (!IsValid(PotionProp)) return Result;
 	
-	bool bForgotAny = false;
-	for (UCPProcessorComponent* Processor : ProcessorPendings){
-		if (!IsValid(Processor)) continue;
-		// Processor가 이 Prop 떄문에 소모된 사용 제한을 복구한다
-		if (Processor->RestoreUseLimit(ItemInstance)){
-			bForgotAny = true;
-		}
-	}
-	return bForgotAny;
-}
-
-void ACPLabGameMode::SetIngredientsDataAsset(const TArray<UCPForageableItemData*>& IngredientsDataAsset)
-{
-	if (IngredientsDataAsset.IsEmpty()) return;
+	const FCPLabIngredientInstance PotionIngredient = PotionProp->GetWorkingIngredient();
+	Result.CurrentEffects = PotionIngredient.CurrentEffects;
 	
-	Ingredients.Reset();
-	Ingredients.Reserve(IngredientsDataAsset.Num());
-	
-	for (UCPForageableItemData* IngredientItemData : IngredientsDataAsset){
-		Ingredients.Add(IngredientItemData);
-	}
-	
-	if (Ingredients.IsEmpty()) return;
-	
-	// 배치 성공하면 제조 Phase로 전환
-	if (SpawnIngredients()){
-		TryBeginActiveRequestProcessing();
-	}
-}
-
-void ACPLabGameMode::BeginPlay()
-{
-	Super::BeginPlay();
+	// TODO: Quest 계산 로직 확정 후 수정
+	return Result;
 }
 
 ACPLabGameState* ACPLabGameMode::GetLabGameState() const
@@ -275,96 +105,6 @@ FName ACPLabGameMode::GetActiveRequestId() const
 		: NAME_None;
 }
 
-TArray<FCPLabPotionRequest> ACPLabGameMode::BuildQuestRequests() const
-{
-	TArray<FCPLabPotionRequest> PotionRequests;
-	
-	const UGameInstance* GameInstance = GetGameInstance();
-	const UQuestManager* QuestManager = GameInstance ? GameInstance->GetSubsystem<UQuestManager>() : nullptr;
-	
-	if (!QuestManager) return PotionRequests;
-	
-	const TArray<FName> TrackedQuestIds = QuestManager->GetAllTrackedQuestIDs();
-	PotionRequests.Reserve(FMath::Min(TrackedQuestIds.Num(), CPLabPotionRequestRules::MaxRequestCount));
-	
-	for (const FName& QuestId : TrackedQuestIds){
-		if (PotionRequests.Num() >= CPLabPotionRequestRules::MaxRequestCount) break;
-		if (QuestId.IsNone() || QuestManager->GetQuestState(QuestId) != EQuestState::Accepted) continue;
-		
-		FCPLabPotionRequest PotionRequest;
-		PotionRequest.RequestId = QuestId;
-		PotionRequest.DisplayText = QuestManager->GetQuestSummaryText(QuestId);
-		
-		PotionRequests.Add(PotionRequest);
-	}
-	
-	return PotionRequests;
-}
-
-void ACPLabGameMode::CollectSlotActors(TArray<AActor*>& OutSlotActors) const
-{
-	OutSlotActors.Reset();
-	if (SlotActorTag.IsNone()) return;
-	
-	// SlotActorTag을 가진 Actor을 찾아 정렬
-	UGameplayStatics::GetAllActorsWithTag(GetWorld(), SlotActorTag, OutSlotActors);
-	OutSlotActors.Sort([](const AActor& A, const AActor& B)
-	{
-		return A.GetActorNameOrLabel() < B.GetActorNameOrLabel();
-	});
-}
-
-bool ACPLabGameMode::SpawnIngredients()
-{
-	UWorld* World = GetWorld();
-	if (!World) return false;
-	
-	// RequestPhase을 재료 준비 단계로 변경
-	const FName ActiveRequestId = GetActiveRequestId();
-	if (ActiveRequestId.IsNone() || !TryAcceptActiveRequest()) return false;
-	
-	// Tag를 기준으로 재료를 생성할 Actor 탐색
-	TArray<AActor*> IngredientSlotActors;
-	CollectSlotActors(IngredientSlotActors);
-	
-	const int32 SpawnCount = FMath::Min3(
-		Ingredients.Num(), IngredientSlotActors.Num(), CPLabPotionRequestRules::IngredientSlotCapacity);
-	if (SpawnCount <= 0) return false;
-	
-	bool bPlacedAnyIngredient = false;
-	
-	UCPLabPotionSessionComponent* Session = GetPotionSession();
-	if (!Session) return false;
-	
-	for (int32 SlotIndex = 0; SlotIndex < SpawnCount; ++SlotIndex){
-		UCPForageableItemData* ItemData = Ingredients[SlotIndex];
-		AActor* SlotActor = IngredientSlotActors[SlotIndex];
-		
-		if (!ItemData || !SlotActor) continue;
-		
-		Session->RegisterIngredientSlotActor(SlotIndex, SlotActor);
-		
-		UClass* PropClass = ItemData->AlchemyPropClass.LoadSynchronous();
-		if (!PropClass) continue;
-		
-		ACPAlchemyProp* SpawnedProp = World->SpawnActor<ACPAlchemyProp>(PropClass, SlotActor->GetActorTransform());
-		if (!SpawnedProp) continue;
-		
-		// Prop Spawn
-		SpawnedProp->InitializeFromItemData(ItemData);
-		
-		// Slot에는 SpawnedProp 참조를 저장
-		if (PlaceIngredient(SlotIndex, SpawnedProp)){
-			SpawnedIngredients.Add(SpawnedProp);
-			bPlacedAnyIngredient = true;
-		}else{
-			SpawnedProp->Destroy();
-		}
-	}
-
-	return bPlacedAnyIngredient;
-}
-
 void ACPLabGameMode::ClearSpawnedIngredients()
 {
 	// 남아있는 재료들 정리
@@ -376,12 +116,27 @@ void ACPLabGameMode::ClearSpawnedIngredients()
 	SpawnedIngredients.Reset();
 }
 
-void ACPLabGameMode::ResetProcessors()
+bool ACPLabGameMode::SpawnPotion(const TArray<FGameplayTag>& EffectTags, const FTransform& SpawnTransform)
 {
-	for (UCPProcessorComponent* Processor : ProcessorPendings){
-		if (!IsValid(Processor)) continue;
-		Processor->ResetProcessor();
-	}
+	UWorld* World = GetWorld();
+	if (!World || !PotionItemData) return false;
 	
-	ProcessorPendings.Reset();
+	UClass* PotionPropClass = PotionItemData->AlchemyPropClass.LoadSynchronous();
+	if (!PotionPropClass) return false;
+	
+	ACPAlchemyProp* PotionProp = World->SpawnActor<ACPAlchemyProp>(PotionPropClass, SpawnTransform);
+	if (!IsValid(PotionProp)) return false;
+	
+	FVector PotionBoundsOrigin, PotionBoundsExtent;
+	PotionProp->GetActorBounds(false, PotionBoundsOrigin, PotionBoundsExtent);
+	
+	// 추가로 보정할 Potion의 Z값 계산 및 보정
+	const float PotionBottomZ = PotionBoundsOrigin.Z - PotionBoundsExtent.Z;
+	const float SpawnSurfaceZ = SpawnTransform.GetLocation().Z;
+	PotionProp->AddActorWorldOffset(FVector(0.f, 0.f, SpawnSurfaceZ - PotionBottomZ));
+	
+	// 정렬된 Tags로 초기화
+	PotionProp->InitializeAlchemyProp(PotionItemData, EffectTags);
+	return true;
+	//return AdvancePotionRequest();
 }

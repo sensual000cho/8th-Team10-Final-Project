@@ -72,6 +72,10 @@ struct FQuestAnswerData : public FTableRowBase
 	// 실제 판정 기준 - UI에선 접근 X
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hidden")
 	TArray<FQuestEffectRequirement> RequestedEffects;
+
+	//완료 보상 100골드
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Reward")
+	int32 RewardGold = 100;
 };
 
 // ===================================================================
