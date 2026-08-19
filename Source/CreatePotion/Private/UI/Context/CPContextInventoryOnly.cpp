@@ -4,15 +4,15 @@
 #include "CreatePotion.h"				// 로그
 
 // 좌클릭인 경우
-// TODO: [Ctrl + 좌클릭] 아이템 빠른 이동 (Quick Transfer)
-// TODO: [Shift + 좌클릭] 아이템 나누기 (Split)
-// TODO: [Alt + 좌클릭] 아이템 버리기 (Drop)
-// TODO: [일반 좌클릭] '드래그 앤 드롭(Drag & Drop)'
+// [Ctrl + 좌클릭] 아이템 빠른 이동 (Quick Transfer)
+// [Shift + 좌클릭] 아이템 나누기 (Split)
+// [Alt + 좌클릭] 아이템 버리기 (Drop)
+// [일반 좌클릭] '드래그 앤 드롭(Drag & Drop)'
 // 우클릭인 경우
-// TODO: [Ctrl + 우클릭] 아이템 사용 (Use Item)
-// TODO: [Shift + 우클릭] 아이템 세부 정보 표시 (Show Item Detail)
-// TODO: [Alt + 우클릭] 장비 아이템 장착 (Equip Item)
-// TODO: [일반 우클릭] [LCtrl, Shift, Alt, 일반] + [좌, 우 클릭] 으로 가능한 6가지 UI 통합 UI 처리
+// [Ctrl + 우클릭] 아이템 사용 (Use Item)
+// [Shift + 우클릭] 아이템 세부 정보 표시 (Show Item Detail)
+// [Alt + 우클릭] 장비 아이템 장착 (Equip Item)
+// [일반 우클릭] [LCtrl, Shift, Alt] + [좌, 우 클릭] 으로 가능한 6가지 기능을 UI 통합 처리
 
 bool UCPContextInventoryOnly::HandleLeftClickOnly(UCPItemSlotWidget* ClickedSlot)
 {
