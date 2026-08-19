@@ -44,9 +44,12 @@ FText ACPBaseNPC::GetInteractionPrompt_Implementation()
                 EQuestState CurrentState = QuestManager->GetQuestState(QuestID);
                 if (CurrentState == EQuestState::NotAccepted)
                 {
-                    FText FullScript = QuestManager->GetQuestFullText(QuestID);  
+                    TArray<FText> ScriptLines = QuestManager->GetQuestScriptLines(QuestID);
                     UE_LOG(LogTemp, Log, TEXT("[퀘스트 대사 확인] QuestID: %s"), *QuestID.ToString());
-                    UE_LOG(LogTemp, Log, TEXT("[대사 내용]: %s"), *FullScript.ToString());
+                    for (int32 i = 0; i < ScriptLines.Num(); ++i)
+                    {
+                        UE_LOG(LogTemp, Log, TEXT("[대사 %d줄]: %s"), i, *ScriptLines[i].ToString());
+                    }
                  
                 }
             }

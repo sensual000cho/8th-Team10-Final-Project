@@ -21,7 +21,7 @@ struct FQuestData : public FTableRowBase
 
 	// 퀘스트 원문 (마을 NPC가 제안할 때 하는 대사)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerFacing")
-	FText QuestText_Full;
+	TArray<FText> QuestScriptLines;
 
 	// 퀘스트 요약 (수락 후 저널에서 다시 확인할 때 표시)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerFacing")
@@ -39,17 +39,14 @@ struct FQuestEffectRequirement
 {
 	GENERATED_BODY()
 
-	// 어떤 축(효능 종류)에 대한 조건인지 (예: Alchemy.Drowsiness)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FGameplayTag Axis;
 
-	// 이 값 이상이어야 함
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ClampMin = "-3", ClampMax = "3"))
-	int32 MinValue = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Reaction")
+	TArray<FText> OnMatchReactions;
 
-	// 이 값 이하여야 함
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ClampMin = "-3", ClampMax = "3"))
-	int32 MaxValue = 3;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Reaction")
+	TArray<FText> OnMissingReactions;
 };
 
 USTRUCT(BlueprintType)
@@ -96,8 +93,6 @@ UENUM(BlueprintType)
 enum class EConditionMatchResult : uint8
 {
 	Correct,   // O - 조건 정확히 충족
-	TooHigh,   // Up - 요구치보다 높음
-	TooLow,    // Down - 요구치보다 낮음
 	WrongTag   // 태그오답 - 요청하지 않은 축이거나 아예 없음
 };
 

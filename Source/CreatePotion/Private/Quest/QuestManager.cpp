@@ -39,7 +39,7 @@ void UQuestManager::Initialize(FSubsystemCollectionBase& Collection)
 	}
 
 	// TODO: DT_RandomQuestAnswer 테이블 생성 후 주석 해제 및 경로 확인
-	/*
+	
 	UDataTable* LoadedRandomAnswerTable = Cast<UDataTable>(
 		StaticLoadObject(UDataTable::StaticClass(), nullptr, TEXT("/Game/CreatePotion/Quest/DT_RandomQuestAnswer.DT_RandomQuestAnswer"))
 	);
@@ -48,7 +48,7 @@ void UQuestManager::Initialize(FSubsystemCollectionBase& Collection)
 		RandomQuestAnswerTable = LoadedRandomAnswerTable;
 		UE_LOG(LogTemp, Warning, TEXT("RandomQuestAnswerTable 로드 성공"));
 	}
-	*/
+	
 }
 
 // ===================================================================
@@ -126,12 +126,11 @@ FText UQuestManager::GetQuestTitle(FName QuestID) const
 }
 
 // 마을 NPC가 퀘스트를 제안할 때 보여줄 원문 대사
-FText UQuestManager::GetQuestFullText(FName QuestID) const
+TArray<FText> UQuestManager::GetQuestScriptLines(FName QuestID) const
 {
-	if (!QuestScriptTable) return FText::GetEmpty();
-
+	if (!QuestScriptTable) return TArray<FText>();
 	FQuestData* Quest = QuestScriptTable->FindRow<FQuestData>(QuestID, TEXT(""));
-	return Quest ? Quest->QuestText_Full : FText::GetEmpty();
+	return Quest ? Quest->QuestScriptLines : TArray<FText>();
 }
 
 // 퀘스트 수락 후, 저널/퀘스트 목록 UI에서 다시 확인할 때 보여줄 요약 텍스트
@@ -141,6 +140,13 @@ FText UQuestManager::GetQuestSummaryText(FName QuestID) const
 
 	FQuestData* Quest = QuestScriptTable->FindRow<FQuestData>(QuestID, TEXT(""));
 	return Quest ? Quest->QuestText_Summary : FText::GetEmpty();
+}
+
+//임시 연결용 함수
+FText UQuestManager::GetQuestFullTextJoined(FName QuestID) const
+{
+	TArray<FText> Lines = GetQuestScriptLines(QuestID);
+	return FText::Join(FText::FromString(TEXT(" ")), Lines);
 }
 
 // ===================================================================
