@@ -17,8 +17,8 @@ class CREATEPOTION_API UCPContainerContextBase : public UObject
 public:
 	// TODO : 마우스 오버레이 시 기능( 아이템 설명 UI 출력 등 )
 
-	virtual bool HandleLeftClickOnly(UCPItemSlotWidget* ClickedSlot) { return false; }
-	virtual bool HandleLeftDoubleClick(UCPItemSlotWidget* ClickedSlot) { return false; }
+	virtual bool HandleLeftClickOnly(UCPItemSlotWidget* ClickedSlot);
+	virtual bool HandleLeftDoubleClick(UCPItemSlotWidget* ClickedSlot);
 	virtual bool HandleCtrlLeftClick(UCPItemSlotWidget* ClickedSlot) { return false; }
 	virtual bool HandleShiftLeftClick(UCPItemSlotWidget* ClickedSlot) { return false; }
 	virtual bool HandleAltLeftClick(UCPItemSlotWidget* ClickedSlot) { return false; }
