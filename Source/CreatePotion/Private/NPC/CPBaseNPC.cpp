@@ -1,7 +1,6 @@
 #include "NPC/CPBaseNPC.h"
 #include "Data/CPNPCDataAsset.h"
 #include "Components/CapsuleComponent.h"
-#include "Components/StateTreeComponent.h"
 #include "Animation/AnimSequence.h"
 #include "Kismet/GameplayStatics.h"
 #include "Quest/QuestManager.h"
@@ -15,7 +14,6 @@ ACPBaseNPC::ACPBaseNPC()
         GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
         GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Block);
     }
-    //StateTreeComponent = CreateDefaultSubobject<UStateTreeComponent>(TEXT("StateTreeComponent"));
 
 }
 
@@ -44,9 +42,12 @@ FText ACPBaseNPC::GetInteractionPrompt_Implementation()
                 EQuestState CurrentState = QuestManager->GetQuestState(QuestID);
                 if (CurrentState == EQuestState::NotAccepted)
                 {
-                    FText FullScript = QuestManager->GetQuestFullText(QuestID);  
+                    TArray<FText> ScriptLines = QuestManager->GetQuestScriptLines(QuestID);
                     UE_LOG(LogTemp, Log, TEXT("[퀘스트 대사 확인] QuestID: %s"), *QuestID.ToString());
-                    UE_LOG(LogTemp, Log, TEXT("[대사 내용]: %s"), *FullScript.ToString());
+                    for (int32 i = 0; i < ScriptLines.Num(); ++i)
+                    {
+                        UE_LOG(LogTemp, Log, TEXT("[대사 %d줄]: %s"), i, *ScriptLines[i].ToString());
+                    }
                  
                 }
             }
@@ -73,26 +74,6 @@ bool ACPBaseNPC::CanInteract_Implementation(AActor* Interactor)
         *GetName(),
         Interactor ? *Interactor->GetName() : TEXT("Unknown"));
     return true;
-}
-
-bool ACPBaseNPC::GetDialogueEntryForCurrentState(FCPNPCDialogueEntry& OutEntry) const
-{
-    if (!NPCData) { return false; }
-
-    if (const FCPNPCSituationData* SituationData = NPCData->SituationData.Find(CurrentSituation))
-    {
-        if (const FCPNPCDialogueEntry* Entry = SituationData->EmotionVariants.Find(CurrentEmotion))
-        {
-            OutEntry = *Entry;
-            return true;
-        }
-        else if (const FCPNPCDialogueEntry* DefaultEntry = SituationData->EmotionVariants.Find(ECPNPCEmotion::Neutral))
-        {
-            OutEntry = *DefaultEntry;
-            return true;
-        }
-    }
-    return false;
 }
 
 void ACPBaseNPC::OnConstruction(const FTransform& Transform)

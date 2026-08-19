@@ -27,12 +27,12 @@ protected:
 	
 private:
 	UFUNCTION()
-	void HandlePotionResultChanged(const TArray<FAlchemyProperty>& EffectTotals);
+	void HandlePotionResultChanged(const TArray<FGameplayTag>& EffectTotals);
 	
 	UFUNCTION()
 	void HandleSessionChanged();
 	
-	void ReBuildEffectRows(const TArray<FAlchemyProperty>& EffectTotals);
+	void ReBuildEffectRows(const TArray<FGameplayTag>& EffectTotals);
 	
 protected:
 	UPROPERTY(meta = (BindWidget))

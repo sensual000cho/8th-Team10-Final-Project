@@ -210,7 +210,7 @@ void ACPCharacter::OnQuestTogglePressed()
 	ACPPlayerController* PC = Cast<ACPPlayerController>(GetWorld()->GetFirstPlayerController());
 	if (PC)
 	{
-		PC->OnQuestTogglePressed();
+		// PC->OnQuestTogglePressed();
 	}
 }
 

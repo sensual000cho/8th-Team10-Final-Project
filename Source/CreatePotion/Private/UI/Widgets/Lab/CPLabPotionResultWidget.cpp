@@ -5,7 +5,6 @@
 
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
-#include "Data/CPForageableItemData.h"
 #include "GameState/CPLabGameState.h"
 #include "Lab/Component/CPLabPotionSessionComponent.h"
 #include "UI/Widgets/Lab/CPLabIngredientEffectRowWidget.h"
@@ -45,7 +44,7 @@ void UCPLabPotionResultWidget::UnbindEvents()
 	Super::UnbindEvents();
 }
 
-void UCPLabPotionResultWidget::HandlePotionResultChanged(const TArray<FAlchemyProperty>& EffectTotals)
+void UCPLabPotionResultWidget::HandlePotionResultChanged(const TArray<FGameplayTag>& EffectTotals)
 {
 	FCPLabPotionRequestState ActiveRequestState;
 	if (!BoundPotionSession || !BoundPotionSession->GetActiveRequestState(ActiveRequestState) || 
@@ -67,7 +66,7 @@ void UCPLabPotionResultWidget::HandleSessionChanged()
 	ReBuildEffectRows(BoundPotionSession->GetPotionResult());
 }
 
-void UCPLabPotionResultWidget::ReBuildEffectRows(const TArray<FAlchemyProperty>& EffectTotals)
+void UCPLabPotionResultWidget::ReBuildEffectRows(const TArray<FGameplayTag>& EffectTotals)
 {
 	if (!VB_EffectRows) return;
 	
@@ -84,21 +83,20 @@ void UCPLabPotionResultWidget::ReBuildEffectRows(const TArray<FAlchemyProperty>&
 		Txt_NoResult->SetVisibility(ESlateVisibility::Collapsed);
 	}
 	
-	for (const FAlchemyProperty& Effect : EffectTotals){
-		if (!Effect.Tag.IsValid()) continue;
+	for (const FGameplayTag& EffectTag : EffectTotals){
+		if (!EffectTag.IsValid()) continue;
 		
 		UCPLabIngredientEffectRowWidget* EffectRow = 
 			CreateWidget<UCPLabIngredientEffectRowWidget>(GetOwningPlayer(), EffectRowWidgetClass);
 		if (!EffectRow) continue;
 		
-		FString EffectName = Effect.Tag.ToString();
+		FString EffectName = EffectTag.ToString();
 		int32 LastSeparatorIndex = INDEX_NONE;
 		if (EffectName.FindLastChar(TEXT('.'), LastSeparatorIndex)){
 			EffectName.RightChopInline(LastSeparatorIndex + 1);
 		}
 		
-		EffectRow->SetEffectData(
-			FText::FromString(EffectName), Effect.Value, false, Effect.Value);
+		EffectRow->SetEffectData(FText::FromString(EffectName));
 		
 		VB_EffectRows->AddChildToVerticalBox(EffectRow);
 	}

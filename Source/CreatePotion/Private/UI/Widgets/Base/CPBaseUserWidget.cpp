@@ -2,11 +2,13 @@
 
 
 #include "UI/Widgets/Base/CPBaseUserWidget.h"
+#include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
 
 void UCPBaseUserWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	BindEvents();
+	CachedUIManager = GetGameInstance()->GetSubsystem<UCPUIManagerSubsystem>();
 }
 
 void UCPBaseUserWidget::NativeDestruct()
