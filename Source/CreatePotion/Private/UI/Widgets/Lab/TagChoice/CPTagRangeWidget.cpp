@@ -87,7 +87,7 @@ TArray<FTagConfirmData> UCPTagRangeWidget::GetFinalizedTagValues() const
 		Data.Value = Entry->GetCurrentSliderValue();
 		Data.ResultStr = TEXT("?");
 
-		// 정답 판정
+		/* 정답 판정
 		if (Answer)
 		{
 			const FQuestEffectRequirement* MatchingReq = Answer->RequestedEffects.FindByPredicate(
@@ -98,7 +98,18 @@ TArray<FTagConfirmData> UCPTagRangeWidget::GetFinalizedTagValues() const
 			else if (Data.Value < MatchingReq->MinValue) Data.ResultStr = TEXT("UP");
 			else if (Data.Value > MatchingReq->MaxValue) Data.ResultStr = TEXT("DOWN");
 			else Data.ResultStr = TEXT("O");
+		}*/
+
+
+		//  태그 레벨(Min/Max 범위) 판정 폐기 - 태그 존재 유무로만 판정
+		if (Answer)
+		{
+			const bool bIsRequested = Answer->RequestedEffects.ContainsByPredicate(
+				[&](const FQuestEffectRequirement& Req) { return Req.Axis == Data.Tag; }
+			);
+			Data.ResultStr = bIsRequested ? TEXT("O") : TEXT("X");
 		}
+
 
 		FinalizedValues.Add(Data);
 	}
