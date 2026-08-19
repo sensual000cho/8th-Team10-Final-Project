@@ -27,10 +27,6 @@ public:
 	virtual bool CanInteract_Implementation(AActor* Interactor) override;
 	
 public:
-	// Prop의 작업 재료값이 바뀌었음을 알림(제거 예정)
-	UPROPERTY(BlueprintAssignable, Category = "Lab|Ingredient")
-	FCPOnAlchemyPropChanged OnAlchemyPropChanged;
-	
 	// ItemData의 원본 효과값을 복사해 새 작업 재료로 초기화(제거 예정)
 	UFUNCTION(BlueprintCallable, Category = "Lab|Ingredient")
 	void InitializeFromItemData(UCPForageableItemData* ItemData);

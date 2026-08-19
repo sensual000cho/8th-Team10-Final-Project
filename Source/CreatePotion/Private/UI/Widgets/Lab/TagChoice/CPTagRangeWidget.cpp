@@ -2,18 +2,12 @@
 #include "UI/Widgets/Lab/TagChoice/CPTagRangeEntryWidget.h"
 #include "UI/Widgets/Lab/TagChoice/CPHintWidget.h"
 #include "UI/Widgets/Lab/TagChoice/CPTagSelectionWidget.h"
-#include "UI/Widgets/Common/Container/CPContainerMainWidget.h"
-#include "UI/Widgets/Lab/CPLabIngredientSelectWidget.h"
 #include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
 #include "Components/ScrollBox.h"
 #include "Components/TextBlock.h"
 #include "Components/Button.h"
-#include "Components/CPItemContainerComponent.h"
-#include "Components/CPLabContainerComponent.h"
-#include "Kismet/GameplayStatics.h"
-#include "Lab/Actor/CPLabContainerActor.h"
+#include "GameMode/CPLabGameMode.h"
 #include "Quest/QuestManager.h"
-#include "GameFramework/Character.h"
 
 void UCPTagRangeWidget::BindEvents()
 {
@@ -87,20 +81,6 @@ TArray<FTagConfirmData> UCPTagRangeWidget::GetFinalizedTagValues() const
 		Data.Value = Entry->GetCurrentSliderValue();
 		Data.ResultStr = TEXT("?");
 
-		/* 정답 판정
-		if (Answer)
-		{
-			const FQuestEffectRequirement* MatchingReq = Answer->RequestedEffects.FindByPredicate(
-				[&](const FQuestEffectRequirement& Req) { return Req.Axis == Data.Tag; }
-			);
-
-			if (!MatchingReq) Data.ResultStr = TEXT("X");
-			else if (Data.Value < MatchingReq->MinValue) Data.ResultStr = TEXT("UP");
-			else if (Data.Value > MatchingReq->MaxValue) Data.ResultStr = TEXT("DOWN");
-			else Data.ResultStr = TEXT("O");
-		}*/
-
-
 		//  태그 레벨(Min/Max 범위) 판정 폐기 - 태그 존재 유무로만 판정
 		if (Answer)
 		{
@@ -151,23 +131,13 @@ void UCPTagRangeWidget::OnConfirmClicked()
 			FinalData[i].Value,
 			*FinalData[i].ResultStr);
 	}
-	//TODO : 재료 선택 UI 연결
-
-	// AActor* LabActor = UGameplayStatics::GetActorOfClass(GetWorld(), ACPLabContainerActor::StaticClass());
-	// UCPItemContainerComponent* TargetContainer = nullptr;
-	//
-	// if (LabActor)
-	// {
-	// 	TargetContainer = LabActor->FindComponentByClass<UCPLabContainerComponent>();
-	// }
-	//
-	// if (!TargetContainer)
-	// {
-	// 	UE_LOG(LogTemp, Error, TEXT("[TagRangeWidget] 월드 내 LabContainer 컴포넌트 미발견"));
-	// 	return;
-	// }
 	
-	OnTagRangeConfirmed.Broadcast();
+	UWorld* World = GetWorld();
+	if (!World) return;
+
+	ACPLabGameMode* LabGameMode = World->GetAuthGameMode<ACPLabGameMode>();
+	if (!LabGameMode || !LabGameMode->AdvancePotionRequest()) return;
+	
 	RequestClose();
 }
 

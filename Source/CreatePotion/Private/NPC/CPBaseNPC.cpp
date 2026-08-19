@@ -10,11 +10,15 @@ ACPBaseNPC::ACPBaseNPC()
 	PrimaryActorTick.bCanEverTick = false;
     if (GetCapsuleComponent())
     {
-        GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+        GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
         GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
-        GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Block);
+        GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
     }
-
+    if (GetMesh())
+    {
+       
+        GetMesh()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+    }
 }
 
 void ACPBaseNPC::OnInteract_Implementation(AActor* Interactor)
@@ -97,6 +101,7 @@ void ACPBaseNPC::InitializeFromDataAsset()
     if (LoadedMesh)
     {
         GetMesh()->SetSkeletalMesh(LoadedMesh);
+        GetMesh()->SetRelativeScale3D(NPCData->MeshScale);
         FitCapsuleToMesh(LoadedMesh);
     }
 
@@ -121,7 +126,7 @@ void ACPBaseNPC::FitCapsuleToMesh(USkeletalMesh* InMesh)
     }
 
     const FBoxSphereBounds MeshBounds = InMesh->GetBounds();
-    const float MeshHalfHeight = MeshBounds.BoxExtent.Z;
+    const float MeshHalfHeight = MeshBounds.BoxExtent.Z * NPCData->MeshScale.Z;
     const float MeshRadius = MeshHalfHeight * (NPCData->CapsuleRadiusRatio);
 
     GetCapsuleComponent()->SetCapsuleSize(MeshRadius, MeshHalfHeight);
