@@ -12,5 +12,4 @@ class CREATEPOTION_API UCPContextInventoryOnly : public UCPContainerContextBase
 	GENERATED_BODY()
 	
 public:
-	virtual bool HandleLeftClickOnly(UCPItemSlotWidget* ClickedSlot) override;
 };
