@@ -7,6 +7,7 @@
 #include "CPContainerContextBase.generated.h"
 
 class UCPItemSlotWidget;
+class ACPPlayerController;
 
 UCLASS()
 class CREATEPOTION_API UCPContainerContextBase : public UObject
@@ -25,4 +26,8 @@ public:
 	virtual bool HandleCtrlRightClick(UCPItemSlotWidget* ClickedSlot) { return false; }
 	virtual bool HandleShiftRightClick(UCPItemSlotWidget* ClickedSlot) { return false; }
 	virtual bool HandleAltRightClick(UCPItemSlotWidget* ClickedSlot) { return false; }
+
+protected:
+	bool IsUsingInventoryOnly(ACPPlayerController* PC) const;
+	bool IsSlotFromInventory(UCPItemSlotWidget* ClickedSlot, ACPPlayerController* PC) const;
 };
