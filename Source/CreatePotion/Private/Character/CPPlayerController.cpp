@@ -39,6 +39,7 @@ void ACPPlayerController::SetupInputComponent()
 	}
 }
 
+// TODO[Container] : 추후 멀티플레이 확장시 Dedicated Server 환경에서 Client들은 실행이 되지 않음
 void ACPPlayerController::SetPawn(APawn* InPawn)
 {
 	Super::SetPawn(InPawn);

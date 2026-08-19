@@ -35,6 +35,7 @@ protected:
 	virtual void SetupInputComponent() override;
 
 	// 폰 빙의가 변경될 때 엔진이 자동으로 호출해주는 함수
+	// TODO[Container] : 추후 멀티플레이 확장시 Dedicated Server 환경에서 Client들은 실행이 되지 않음
 	virtual void SetPawn(APawn* InPawn) override;
 
 #pragma region Container
