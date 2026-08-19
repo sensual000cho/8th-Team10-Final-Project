@@ -131,19 +131,9 @@ void UCPLabCarriedIngredientWidget::BindPreviewIngredient(ACPAlchemyProp* Ingred
 	if (!IsValid(IngredientProp)) return;
 
 	PreviewIngredient = IngredientProp;
-	IngredientProp->OnAlchemyPropChanged.AddUniqueDynamic(
-		this,
-		&UCPLabCarriedIngredientWidget::HandlePreviewIngredientChanged);
 }
 
 void UCPLabCarriedIngredientWidget::UnbindPreviewIngredient()
 {
-	if (ACPAlchemyProp* IngredientProp = PreviewIngredient.Get())
-	{
-		IngredientProp->OnAlchemyPropChanged.RemoveDynamic(
-			this,
-			&UCPLabCarriedIngredientWidget::HandlePreviewIngredientChanged);
-	}
-
 	PreviewIngredient.Reset();
 }
