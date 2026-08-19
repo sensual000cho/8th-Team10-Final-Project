@@ -4,8 +4,6 @@
 #include "Lab/Actor/CPAlchemyProp.h"
 #include "Lab/Component/CPLabPotionSessionComponent.h"
 
-#define LOCTEXT_NAMESPACE "CPLabSlotIngredientInfoWidget"
-
 void UCPLabSlotIngredientInfoWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -83,25 +81,8 @@ void UCPLabSlotIngredientInfoWidget::HandleSessionChanged()
 
 void UCPLabSlotIngredientInfoWidget::RefreshHoveredSlot()
 {
-	if (HoveredSlotIndex == INDEX_NONE || !IsValid(BoundPotionSession))
-	{
-		HideSlotInfo();
-		return;
-	}
-
-	ACPAlchemyProp* IngredientProp = nullptr;
-	if (!BoundPotionSession->GetIngredientPropFromSlot(HoveredSlotIndex, IngredientProp) ||
-		!IsValid(IngredientProp))
-	{
-		HideSlotInfo();
-		return;
-	}
-
-	SetHeaderText(FText::Format(
-		LOCTEXT("SlotHeader", "슬롯 {0}"),
-		FText::AsNumber(HoveredSlotIndex + 1)));
-	SetObservedIngredient(IngredientProp);
-	SetVisibility(ESlateVisibility::HitTestInvisible);
+	// 슬롯 재료 조회 API가 현재 세션에서 제거되어 표시할 재료를 가져올 수 없다.
+	HideSlotInfo();
 }
 
 void UCPLabSlotIngredientInfoWidget::HideSlotInfo()
@@ -110,5 +91,3 @@ void UCPLabSlotIngredientInfoWidget::HideSlotInfo()
 	ClearObservedIngredient();
 	SetVisibility(ESlateVisibility::Collapsed);
 }
-
-#undef LOCTEXT_NAMESPACE

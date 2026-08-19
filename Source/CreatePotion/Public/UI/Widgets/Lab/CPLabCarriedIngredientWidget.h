@@ -4,6 +4,8 @@
 #include "UI/Widgets/Lab/CPLabIngredientInfoWidget.h"
 #include "CPLabCarriedIngredientWidget.generated.h"
 
+class ACPAlchemyProp;
+class UCPInteractionComponent;
 class UCPLabPotionSessionComponent;
 
 /**
@@ -24,9 +26,23 @@ private:
 	UFUNCTION()
 	void HandleSessionChanged();
 
-	void RefreshHeldIngredient();
+	UFUNCTION()
+	void HandleInteractionFocusChanged(FText Prompt, FName TargetName);
 
-	// 세션이 가진 HeldIngredientProp 변경 알림을 받기 위해 런타임 동안만 보관한다.
+	UFUNCTION()
+	void HandlePreviewIngredientChanged();
+
+	void RefreshHeldIngredient();
+	void BindPreviewIngredient(ACPAlchemyProp* IngredientProp);
+	void UnbindPreviewIngredient();
+
+	// 세션이 가진 HeldAlchemyProp 변경 알림을 받기 위해 런타임 동안만 보관한다.
 	UPROPERTY(Transient)
 	TObjectPtr<UCPLabPotionSessionComponent> BoundPotionSession;
+
+	UPROPERTY(Transient)
+	TWeakObjectPtr<UCPInteractionComponent> BoundInteractionComponent;
+
+	UPROPERTY(Transient)
+	TWeakObjectPtr<ACPAlchemyProp> PreviewIngredient;
 };

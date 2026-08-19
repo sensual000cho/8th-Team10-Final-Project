@@ -6,6 +6,8 @@
 #include "GameFramework/GameModeBase.h"
 #include "CPGameModeBase.generated.h"
 
+class APlayerStart;
+
 UCLASS()
 class CREATEPOTION_API ACPGameModeBase : public AGameModeBase
 {
@@ -13,4 +15,10 @@ class CREATEPOTION_API ACPGameModeBase : public AGameModeBase
 	
 public:
 	ACPGameModeBase();
+	
+protected:
+	virtual AActor* ChoosePlayerStart_Implementation(AController* Player) override;
+	
+private:
+	APlayerStart* FindPlayerStartByTag(FName SpawnPointId) const;
 };

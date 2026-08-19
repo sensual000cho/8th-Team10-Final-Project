@@ -9,6 +9,9 @@
 #include "GameCore/Interface/CPHighlightable.h"
 #include "HAL/IConsoleManager.h"
 
+#include "EnhancedInputSubsystems.h"	// IMC 바인딩
+#include "EnhancedInputComponent.h"		// IA 바인딩
+
 // 에디터에서 콘솔창에 cp.Debug.Interaction를 입력해서 Debug On/Off 가능
 // cp.Debug.Interaction 1 --> Debug On
 // cp.Debug.Interaction 0 --> Debug Off 
@@ -25,25 +28,33 @@ void UCPInteractionComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	ACPCharacter* Character = Cast<ACPCharacter>(GetOwner());
-	if (!Character)
+	if (AActor* OwnerActor = GetOwner())
 	{
-		return;
+		Camera = OwnerActor->FindComponentByClass<UCameraComponent>();
 	}
 
-	Camera = Character->GetFollowCamera();
-	
-	if (!Camera)
+	if (Camera)
 	{
-		return;
+		// 카메라를 찾았다면 Trace 타이머 시작
+		GetWorld()->GetTimerManager().SetTimer(
+			TraceTimerHandle,
+			this,
+			&UCPInteractionComponent::PerformTrace,
+			0.15f,
+			true
+		);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("[Interaction] 카메라 컴포넌트를 찾을 수 없습니다."));
 	}
 	
-	// Trace하는 타이머 시작
+	BindRetryCount = 0;
 	GetWorld()->GetTimerManager().SetTimer(
-		TraceTimerHandle,
+		IMCBindingTimerHandle,
 		this,
-		&UCPInteractionComponent::PerformTrace,
-		0.15f,
+		&UCPInteractionComponent::TryBindInputMappingContext,
+		0.1f,
 		true
 	);
 }
@@ -58,6 +69,10 @@ void UCPInteractionComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 		GetWorld()->GetTimerManager().ClearTimer(
 			InteractionTimerHandle
+		);
+
+		GetWorld()->GetTimerManager().ClearTimer(
+			IMCBindingTimerHandle
 		);
 	}
 	
@@ -216,7 +231,8 @@ void UCPInteractionComponent::PerformTrace()
 		SetActorHighlight(FoundActor, true);
 		
 		const FText Prompt = ICPInteractable::Execute_GetInteractionPrompt(FoundActor);
-		OnPromptChanged.Broadcast(Prompt);
+		const FName TargetName = ICPInteractable::Execute_GetInteractionName(FoundActor);
+		OnPromptChanged.Broadcast(Prompt, TargetName);
 	}
 	else
 	{
@@ -226,18 +242,19 @@ void UCPInteractionComponent::PerformTrace()
 
 void UCPInteractionComponent::ClearCurrentTarget()
 {
-	if (!CurrentTarget.IsValid())
+	if (CurrentTarget.IsExplicitlyNull())
 	{
-		return;
+		return; // 이미 비어있는 상태면 중복 브로드캐스트 방지
+
 	}
-	
+
 	if (AActor* Target = CurrentTarget.Get())
 	{
 		SetActorHighlight(Target, false);
 	}
 
 	CurrentTarget.Reset();
-	OnPromptChanged.Broadcast(FText::GetEmpty());
+	OnPromptChanged.Broadcast(FText::GetEmpty(), NAME_None);
 }
 
 void UCPInteractionComponent::TryInteract()
@@ -388,3 +405,48 @@ void UCPInteractionComponent::SetActorHighlight(AActor* Target, bool bHighlighte
 		UE_LOG(LogTemp, Error, TEXT("[InteractionComponent] %s 에서 Mesh 발견되지 않음"), *Target->GetName());
 	}
 }
+
+#pragma region IMC
+void UCPInteractionComponent::TryBindInputMappingContext()
+{
+	if (!InteractionMappingContext || !InteractAction)
+	{
+		// IMC, IA가 할당 안 되어 있으면 시도할 필요조차 없으니 타이머 즉시 종료
+		GetWorld()->GetTimerManager().ClearTimer(IMCBindingTimerHandle);
+		return;
+	}
+
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	APawn* MyPawn = Cast<APawn>(GetOwner());
+
+	if (PC && PC->InputComponent)
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
+		{
+			// 플레이어 인터렉션용 IMC를 추가, priority = 1, 값이 높을 수록 우선
+			Subsystem->AddMappingContext(InteractionMappingContext, 1);
+			UE_LOG(LogTemp, Warning, TEXT("[Interaction] IMC 바인딩 성공"));
+		}
+
+		if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(MyPawn->InputComponent))
+		{
+			// Started(누른 순간)에 TryInteract 함수 실행
+			EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &UCPInteractionComponent::TryInteract);
+			GetWorld()->GetTimerManager().ClearTimer(IMCBindingTimerHandle);	// 바인딩 성공시 타이머 즉시 종료
+			UE_LOG(LogTemp, Warning, TEXT("[Interaction] IA 바인딩 성공"));
+		}
+	}
+	else
+	{
+		// 실패 시 시도한 횟수 카운트 증가
+		BindRetryCount++;
+
+		// 50회(약 5초)가 지나도 안 되면 포기
+		if (BindRetryCount >= 50)
+		{
+			GetWorld()->GetTimerManager().ClearTimer(IMCBindingTimerHandle);
+			UE_LOG(LogTemp, Warning, TEXT("[Interaction] 입력 바인딩 실패"));
+		}
+	}
+}
+#pragma endregion

@@ -36,10 +36,8 @@ protected:
 	// 초기 배치 시, 고유 Id 생성
 	virtual void PostActorCreated() override;
 	
-#if WITH_EDITOR
 	// Spawner 복제 시, GUid 복사 방지
 	virtual void PostEditImport() override;
-#endif
 	
 private:
 	// 전부 스폰
@@ -55,7 +53,7 @@ private:
 	FCPResourceNodeKey MakeNodeKey(int32 SlotIndex) const;
 	
 	// 스폰 위치 / 회전 계산
-	FTransform CalculateSpawnTransform(int32 SlotIndex, int32 Generation) const;
+	bool TryCalculateSpawnTransform(int32 SlotIndex, int32 Generation, FTransform& OutTransform) const;
 	
 	// 스폰 시드 생성
 	int32 MakeSpawnSeed(int32 SlotIndex, int32 Generation, int32 Salt) const;

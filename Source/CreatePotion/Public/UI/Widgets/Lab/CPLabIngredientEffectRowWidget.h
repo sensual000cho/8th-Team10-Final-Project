@@ -27,11 +27,7 @@ class CREATEPOTION_API UCPLabIngredientEffectRowWidget : public UCPBaseUserWidge
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Lab|UI|Ingredient")
-	void SetEffectData(
-		const FText& InEffectName,
-		int32 InCurrentLevel,
-		bool bInHasPreview,
-		int32 InPreviewLevel);
+	void SetEffectData(const FText& InEffectName);
 
 	UFUNCTION(BlueprintPure, Category = "Lab|UI|Ingredient")
 	ECPLabIngredientEffectDeltaState GetDeltaState() const;
