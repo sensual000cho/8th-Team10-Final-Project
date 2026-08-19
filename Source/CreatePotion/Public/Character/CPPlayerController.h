@@ -11,6 +11,7 @@
 class UInputAction;
 class UInputMappingContext;
 class UCPItemContainerComponent;
+class UCPInventoryComponent;
 class UCPContainerMainWidget;
 class UCPContainerContextBase;
 
@@ -27,6 +28,8 @@ protected:
 
 	/** Gameplay initialization */
 	virtual void BeginPlay() override;
+
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	/** Input mapping context setup */
 	virtual void SetupInputComponent() override;
@@ -50,19 +53,29 @@ public:
 private:
 	void SetContextHandlerForTargetContext(EUITargetContext InTargetContext);
 
+	// Inventory Component 캐싱을 시도할 함수
+	void TryCacheInventoryComponent();
+
 public:
 	// 현재 상호작용 중인 컨테이너
 	// TODO[Container] : F키 또는 컨테이너 이용 시 이 값을 해당 ItemContainerComponent로 설정해주어야 합니다.
 	UPROPERTY(BlueprintReadWrite, Category = "Container")
 	UCPItemContainerComponent* CurrentInteractingContainer = nullptr;
 
-	// Context를 처리할 
+	// Context를 처리할 Handler
 	UPROPERTY()
 	UCPContainerContextBase* CurrentContextHandler;
+
+	// 캐싱할 Inventory Component
+	UPROPERTY()
+	UCPInventoryComponent* CachedInventoryComponent;
 
 protected:
 	// 현재 화면에 떠 있는 외부 컨테이너 UI 인스턴스 (Lab, Storage, Shop 공용)
 	UPROPERTY()
 	UCPContainerMainWidget* CurrentContainerUIInstance;
+
+private:
+	FTimerHandle InventoryCacheRetryHandler;
 #pragma endregion
 };

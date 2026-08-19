@@ -11,12 +11,21 @@
 #include "UI/Widgets/Common/Container/CPContainerMainWidget.h"
 #include "UI/Widgets/Common/Container/CPContainerGridWidget.h"
 #include "Components/CPItemContainerComponent.h"
+#include "Components/CPInventoryComponent.h"
 #include "UI/Context/CPContextInventoryOnly.h"
 
 void ACPPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
+
 	SetContextHandlerForTargetContext(EUITargetContext::InventoryOnly);
+	GetWorld()->GetTimerManager().SetTimer(
+		InventoryCacheRetryHandler, 
+		this, 
+		&ACPPlayerController::TryCacheInventoryComponent, 
+		0.1f, 
+		true
+	);
 }
 
 void ACPPlayerController::SetupInputComponent()
@@ -37,7 +46,26 @@ void ACPPlayerController::SetupInputComponent()
 	}
 }
 
+void ACPPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	GetWorld()->GetTimerManager().ClearTimer(InventoryCacheRetryHandler);
+	
+	Super::EndPlay(EndPlayReason);
+}
+
 #pragma region Container
+void ACPPlayerController::TryCacheInventoryComponent()
+{
+	if (APawn* MyPawn = GetPawn())
+	{
+		if (UCPInventoryComponent* FoundComp = MyPawn->FindComponentByClass<UCPInventoryComponent>())
+		{
+			CachedInventoryComponent = FoundComp;
+			GetWorld()->GetTimerManager().ClearTimer(InventoryCacheRetryHandler);
+		}
+	}
+}
+
 void ACPPlayerController::SetContextHandlerForTargetContext(EUITargetContext InTargetContext)
 {
 	switch (InTargetContext)
