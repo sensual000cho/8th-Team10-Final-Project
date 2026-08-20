@@ -101,7 +101,7 @@ FReply UCPItemSlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, c
 	if ((!CachedItemData.ItemDataAsset && !bIsHolding) || !OwnerContainer)
 	{
 		return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
-	} // 빈 칸이라도 "현재 무언가를 들고 있으면(bIsHolding값이 true일 때)" 마우스 입력 처리를 위해 통과
+	} // 빈 칸이라도 "현재 무언가를 들고 있으면(bIsHolding값이 true일 때)" 마우스 입력 처리를 하러 다음 코드 블럭으로 이동
 
 	if (!PC || !PC->CurrentContextHandler)
 	{
