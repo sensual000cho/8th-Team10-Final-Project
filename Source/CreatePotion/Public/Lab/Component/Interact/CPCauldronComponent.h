@@ -30,6 +30,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Lab|Interaction")
 	TArray<FGameplayTag> GetEffectTags() const;
 	
+	UFUNCTION(BlueprintPure, Category = "Lab|Interaction")
+	TArray<FCPLabIngredientInstance> GetIngredientInstance() const;
+	
 private:
 	// 재료 넣기
 	bool AddProp();
