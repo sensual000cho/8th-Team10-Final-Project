@@ -54,6 +54,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Container|UI")
 	void ToggleExternalContainerUI(UCPItemContainerComponent* InTargetContainer);
 
+	// 현재 아이템을 들고 있는지 확인하는 함수
+	bool IsHoldingItem() const;
+
+	// 아이템을 내려놓은 상태로 초기화 하는 함수 
+	void ResetHoldingItem();
+
 private:
 	void SetContextHandlerForTargetContext(EUITargetContext InTargetContext);
 
@@ -66,6 +72,10 @@ public:
 	// 마우스 클릭으로 "현재 들고 있는 아이템"을 보관할 Container
 	UPROPERTY(BlueprintReadWrite, Category = "Container|Drag")
 	UCPItemContainerComponent* LeftClickPickedContainer = nullptr;
+
+	// 마우스 클릭으로 "현재 들고 있는 아이템"의 기존 Index
+	UPROPERTY(BlueprintReadWrite, Category = "Container|Drag")
+	int32 LeftClickPickedSlotIndex = -1;
 
 	// Context를 처리할 Handler
 	UPROPERTY()

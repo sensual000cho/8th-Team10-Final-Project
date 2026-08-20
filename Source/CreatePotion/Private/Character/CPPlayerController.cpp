@@ -155,4 +155,15 @@ void ACPPlayerController::ToggleExternalContainerUI(UCPItemContainerComponent* I
 
 	OpenExternalContainerUI(InTargetContainer);
 }
+
+bool ACPPlayerController::IsHoldingItem() const
+{
+	return (LeftClickPickedContainer != nullptr) && (LeftClickPickedSlotIndex != -1);
+}
+
+void ACPPlayerController::ResetHoldingItem()
+{
+	LeftClickPickedContainer = nullptr;
+	LeftClickPickedSlotIndex = -1;
+}
 #pragma endregion
