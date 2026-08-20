@@ -125,3 +125,21 @@ bool UCPLabPotionSessionComponent::CanTransitionRequestPhase(ECPLabPotionRequest
 		return false;
 	}
 }
+
+bool UCPLabPotionSessionComponent::
+CanThrowHeldAlchemyProp() const
+{
+	if (!HasHeldAlchemyProp())
+	{
+		return false;
+	}
+
+	FCPLabPotionRequestState RequestState;
+
+	if (!GetActiveRequestState(RequestState))
+	{
+		return false;
+	}
+
+	return RequestState.Phase == ECPLabPotionRequestPhase::Processing;
+}
