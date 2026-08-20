@@ -4,6 +4,7 @@
 #include "Components/TimelineComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "GameFramework/RotatingMovementComponent.h"
+#include "Resource/System/CPObjectPoolSubsystem.h"
 
 ACPDroppedItemBase::ACPDroppedItemBase()
 {
@@ -49,7 +50,16 @@ void ACPDroppedItemBase::OnInteract_Implementation(AActor* Interactor)
 	
 	Inventory->TryGetItem(ItemData, Amount);
 	
-	Destroy();
+	UCPObjectPoolSubsystem* Pool = GetWorld()->GetSubsystem<UCPObjectPoolSubsystem>();
+	if (Pool)
+	{
+		Pool->ReleaseActor(this);
+	}
+
+	else
+	{
+		Destroy();
+	}
 }
 
 FText ACPDroppedItemBase::GetInteractionPrompt_Implementation()
@@ -57,9 +67,43 @@ FText ACPDroppedItemBase::GetInteractionPrompt_Implementation()
 	return FText::FromString(TEXT("줍기"));
 }
 
+FName ACPDroppedItemBase::GetInteractionName_Implementation()
+{
+	return FName(*ItemData->DisplayName.ToString());
+}
+
 bool ACPDroppedItemBase::CanInteract_Implementation(AActor* Interactor)
 {
 	return Interactor != nullptr && ItemData != nullptr && Amount > 0;
+}
+
+void ACPDroppedItemBase::OnAcquireFromPool_Implementation()
+{
+	SetActorHiddenInGame(false);
+	SetActorEnableCollision(true);
+	
+	Mesh->SetHiddenInGame(false, true);
+	Mesh->SetVisibility(true, true);
+}
+
+void ACPDroppedItemBase::OnReleaseToPool_Implementation()
+{
+	SetActorHiddenInGame(true);
+	SetActorEnableCollision(false);
+	
+	ItemData = nullptr;
+	Amount = 0;
+	
+	DropMovement->StopMovementImmediately();
+	DropMovement->Deactivate();
+	
+	HoverTimeline->Stop();
+	
+	RotatingMovement->Deactivate();
+	
+	VisualRoot->SetRelativeLocation(FVector::ZeroVector);
+	
+	Mesh->SetStaticMesh(nullptr);
 }
 
 void ACPDroppedItemBase::Initialize(UCPForageableItemData* InItemData, int32 InAmount, UStaticMesh* InMesh)
@@ -67,6 +111,23 @@ void ACPDroppedItemBase::Initialize(UCPForageableItemData* InItemData, int32 InA
 	ItemData = InItemData;
 	Amount = InAmount;
 	Mesh->SetStaticMesh(InMesh);
+}
+
+void ACPDroppedItemBase::StartDropMotion(const FVector& DropDirection)
+{
+	FVector HorizontalDirection = DropDirection;
+	
+	HorizontalDirection.Z = 0.f;
+	HorizontalDirection.Normalize();
+	
+	DropMovement->SetUpdatedComponent(SphereCollision);
+	DropMovement->Velocity = HorizontalDirection * DropHorizontalSpeed + FVector::UpVector * DropVerticalSpeed;
+	DropMovement->Activate(true);
+}
+
+void ACPDroppedItemBase::BeginPlay()
+{
+	Super::BeginPlay();
 	
 	DropMovement->OnProjectileStop.AddDynamic(this, &ACPDroppedItemBase::OnDropMotionStopped);
 	
@@ -79,17 +140,6 @@ void ACPDroppedItemBase::Initialize(UCPForageableItemData* InItemData, int32 InA
 		HoverTimeline->AddInterpFloat(HoverCurve, HoverUpdate);
 		HoverTimeline->SetLooping(true);
 	}
-}
-
-void ACPDroppedItemBase::StartDropMotion(const FVector& DropDirection)
-{
-	FVector HorizontalDirection = DropDirection;
-	
-	HorizontalDirection.Z = 0.f;
-	HorizontalDirection.Normalize();
-	
-	DropMovement->Velocity = HorizontalDirection * DropHorizontalSpeed + FVector::UpVector * DropVerticalSpeed;
-	DropMovement->Activate(true);
 }
 
 void ACPDroppedItemBase::OnDropMotionStopped(const FHitResult& ImpactResult)

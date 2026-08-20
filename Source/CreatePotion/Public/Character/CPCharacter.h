@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
 #include "CPCharacter.generated.h"
@@ -12,6 +13,9 @@ class UCameraComponent;
 class UInputAction;
 class UCPInteractionComponent;
 struct FInputActionValue;
+
+class UCPInventoryComponent;
+class UCPContainerMainWidget;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
@@ -23,13 +27,13 @@ class CREATEPOTION_API ACPCharacter : public ACharacter
 	/** Camera boom positioning the camera behind the character */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	USpringArmComponent* CameraBoom;
-
+	
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
 
 protected:
-
+	
 	/** Jump Input Action */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* JumpAction;
@@ -37,11 +41,11 @@ protected:
 	/** Move Input Action */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* MoveAction;
-
+	
 	/** Look Input Action */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* LookAction;
-
+	
 	/** Mouse Look Input Action */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* MouseLookAction;
@@ -52,17 +56,25 @@ protected:
 	
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* MouseInteractAction;
-
+	
+	/** QuestList Input Action */
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* QuestToggleAction;
+	
 public:
 
 	/** Constructor */
 	ACPCharacter();	
-
+	
 protected:
-
+	
 	/** Initialize input action bindings */
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	virtual void BeginPlay() override;
+
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	
 protected:
 
 	/** Called for movement input */
@@ -88,7 +100,7 @@ public:
 	/** Handles jump pressed inputs from either controls or UI interfaces */
 	UFUNCTION(BlueprintCallable, Category="Input")
 	virtual void DoJumpEnd();
-
+	
 public:
 
 	/** Returns CameraBoom subobject **/
@@ -96,10 +108,39 @@ public:
 
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
-
+	
 protected:
 	UPROPERTY(VisibleAnywhere, Category="Interaction")
 	UCPInteractionComponent* InteractionComponent;
 	
+	UPROPERTY(EditAnywhere, Category = "UI|Tags")
+	FGameplayTag QuestToggleTag;
+	
 	void OnInteractPressed(); // 입력 바인딩용
+	void OnQuestTogglePressed(); // 퀘스트 입력 바인딩
+
+#pragma region Container
+private:
+	// 인벤토리 상호작용 키(I키 등)를 눌렀을 때 실행될 토글 함수
+	void ToggleInventoryUI();
+
+public:
+	// 인벤토리 컴포넌트 - 인벤토리
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
+	UCPInventoryComponent* InventoryComponent;
+
+	// 인벤토리 UI 위젯
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<UCPContainerMainWidget> InventoryUIClass;
+
+protected:
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* ToggleInventoryAction;
+
+private:
+	// 생성된 위젯 인스턴스를 보관할 변수
+	UPROPERTY()
+	UCPContainerMainWidget* InventoryUIInstance;
+#pragma endregion
+
 };

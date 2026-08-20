@@ -10,11 +10,15 @@ ACPBaseNPC::ACPBaseNPC()
 	PrimaryActorTick.bCanEverTick = false;
     if (GetCapsuleComponent())
     {
-        GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+        GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
         GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
-        GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Block);
+        GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
     }
-
+    if (GetMesh())
+    {
+       
+        GetMesh()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+    }
 }
 
 void ACPBaseNPC::OnInteract_Implementation(AActor* Interactor)
@@ -42,9 +46,12 @@ FText ACPBaseNPC::GetInteractionPrompt_Implementation()
                 EQuestState CurrentState = QuestManager->GetQuestState(QuestID);
                 if (CurrentState == EQuestState::NotAccepted)
                 {
-                    FText FullScript = QuestManager->GetQuestFullText(QuestID);  
+                    TArray<FText> ScriptLines = QuestManager->GetQuestScriptLines(QuestID);
                     UE_LOG(LogTemp, Log, TEXT("[퀘스트 대사 확인] QuestID: %s"), *QuestID.ToString());
-                    UE_LOG(LogTemp, Log, TEXT("[대사 내용]: %s"), *FullScript.ToString());
+                    for (int32 i = 0; i < ScriptLines.Num(); ++i)
+                    {
+                        UE_LOG(LogTemp, Log, TEXT("[대사 %d줄]: %s"), i, *ScriptLines[i].ToString());
+                    }
                  
                 }
             }
@@ -73,26 +80,6 @@ bool ACPBaseNPC::CanInteract_Implementation(AActor* Interactor)
     return true;
 }
 
-bool ACPBaseNPC::GetDialogueEntryForCurrentState(FCPNPCDialogueEntry& OutEntry) const
-{
-    if (!NPCData) { return false; }
-
-    if (const FCPNPCSituationData* SituationData = NPCData->SituationData.Find(CurrentSituation))
-    {
-        if (const FCPNPCDialogueEntry* Entry = SituationData->EmotionVariants.Find(CurrentEmotion))
-        {
-            OutEntry = *Entry;
-            return true;
-        }
-        else if (const FCPNPCDialogueEntry* DefaultEntry = SituationData->EmotionVariants.Find(ECPNPCEmotion::Neutral))
-        {
-            OutEntry = *DefaultEntry;
-            return true;
-        }
-    }
-    return false;
-}
-
 void ACPBaseNPC::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
@@ -114,6 +101,7 @@ void ACPBaseNPC::InitializeFromDataAsset()
     if (LoadedMesh)
     {
         GetMesh()->SetSkeletalMesh(LoadedMesh);
+        GetMesh()->SetRelativeScale3D(NPCData->MeshScale);
         FitCapsuleToMesh(LoadedMesh);
     }
 
@@ -138,7 +126,7 @@ void ACPBaseNPC::FitCapsuleToMesh(USkeletalMesh* InMesh)
     }
 
     const FBoxSphereBounds MeshBounds = InMesh->GetBounds();
-    const float MeshHalfHeight = MeshBounds.BoxExtent.Z;
+    const float MeshHalfHeight = MeshBounds.BoxExtent.Z * NPCData->MeshScale.Z;
     const float MeshRadius = MeshHalfHeight * (NPCData->CapsuleRadiusRatio);
 
     GetCapsuleComponent()->SetCapsuleSize(MeshRadius, MeshHalfHeight);

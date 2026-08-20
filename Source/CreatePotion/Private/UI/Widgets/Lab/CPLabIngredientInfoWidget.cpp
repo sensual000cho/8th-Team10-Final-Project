@@ -32,10 +32,6 @@ void UCPLabIngredientInfoWidget::SetObservedIngredient(ACPAlchemyProp* InIngredi
 		if (IsValid(InIngredientProp))
 		{
 			ObservedIngredientProp = InIngredientProp;
-			// 같은 위젯이 재구성돼도 동일한 델리게이트가 중복 등록되지 않게 AddUnique를 사용한다.
-			InIngredientProp->OnAlchemyPropChanged.AddUniqueDynamic(
-				this,
-				&UCPLabIngredientInfoWidget::HandleObservedIngredientChanged);
 		}
 	}
 	RefreshObservedIngredient();
@@ -59,9 +55,7 @@ void UCPLabIngredientInfoWidget::ApplyIngredientInfo(const FCPLabIngredientInsta
 {
 	if (!InIngredient.IsValid())
 	{
-		// 재료가 사라지면 이전 재료의 예상 효과도 함께 지워 잔상이 남지 않게 한다.
 		Ingredient = FCPLabIngredientInstance{};
-		PreviewEffects.Reset();
 		RefreshEmptyState();
 		return;
 	}
@@ -86,13 +80,6 @@ void UCPLabIngredientInfoWidget::RefreshObservedIngredient()
 
 void UCPLabIngredientInfoWidget::UnbindObservedIngredient()
 {
-	if (ACPAlchemyProp* IngredientProp = ObservedIngredientProp.Get(); IsValid(IngredientProp))
-	{
-		IngredientProp->OnAlchemyPropChanged.RemoveDynamic(
-			this,
-			&UCPLabIngredientInfoWidget::HandleObservedIngredientChanged);
-	}
-
 	ObservedIngredientProp.Reset();
 }
 
@@ -107,16 +94,8 @@ void UCPLabIngredientInfoWidget::UnbindEvents()
 	Super::UnbindEvents();
 }
 
-void UCPLabIngredientInfoWidget::SetPreviewEffects(
-	const TMap<FGameplayTag, int32>& InPreviewEffects)
-{
-	PreviewEffects = InPreviewEffects;
-	RebuildEffectRows();
-}
-
 void UCPLabIngredientInfoWidget::ClearPreviewEffects()
 {
-	PreviewEffects.Reset();
 	RebuildEffectRows();
 }
 
@@ -195,31 +174,17 @@ void UCPLabIngredientInfoWidget::RebuildEffectRows()
 	{
 		return;
 	}
-
-	// TMap 순회 순서는 보장되지 않으므로, 기획자가 DataAsset에 작성한 TagAxes 순서를 사용한다.
-	for (const FAlchemyProperty& Property : ItemData->TagAxes)
-	{
-		if (!Property.Tag.IsValid())
-		{
-			continue;
-		}
-
-		const int32 CurrentValue = Ingredient.CurrentEffects.FindRef(Property.Tag);
-		const int32* PreviewValue = PreviewEffects.Find(Property.Tag);
-
-		UCPLabIngredientEffectRowWidget* EffectRow =
+	
+	// 재료의 현재 효과를 기반으로 Tag 구성
+	for (const FGameplayTag& EffectTag : Ingredient.CurrentEffects){
+		if (!EffectTag.IsValid()) continue;
+		
+		UCPLabIngredientEffectRowWidget* EffectRow = 
 			CreateWidget<UCPLabIngredientEffectRowWidget>(GetOwningPlayer(), EffectRowWidgetClass);
-		if (!EffectRow)
-		{
-			continue;
-		}
-
-		EffectRow->SetEffectData(
-			GetEffectDisplayName(Property.Tag),
-			CurrentValue,
-			PreviewValue != nullptr,
-			PreviewValue ? *PreviewValue : CurrentValue);
-
+		if (!EffectRow) continue;
+		
+		EffectRow->SetEffectData(GetEffectDisplayName(EffectTag));
+		
 		VerticalBox_EffectRows->AddChildToVerticalBox(EffectRow);
 	}
 }

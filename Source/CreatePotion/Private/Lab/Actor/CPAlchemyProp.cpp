@@ -2,9 +2,11 @@
 
 #include "Components/StaticMeshComponent.h"
 #include "Data/CPForageableItemData.h"
+#include "GameState/CPLabGameState.h"
+#include "Lab/Component/CPLabPotionSessionComponent.h"
 
 // 물리 재료 Actor의 기본 컴포넌트 구성
-ACPAlchemyProp::ACPAlchemyProp(): ProcessMultiplier(1) 
+ACPAlchemyProp::ACPAlchemyProp()
 {
 	// 직접 이동·가공 요청을 받을 때만 갱신하므로 Tick은 사용하지 않음
 	PrimaryActorTick.bCanEverTick = false;
@@ -13,25 +15,64 @@ ACPAlchemyProp::ACPAlchemyProp(): ProcessMultiplier(1)
 	SetRootComponent(StaticMeshComponent);
 }
 
-void ACPAlchemyProp::InitializeFromItemData(UCPForageableItemData* ItemData)
+void ACPAlchemyProp::OnInteract_Implementation(AActor* Interactor)
 {
-	ResetWorkingIngredient();
-
-	if (!ItemData){
-		OnAlchemyPropChanged.Broadcast();
-		return;
-	}
-
-	WorkingIngredient.SourceItemData = ItemData;
-
-	// DataAsset의 원본 효과값을 복사해 Actor만의 작업값 생성
-	for (const FAlchemyProperty& Property : ItemData->TagAxes){
-		if (!Property.Tag.IsValid())continue;
-
-		WorkingIngredient.CurrentEffects.Add(Property.Tag, Property.Value);
+	UWorld* World = GetWorld();
+	ACPLabGameState* LabGameState = World? World->GetGameState<ACPLabGameState>(): nullptr;
+	UCPLabPotionSessionComponent* Session = LabGameState? LabGameState->GetPotionSession(): nullptr;
+	if (!Session) return;
+	
+	// 손에 들고 있던 Prop이 있던 경우
+	ACPAlchemyProp* PreviousHeldProp = nullptr;
+	if (Session->ReleaseHeldAlchemyProp(PreviousHeldProp) && IsValid(PreviousHeldProp)){
+		FVector DropLocation = Interactor ? Interactor->GetActorForwardVector() * 100.0f : FVector::ZeroVector;
+		DropLocation += Interactor->GetActorLocation();
+		
+		PreviousHeldProp->SetActorLocation(DropLocation);
+		PreviousHeldProp->SetActorHiddenInGame(false);
+		PreviousHeldProp->SetActorEnableCollision(true);
 	}
 	
-	OnAlchemyPropChanged.Broadcast();
+	// 상호작용한 Prop을 손에 들고 비활성화
+	if (!Session->HoldAlchemyProp(this)) return;
+	
+	SetActorHiddenInGame(true);
+	SetActorEnableCollision(false);
+}
+
+FText ACPAlchemyProp::GetInteractionPrompt_Implementation()
+{
+	return FText::FromString(TEXT("재료 들기"));
+}
+
+FName ACPAlchemyProp::GetInteractionName_Implementation()
+{
+	return FName(TEXT("Prop"));
+}
+
+bool ACPAlchemyProp::CanInteract_Implementation(AActor* Interactor)
+{
+	return true;
+}
+
+void ACPAlchemyProp::InitializeFromItemData(UCPForageableItemData* ItemData)
+{
+	InitializeAlchemyProp(ItemData);
+}
+
+void ACPAlchemyProp::InitializeAlchemyProp(UCPForageableItemData* ItemData, const TArray<FGameplayTag>& EffectTags)
+{
+	WorkingIngredient = FCPLabIngredientInstance{};
+	
+	if (!ItemData) return;
+	
+	// 배열이 들어오면 배열, 들어오지 않으면 DA을 사용해 초기화
+	WorkingIngredient.SourceItemData = ItemData;
+	if (EffectTags.Num() > 0){
+		WorkingIngredient.CurrentEffects = EffectTags;	
+	}else{
+		WorkingIngredient.CurrentEffects = ItemData->TagAxes;
+	}
 }
 
 FCPLabIngredientInstance
@@ -39,58 +80,3 @@ ACPAlchemyProp::GetWorkingIngredient() const
 {
 	return WorkingIngredient;
 }
-
-bool ACPAlchemyProp::SetWorkingIngredient(const FCPLabIngredientInstance& Ingredient)
-{
-	if (!Ingredient.IsValid()) return false;
-	
-	if (WorkingIngredient.IsValid() && WorkingIngredient.SourceItemData != Ingredient.SourceItemData) return false;
-	
-	WorkingIngredient = Ingredient;
-	OnAlchemyPropChanged.Broadcast();
-	return true;
-}
-
-UCPForageableItemData* ACPAlchemyProp::GetSourceItemData() const
-{
-	return WorkingIngredient.SourceItemData.Get();
-}
-
-int32 ACPAlchemyProp::GetEffectValue(const FGameplayTag& EffectTag) const
-{
-	return WorkingIngredient.GetEffectValue(EffectTag);
-}
-
-bool ACPAlchemyProp::HasBeenProcessedBy(FName InProcessorId) const
-{
-	return !InProcessorId.IsNone() && AppliedProcessorIds.Contains(InProcessorId);
-}
-
-bool ACPAlchemyProp::MarkProcessedBy(FName InProcessorId)
-{
-	if (InProcessorId.IsNone() || AppliedProcessorIds.Contains(InProcessorId)) return false;
-	
-	AppliedProcessorIds.Add(InProcessorId);
-	return true;
-}
-
-float ACPAlchemyProp::GetProcessMultiplier() const
-{
-	return ProcessMultiplier;
-}
-
-void ACPAlchemyProp::SetProcessMultiplier(float InMultiplier)
-{
-	ProcessMultiplier = InMultiplier;
-}
-
-
-void ACPAlchemyProp::ResetWorkingIngredient()
-{
-	// 다른 재료로 다시 초기화할 때 이전 재료 정보가 남지 않도록 초기화
-	WorkingIngredient = FCPLabIngredientInstance{};
-	AppliedProcessorIds.Reset();
-	ProcessMultiplier = 1;
-}
-
-

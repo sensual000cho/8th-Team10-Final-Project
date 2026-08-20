@@ -4,6 +4,10 @@
 #include "Resource/Actor/CPResourceNodeActor.h"
 #include "Resource/System/CPResourceStateSubsystem.h"
 #include "Data/CPResourceDefinition.h"
+#include "Resource/System/CPObjectPoolSubsystem.h"
+
+#define GROUND_CHANNEL ECC_GameTraceChannel1
+#define SPAWN_BLOCK_CHANNEL ECC_GameTraceChannel2
 
 namespace
 {
@@ -28,17 +32,9 @@ void ACPResourceSpawner::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	if (ResourceDefinition.IsNull())
+	if (SpawnEntries.Num() == 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("%s : Resource definition is null"), *GetName());
-		
-		return;
-	}
-	
-	LoadedResourceDefinition = ResourceDefinition.LoadSynchronous();
-	if (!LoadedResourceDefinition)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("%s : Failed to load ResourceDefinition"), *GetName());
 		
 		return;
 	}
@@ -84,15 +80,59 @@ void ACPResourceSpawner::SpawnSlot(int32 SlotIndex)
 	
 	FCPResourceNodeState& State = StateSubsystem->GetOrCreateState(Key);
 	
-	const FTransform SpawnTransform = CalculateSpawnTransform(SlotIndex, State.Generation);
+	const FCPResourceSpawnEntry* Entry = SelectResource(SlotIndex, State.Generation);
+	if (!Entry) return;
 	
-	ACPResourceNodeActor* ResourceActor = GetWorld()->SpawnActor<ACPResourceNodeActor>(
-		ResourceNodeActorClass,
-		SpawnTransform
-	);
+	UCPResourceDefinition* Definition = Entry->ResourceDefinition;
+	if (!Definition) return;
+	
+	FTransform SpawnTransform;
+	if (!TryCalculateSpawnTransform(SlotIndex, State.Generation, SpawnTransform)) return;
+	
+	UCPObjectPoolSubsystem* PoolSubsystem = GetWorld()->GetSubsystem<UCPObjectPoolSubsystem>();
+	if (!PoolSubsystem) return;
+	
+	AActor* AcquiredActor = PoolSubsystem->AcquireActor(ResourceNodeActorClass, SpawnTransform);
+	if (!AcquiredActor) return;
+	
+	ACPResourceNodeActor* ResourceActor = Cast<ACPResourceNodeActor>(AcquiredActor);
 	if (!ResourceActor) return;
 	
-	ResourceActor->InitializeResource(Key, LoadedResourceDefinition);
+	ResourceActor->InitializeResource(Key, Definition);
+}
+
+const FCPResourceSpawnEntry* ACPResourceSpawner::SelectResource(int32 SlotIndex, int32 Generation) const
+{
+	float TotalWeight = 0.f;
+	
+	for (const FCPResourceSpawnEntry& Entry : SpawnEntries)
+	{
+		if (Entry.ResourceDefinition && Entry.Weight > 0.f)
+		{
+			TotalWeight += Entry.Weight;
+		}
+	}
+	
+	if (TotalWeight <= 0.f) return nullptr;
+	
+	FRandomStream RandomStream(MakeSpawnSeed(SlotIndex, Generation, 1));
+	
+	const float Roll = RandomStream.FRandRange(0.f, TotalWeight);
+	float AccumulatedWeight = 0.f;
+	
+	for (const FCPResourceSpawnEntry& Entry : SpawnEntries)
+	{
+		if (!Entry.ResourceDefinition || Entry.Weight <= 0.f) continue;
+		
+		AccumulatedWeight += Entry.Weight;
+		
+		if (Roll <=	AccumulatedWeight)
+		{
+			return &Entry;
+		}
+	}
+	
+	return nullptr;
 }
 
 FCPResourceNodeKey ACPResourceSpawner::MakeNodeKey(int32 SlotIndex) const
@@ -106,67 +146,85 @@ FCPResourceNodeKey ACPResourceSpawner::MakeNodeKey(int32 SlotIndex) const
 	return Key;
 }
 
-FTransform ACPResourceSpawner::CalculateSpawnTransform(int32 SlotIndex, int32 Generation) const
+bool ACPResourceSpawner::TryCalculateSpawnTransform(int32 SlotIndex, int32 Generation, FTransform& OutTransform) const
 {
-	if (!SpawnArea)
+	if (!SpawnArea) return false;
+	
+	FRandomStream RandomStream(MakeSpawnSeed(SlotIndex, Generation, 2));
+	
+	// 오브젝트 겹침 방지 시도 횟수
+	constexpr int32 MaxAttempts = 10;
+	
+	for (int i = 0; i < MaxAttempts; ++i)
 	{
-		return GetActorTransform();
+		const FVector BoxExtent = SpawnArea->GetUnscaledBoxExtent();
+		const FVector LocalLocation(
+			RandomStream.FRandRange(-BoxExtent.X, BoxExtent.X),
+			RandomStream.FRandRange(-BoxExtent.Y, BoxExtent.Y),
+			0.f
+		);
+	
+		const FVector BaseLocation = SpawnArea->GetComponentTransform().TransformPosition(LocalLocation);
+		const FVector Start = BaseLocation + FVector(0.f, 0.f, BoxExtent.Z);
+		const FVector End = BaseLocation - FVector(0.f, 0.f, BoxExtent.Z);
+	
+		FHitResult Hit;
+	
+		FCollisionQueryParams QueryParams;
+		QueryParams.AddIgnoredActor(this);
+	
+		const bool bHit = GetWorld()->LineTraceSingleByChannel(
+			Hit,
+			Start,
+			End,
+			GROUND_CHANNEL,
+			QueryParams
+		);
+	
+		if (bHit)
+		{
+			// 오브젝트 겹침 체크
+			const bool bBlocked = GetWorld()->OverlapBlockingTestByChannel(
+				Hit.ImpactPoint,
+				FQuat::Identity,
+				SPAWN_BLOCK_CHANNEL,
+				FCollisionShape::MakeSphere(50.f),
+				QueryParams
+			);
+			
+			if (bBlocked && i < MaxAttempts - 1) continue;
+			
+			const FVector GroundNormal = Hit.ImpactNormal.GetSafeNormal();
+		
+			const float Dot = FMath::Clamp(FVector::DotProduct(FVector::UpVector, GroundNormal), -1.f, 1.f);
+		
+			const float GroundAngle = FMath::RadiansToDegrees(FMath::Acos(Dot));
+		
+			const FQuat FullAlignRotation = FQuat::FindBetweenNormals(FVector::UpVector, GroundNormal);
+		
+			const float AllignAlpha = GroundAngle > KINDA_SMALL_NUMBER ?
+			FMath::Min(MaxGroundAlignAngle / GroundAngle, 1.f) : 0.f;
+		
+			const FQuat LimitedAlignRotation = FQuat::Slerp(FQuat::Identity, FullAlignRotation, AllignAlpha);
+		
+			const float RandomYaw = RandomStream.FRandRange(0.f, 360.f);
+		
+			const FQuat RandomYawRotation(FVector::UpVector, FMath::DegreesToRadians(RandomYaw));
+		
+			const FQuat FinalRotation = LimitedAlignRotation * RandomYawRotation;
+		
+			OutTransform = FTransform(FinalRotation, Hit.ImpactPoint);
+			
+			return true;
+		}
 	}
 	
-	FRandomStream RandomStream(MakeSpawnSeed(SlotIndex, Generation));
-	
-	const FVector BoxExtent = SpawnArea->GetUnscaledBoxExtent();
-	const FVector LocalLocation(
-		RandomStream.FRandRange(-BoxExtent.X, BoxExtent.X),
-		RandomStream.FRandRange(-BoxExtent.Y, BoxExtent.Y),
-		0.f
-	);
-	
-	const FVector BaseLocation = SpawnArea->GetComponentTransform().TransformPosition(LocalLocation);
-	const FVector Start = BaseLocation + FVector(0.f, 0.f, BoxExtent.Z);
-	const FVector End = BaseLocation - FVector(0.f, 0.f, BoxExtent.Z);
-	
-	FHitResult Hit;
-	
-	FCollisionQueryParams QueryParams;
-	QueryParams.AddIgnoredActor(this);
-	
-	const bool bHit = GetWorld()->LineTraceSingleByChannel(
-		Hit,
-		Start,
-		End,
-		ECC_Visibility,
-		QueryParams
-	);
-	
-	if (bHit)
-	{
-		const FVector GroundNormal = Hit.ImpactNormal.GetSafeNormal();
-		
-		const float Dot = FMath::Clamp(FVector::DotProduct(FVector::UpVector, GroundNormal), -1.f, 1.f);
-		
-		const float GroundAngle = FMath::RadiansToDegrees(FMath::Acos(Dot));
-		
-		const FQuat FullAlignRotation = FQuat::FindBetweenNormals(FVector::UpVector, GroundNormal);
-		
-		const float AllignAlpha = GroundAngle > KINDA_SMALL_NUMBER ?
-		FMath::Min(MaxGroundAlignAngle / GroundAngle, 1.f) : 0.f;
-		
-		const FQuat LimitedAlignRotation = FQuat::Slerp(FQuat::Identity, FullAlignRotation, AllignAlpha);
-		
-		const float RandomYaw = RandomStream.FRandRange(0.f, 360.f);
-		
-		const FQuat FinalRotation = LimitedAlignRotation * LimitedAlignRotation;
-		
-		return FTransform(FinalRotation, Hit.ImpactPoint);
-	}
-	
-	return FTransform(FRotator::ZeroRotator, BaseLocation);
+	return false;
 }
 
 // 레벨 전환 시 위치 보존을 위한 시드 생성 코드
 // 채집물은 스포너의 일정 범위 내에 랜덤으로 스폰되고, 스폰된 채집물은 위치를 레벨 전환시에도 보존됨
-int32 ACPResourceSpawner::MakeSpawnSeed(int32 SlotIndex, int32 Generation) const
+int32 ACPResourceSpawner::MakeSpawnSeed(int32 SlotIndex, int32 Generation, int32 Salt) const
 {
 	uint32 Seed = FNV32OffsetBasis;
 	
@@ -183,6 +241,7 @@ int32 ACPResourceSpawner::MakeSpawnSeed(int32 SlotIndex, int32 Generation) const
 	
 	Mix(static_cast<uint32>(SlotIndex));
 	Mix(static_cast<uint32>(Generation));
+	Mix(static_cast<uint32>(Salt));
 	
 	return static_cast<int32>(Seed & 0x7FFFFFFF);
 }

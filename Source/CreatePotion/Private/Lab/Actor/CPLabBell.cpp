@@ -2,9 +2,10 @@
 
 #include "Components/StaticMeshComponent.h"
 #include "Engine/World.h"
-#include "GameMode/CPLabGameMode.h"
 #include "GameState/CPLabGameState.h"
 #include "Lab/Component/CPLabPotionSessionComponent.h"
+
+#include "UI/HUD/CPLabHUD.h"
 
 ACPLabBell::ACPLabBell()
 {
@@ -26,7 +27,17 @@ ACPLabBell::ACPLabBell()
 
 void ACPLabBell::OnInteract_Implementation(AActor* Interactor)
 {
-	TryRingBell();
+	if (!TryRingBell()) return;
+	if (APawn* InteractorPawn = Cast<APawn>(Interactor))
+	{
+		if (APlayerController* PC = Cast<APlayerController>(InteractorPawn->GetController()))
+		{
+			if (ACPLabHUD* LabHUD = Cast<ACPLabHUD>(PC->GetHUD()))
+			{
+				LabHUD->StartLabCraftingFlow();
+			}
+		}
+	}
 }
 
 FText ACPLabBell::GetInteractionPrompt_Implementation()
@@ -42,18 +53,10 @@ bool ACPLabBell::CanInteract_Implementation(AActor* Interactor)
 	const UCPLabPotionSessionComponent* Session =
 		LabState ? LabState->GetPotionSession() : nullptr;
 
-	return Session &&
-		Session->GetSessionState().Phase ==
-			ECPLabPotionSessionPhase::WaitingForBell;
+	return Session && !Session->HasActiveRequest();
 }
 
 bool ACPLabBell::TryRingBell()
 {
-	UWorld* World = GetWorld();
-	ACPLabGameMode* LabMode =
-		World
-			? World->GetAuthGameMode<ACPLabGameMode>()
-			: nullptr;
-
-	return LabMode && LabMode->TryStartLabSession();
+	return CanInteract_Implementation(nullptr);
 }

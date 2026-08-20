@@ -6,6 +6,10 @@
 
 void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 {
+	if (ActiveDialogueWidget && ActiveDialogueWidget->IsInViewport())
+	{
+		return;
+	}
 	if (!NPCData || NPCData->TownQuestIDs.Num() == 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[%s] DA에 지정된 마을 퀘스트가 없습니다."), *GetName());
@@ -25,31 +29,33 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 	for (const FName& QuestID : NPCData->TownQuestIDs)
 	{
 		if (QuestID.IsNone()) { continue; }
-
 		EQuestState CurrentState = QuestManager->GetQuestState(QuestID);
-
 		// DA에 등록된 퀘스트 중 NotAccepted 첫번째 퀘스트 발견 시
 		if (CurrentState == EQuestState::NotAccepted)
 		{
-			FText FullScript = QuestManager->GetQuestFullText(QuestID);
+			TArray<FText> ScriptLines = QuestManager->GetQuestScriptLines(QuestID);
+
+			// TODO: InitDialogue가 배열을 받도록 논의 후 교체 예정
+			// 임시로 한 줄씩 합쳐서 기존 FText 시그니처 유지
+			FText FullScript = FText::Join(FText::FromString(TEXT(" ")), ScriptLines);
+
 			UE_LOG(LogTemp, Log, TEXT("[%s 마을대화 - QuestID: %s]: %s"),
 				*NPCData->NPCName.ToString(),
 				*QuestID.ToString(),
 				*FullScript.ToString());
 			if (DialogueWidgetClass)
 			{
-				if (UCPNPCDialogueWidget* DialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidgetBP(DialogueWidgetClass)))
+				ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
+				if (ActiveDialogueWidget)
 				{
 					FText NPCNameText = FText::FromName(NPCData->NPCName);
-					DialogueWidget->InitDialogue(false, QuestID, NPCNameText, FullScript);
+					ActiveDialogueWidget->InitDialogue(false, QuestID, NPCNameText, FullScript);
 				}
 			}
-
 			break;
 		}
 	}
 }
-
 bool ACPTownNPC::CanInteract_Implementation(AActor* Interactor)
 {
 	if (!NPCData || !GetGameInstance()) { return false; }

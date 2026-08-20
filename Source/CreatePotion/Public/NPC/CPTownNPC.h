@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "NPC/CPBaseNPC.h"
@@ -18,4 +18,9 @@ public:
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UCPNPCDialogueWidget> DialogueWidgetClass;
+
+private:
+	UPROPERTY()
+	class UCPNPCDialogueWidget* ActiveDialogueWidget;
+
 };
