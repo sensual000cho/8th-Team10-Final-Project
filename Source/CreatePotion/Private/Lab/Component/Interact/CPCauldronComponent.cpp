@@ -105,6 +105,11 @@ TArray<FGameplayTag> UCPCauldronComponent::GetEffectTags() const
 	return CombinedTags;
 }
 
+TArray<FCPLabIngredientInstance> UCPCauldronComponent::GetIngredientInstance() const
+{
+	return IngredientInstances;
+}
+
 bool UCPCauldronComponent::AddHeldProp()
 {
 	if (!BoundPotionSession)
