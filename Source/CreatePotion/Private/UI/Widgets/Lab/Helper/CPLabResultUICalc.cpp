@@ -178,10 +178,6 @@ FText FCPLabResultUICalc::GetGradeText(EDeliveryGrade DeliveryGrade)
 	{
 	case EDeliveryGrade::Perfect:
 		return FText::FromString(TEXT("성공"));
-	case EDeliveryGrade::Good:
-		return FText::FromString(TEXT("부분 성공 - Good"));
-	case EDeliveryGrade::Okay:
-		return FText::FromString(TEXT("부분 성공 - Okay"));
 	case EDeliveryGrade::Fail:
 	default:
 		return FText::FromString(TEXT("실패"));
@@ -194,9 +190,6 @@ FText FCPLabResultUICalc::GetDiagnosisText(EDeliveryGrade DeliveryGrade)
 	{
 	case EDeliveryGrade::Perfect:
 		return FText::FromString(TEXT("요청 조건을 모두 충족했습니다."));
-	case EDeliveryGrade::Good:
-	case EDeliveryGrade::Okay:
-		return FText::FromString(TEXT("일부 요청 조건을 충족했습니다. 세부 판정을 확인해 주세요."));
 	case EDeliveryGrade::Fail:
 	default:
 		return FText::FromString(TEXT("요청 조건을 충족하지 못했습니다. 세부 판정을 확인해 주세요."));
@@ -221,10 +214,6 @@ FText FCPLabResultUICalc::GetConditionStatusText(
 	{
 	case EConditionMatchResult::Correct:
 		return FText::FromString(TEXT("충족"));
-	/*case EConditionMatchResult::TooHigh:
-		return FText::FromString(TEXT("초과"));
-	case EConditionMatchResult::TooLow:
-		return FText::FromString(TEXT("부족"));*/
 	case EConditionMatchResult::WrongTag:
 	default:
 		return FText::FromString(TEXT("판정 오류"));
