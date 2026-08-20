@@ -3,6 +3,7 @@
 #include "Data/CPForageableItemData.h"
 #include "GameState/CPLabGameState.h"
 #include "Lab/Component/CPLabPotionSessionComponent.h"
+#include "Character/CPCarryComponent.h"
 
 void ACPAlchemyProp::OnInteract_Implementation(AActor* Interactor)
 {
@@ -11,8 +12,17 @@ void ACPAlchemyProp::OnInteract_Implementation(AActor* Interactor)
         return;
     }
 
+    UCPCarryComponent* CarryComponent = Interactor->FindComponentByClass<UCPCarryComponent>();
+
+    if (!CarryComponent)
+    {
+        return;
+    }
+
     UWorld* World = GetWorld();
+
     ACPLabGameState* LabGameState = World ? World->GetGameState<ACPLabGameState>() : nullptr;
+
     UCPLabPotionSessionComponent* Session = LabGameState ? LabGameState->GetPotionSession() : nullptr;
 
     if (!Session)
@@ -20,26 +30,29 @@ void ACPAlchemyProp::OnInteract_Implementation(AActor* Interactor)
         return;
     }
 
-    // 기존에 들고 있던 재료가 있다면 캐릭터 앞에 내려놓음
+    // 이전에 들고 있던 재료가 있다면 내려놓음
     ACPAlchemyProp* PreviousHeldProp = nullptr;
 
     if (Session->ReleaseHeldAlchemyProp(PreviousHeldProp) && IsValid(PreviousHeldProp))
     {
         const FVector DropLocation = Interactor->GetActorLocation() + Interactor->GetActorForwardVector() * 100.f;
 
-        PreviousHeldProp->SetActorLocation(DropLocation);
-        PreviousHeldProp->SetActorHiddenInGame(false);
-        PreviousHeldProp->SetActorEnableCollision(true);
+        CarryComponent->DetachProp(PreviousHeldProp, DropLocation);
     }
 
-    // 상호작용한 재료를 현재 Held 재료로 등록
+    // 새 재료를 Session에 등록
     if (!Session->HoldAlchemyProp(this))
     {
         return;
     }
 
-    SetActorHiddenInGame(true);
-    SetActorEnableCollision(false);
+    // 머리 위 CarryComponent에 부착
+    if (!CarryComponent->AttachProp(this))
+    {
+        // 부착에 실패했다면 Session 변경도 롤백
+        ACPAlchemyProp* ReleasedProp = nullptr;
+        Session->ReleaseHeldAlchemyProp(ReleasedProp);
+    }
 }
 
 FText ACPAlchemyProp::GetInteractionPrompt_Implementation()
