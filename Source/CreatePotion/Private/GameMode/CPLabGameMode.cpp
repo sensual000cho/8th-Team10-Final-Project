@@ -40,6 +40,10 @@ bool ACPLabGameMode::AdvancePotionRequest()
 	FCPLabPotionRequestState ActiveRequestState;
 	if (!Session->GetActiveRequestState(ActiveRequestState)) return false;
 	
+	if (ActiveRequestState.Phase == ECPLabPotionRequestPhase::Selected){
+		return Session->SetRequestPhase(ECPLabPotionRequestPhase::Processing);
+	}
+	
 	if (ActiveRequestState.Phase == ECPLabPotionRequestPhase::Processing){
 		return Session->SetRequestPhase(ECPLabPotionRequestPhase::PotionReady);
 	}
@@ -63,8 +67,9 @@ bool ACPLabGameMode::RefinePotion(const TArray<FGameplayTag>& EffectTags, const 
 		return A.ToString() < B.ToString();
 	});
 	
-	return SpawnPotion(SortedEffectTags, SpawnTransform);
-	//return AdvancePotionRequest();
+	if (!SpawnPotion(SortedEffectTags, SpawnTransform)) return false;
+	
+	return AdvancePotionRequest();
 }
 
 FCPPotionDeliveryResult ACPLabGameMode::GetPotionDeliveryResult(FName QuestId, const ACPAlchemyProp* PotionProp) const
