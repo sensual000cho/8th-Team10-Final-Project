@@ -44,10 +44,6 @@ FText FCPLabResultUICalc::GetGradeText(EDeliveryGrade DeliveryGrade)
 	{
 	case EDeliveryGrade::Perfect:
 		return FText::FromString(TEXT("성공"));
-	case EDeliveryGrade::Good:
-		return FText::FromString(TEXT("부분 성공 - Good"));
-	case EDeliveryGrade::Okay:
-		return FText::FromString(TEXT("부분 성공 - Okay"));
 	case EDeliveryGrade::Fail:
 	default:
 		return FText::FromString(TEXT("실패"));
