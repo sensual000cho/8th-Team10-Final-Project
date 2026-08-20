@@ -88,4 +88,9 @@ private:
 	
 	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Result")
 	TArray<FGameplayTag> CurrentPotionResult;
+	
+public:
+	// 현재 들고 있는 연금술 재료를 투척할 수 있는지 확인
+	UFUNCTION(BlueprintPure, Category = "Lab|Carry")
+	bool CanThrowHeldAlchemyProp() const;
 };
