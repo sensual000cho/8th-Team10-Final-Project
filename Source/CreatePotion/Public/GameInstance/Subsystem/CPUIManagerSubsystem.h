@@ -14,6 +14,18 @@ enum class ECPInputMode : uint8
 	GameAndUI	UMETA(DisplayName = "Game and UI"),
 };
 
+USTRUCT(BlueprintType)
+struct FPopupEntry
+{
+	GENERATED_BODY()
+	
+	UPROPERTY()
+	TWeakObjectPtr<UUserWidget> Widget = nullptr;
+		
+	UPROPERTY()
+	ECPInputMode InputMode = ECPInputMode::GameAndUI;
+};
+
 /**
  * 
  */
@@ -26,7 +38,6 @@ public:
 	// 위젯을 여는 함수
 	UFUNCTION(BlueprintCallable, Category = "UI|Debug")
 	UUserWidget* PushWidget(TSubclassOf<UUserWidget> WidgetClass);
-	
 	
 	// 특정 위젯을 지정해서 닫기 (순서무관)
 	UFUNCTION(BlueprintCallable, Category = "UI")
@@ -47,19 +58,18 @@ public:
 	// 해당 위젯이 열려있는지 확인 후 해당 위젯 인스턴스 반환
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	UUserWidget* FindOpenWidget(TSubclassOf<UUserWidget> WidgetClass);
+	
 private:
-	struct FPopupEntry
-	{
-		UUserWidget* Widget = nullptr;
-		ECPInputMode InputMode = ECPInputMode::GameAndUI;
-	};
 	
 	void UpdateInputMode(); 
 	
+	void RegisterPushedWidget(UUserWidget* Widget);
+	
+private:
+	
+	UPROPERTY()
 	TArray<FPopupEntry> OpenWidgets;
 	
-public:
-	void RegisterPushedWidget(UUserWidget* Widget);
 };
 
 
