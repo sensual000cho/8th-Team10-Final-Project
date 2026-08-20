@@ -5,7 +5,6 @@
 #include "Lab/Actor/CPAlchemyProp.h"
 #include "CPPotionImpactDummySource.generated.h"
 
-class AActor;
 class APawn;
 class UCPForageableItemData;
 class UCPPotionImpactComponent;
@@ -23,8 +22,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Potion|Debug")
 	bool PrepareDebugPotionImpact(APawn* InInstigator);
 
+	// 물리 충돌 없이 지정한 위치에서 1회 Impact와 범위 검사를 확인한다.
 	UFUNCTION(BlueprintCallable, Category = "Potion|Debug")
-	bool TryApplyDebugPotionImpact(AActor* TargetActor);
+	bool TryTriggerDebugPotionImpactAtLocation(FVector ImpactPoint, FVector ImpactNormal);
 
 	virtual void NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, UPrimitiveComponent* OtherComp, bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit) override;
 
@@ -39,12 +39,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Potion|Debug")
 	TArray<FGameplayTag> TestEffectTags;
 
+	// 첫 Impact가 실제로 확정된 횟수이며 한 포션에서 최대 1이다.
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Potion|Debug")
-	int32 ImpactAttemptCount = 0;
-
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Potion|Debug")
-	int32 SuccessfulImpactCount = 0;
+	int32 ImpactTriggerCount = 0;
 
 private:
-	bool ApplyDebugPotionImpact(AActor* TargetActor, const FHitResult& HitResult);
+	bool TriggerDebugPotionImpact(const FHitResult& HitResult);
 };

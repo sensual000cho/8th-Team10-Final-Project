@@ -1,18 +1,26 @@
-﻿#include "Items/Potion/CPPotionImpactComponent.h"
+#include "Items/Potion/CPPotionImpactComponent.h"
+
 #include "GameFramework/Pawn.h"
 #include "Items/Potion/CPPotionImpactContext.h"
 #include "Items/Potion/Interface/CPPotionEffectReceiver.h"
-//이 부분은 포션 액터가 변경되면 변경 예정
+#include "Kismet/KismetSystemLibrary.h"
+// 이 부분은 포션 액터가 변경되면 변경 예정
 #include "Lab/Actor/CPAlchemyProp.h"
 
 UCPPotionImpactComponent::UCPPotionImpactComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+
+	//Impact로 어떤 오브젝트틀을 검사할지
+	EffectObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldStatic));
+	EffectObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldDynamic));
+	EffectObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
+	EffectObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_PhysicsBody));
 }
 
 bool UCPPotionImpactComponent::EnableImpactProcessing(APawn* InInstigator)
 {
-	if (bConsumed || !IsValid(InInstigator))
+	if (bImpactTriggered || !IsValid(InInstigator))
 	{
 		return false;
 	}
@@ -29,50 +37,40 @@ void UCPPotionImpactComponent::DisableImpactProcessing()
 	ImpactInstigator = nullptr;
 }
 
-bool UCPPotionImpactComponent::TryApplyPotionImpact(AActor* TargetActor, const FHitResult& HitResult)
+bool UCPPotionImpactComponent::TryTriggerPotionImpact(const FHitResult& HitResult)
 {
-	// 투척 전 상태, 이미 소비된 상태, Receiver 처리 중 재진입을 차단
-	if (!bImpactProcessingEnabled || bConsumed || bApplyingImpact)
+	FVector ImpactNormal = HitResult.ImpactNormal.GetSafeNormal();
+
+	if (ImpactNormal.IsNearlyZero())
+	{
+		ImpactNormal = FVector::UpVector;
+	}
+
+	return TryTriggerPotionImpactAtLocation(HitResult.ImpactPoint, ImpactNormal);
+}
+
+bool UCPPotionImpactComponent::TryTriggerPotionImpactAtLocation(FVector ImpactPoint, FVector ImpactNormal)
+{
+	if (!bImpactProcessingEnabled || bImpactTriggered || !IsValid(ImpactInstigator) || !IsValid(GetOwner()) || EffectRadius <= 0.0f)
 	{
 		return false;
 	}
 
-	//자기 자신, Invalid Actor 무시
-	if (!IsValid(TargetActor) || TargetActor == GetOwner())
+	ImpactNormal = ImpactNormal.GetSafeNormal();
+
+	if (ImpactNormal.IsNearlyZero())
 	{
-		return false;
+		ImpactNormal = FVector::UpVector;
 	}
 
-	// 대상 Actor가 포션 Receiver 인터페이스를 구현하지 않았으면 무시
-	if (!TargetActor->Implements<UCPPotionEffectReceiver>())
-	{
-		return false;
-	}
-
-	FCPPotionImpactContext Context;
-
-	if (!TryBuildImpactContext(TargetActor, HitResult, Context))
-	{
-		return false;
-	}
-
-	//여기서 대상한테 효과 적용
-	bApplyingImpact = true;
-	const bool bApplied = ICPPotionEffectReceiver::Execute_ReceivePotionImpact(TargetActor, Context);
-	bApplyingImpact = false;
-
-	
-	// Receiver가 실제 효과를 하나 이상 적용하지 못했다면 소비하지 않음
-	if (!bApplied)
-	{
-		return false;
-	}
-
-	bConsumed = true;
-	DisableImpactProcessing();
+	// 반복 Hit와 Receiver 재진입보다 먼저 첫 Impact를 확정한다.
+	bImpactTriggered = true;
+	bImpactProcessingEnabled = false;
+	bAnyEffectApplied = ResolvePotionEffectArea(ImpactPoint, ImpactNormal);
+	bEffectAreaResolved = true;
+	ImpactInstigator = nullptr;
 
 	return true;
-
 }
 
 bool UCPPotionImpactComponent::IsImpactProcessingEnabled() const
@@ -80,12 +78,58 @@ bool UCPPotionImpactComponent::IsImpactProcessingEnabled() const
 	return bImpactProcessingEnabled;
 }
 
-bool UCPPotionImpactComponent::IsPotionConsumed() const
+bool UCPPotionImpactComponent::HasPotionImpactTriggered() const
 {
-	return bConsumed;
+	return bImpactTriggered;
 }
 
-bool UCPPotionImpactComponent::TryBuildImpactContext(AActor* TargetActor, const FHitResult& HitResult, FCPPotionImpactContext& OutContext) const
+bool UCPPotionImpactComponent::IsEffectAreaResolved() const
+{
+	return bEffectAreaResolved;
+}
+
+bool UCPPotionImpactComponent::HasAppliedAnyPotionEffect() const
+{
+	return bAnyEffectApplied;
+}
+
+bool UCPPotionImpactComponent::ResolvePotionEffectArea(const FVector& ImpactPoint, const FVector& ImpactNormal)
+{
+	TArray<AActor*> ActorsToIgnore;
+	ActorsToIgnore.Add(GetOwner());
+
+	TArray<AActor*> OverlappedActors;
+	UKismetSystemLibrary::SphereOverlapActors(this, ImpactPoint, EffectRadius, EffectObjectTypes, AActor::StaticClass(), ActorsToIgnore, OverlappedActors);
+
+	TSet<AActor*> ProcessedActors;
+	bool bAppliedAnyEffect = false;
+
+	for (AActor* TargetActor : OverlappedActors)
+	{
+		if (!IsValid(TargetActor) || ProcessedActors.Contains(TargetActor) || !TargetActor->Implements<UCPPotionEffectReceiver>())
+		{
+			continue;
+		}
+
+		ProcessedActors.Add(TargetActor);
+
+		FCPPotionImpactContext Context;
+
+		if (!TryBuildImpactContext(TargetActor, ImpactPoint, ImpactNormal, Context))
+		{
+			continue;
+		}
+
+		if (ICPPotionEffectReceiver::Execute_ReceivePotionImpact(TargetActor, Context))
+		{
+			bAppliedAnyEffect = true;
+		}
+	}
+
+	return bAppliedAnyEffect;
+}
+
+bool UCPPotionImpactComponent::TryBuildImpactContext(AActor* TargetActor, const FVector& ImpactPoint, const FVector& ImpactNormal, FCPPotionImpactContext& OutContext) const
 {
 	ACPAlchemyProp* PotionProp = Cast<ACPAlchemyProp>(GetOwner());
 
@@ -100,8 +144,8 @@ bool UCPPotionImpactComponent::TryBuildImpactContext(AActor* TargetActor, const 
 	OutContext.Instigator = ImpactInstigator;
 	OutContext.SourcePotion = PotionProp;
 	OutContext.TargetActor = TargetActor;
-	OutContext.ImpactPoint = HitResult.ImpactPoint;
-	OutContext.ImpactNormal = HitResult.ImpactNormal;
+	OutContext.ImpactPoint = ImpactPoint;
+	OutContext.ImpactNormal = ImpactNormal;
 	OutContext.EffectTags = PotionIngredient.CurrentEffects;
 
 	return true;

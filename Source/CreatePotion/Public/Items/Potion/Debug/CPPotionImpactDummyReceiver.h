@@ -6,6 +6,7 @@
 #include "CPPotionImpactDummyReceiver.generated.h"
 
 class UBoxComponent;
+class UCPPotionEffectRegistry;
 
 UCLASS()
 class CREATEPOTION_API ACPPotionImpactDummyReceiver : public AActor, public ICPPotionEffectReceiver
@@ -21,9 +22,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Potion|Debug")
 	TObjectPtr<UBoxComponent> CollisionBox;
 
-	// true면 포션을 수용하고, false면 거부한다.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Potion|Debug")
-	bool bAcceptPotionImpact = true;
+	// 이 Receiver가 지원할 효과와 Handler 연결을 정의하는 Registry
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Potion|Debug")
+	TObjectPtr<UCPPotionEffectRegistry> PotionEffectRegistry;
 
 	// ReceivePotionImpact가 실제로 호출된 횟수
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Potion|Debug")

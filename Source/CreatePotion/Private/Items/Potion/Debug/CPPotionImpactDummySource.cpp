@@ -20,41 +20,32 @@ bool ACPPotionImpactDummySource::PrepareDebugPotionImpact(APawn* InInstigator)
 	return PotionImpactComponent->EnableImpactProcessing(InInstigator);
 }
 
-bool ACPPotionImpactDummySource::TryApplyDebugPotionImpact(AActor* TargetActor)
+bool ACPPotionImpactDummySource::TryTriggerDebugPotionImpactAtLocation(FVector ImpactPoint, FVector ImpactNormal)
 {
-	if (!IsValid(TargetActor))
+	const bool bTriggered = PotionImpactComponent->TryTriggerPotionImpactAtLocation(ImpactPoint, ImpactNormal);
+
+	if (bTriggered)
 	{
-		return false;
+		ImpactTriggerCount++;
 	}
 
-	FHitResult HitResult;
-	HitResult.ImpactPoint = TargetActor->GetActorLocation();
-	HitResult.ImpactNormal = (GetActorLocation() - HitResult.ImpactPoint).GetSafeNormal();
-
-	if (HitResult.ImpactNormal.IsNearlyZero())
-	{
-		HitResult.ImpactNormal = FVector::UpVector;
-	}
-
-	return ApplyDebugPotionImpact(TargetActor, HitResult);
+	return bTriggered;
 }
 
 void ACPPotionImpactDummySource::NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, UPrimitiveComponent* OtherComp, bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit)
 {
 	Super::NotifyHit(MyComp, Other, OtherComp, bSelfMoved, HitLocation, HitNormal, NormalImpulse, Hit);
-	ApplyDebugPotionImpact(Other, Hit);
+	TriggerDebugPotionImpact(Hit);
 }
 
-bool ACPPotionImpactDummySource::ApplyDebugPotionImpact(AActor* TargetActor, const FHitResult& HitResult)
+bool ACPPotionImpactDummySource::TriggerDebugPotionImpact(const FHitResult& HitResult)
 {
-	ImpactAttemptCount++;
+	const bool bTriggered = PotionImpactComponent->TryTriggerPotionImpact(HitResult);
 
-	const bool bApplied = PotionImpactComponent->TryApplyPotionImpact(TargetActor, HitResult);
-
-	if (bApplied)
+	if (bTriggered)
 	{
-		SuccessfulImpactCount++;
+		ImpactTriggerCount++;
 	}
 
-	return bApplied;
+	return bTriggered;
 }
