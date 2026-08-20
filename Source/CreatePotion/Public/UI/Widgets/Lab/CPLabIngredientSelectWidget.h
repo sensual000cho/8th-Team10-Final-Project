@@ -32,9 +32,9 @@ protected:
 	UPROPERTY(meta=(BindWidget))
 	UButton* Button_Confirm;
 	
-	UPROPERTY(meta=(BindWidget), BlueprintReadOnly, Category = "UI")
-	UCPContainerMainWidget* InventoryWidget;
-	
+	// UPROPERTY(meta=(BindWidget), BlueprintReadOnly, Category = "UI")
+	// UCPContainerMainWidget* InventoryWidget;
+
 	UPROPERTY(meta=(BindWidget), BlueprintReadWrite, Category = "UI")
 	UCPContainerMainWidget* SelectSlotWidget;
 
