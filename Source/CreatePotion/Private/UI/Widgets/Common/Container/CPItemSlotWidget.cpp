@@ -114,3 +114,32 @@ FReply UCPItemSlotWidget::NativeOnMouseButtonDoubleClick(const FGeometry& InGeom
 
 	return Super::NativeOnMouseButtonDoubleClick(InGeometry, InMouseEvent);
 }
+
+int32 UCPItemSlotWidget::GetClickedSlotGridIndex(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) const
+{
+	if (!OwnerContainer || !CachedItemData.ItemDataAsset)
+	{
+		return SlotGridIndex;
+	}
+
+	// 이 위젯(아이템)이 실제로 차지하는 칸 수 (회전 반영)
+	int32 ItemW = CachedItemData.bIsRotated ? CachedItemData.ItemDataAsset->ContainerSizeY : CachedItemData.ItemDataAsset->ContainerSizeX;
+	int32 ItemH = CachedItemData.bIsRotated ? CachedItemData.ItemDataAsset->ContainerSizeX : CachedItemData.ItemDataAsset->ContainerSizeY;
+
+	// 위젯 내부에서 마우스가 클릭된 로컬 좌표 (위젯 전체 크기 대비 비율)
+	FVector2D LocalPos = InGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
+	FVector2D LocalSize = InGeometry.GetLocalSize();
+
+	// "그 칸들 중 몇 번째 칸을 클릭했는지" 역산
+	int32 SubCol = FMath::Clamp(FMath::FloorToInt(LocalPos.X / (LocalSize.X / ItemW)), 0, ItemW - 1);
+	int32 SubRow = FMath::Clamp(FMath::FloorToInt(LocalPos.Y / (LocalSize.Y / ItemH)), 0, ItemH - 1);
+
+	// 아이템 원점(SlotGridIndex) + 클릭한 하위 칸 오프셋을 더해서 실제 그리드 좌표 계산
+	int32 OriginCol = SlotGridIndex % OwnerContainer->Columns;
+	int32 OriginRow = SlotGridIndex / OwnerContainer->Columns;
+
+	int32 ActualCol = OriginCol + SubCol;
+	int32 ActualRow = OriginRow + SubRow;
+
+	return ActualRow * OwnerContainer->Columns + ActualCol;
+}

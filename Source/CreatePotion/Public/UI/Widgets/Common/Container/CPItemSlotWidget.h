@@ -36,6 +36,8 @@ protected:
 	// 마우스를 더블클릭했을 때 발생하는 엔진 자체 이벤트 처리 함수
 	// 더블클릭 자체는 아이템이 존재할 때에만 의미가 있기 때문에 이 클래스에서 처리
 	virtual FReply NativeOnMouseButtonDoubleClick(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+
+	virtual int32 GetClickedSlotGridIndex(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) const override;
 public:
 	// 현재 이 슬롯이 소유중인 아이템
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|Slot")
