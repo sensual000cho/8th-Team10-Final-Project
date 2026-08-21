@@ -78,6 +78,10 @@ public:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Potion|GAS")
 	TArray<FCPPotionEffectDispatchResult> LastDispatchResults;
 
+
+	//여기서부턴 간단한 체크 함수 
+	
+	//충돌처리 가능한지 묻는 함수
 	UFUNCTION(BlueprintPure, Category = "Potion|Impact")
 	bool IsImpactProcessingEnabled() const;
 
