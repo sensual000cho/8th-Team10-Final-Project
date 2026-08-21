@@ -10,8 +10,7 @@ ACPBaseNPC::ACPBaseNPC()
 	PrimaryActorTick.bCanEverTick = false;
     if (GetCapsuleComponent())
     {
-        GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
-        GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+        GetCapsuleComponent()->SetCollisionResponseToAllChannels(ECR_Block);
         GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
     }
     if (GetMesh())
