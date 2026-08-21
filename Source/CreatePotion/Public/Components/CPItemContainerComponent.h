@@ -29,17 +29,24 @@ public:
     // 특정 인덱스에 특정 크기(Width, Height)의 아이템을 넣을 수 있는지 2D 충돌 검사
     bool IsGridSpaceEnough(int32 TargetIndex, int32 ItemWidth, int32 ItemHeight) const;
 
+    // 아이템 Swap이 가능한지를 체크하는 함수
+    int32 FindItemArrayIndexCoveringGridIndex(int32 QueryIndex) const;
+
     // 2D 그리드 검색 (아이템 고유 크기 사용)
     int32 FindGridSpace(UCPForageableItemData* ItemData, bool& bOutIsRotated);
 
     UFUNCTION(BlueprintCallable, Category = "Container|Action")
     bool RemoveItemFromContainer(int32 TargetGridIndex, int32 AmountToRemove);
+
+    // 컨테이너에서 아이템을 모두 꺼내는(집어드는) 함수
+    UFUNCTION(BlueprintCallable, Category = "Container|Action")
+    bool PopItemFromContainer(int32 TargetGridIndex, FContainerItem& OutPoppedItem);
     
     UFUNCTION(BlueprintCallable, Category = "Container|Action")
     bool AutoInsertItemToTargetContainer(int32 SourceGridIndex, UCPItemContainerComponent* TargetContainer);
 
     UFUNCTION(BlueprintCallable, Category = "Container|Action")
-    bool MoveOrSwapItem(int32 SourceIndex, UCPItemContainerComponent* TargetContainer, int32 TargetIndex);
+    bool TryPlaceHoldingItem(UCPItemContainerComponent* HandContainer, int32 TargetIndex);
 
 protected:
 	virtual void BeginPlay() override;
