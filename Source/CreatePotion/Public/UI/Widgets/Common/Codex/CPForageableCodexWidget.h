@@ -3,17 +3,16 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "UI/Widgets/Base/CPBasePopupWidget.h"
 #include "CPForageableCodexWidget.generated.h"
 
+class UCPCodexSubsystem;
 class UTextBlock;
 class UImage;
 class UCPForageableItemData;
-/**
- * 
- */
+
 UCLASS()
-class CREATEPOTION_API UCPForageableCodexWidget : public UUserWidget
+class CREATEPOTION_API UCPForageableCodexWidget : public UCPBasePopupWidget
 {
 	GENERATED_BODY()
 
@@ -26,14 +25,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Codex")
 	void ShowNextEntry();
 	
-	UFUNCTION(BlueprintCallable, Category = "Codex")
-	void SetTextIndex(int32 Index);
-	
 protected:
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Codex")
-	TArray<TObjectPtr<UCPForageableItemData>> Entries;
+private:
+	UFUNCTION()	
+	void RefreshCodex();
+	
+protected:
+	UPROPERTY(BlueprintReadOnly, Category = "Codex")
+	TObjectPtr<UCPCodexSubsystem> CodexSubsystem;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Codex")
 	FName CodexStringTableId;
@@ -44,9 +46,6 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Codex")
 	int32 CurrentEntryIndex;
 	
-	UPROPERTY(BlueprintReadOnly, Category = "Codex")
-	int32 CurrentTextIndex;
-	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> CodexImage;
 	
@@ -56,6 +55,9 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> DescriptionText;
 	
-private:
-	void RefreshCodex();
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> TagText;
+	
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> TagCombinationText;
 };

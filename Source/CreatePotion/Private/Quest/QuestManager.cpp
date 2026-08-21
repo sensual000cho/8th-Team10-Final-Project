@@ -179,8 +179,7 @@ FText UQuestManager::GetQuestSummaryText(FName QuestID) const
 	return Quest ? Quest->QuestText_Summary : FText::GetEmpty();
 }
 
-//임시 연결용 함수
-FText UQuestManager::GetQuestFullTextJoined(FName QuestID) const
+FText UQuestManager::GetQuestScriptTextJoined(FName QuestID) const
 {
 	TArray<FText> Lines = GetQuestScriptLines(QuestID);
 	return FText::Join(FText::FromString(TEXT(" ")), Lines);

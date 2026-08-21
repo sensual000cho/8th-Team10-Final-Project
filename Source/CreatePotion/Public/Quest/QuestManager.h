@@ -85,9 +85,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	FText GetQuestSummaryText(FName QuestID) const;
 
-	// [임시] InitDialogue가 배열 지원 전까지 사용할 임시 함수. NPC 담당자 협의 후 제거 예정.
+	// 저널 UI 등에서 여러 줄 대사를 한 번에(줄바꿈 없이 이어서) 보여줄 때 사용
 	UFUNCTION(BlueprintCallable, Category = "Quest")
-	FText GetQuestFullTextJoined(FName QuestID) const;
+	FText GetQuestScriptTextJoined(FName QuestID) const;
+
 	// ===================================================================
 	// [세션 힌트 - 단계별 조회 및 현재 단계 자동 관리]
 	// GetSessionHintText/Detailed/Detailed2 : 단계별 개별 조회 (저수준)
