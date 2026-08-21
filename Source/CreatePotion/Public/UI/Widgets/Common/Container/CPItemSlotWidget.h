@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/Widgets/Base/CPBaseUserWidget.h"
+#include "UI/Widgets/Common/Container/CPGridSlotWidgetBase.h"
 #include "Types/CPContainerTypes.h"
 #include "CPItemSlotWidget.generated.h"
 
@@ -12,7 +12,7 @@ class UTextBlock;
 class UCPItemContainerComponent;
 
 UCLASS()
-class CREATEPOTION_API UCPItemSlotWidget : public UCPBaseUserWidget
+class CREATEPOTION_API UCPItemSlotWidget : public UCPGridSlotWidgetBase
 {
 	GENERATED_BODY()
 
