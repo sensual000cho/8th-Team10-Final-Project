@@ -24,8 +24,8 @@ void ACPResourceNodeActor::InitializeResource(const FCPResourceNodeKey& InNodeKe
 	if (ResourceDefinition)
 	{
 		HarvestComponent->Initialize(
-			ResourceDefinition->HarvestedItem,
-			ResourceDefinition->HarvestAmount,
+			ResourceDefinition->HarvestData.HarvestedItem,
+			ResourceDefinition->HarvestData.HarvestAmount,
 			ResourceDefinition->Mesh.LoadSynchronous(),
 			DroppedItemClass
 			);
@@ -52,14 +52,14 @@ FText ACPResourceNodeActor::GetInteractionPrompt_Implementation()
 
 FName ACPResourceNodeActor::GetInteractionName_Implementation()
 {
-	return FName(*ResourceDefinition->HarvestedItem->DisplayName.ToString());
+	return FName(*ResourceDefinition->HarvestData.HarvestedItem->DisplayName.ToString());
 }
 
 bool ACPResourceNodeActor::CanInteract_Implementation(AActor* Interactor)
 {
 	return Interactor != nullptr
 		&& ResourceDefinition != nullptr
-		&& ResourceDefinition->HarvestedItem != nullptr;
+		&& ResourceDefinition->HarvestData.HarvestedItem != nullptr;
 }
 
 float ACPResourceNodeActor::GetInteractionDuration_Implementation(AActor* Interactor)
@@ -70,7 +70,7 @@ float ACPResourceNodeActor::GetInteractionDuration_Implementation(AActor* Intera
 	//return InspectDuration;
 	
 	//아니라면 채집물 채집시간
-	return ResourceDefinition->HarvestDuration;
+	return ResourceDefinition->HarvestData.HarvestDuration;
 }
 
 void ACPResourceNodeActor::OnAcquireFromPool_Implementation()

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Data/CPForageableItemData.h"
 #include "CPResourceType.generated.h"
 
 // 채집 포인트 식별
@@ -63,4 +64,23 @@ public:
 	// 레벨 전환 시 이전의 위치 정보를 저장하기 위한 값
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	int32 Generation = 0;
+};
+
+// 채집 대상 데이터
+USTRUCT(BlueprintType)
+struct CREATEPOTION_API FCPHarvestData
+{
+	GENERATED_BODY()
+	
+	// 채집 아이템 DA
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TObjectPtr<UCPForageableItemData> HarvestedItem;
+	
+	// 채집량
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (ClampMin = "1"))
+	int32 HarvestAmount = 1;
+	
+	// 채집 시간
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (ClampMin = "0.0"))
+	float HarvestDuration = 1.f;
 };
