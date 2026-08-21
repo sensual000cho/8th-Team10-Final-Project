@@ -31,6 +31,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Lab|Interaction")
 	TArray<FGameplayTag> GetEffectTags() const;
 	
+	UFUNCTION(BlueprintPure, Category = "Lab|Interaction")
+	TArray<FCPLabIngredientInstance> GetIngredientInstance() const;
+	
 private:
 	// PotionSession에서 Held 재료를 꺼내 투입
 	bool AddHeldProp();
