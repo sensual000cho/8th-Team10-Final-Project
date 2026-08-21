@@ -4,6 +4,7 @@
 #include "Resource/Actor/CPResourceNodeActor.h"
 #include "Resource/System/CPResourceStateSubsystem.h"
 #include "Data/CPResourceDefinition.h"
+#include "GameInstance/Subsystem/CPTimeSubsystem.h"
 #include "Resource/System/CPObjectPoolSubsystem.h"
 
 #define GROUND_CHANNEL ECC_GameTraceChannel1
@@ -32,14 +33,51 @@ void ACPResourceSpawner::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	UGameInstance* GI = GetGameInstance();
+	if (GI)
+	{
+		UCPResourceStateSubsystem* StateSubsystem = GI->GetSubsystem<UCPResourceStateSubsystem>();
+		if (StateSubsystem)
+		{
+			StateSubsystem->OnResourceNodeHarvested.AddUObject(this, &ACPResourceSpawner::HandleNodeHarvested);
+		}
+		
+		UCPTimeSubsystem* TimeSubsystem = GI->GetSubsystem<UCPTimeSubsystem>();
+		if (TimeSubsystem)
+		{
+			TimeSubsystem->OnTimeChanged.AddDynamic(this, &ACPResourceSpawner::HandleTimeChanged);
+		}
+	}
+	
 	if (SpawnEntries.Num() == 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("%s : Resource definition is null"), *GetName());
+		//UE_LOG(LogTemp, Warning, TEXT("%s : Resource definition is null"), *GetName());
 		
 		return;
 	}
 	
 	SpawnAllSlots();
+}
+
+void ACPResourceSpawner::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	UGameInstance* GI = GetGameInstance();
+	if (GI)
+	{
+		UCPResourceStateSubsystem* StateSubsystem = GI->GetSubsystem<UCPResourceStateSubsystem>();
+		if (StateSubsystem)
+		{
+			StateSubsystem->OnResourceNodeHarvested.RemoveAll(this);
+		}
+		
+		UCPTimeSubsystem* TimeSubsystem = GI->GetSubsystem<UCPTimeSubsystem>();
+		if (TimeSubsystem)
+		{
+			TimeSubsystem->OnTimeChanged.RemoveDynamic(this, &ACPResourceSpawner::HandleTimeChanged);
+		}
+	}
+	
+	Super::EndPlay(EndPlayReason);
 }
 
 void ACPResourceSpawner::PostActorCreated()
@@ -57,6 +95,39 @@ void ACPResourceSpawner::PostEditImport()
 	Super::PostEditImport();
 	
 	SpawnerId = FGuid::NewGuid();
+}
+
+void ACPResourceSpawner::HandleNodeHarvested(const FCPResourceNodeKey& Key)
+{
+	if (Key.LevelId != GetLevelId() || Key.SpawnerId != SpawnerId) return;
+	
+	PendingRespawnSlots.Add(Key.SlotIndex);
+}
+
+void ACPResourceSpawner::HandleTimeChanged(int64 Time)
+{
+	UGameInstance* GI = GetGameInstance();
+	if (!GI) return;
+	
+	UCPResourceStateSubsystem* StateSubsystem = GI->GetSubsystem<UCPResourceStateSubsystem>();
+	if (!StateSubsystem) return;
+	
+	TArray<int32> ReadySlots;
+	
+	for (const int32& SlotIndex : PendingRespawnSlots)
+	{
+		const FCPResourceNodeKey Key = MakeNodeKey(SlotIndex);
+		if (StateSubsystem->IsReady(Key))
+		{
+			ReadySlots.Add(SlotIndex);
+		}
+	}
+	
+	for (const int32& SlotIndex : ReadySlots)
+	{
+		SpawnSlot(SlotIndex);
+		PendingRespawnSlots.Remove(SlotIndex);
+	}
 }
 
 void ACPResourceSpawner::SpawnAllSlots()
@@ -80,6 +151,12 @@ void ACPResourceSpawner::SpawnSlot(int32 SlotIndex)
 	
 	FCPResourceNodeState& State = StateSubsystem->GetOrCreateState(Key);
 	
+	if (!StateSubsystem->IsReady(Key))
+	{
+		PendingRespawnSlots.Add(SlotIndex);
+		return;
+	}
+	
 	const FCPResourceSpawnEntry* Entry = SelectResource(SlotIndex, State.Generation);
 	if (!Entry) return;
 	
@@ -99,6 +176,7 @@ void ACPResourceSpawner::SpawnSlot(int32 SlotIndex)
 	if (!ResourceActor) return;
 	
 	ResourceActor->InitializeResource(Key, Definition);
+	PendingRespawnSlots.Add(SlotIndex);
 }
 
 const FCPResourceSpawnEntry* ACPResourceSpawner::SelectResource(int32 SlotIndex, int32 Generation) const

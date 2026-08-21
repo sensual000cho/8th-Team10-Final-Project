@@ -58,7 +58,7 @@ struct CREATEPOTION_API FCPResourceNodeState
 public:
 	// 다음 리스폰 시간
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	double RespawnAt = 0.0;
+	int64 RespawnAt = 0;
 	
 	// 레벨 전환 시 이전의 위치 정보를 저장하기 위한 값
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)

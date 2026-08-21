@@ -116,7 +116,7 @@ void ACPResourceNodeActor::Harvest(AActor* Interactor)
 	const FVector DropDirection = FRotator(0.f, RandomYaw, 0.f).Vector();
 	DroppedItem->StartDropMotion(DropDirection);
 	
-	StateSubsystem->MarkHarvested(NodeKey);
+	StateSubsystem->MarkHarvested(NodeKey, ResourceDefinition->RespawnDuration);
 	
 	Pool->ReleaseActor(this);
 }
