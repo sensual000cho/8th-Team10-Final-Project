@@ -241,7 +241,7 @@ bool UCPItemContainerComponent::RemoveItemFromContainer(int32 TargetGridIndex, i
     return false;
 }
 
-bool UCPItemContainerComponent::MoveItemToTargetContainer(int32 SourceGridIndex, UCPItemContainerComponent* TargetContainer)
+bool UCPItemContainerComponent::AutoInsertItemToTargetContainer(int32 SourceGridIndex, UCPItemContainerComponent* TargetContainer)
 {
     // 옮기려는 컨테이너가 유효하지 않거나 자기 자신에게 옮기는 시도라면 무시
     if (!TargetContainer || TargetContainer == this)
@@ -267,15 +267,15 @@ bool UCPItemContainerComponent::MoveItemToTargetContainer(int32 SourceGridIndex,
         return false;
     }
 
-    // 2. 안전하게 데이터 복사해두기 (배열이 수정될 수 있으므로)
+    // 안전하게 데이터 복사해두기 (배열이 수정될 수 있으므로)
     UCPForageableItemData* DataAsset = ItemToMove->ItemDataAsset;
     int32 OriginalCount = ItemToMove->Stacked;
 
-    // 3. 대상(Target) 컨테이너에 아이템 밀어 넣기
+    // 대상(Target) 컨테이너에 아이템 밀어 넣기
     int32 LeftoverCount = TargetContainer->TryGetItem(DataAsset, OriginalCount);
     int32 TransferredCount = OriginalCount - LeftoverCount;
 
-    // 4. 단 1개라도 성공적으로 넘어갔다면 내 인벤토리에서 차감
+    // 1개 이상이 성공적으로 넘어갔다면 갯수 차감
     if (TransferredCount > 0)
     {
         RemoveItemFromContainer(SourceGridIndex, TransferredCount);
@@ -286,5 +286,10 @@ bool UCPItemContainerComponent::MoveItemToTargetContainer(int32 SourceGridIndex,
 
     UE_LOG(LogContainer, Warning, TEXT("[%s] 대상 컨테이너 공간 부족"), 
         *DataAsset->DisplayName.ToString());
+    return false;
+}
+
+bool UCPItemContainerComponent::MoveOrSwapItem(int32 SourceIndex, UCPItemContainerComponent* TargetContainer, int32 TargetIndex)
+{
     return false;
 }

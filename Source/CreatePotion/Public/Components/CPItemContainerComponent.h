@@ -36,7 +36,10 @@ public:
     bool RemoveItemFromContainer(int32 TargetGridIndex, int32 AmountToRemove);
     
     UFUNCTION(BlueprintCallable, Category = "Container|Action")
-    bool MoveItemToTargetContainer(int32 SourceGridIndex, UCPItemContainerComponent* TargetContainer);
+    bool AutoInsertItemToTargetContainer(int32 SourceGridIndex, UCPItemContainerComponent* TargetContainer);
+
+    UFUNCTION(BlueprintCallable, Category = "Container|Action")
+    bool MoveOrSwapItem(int32 SourceIndex, UCPItemContainerComponent* TargetContainer, int32 TargetIndex);
 
 protected:
 	virtual void BeginPlay() override;
