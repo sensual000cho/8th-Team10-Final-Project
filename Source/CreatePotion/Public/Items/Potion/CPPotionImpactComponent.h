@@ -4,14 +4,40 @@
 #include "Components/ActorComponent.h"
 #include "Engine/EngineTypes.h"
 #include "Engine/HitResult.h"
+#include "GameplayTagContainer.h"
 #include "CPPotionImpactComponent.generated.h"
 
 class AActor;
 class APawn;
-struct FCPPotionImpactContext;
+class UAbilitySystemComponent;
 
+UENUM(BlueprintType)
+enum class ECPPotionEffectDispatchResult : uint8
+{
+	AbilityActivated,
+	MissingSourceAbilitySystem,
+	MissingTargetAbilitySystem,
+	InvalidEffectTag,
+	NoAbilityActivated
+};
 
-// 포션의 첫 충돌 지점에서 효과 범위를 한 번 검사하고 Receiver에게 Context를 전달한다.
+// Impact가 각 대상 ASC에 효과 Gameplay Event를 전달한 결과를 기록한다.
+USTRUCT(BlueprintType)
+struct CREATEPOTION_API FCPPotionEffectDispatchResult
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Potion|GAS")
+	TObjectPtr<AActor> TargetActor = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Potion|GAS")
+	FGameplayTag EffectTag;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Potion|GAS")
+	ECPPotionEffectDispatchResult Result = ECPPotionEffectDispatchResult::NoAbilityActivated;
+};
+
+// 포션의 첫 충돌 지점에서 효과 범위를 한 번 검사하고 대상 ASC에 효과 Gameplay Event를 전달한다.
 UCLASS(ClassGroup=(Potion), meta=(BlueprintSpawnableComponent))
 class CREATEPOTION_API UCPPotionImpactComponent : public UActorComponent
 {
@@ -23,6 +49,10 @@ public:
 	// 포션이 실제로 투척된 뒤 충돌 처리를 허용한다.
 	UFUNCTION(BlueprintCallable, Category = "Potion|Impact")
 	bool EnableImpactProcessing(APawn* InInstigator);
+
+	// 포션 Actor가 보유한 현재 효과 태그를 Impact 경계에 전달한다.
+	UFUNCTION(BlueprintCallable, Category = "Potion|Impact")
+	void SetPotionEffectTags(const TArray<FGameplayTag>& InEffectTags);
 
 	// Impact 처리를 중단한다. 이미 발생한 Impact 상태는 되돌리지 않는다.
 	UFUNCTION(BlueprintCallable, Category = "Potion|Impact")
@@ -36,22 +66,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Potion|Impact")
 	bool TryTriggerPotionImpactAtLocation(FVector ImpactPoint, FVector ImpactNormal);
 
-	UFUNCTION(BlueprintPure, Category = "Potion|Impact")
-	bool IsImpactProcessingEnabled() const;
-
-	// 이 포션에서 첫 Impact가 이미 발생했는지 확인한다.
-	UFUNCTION(BlueprintPure, Category = "Potion|Impact")
-	bool HasPotionImpactTriggered() const;
-
-	// Impact 위치의 효과 범위 검사가 끝났는지 확인한다.
-	UFUNCTION(BlueprintPure, Category = "Potion|Impact")
-	bool IsEffectAreaResolved() const;
-
-	// 범위 안 Receiver 중 하나 이상이 효과 적용에 성공했는지 확인한다.
-	UFUNCTION(BlueprintPure, Category = "Potion|Impact")
-	bool HasAppliedAnyPotionEffect() const;
-
-	// 첫 충돌 시 Receiver를 찾을 구형 범위의 반지름이다.
+	// 첫 충돌 위치에서 Target ASC를 찾을 효과 범위의 반지름이다.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Potion|Impact", meta = (ClampMin = "0.0", Units = "cm"))
 	float EffectRadius = 250.0f;
 
@@ -59,16 +74,43 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Potion|Impact")
 	TArray<TEnumAsByte<EObjectTypeQuery>> EffectObjectTypes;
 
-private:
-	// Impact 위치에서 Sphere Overlap을 한 번 실행하고 찾은 Receiver들을 호출한다.
-	bool ResolvePotionEffectArea(const FVector& ImpactPoint, const FVector& ImpactNormal);
+	// 마지막 1회 범위 검사에서 대상별 Gameplay Event 전달 결과.
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Potion|GAS")
+	TArray<FCPPotionEffectDispatchResult> LastDispatchResults;
 
-	// 대상별 포션 정보를 Context 구조체로 패키징한다.
-	bool TryBuildImpactContext(AActor* TargetActor, const FVector& ImpactPoint, const FVector& ImpactNormal, FCPPotionImpactContext& OutContext) const;
+	UFUNCTION(BlueprintPure, Category = "Potion|Impact")
+	bool IsImpactProcessingEnabled() const;
+
+	// 이 포션에서 첫 Impact가 이미 발생했는지 확인한다.
+	UFUNCTION(BlueprintPure, Category = "Potion|Impact")
+	bool HasPotionImpactTriggered() const;
+
+	// 범위 안 Target ASC 중 하나 이상에서 효과 처리 Ability가 활성화됐는지 확인한다.
+	UFUNCTION(BlueprintPure, Category = "Potion|Impact")
+	bool HasActivatedAnyPotionEffectAbility() const;
+
+private:
+	// 첫 Impact를 잠그고 전달받은 Hit 문맥으로 효과 범위를 한 번 검사한다.
+	bool TryCommitPotionImpact(const FHitResult& HitResult);
+
+	// Impact 위치에서 Sphere Overlap을 한 번 실행하고 찾은 대상 ASC에 효과 Event를 전달한다.
+	bool ResolvePotionEffectArea(const FHitResult& HitResult);
+
+	// Potion.Effect 태그를 그대로 Gameplay Event로 사용해 Target ASC의 Ability를 활성화한다.
+	bool TryDispatchPotionEffectToTarget(AActor* TargetActor, FGameplayTag EffectTag, const FHitResult& HitResult, UAbilitySystemComponent* SourceAbilitySystem, UAbilitySystemComponent* TargetAbilitySystem);
+
+	// 실제 투척자 ASC를 우선 사용하고 더미 검증 Actor의 ASC를 보조 경로로 찾는다.
+	UAbilitySystemComponent* ResolveSourceAbilitySystem() const;
+
+	void AddDispatchResult(AActor* TargetActor, FGameplayTag EffectTag, ECPPotionEffectDispatchResult Result);
 	
 	// Context에 전달할 투척 원인 Pawn.
 	UPROPERTY()
 	TObjectPtr<APawn> ImpactInstigator = nullptr;
+
+	// 포션 내부 저장 구조와 분리해 Impact가 전달받아 사용하는 현재 효과 태그.
+	UPROPERTY(VisibleInstanceOnly, Category = "Potion|Impact")
+	TArray<FGameplayTag> PotionEffectTags;
 
 	// Impact 처리가 활성화된 뒤, 첫 Impact가 발생하거나 비활성화될 때까지 true.
 	UPROPERTY(VisibleInstanceOnly, Category = "Potion|Impact")
@@ -78,11 +120,7 @@ private:
 	UPROPERTY(VisibleInstanceOnly, Category = "Potion|Impact")
 	bool bImpactTriggered = false;
 
-	// 첫 Impact 위치의 Sphere Overlap 검사가 끝난 상태.
+	// 범위 안 Target ASC 중 하나 이상에서 효과 처리 Ability가 활성화된 상태.
 	UPROPERTY(VisibleInstanceOnly, Category = "Potion|Impact")
-	bool bEffectAreaResolved = false;
-
-	// 범위 안 Receiver 중 하나 이상이 실제 효과 적용에 성공한 상태.
-	UPROPERTY(VisibleInstanceOnly, Category = "Potion|Impact")
-	bool bAnyEffectApplied = false;
+	bool bAnyEffectAbilityActivated = false;
 };
