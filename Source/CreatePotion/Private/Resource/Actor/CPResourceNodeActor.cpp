@@ -1,7 +1,7 @@
 #include "Resource/Actor/CPResourceNodeActor.h"
 #include "Data/CPResourceDefinition.h"
 #include "Resource/System/CPResourceStateSubsystem.h"
-#include "Items/CPDroppedItemBase.h"
+#include "Resource/Component/CPHarvestComponent.h"
 #include "Resource/System/CPObjectPoolSubsystem.h"
 
 ACPResourceNodeActor::ACPResourceNodeActor()
@@ -10,6 +10,8 @@ ACPResourceNodeActor::ACPResourceNodeActor()
 
 	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
 	SetRootComponent(Mesh);
+	
+	HarvestComponent = CreateDefaultSubobject<UCPHarvestComponent>(TEXT("HarvestComponent"));
 }
 
 void ACPResourceNodeActor::InitializeResource(const FCPResourceNodeKey& InNodeKey, UCPResourceDefinition* InDefinition)
@@ -18,6 +20,16 @@ void ACPResourceNodeActor::InitializeResource(const FCPResourceNodeKey& InNodeKe
 	ResourceDefinition = InDefinition;
 	
 	ApplyDefinition();
+	
+	if (ResourceDefinition)
+	{
+		HarvestComponent->Initialize(
+			ResourceDefinition->HarvestedItem,
+			ResourceDefinition->HarvestAmount,
+			ResourceDefinition->Mesh.LoadSynchronous(),
+			DroppedItemClass
+			);
+	}
 }
 
 void ACPResourceNodeActor::OnInteract_Implementation(AActor* Interactor)
@@ -90,33 +102,22 @@ void ACPResourceNodeActor::Harvest(AActor* Interactor)
 {
 	if (!Interactor) return;
 	if (!ResourceDefinition) return;
+	if (!HarvestComponent) return;
+	if (!HarvestComponent->TryHarvest(Interactor)) return;
 	
-	UGameInstance* GameInstance = GetGameInstance();
-	if (!GameInstance) return;
+	UGameInstance* GI = GetGameInstance();
+	if (!GI) return;
 	
-	UCPResourceStateSubsystem* StateSubsystem = GameInstance->GetSubsystem<UCPResourceStateSubsystem>();
+	UCPResourceStateSubsystem* StateSubsystem = GI->GetSubsystem<UCPResourceStateSubsystem>();
 	if (!StateSubsystem) return;
 	
-	UCPObjectPoolSubsystem* Pool = GetWorld()->GetSubsystem<UCPObjectPoolSubsystem>();
-	if (!Pool) return;
-	
-	AActor* AcquiredActor = Pool->AcquireActor(DroppedItemClass, {FRotator::ZeroRotator, GetActorLocation()});
-	
-	ACPDroppedItemBase* DroppedItem = Cast<ACPDroppedItemBase>(AcquiredActor);
-	if (!DroppedItem)
-	{
-		Pool->ReleaseActor(AcquiredActor);
-		return;
-	}
-	
-	DroppedItem->Initialize(ResourceDefinition->HarvestedItem, ResourceDefinition->HarvestAmount,
-		ResourceDefinition->Mesh.LoadSynchronous());
-	
-	const float RandomYaw = FMath::FRandRange(0.f, 360.f);
-	const FVector DropDirection = FRotator(0.f, RandomYaw, 0.f).Vector();
-	DroppedItem->StartDropMotion(DropDirection);
-	
 	StateSubsystem->MarkHarvested(NodeKey, ResourceDefinition->RespawnDuration);
+
+	UWorld* World = GetWorld();
+	if (!World) return;
+	
+	UCPObjectPoolSubsystem* Pool = World->GetSubsystem<UCPObjectPoolSubsystem>();
+	if (!Pool) return;
 	
 	Pool->ReleaseActor(this);
 }
