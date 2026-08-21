@@ -22,7 +22,7 @@ class CREATEPOTION_API ACPPotionImpactDummySource : public ACPAlchemyProp, publi
 public:
 	ACPPotionImpactDummySource();
 
-	// 더미용: Impact Component가 정상적인 ASC를 찾지 못했을 때 Source Actor의 대체 ASC를 얻으려고 호출한다. 
+	// 더미용: Impact Component가 정상적인 ASC를 찾지 못했을 때 Source Actor의 대체 ASC를 얻으려고 호출한다.
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
 	// Level Blueprint가 Spawn 직후 호출하며 정식 Potion Actor의 초기화와 투척 성공 시점을 더미용으로 구현한다.
