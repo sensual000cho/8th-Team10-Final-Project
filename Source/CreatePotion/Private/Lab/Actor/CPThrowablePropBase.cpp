@@ -149,6 +149,10 @@ bool ACPThrowablePropBase::Throw(const FVector& Direction, float Speed)
 
     StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
     StaticMeshComponent->SetGenerateOverlapEvents(true);
+    
+    StaticMeshComponent->SetLinearDamping(ThrowLinearDamping);
+    StaticMeshComponent->SetAngularDamping(ThrowAngularDamping);
+    
     StaticMeshComponent->SetSimulatePhysics(true);
     StaticMeshComponent->WakeAllRigidBodies();
     StaticMeshComponent->SetPhysicsLinearVelocity(ThrowDirection * Speed);
@@ -230,6 +234,12 @@ void ACPThrowablePropBase::CheckForRest()
     }
 
     StopRestCheck();
+    
+    // 느려지면 재워버림
+    StaticMeshComponent->SetPhysicsLinearVelocity(FVector::ZeroVector);
+    StaticMeshComponent->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+    StaticMeshComponent->PutAllRigidBodiesToSleep();
+    
     SetPropState(ECPThrowablePropState::Resting);
 
     OnPropRested.Broadcast();

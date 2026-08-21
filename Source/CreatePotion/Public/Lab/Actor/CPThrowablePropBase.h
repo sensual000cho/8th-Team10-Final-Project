@@ -114,17 +114,25 @@ protected:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Rest", meta = (ClampMin = "0.01", Units = "s"))
     float RestCheckInterval = 0.1f;
 
-    // 10.0의 선속도 이하면 정지상태로 인정
+    // 투척 후 선형 이동 감쇠
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Physics", meta = (ClampMin = "0.0"))
+    float ThrowLinearDamping = 1.5f;
+
+    // 투척 후 회전 감쇠
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Physics", meta = (ClampMin = "0.0"))
+    float ThrowAngularDamping = 5.f;
+    
+    // 30.0의 선속도 이하면 정지상태로 인정
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Rest", meta = (ClampMin = "0.0", Units = "cm/s"))
-    float RestLinearSpeedThreshold = 10.f;
+    float RestLinearSpeedThreshold = 30.f;
 
-    // 10.0의 각속도 이하면 정지상태로 인정
+    // 45.0의 각속도 이하면 정지상태로 인정
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Rest", meta = (ClampMin = "0.0", Units = "deg/s"))
-    float RestAngularSpeedThreshold = 10.f;
+    float RestAngularSpeedThreshold = 45.f;
 
-    // 멈춘 시간 0.3초까지는 정지상태로 인정하지 않음
+    // 멈춘 시간 0.2초까지는 정지상태로 인정하지 않음
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Rest", meta = (ClampMin = "0.0", Units = "s"))
-    float RestConfirmationDuration = 0.3f;
+    float RestConfirmationDuration = 0.2f;
 
 private:
     UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Prop|State", meta = (AllowPrivateAccess = "true"))
