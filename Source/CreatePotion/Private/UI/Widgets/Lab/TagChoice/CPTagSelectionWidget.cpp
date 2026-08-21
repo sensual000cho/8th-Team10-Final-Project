@@ -2,13 +2,10 @@
 #include "UI/Widgets/Lab/TagChoice/CPTagEntryWidget.h"
 #include "UI/Widgets/Lab/TagChoice/CPTagRangeWidget.h"
 #include "UI/Widgets/Lab/TagChoice/CPHintWidget.h"
-#include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
 #include "Components/ScrollBox.h"
 #include "Components/TextBlock.h"
 #include "Components/Button.h"
 #include "GameplayTagsManager.h"
-#include "GameState/CPLabGameState.h"
-#include "Lab/Component/CPLabPotionSessionComponent.h"
 #include "UI/HUD/CPLabHUD.h"
 
 void UCPTagSelectionWidget::BindEvents()
@@ -170,20 +167,6 @@ void UCPTagSelectionWidget::OnConfirmClicked()
 			ValidTags.Add(Tag);
 		}
 	}
-
-	// if (UGameInstance* GI = GetGameInstance())
-	// {
-	// 	if (UCPUIManagerSubsystem* UIManager = GI->GetSubsystem<UCPUIManagerSubsystem>())
-	// 	{
-	// 		if (UUserWidget* CreatedWidget = UIManager->PushWidget(TagRangeWidgetClass))
-	// 		{
-	// 			if (UCPTagRangeWidget* TagRangeWidget = Cast<UCPTagRangeWidget>(CreatedWidget))
-	// 			{
-	// 				TagRangeWidget->InitTagRangeWidget(CurrentQuestID, ValidTags, SavedTagValues);
-	// 			}
-	// 		}
-	// 	}
-	// }
 	
 	FTagSelectionData Data;
 	Data.QuestID = CurrentQuestID;

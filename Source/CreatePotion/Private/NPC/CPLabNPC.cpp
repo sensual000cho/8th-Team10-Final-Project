@@ -6,6 +6,7 @@
 #include "UI/Widgets/Common/Dialogue/CPNPCDialogueWidget.h"
 #include "UI/Widgets/Lab/CPLabResultWidget.h"
 #include "GameState/CPLabGameState.h" 
+#include "Lab/Actor/CPAlchemyProp.h"
 #include "Lab/Component/CPLabPotionSessionComponent.h"
 
 void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
@@ -105,39 +106,52 @@ bool ACPLabNPC::CanInteract_Implementation(AActor* Interactor)
 		return true;
 	}
 
-	if (UWorld* World = GetWorld()) {
-		if (ACPLabGameState* LabState = World->GetGameState<ACPLabGameState>()) {
-			if (UCPLabPotionSessionComponent* SessionComp = LabState->GetPotionSession()) {
-				FCPLabPotionRequestState RequestState;
-				if (SessionComp->GetActiveRequestState(RequestState) &&
-					RequestState.PotionRequest.RequestId == QuestID) {
-					return RequestState.Phase == ECPLabPotionRequestPhase::PotionReady;
-				}
-			}
-		}
+	UWorld* World = GetWorld();
+	if (!World) return false;
+	
+	ACPLabGameState* LabGameState = World->GetGameState<ACPLabGameState>();
+	if (!LabGameState) return false;
+	
+	UCPLabPotionSessionComponent* SessionComp = LabGameState->GetPotionSession();
+	if (!SessionComp) return false;
+	
+	FCPLabPotionRequestState RequestState;
+	if (!SessionComp->GetActiveRequestState(RequestState) ||
+		RequestState.PotionRequest.RequestId != QuestID) {
+		return false;
 	}
-
-	return false;
+	
+	return RequestState.Phase == ECPLabPotionRequestPhase::PotionReady && SessionComp->HasHeldAlchemyProp();
 }
 
 void ACPLabNPC::OpenResultWidget()
 {
 	UGameInstance* GameInstance = GetGameInstance();
 	if (!GameInstance) return;
+	
+	UWorld* World = GetWorld();
+	if (!World) return;
 
 	UCPUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UCPUIManagerSubsystem>();
-	ACPLabGameMode* LabGameMode = GetWorld() ? Cast<ACPLabGameMode>(GetWorld()->GetAuthGameMode()) : nullptr;
+	ACPLabGameMode* LabGameMode = Cast<ACPLabGameMode>(GetWorld()->GetAuthGameMode());
+	ACPLabGameState* LabGameState = World->GetGameState<ACPLabGameState>();
+	UCPLabPotionSessionComponent* SessionComponent = LabGameState ? LabGameState->GetPotionSession() : nullptr;
 
-	if (!UIManager || !LabGameMode || !ResultWidgetClass) return;
+	if (!UIManager || !LabGameMode || !SessionComponent ||!ResultWidgetClass) return;
 
-	FCPPotionDeliveryResult DeliveryResult;
-	// TODO: GameMode의 Get... 결과 struct 함수명이 확정되면 여기서 DeliveryResult를 받아온다.
+	FCPLabPotionRequestState RequestState;
+	if (!SessionComponent->GetActiveRequestState(RequestState) || RequestState.Phase != ECPLabPotionRequestPhase::PotionReady) return;
+
+	ACPAlchemyProp* HeldPotion = SessionComponent->GetHeldAlchemyProp();
+	if (!IsValid(HeldPotion)) return;
+	
+	const FName QuestId = RequestState.PotionRequest.RequestId;
+	const FCPPotionDeliveryResult DeliveryResult = LabGameMode->GetPotionDeliveryResult(QuestId, HeldPotion);
+	
+	if (DeliveryResult.QuestId.IsNone()) return;
+	
 	UCPLabResultWidget* ResultWidget = Cast<UCPLabResultWidget>(UIManager->PushWidget(ResultWidgetClass));
-
-	if (!ResultWidget)
-	{
-		return;
-	}
+	if (!ResultWidget) return;
 
 	if (!ResultWidget->InitializeResult(DeliveryResult))
 	{
@@ -145,12 +159,16 @@ void ACPLabNPC::OpenResultWidget()
 		return;
 	}
 
+	ACPAlchemyProp* DeliveredPotion = nullptr;
+	if (SessionComponent->ReleaseHeldAlchemyProp(DeliveredPotion) && IsValid(DeliveredPotion)){
+		DeliveredPotion->Destroy();
+	}
+	
+	LabGameMode->AdvancePotionRequest();
 	ActiveResultWidget = ResultWidget;
-
-	// 결과 버튼들 바인딩
-	ResultWidget->OnConfirmRequested.AddUniqueDynamic(this, &ACPLabNPC::HandleResultAccepted);
-	ResultWidget->OnContinueRequested.AddUniqueDynamic(this, &ACPLabNPC::HandleResultAccepted);
-	ResultWidget->OnRetryRequested.AddUniqueDynamic(this, &ACPLabNPC::HandleResultRetryRequested);
+	
+	// NPC 반응 추가 시 삭제
+	Destroy();
 }
 
 //넘어가기 버튼 클릭 시 (퀘스트 완료 처리 및 NPC 사라짐)

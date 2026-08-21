@@ -32,10 +32,6 @@ void UCPLabIngredientInfoWidget::SetObservedIngredient(ACPAlchemyProp* InIngredi
 		if (IsValid(InIngredientProp))
 		{
 			ObservedIngredientProp = InIngredientProp;
-			// 같은 위젯이 재구성돼도 동일한 델리게이트가 중복 등록되지 않게 AddUnique를 사용한다.
-			InIngredientProp->OnAlchemyPropChanged.AddUniqueDynamic(
-				this,
-				&UCPLabIngredientInfoWidget::HandleObservedIngredientChanged);
 		}
 	}
 	RefreshObservedIngredient();
@@ -84,13 +80,6 @@ void UCPLabIngredientInfoWidget::RefreshObservedIngredient()
 
 void UCPLabIngredientInfoWidget::UnbindObservedIngredient()
 {
-	if (ACPAlchemyProp* IngredientProp = ObservedIngredientProp.Get(); IsValid(IngredientProp))
-	{
-		IngredientProp->OnAlchemyPropChanged.RemoveDynamic(
-			this,
-			&UCPLabIngredientInfoWidget::HandleObservedIngredientChanged);
-	}
-
 	ObservedIngredientProp.Reset();
 }
 

@@ -26,6 +26,14 @@ protected:
 	UFUNCTION()
 	void HandleCancelButtonClicked();
 	
+	// 임시 QuestID 탐색 함수
+	bool FirstAcceptedQuestId();
+
+public:
+	// NPC 호출 시 사용할 QuestId;
+	UPROPERTY(BlueprintReadWrite, Category = "Quest")
+	FName SelectedQuestId;
+	
 protected:
 	// --- 버튼 바인딩 ---
 	UPROPERTY(meta = (BindWidget))

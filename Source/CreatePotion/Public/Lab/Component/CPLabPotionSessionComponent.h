@@ -9,6 +9,7 @@ class UCPForageableItemData;
 class ACPAlchemyProp;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FCPOnLabSessionChanged);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FCPOnLabHeldAlchemyPropChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FCPOnLabPotionResultChanged, const TArray<FGameplayTag>&, EffectTotals);
 
 // 포션 세션과 공방 슬롯 상태를 한곳에서 관리
@@ -66,6 +67,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Lab|Session")
 	FCPOnLabSessionChanged OnSessionChanged;
 	
+	// 손에 들고 있는 재료 Prop이 바뀌었음을 알림
+	UPROPERTY(BlueprintAssignable, Category = "Lab|Carry")
+	FCPOnLabHeldAlchemyPropChanged OnHeldAlchemyPropChanged;
+	
 	// 현재 포션 결과값이 바뀌었음을 Blueprint에 알림
 	UPROPERTY(BlueprintAssignable, Category = "Lab|Session")
 	FCPOnLabPotionResultChanged OnPotionResultChanged;
@@ -83,4 +88,9 @@ private:
 	
 	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Result")
 	TArray<FGameplayTag> CurrentPotionResult;
+	
+public:
+	// 현재 들고 있는 연금술 재료를 투척할 수 있는지 확인
+	UFUNCTION(BlueprintPure, Category = "Lab|Carry")
+	bool CanThrowHeldAlchemyProp() const;
 };
