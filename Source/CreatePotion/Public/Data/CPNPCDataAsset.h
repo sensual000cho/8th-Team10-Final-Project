@@ -23,6 +23,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Capsule")
 	float CapsuleRadiusRatio = 0.3f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Mesh")
+	FVector MeshScale = FVector(1.0f, 1.0f, 1.0f);
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
 	TMap<ECPNPCSituation, FCPNPCSituationData> SituationData;
 

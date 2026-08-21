@@ -8,6 +8,8 @@
 UENUM(BlueprintType)
 enum class ECPLabPotionRequestPhase : uint8
 {
+	// 리퀘스트를 선택한 상태
+	Selected,
 	// 재료를 가공하는 상태
 	Processing,
 	// 포션 제조가 끝나 납품할 수 있는 상태

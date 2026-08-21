@@ -20,7 +20,10 @@ void UCPUIManagerSubsystem::CloseWidget(UUserWidget* Widget)
 	
 	if (Index != INDEX_NONE)
 	{
-		OpenWidgets[Index].Widget->RemoveFromParent();
+		if (OpenWidgets[Index].Widget.IsValid())
+		{
+			OpenWidgets[Index].Widget->RemoveFromParent();
+		}
 		OpenWidgets.RemoveAt(Index);
 		UpdateInputMode();
 	}
@@ -51,12 +54,12 @@ UUserWidget* UCPUIManagerSubsystem::ToggleWidget(TSubclassOf<UUserWidget> Widget
 	
 	int32 FoundIndex = OpenWidgets.IndexOfByPredicate([WidgetClass](const FPopupEntry& Entry)
 	{
-		return Entry.Widget && Entry.Widget->GetClass() == WidgetClass;
+		return Entry.Widget.Get() && Entry.Widget->GetClass() == WidgetClass;
 	});
 	
 	if (FoundIndex != INDEX_NONE)
 	{
-		UUserWidget* TargetWidget = OpenWidgets[FoundIndex].Widget;
+		UUserWidget* TargetWidget = OpenWidgets[FoundIndex].Widget.Get();
 		CloseWidget(TargetWidget);
 		return nullptr;
 	}
@@ -77,9 +80,9 @@ UUserWidget* UCPUIManagerSubsystem::FindOpenWidget(TSubclassOf<UUserWidget> Widg
 	
 	for (FPopupEntry PopupEntry : OpenWidgets)
 	{
-		if (PopupEntry.Widget && PopupEntry.Widget->IsA(WidgetClass))
+		if (PopupEntry.Widget.Get() && PopupEntry.Widget->IsA(WidgetClass))
 		{
-			return PopupEntry.Widget;
+			return PopupEntry.Widget.Get();
 		}
 	}
 	return nullptr;
@@ -88,7 +91,7 @@ UUserWidget* UCPUIManagerSubsystem::FindOpenWidget(TSubclassOf<UUserWidget> Widg
 void UCPUIManagerSubsystem::CloseTopWidget()
 {
 	if (OpenWidgets.Num() == 0) return;
-	CloseWidget(OpenWidgets.Last().Widget);
+	CloseWidget(OpenWidgets.Last().Widget.Get());
 }
 
 void UCPUIManagerSubsystem::UpdateInputMode()
@@ -106,7 +109,7 @@ void UCPUIManagerSubsystem::UpdateInputMode()
 	}
 	
 	const FPopupEntry& TopEntry = OpenWidgets.Last();
-	UUserWidget* TopWidget = TopEntry.Widget;
+	UUserWidget* TopWidget = TopEntry.Widget.Get();
 	ECPInputMode CurrentMode = TopEntry.InputMode;
 	
 	switch (CurrentMode)

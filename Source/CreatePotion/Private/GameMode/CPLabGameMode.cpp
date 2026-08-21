@@ -40,6 +40,10 @@ bool ACPLabGameMode::AdvancePotionRequest()
 	FCPLabPotionRequestState ActiveRequestState;
 	if (!Session->GetActiveRequestState(ActiveRequestState)) return false;
 	
+	if (ActiveRequestState.Phase == ECPLabPotionRequestPhase::Selected){
+		return Session->SetRequestPhase(ECPLabPotionRequestPhase::Processing);
+	}
+	
 	if (ActiveRequestState.Phase == ECPLabPotionRequestPhase::Processing){
 		return Session->SetRequestPhase(ECPLabPotionRequestPhase::PotionReady);
 	}
@@ -63,22 +67,31 @@ bool ACPLabGameMode::RefinePotion(const TArray<FGameplayTag>& EffectTags, const 
 		return A.ToString() < B.ToString();
 	});
 	
-	return SpawnPotion(SortedEffectTags, SpawnTransform);
-	//return AdvancePotionRequest();
+	if (!SpawnPotion(SortedEffectTags, SpawnTransform)) return false;
+	
+	return AdvancePotionRequest();
 }
 
-FCPPotionDeliveryResult ACPLabGameMode::GetPotionDeliveryResult(FName QuestId, const ACPAlchemyProp* PotionProp) const
+FCPPotionDeliveryResult ACPLabGameMode::GetPotionDeliveryResult(FName QuestId, const ACPAlchemyProp* PotionProp)
 {
-	FCPPotionDeliveryResult Result;
-	Result.QuestId = QuestId;
+	if (PotionDeliveryResult.QuestId == QuestId) return PotionDeliveryResult;
 	
-	if (!IsValid(PotionProp)) return Result;
+	PotionDeliveryResult = FCPPotionDeliveryResult{};
+	PotionDeliveryResult.QuestId = QuestId;
+	
+	if (QuestId.IsNone() || !IsValid(PotionProp)) return PotionDeliveryResult;
 	
 	const FCPLabIngredientInstance PotionIngredient = PotionProp->GetWorkingIngredient();
-	Result.CurrentEffects = PotionIngredient.CurrentEffects;
+	PotionDeliveryResult.CurrentEffects = PotionIngredient.CurrentEffects;
 	
-	// TODO: Quest 계산 로직 확정 후 수정
-	return Result;
+	UQuestManager* QuestManager = GetGameInstance() ? GetGameInstance()->GetSubsystem<UQuestManager>() : nullptr;
+	if (!QuestManager) return PotionDeliveryResult;
+	
+	PotionDeliveryResult.DeliveryGrade = QuestManager->TryDeliver(QuestId, PotionDeliveryResult.CurrentEffects);
+	PotionDeliveryResult.RewardAmount = QuestManager->GetRewardGold(QuestId);
+	PotionDeliveryResult.TipAmount = 0;
+	
+	return PotionDeliveryResult;
 }
 
 ACPLabGameState* ACPLabGameMode::GetLabGameState() const

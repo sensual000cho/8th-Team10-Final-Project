@@ -25,9 +25,9 @@ ACPNPCSpawner::ACPNPCSpawner()
 //     }
 // }
 
-void ACPNPCSpawner::SpawnNPC(FName QuestID)
+bool ACPNPCSpawner::SpawnNPC(FName QuestID)
 {
-	if (!NPCClass || QuestID.IsNone()) return;
+	if (!NPCClass || QuestID.IsNone()) return false;
 
 	UGameInstance* GameInstance = GetGameInstance();
 	UQuestManager* QuestManager = GameInstance ? GameInstance->GetSubsystem<UQuestManager>() : nullptr;
@@ -35,7 +35,7 @@ void ACPNPCSpawner::SpawnNPC(FName QuestID)
 	if (QuestManager && QuestManager->GetQuestState(QuestID) != EQuestState::Accepted)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[CPNPCSpawner] 수락되지 않은 퀘스트라 스폰을 취소합니다: %s"), *QuestID.ToString());
-		return;
+		return false;
 	}
 
 	const FNPCSpawnConfig* FoundConfig = nullptr;
@@ -48,7 +48,7 @@ void ACPNPCSpawner::SpawnNPC(FName QuestID)
 		}
 	}
 
-	if (!FoundConfig || !FoundConfig->NPCData) return;
+	if (!FoundConfig || !FoundConfig->NPCData) return false;
 
 	{
 		TArray<FCPLabPotionRequest> PotionRequests;
@@ -70,4 +70,5 @@ void ACPNPCSpawner::SpawnNPC(FName QuestID)
 	}
 
 	// TODO : Lab게임 모드 쪽에 PotionRequests 전달
+	return true;
 }
