@@ -39,7 +39,12 @@ bool ACPPotionImpactDummySource::PrepareDebugPotionImpact(APawn* InInstigator)
 
 bool ACPPotionImpactDummySource::TryTriggerDebugPotionImpactAtLocation(FVector ImpactPoint, FVector ImpactNormal)
 {
-	const bool bTriggered = PotionImpactComponent->TryTriggerPotionImpactAtLocation(ImpactPoint, ImpactNormal);
+	FHitResult SyntheticHitResult;
+	SyntheticHitResult.ImpactPoint = ImpactPoint;
+	SyntheticHitResult.Location = ImpactPoint;
+	SyntheticHitResult.ImpactNormal = ImpactNormal;
+	SyntheticHitResult.Normal = ImpactNormal;
+	const bool bTriggered = PotionImpactComponent->TryTriggerPotionImpact(SyntheticHitResult);
 
 	if (bTriggered)
 	{

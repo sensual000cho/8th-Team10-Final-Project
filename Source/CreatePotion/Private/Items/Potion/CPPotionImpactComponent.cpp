@@ -17,6 +17,16 @@ UCPPotionImpactComponent::UCPPotionImpactComponent()
 	EffectObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_PhysicsBody));
 }
 
+void UCPPotionImpactComponent::SetPotionEffectTags(const TArray<FGameplayTag>& InEffectTags)
+{
+	if (bImpactTriggered)
+	{
+		return;
+	}
+
+	PotionEffectTags = InEffectTags;
+}
+
 bool UCPPotionImpactComponent::EnableImpactProcessing(APawn* InInstigator)
 {
 	if (bImpactTriggered || !IsValid(InInstigator) || !IsValid(GetOwner()) || !GetOwner()->HasAuthority())
@@ -28,16 +38,6 @@ bool UCPPotionImpactComponent::EnableImpactProcessing(APawn* InInstigator)
 	bImpactProcessingEnabled = true;
 
 	return true;
-}
-
-void UCPPotionImpactComponent::SetPotionEffectTags(const TArray<FGameplayTag>& InEffectTags)
-{
-	if (bImpactTriggered)
-	{
-		return;
-	}
-
-	PotionEffectTags = InEffectTags;
 }
 
 void UCPPotionImpactComponent::DisableImpactProcessing()
@@ -58,24 +58,6 @@ bool UCPPotionImpactComponent::TryTriggerPotionImpact(const FHitResult& HitResul
 
 	NormalizedHitResult.Normal = NormalizedHitResult.ImpactNormal;
 	return TryCommitPotionImpact(NormalizedHitResult);
-}
-
-bool UCPPotionImpactComponent::TryTriggerPotionImpactAtLocation(FVector ImpactPoint, FVector ImpactNormal)
-{
-	ImpactNormal = ImpactNormal.GetSafeNormal();
-
-	if (ImpactNormal.IsNearlyZero())
-	{
-		ImpactNormal = FVector::UpVector;
-	}
-
-	FHitResult SyntheticHitResult;
-	SyntheticHitResult.ImpactPoint = ImpactPoint;
-	SyntheticHitResult.Location = ImpactPoint;
-	SyntheticHitResult.ImpactNormal = ImpactNormal;
-	SyntheticHitResult.Normal = ImpactNormal;
-
-	return TryCommitPotionImpact(SyntheticHitResult);
 }
 
 bool UCPPotionImpactComponent::TryCommitPotionImpact(const FHitResult& HitResult)
@@ -202,10 +184,12 @@ UAbilitySystemComponent* UCPPotionImpactComponent::ResolveSourceAbilitySystem() 
 
 void UCPPotionImpactComponent::AddDispatchResult(AActor* TargetActor, FGameplayTag EffectTag, ECPPotionEffectDispatchResult Result)
 {
-	FCPPotionEffectDispatchResult& DispatchResult = LastDispatchResults.AddDefaulted_GetRef();
+	FCPPotionEffectDispatchResult DispatchResult;
 	DispatchResult.TargetActor = TargetActor;
 	DispatchResult.EffectTag = EffectTag;
 	DispatchResult.Result = Result;
+
+	LastDispatchResults.Add(DispatchResult);
 }
 
 bool UCPPotionImpactComponent::IsImpactProcessingEnabled() const
