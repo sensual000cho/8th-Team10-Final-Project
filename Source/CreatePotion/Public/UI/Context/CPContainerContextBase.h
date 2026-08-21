@@ -1,0 +1,34 @@
+﻿// CPContainerContextBase.h
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+#include "CPContainerContextBase.generated.h"
+
+class UCPGridSlotWidgetBase;
+class ACPPlayerController;
+
+UCLASS()
+class CREATEPOTION_API UCPContainerContextBase : public UObject
+{
+	GENERATED_BODY()
+	
+public:
+	// TODO : 마우스 오버레이 시 기능( 아이템 설명 UI 출력 등 )
+
+	virtual bool HandleLeftClickOnly(UCPGridSlotWidgetBase* ClickedSlot);
+	virtual bool HandleLeftDoubleClick(UCPGridSlotWidgetBase* ClickedSlot);
+	virtual bool HandleCtrlLeftClick(UCPGridSlotWidgetBase* ClickedSlot) { return false; }
+	virtual bool HandleShiftLeftClick(UCPGridSlotWidgetBase* ClickedSlot) { return false; }
+	virtual bool HandleAltLeftClick(UCPGridSlotWidgetBase* ClickedSlot) { return false; }
+
+	virtual bool HandleRightClickOnly(UCPGridSlotWidgetBase* ClickedSlot) { return false; }
+	virtual bool HandleCtrlRightClick(UCPGridSlotWidgetBase* ClickedSlot) { return false; }
+	virtual bool HandleShiftRightClick(UCPGridSlotWidgetBase* ClickedSlot) { return false; }
+	virtual bool HandleAltRightClick(UCPGridSlotWidgetBase* ClickedSlot) { return false; }
+
+protected:
+	bool IsUsingInventoryOnly(ACPPlayerController* PC) const;
+	bool IsSlotFromInventory(UCPGridSlotWidgetBase* ClickedSlot, ACPPlayerController* PC) const;
+};
