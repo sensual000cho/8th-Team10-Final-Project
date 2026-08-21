@@ -14,13 +14,17 @@ ACPNPCSpawner::ACPNPCSpawner()
 bool ACPNPCSpawner::SpawnNPC(FName QuestID)
 {
 	if (!NPCClass || QuestID.IsNone()) return false;
+	if (ActiveQuestNPCs.Contains(QuestID) && IsValid(ActiveQuestNPCs[QuestID]))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[CPNPCSpawner] 이미 스폰되었습니다 %s"), *QuestID.ToString());
+		return false; 
+	}
 
 	UGameInstance* GameInstance = GetGameInstance();
 	UQuestManager* QuestManager = GameInstance ? GameInstance->GetSubsystem<UQuestManager>() : nullptr;
 
 	if (QuestManager && QuestManager->GetQuestState(QuestID) != EQuestState::Accepted)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[CPNPCSpawner] 수락되지 않은 퀘스트라 스폰을 취소합니다: %s"), *QuestID.ToString());
 		return false;
 	}
 
@@ -43,15 +47,8 @@ bool ACPNPCSpawner::SpawnNPC(FName QuestID)
 	{
 		SpawnedNPC->NPCData = FoundConfig->NPCData;
 		UGameplayStatics::FinishSpawningActor(SpawnedNPC, FinalTransform);
+		ActiveQuestNPCs.Add(QuestID, SpawnedNPC);
 	}
 
-	if (UWorld* World = GetWorld())
-	{
-		if (ACPLabGameMode* LabGameMode = World->GetAuthGameMode<ACPLabGameMode>())
-		{
-			LabGameMode->StartPotionRequest(QuestID);
-		}
-	}
-	
 	return true;
 }

@@ -43,4 +43,9 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "NPC")
 	FTransform DefaultSpawnTransform;
+
+protected:
+	UPROPERTY()
+	TMap<FName, ACPBaseNPC*> ActiveQuestNPCs;
+
 };
