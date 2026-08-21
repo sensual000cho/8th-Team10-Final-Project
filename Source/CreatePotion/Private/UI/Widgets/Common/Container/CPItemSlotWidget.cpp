@@ -92,6 +92,7 @@ void UCPItemSlotWidget::ClearSlot()
 	}
 }
 
+/*
 FReply UCPItemSlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
 	ACPPlayerController* PC = Cast<ACPPlayerController>(GetOwningPlayer());
@@ -147,6 +148,7 @@ FReply UCPItemSlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, c
 	// 마우스 클릭 이벤트가 마무리 되며 뒤 UI는 클릭 이벤트가 실행되지 않음
 	return bHandled ? FReply::Handled() : Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
+*/
 
 void UCPItemSlotWidget::ExecuteLeftClickOnce()
 {
