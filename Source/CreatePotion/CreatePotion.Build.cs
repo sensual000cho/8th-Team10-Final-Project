@@ -17,7 +17,8 @@ public class CreatePotion : ModuleRules
 			"UMG",
             "GameplayTags",
             "GameplayAbilities",
-            "GameplayTasks"
+            "GameplayTasks",
+            "DeveloperSettings",
         });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });

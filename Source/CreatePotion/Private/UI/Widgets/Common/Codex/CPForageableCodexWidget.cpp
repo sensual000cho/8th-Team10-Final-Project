@@ -6,40 +6,38 @@
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "Data/CPForageableItemData.h"
+#include "GameInstance/Subsystem/CPCodexSubsystem.h"
 #include "Internationalization/StringTable.h"
 
 UCPForageableCodexWidget::UCPForageableCodexWidget(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, CodexStringTableId(TEXT("ST_ForageableCodex"))
 	, CurrentEntryIndex(0)
-	, CurrentTextIndex(0)
 {
 }
 
 void UCPForageableCodexWidget::ShowPreviousEntry()
 {
+	if (!CodexSubsystem) return;
+	
+	const TArray<FCPForageableCodexEntry> Entries = CodexSubsystem->GetForageableCodexEntries();
 	if (Entries.Num() <= 0) return;
 	
 	CurrentEntryIndex--;
 	if (CurrentEntryIndex < 0) CurrentEntryIndex += Entries.Num();
-	CurrentTextIndex = 0;
 	
 	RefreshCodex();
 }
 
 void UCPForageableCodexWidget::ShowNextEntry()
 {
+	if (!CodexSubsystem) return;
+	
+	const TArray<FCPForageableCodexEntry> Entries = CodexSubsystem->GetForageableCodexEntries();
 	if (Entries.Num() <= 0) return;
 	
 	CurrentEntryIndex = (CurrentEntryIndex+1) % Entries.Num();
-	CurrentTextIndex = 0;
 	
-	RefreshCodex();
-}
-
-void UCPForageableCodexWidget::SetTextIndex(int32 Index)
-{
-	CurrentTextIndex = Index;
 	RefreshCodex();
 }
 
@@ -47,13 +45,30 @@ void UCPForageableCodexWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	
+	CodexSubsystem = GetGameInstance() ? GetGameInstance()->GetSubsystem<UCPCodexSubsystem>() : nullptr;
+	if (CodexSubsystem){
+		CodexSubsystem->OnForageableCodexUpdated.AddDynamic(this, &UCPForageableCodexWidget::RefreshCodex);	
+	}
+	
 	RefreshCodex();
+}
+
+void UCPForageableCodexWidget::NativeDestruct()
+{
+	if (CodexSubsystem){
+		CodexSubsystem->OnForageableCodexUpdated.RemoveDynamic(this, &UCPForageableCodexWidget::RefreshCodex);
+	}
+	
+	Super::NativeDestruct();
 }
 
 void UCPForageableCodexWidget::RefreshCodex()
 {
+	const TArray<FCPForageableCodexEntry> CodexEntries = 
+		CodexSubsystem ? CodexSubsystem->GetForageableCodexEntries() : TArray<FCPForageableCodexEntry>();
+	
 	// 해당 번호의 Index가 유효하지 않은 경우
-	if (!Entries.IsValidIndex(CurrentEntryIndex)){
+	if (!CodexEntries.IsValidIndex(CurrentEntryIndex)){
 		if (CodexImage){
 			CodexImage->SetBrushFromTexture(nullptr);
 		}
@@ -65,10 +80,15 @@ void UCPForageableCodexWidget::RefreshCodex()
 		if (DescriptionText){
 			DescriptionText->SetText(FText::GetEmpty());
 		}
+		
+		if (TagText){
+			TagText->SetText(FText::GetEmpty());
+		}
 		return;
 	}
 	
-	const UCPForageableItemData* CurrentEntry = Entries[CurrentEntryIndex];
+	const FCPForageableCodexEntry& CurrentCodexEntry = CodexEntries[CurrentEntryIndex];
+	const UCPForageableItemData* CurrentEntry = CurrentCodexEntry.Entry;
 	if (!CurrentEntry) return;
 	
 	if (CodexImage){
@@ -87,18 +107,13 @@ void UCPForageableCodexWidget::RefreshCodex()
 		const FName CodexKeyPrefix = CurrentEntry->CodexTextKeys[0];
 
 		const FString TextKeyString = FString::Printf(
-			TEXT("%s.%02d"),
-			*CodexKeyPrefix.ToString(),
-			CurrentTextIndex + 1
-		);
+			TEXT("%s.%02d"), *CodexKeyPrefix.ToString(), CurrentCodexEntry.Level);
 		
-		const FName TableId = CodexStringTable
-		? CodexStringTable->GetStringTableId()
-		: CodexStringTableId;
+		const FName TableId = CodexStringTable ? CodexStringTable->GetStringTableId() : CodexStringTableId;
 		
 		DescriptionText->SetText(FText::FromStringTable(TableId, TextKeyString));
 	}
-	else	{
+	else {
 		DescriptionText->SetText(FText::GetEmpty());
 	}
 }
