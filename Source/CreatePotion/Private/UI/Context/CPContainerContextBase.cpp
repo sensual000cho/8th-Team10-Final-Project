@@ -30,14 +30,14 @@ bool UCPContainerContextBase::HandleLeftClickOnly(UCPGridSlotWidgetBase* Clicked
 
         // 아이템 집기 처리
         PC->LeftClickPickedContainer = ClickedSlot->OwnerContainer;
-        PC->LeftClickPickedSlotIndex = ClickedSlot->GridIndex;
+        PC->LeftClickPickedSlotIndex = ClickedSlot->SlotGridIndex;
         // TODO[Container] : 커서에 아이콘을 붙이는 드래그 비주얼 구현
         return true;
     }
     else // 무언가 들고 있었으면
     {
         // 기존 아이템과 스왑 또는 배치하는 함수
-        PC->LeftClickPickedContainer->MoveOrSwapItem(PC->LeftClickPickedSlotIndex, ClickedSlot->OwnerContainer, ClickedSlot->GridIndex);
+        PC->LeftClickPickedContainer->MoveOrSwapItem(PC->LeftClickPickedSlotIndex, ClickedSlot->OwnerContainer, ClickedSlot->SlotGridIndex);
 
         // 다 내려놓았으니 PC의 상태를 초기화
         PC->ResetHoldingItem();
