@@ -11,6 +11,7 @@
 #include "UI/Widgets/Common/Container/CPContainerMainWidget.h"
 #include "UI/Widgets/Common/Container/CPContainerGridWidget.h"
 #include "Components/CPItemContainerComponent.h"
+#include "Components/CPHandItemContainerComponent.h"
 #include "Components/CPInventoryComponent.h"
 #include "UI/Context/CPContextInventoryOnly.h"
 
@@ -18,7 +19,7 @@ void ACPPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	SetContextHandlerForTargetContext(EUITargetContext::InventoryOnly);
+	SetContextHandlerForTargetContext(EUITargetContext::Inventory);
 }
 
 void ACPPlayerController::SetupInputComponent()
@@ -48,16 +49,23 @@ void ACPPlayerController::SetPawn(APawn* InPawn)
 	{
 		// 폰에 성공적으로 빙의되었을 때, 딱 한 번만 찾아서 캐싱
 		CachedInventoryComponent = InPawn->FindComponentByClass<UCPInventoryComponent>();
+		LeftClickPickedContainer = InPawn->FindComponentByClass<UCPHandItemContainerComponent>();
 
 		if (CachedInventoryComponent)
 		{
 			UE_LOG(LogContainer, Log, TEXT("인벤토리 컴포넌트 캐싱 완료"));
+		}
+
+		if (LeftClickPickedContainer)
+		{
+			UE_LOG(LogContainer, Log, TEXT("아이템 집기 컴포넌트 캐싱 완료"));
 		}
 	}
 	else
 	{
 		// 캐릭터가 사망하거나 빙의가 해제되면 nullptr로 안전하게 초기화
 		CachedInventoryComponent = nullptr;
+		LeftClickPickedContainer = nullptr;
 	}
 }
 
@@ -73,7 +81,7 @@ void ACPPlayerController::SetContextHandlerForTargetContext(EUITargetContext InT
 {
 	switch (InTargetContext)
 	{
-	case EUITargetContext::InventoryOnly:
+	case EUITargetContext::Inventory:
 		CurrentContextHandler = NewObject<UCPContextInventoryOnly>(this);
 		break;
 	case EUITargetContext::Lab:
@@ -140,8 +148,8 @@ void ACPPlayerController::CloseExternalContainerUI()
 	bShowMouseCursor = false;
 	SetInputMode(FInputModeGameOnly());
 
-	// 컨테이너를 닫은 뒤에는 InventoryOnly로 변경
-	SetContextHandlerForTargetContext(EUITargetContext::InventoryOnly);
+	// 컨테이너를 닫은 뒤에는 Inventory로 변경
+	SetContextHandlerForTargetContext(EUITargetContext::Inventory);
 }
 
 void ACPPlayerController::ToggleExternalContainerUI(UCPItemContainerComponent* InTargetContainer)
@@ -158,12 +166,16 @@ void ACPPlayerController::ToggleExternalContainerUI(UCPItemContainerComponent* I
 
 bool ACPPlayerController::IsHoldingItem() const
 {
-	return (CurrentHoldingItemData.ItemDataAsset != nullptr);
+	return LeftClickPickedContainer && LeftClickPickedContainer->ContainerItems.Num() > 0;;
 }
 
 void ACPPlayerController::ResetHoldingItem()
 {
-	CurrentHoldingItemData = FContainerItem();		// 구조체 초기화
+	if (LeftClickPickedContainer)
+	{
+		LeftClickPickedContainer->ContainerItems.Empty();
+		LeftClickPickedContainer->OnContainerUpdated.Broadcast();
+	}
 	LeftClickPickedItemOriginContainer = nullptr;
 	LeftClickPickedOriginSlotIndex = -1;
 }

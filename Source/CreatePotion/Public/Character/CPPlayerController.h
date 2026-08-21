@@ -11,6 +11,7 @@
 class UInputAction;
 class UInputMappingContext;
 class UCPItemContainerComponent;
+class UCPHandItemContainerComponent;
 class UCPInventoryComponent;
 class UCPContainerMainWidget;
 class UCPContainerContextBase;
@@ -19,6 +20,9 @@ UCLASS()
 class CREATEPOTION_API ACPPlayerController : public APlayerController
 {
 	GENERATED_BODY()
+
+public:
+	friend class UCPContainerContextBase;	// private 멤버 변수에 접근할 수 있도록
 
 protected:
 
@@ -73,9 +77,6 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "Container|Drag")
 	UCPItemContainerComponent* LeftClickPickedContainer = nullptr;
 
-	UPROPERTY(BlueprintReadWrite, Category = "Container|Drag")
-	FContainerItem CurrentHoldingItemData;
-
 	// Context를 처리할 Handler
 	UPROPERTY()
 	UCPContainerContextBase* CurrentContextHandler;
@@ -90,7 +91,7 @@ protected:
 	UCPContainerMainWidget* CurrentContainerUIInstance;
 
 private:
-	// 마우스 클릭으로 "현재 들고 있는 아이템"의 기존 Container
+	// 마우스 클릭으로 "현재 들고 있는 아이템"을 우클릭 등으로 취소할 경우 되돌아갈 기존 Container
 	UPROPERTY()
 	UCPItemContainerComponent* LeftClickPickedItemOriginContainer = nullptr;
 
