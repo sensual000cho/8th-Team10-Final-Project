@@ -13,6 +13,10 @@
 
 void UCPNPCDialogueWidget::InitDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const FText& InDialogueText, ACPLabNPC* InSourceLabNPC)
 {
+    // [신규] 이전 대화의 상태가 남아있지 않도록 초기화
+    DialogueLines.Empty();
+    CurrentLineIndex = 0;
+
     CurrentQuestID = InQuestID;
     bCurrentIsWorkshopQuest = bIsWorkshopQuest;
     SourceLabNPC = InSourceLabNPC;
@@ -52,6 +56,11 @@ void UCPNPCDialogueWidget::InitDialogue(bool bIsWorkshopQuest, FName InQuestID, 
 
 void UCPNPCDialogueWidget::InitResultDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const FText& InDialogueText, ACPLabNPC* InSourceLabNPC)
 {
+
+    // [신규] 이전 대화의 여러 줄 상태가 남아있지 않도록 초기화
+    DialogueLines.Empty();
+    CurrentLineIndex = 0;
+
     CurrentQuestID = InQuestID;
     bCurrentIsWorkshopQuest = bIsWorkshopQuest;
     SourceLabNPC = InSourceLabNPC;
@@ -62,6 +71,35 @@ void UCPNPCDialogueWidget::InitResultDialogue(bool bIsWorkshopQuest, FName InQue
     }
 
     PlayTypewriterEffect(InDialogueText);
+}
+
+// [신규] 여러 줄 대사(TArray<FText>)를 받는 오버로드.
+// DialogueLines에 배열을 저장하고, 0번째 줄부터 재생 시작.
+void UCPNPCDialogueWidget::InitDialogueLines(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const TArray<FText>& InDialogueLines, ACPLabNPC* InSourceLabNPC)
+{
+    CurrentQuestID = InQuestID;
+    bCurrentIsWorkshopQuest = bIsWorkshopQuest;
+    SourceLabNPC = InSourceLabNPC;
+    bIsPotionResultDialogue = false;
+
+    DialogueLines = InDialogueLines;
+    CurrentLineIndex = 0;
+
+    if (Text_NPCName) {
+        Text_NPCName->SetText(InNPCName);
+    }
+
+    PlayCurrentLine();
+}
+
+// [신규] DialogueLines[CurrentLineIndex]를 꺼내 타자기 효과로 재생.
+// "다음" 버튼 클릭 시에도 이 함수가 다시 호출되어 다음 줄을 재생함.
+void UCPNPCDialogueWidget::PlayCurrentLine()
+{
+    if (DialogueLines.IsValidIndex(CurrentLineIndex))
+    {
+        PlayTypewriterEffect(DialogueLines[CurrentLineIndex]);
+    }
 }
 
 void UCPNPCDialogueWidget::BindEvents()
@@ -117,7 +155,17 @@ void UCPNPCDialogueWidget::OnTypewriterTick()
     else
     {
         GetWorld()->GetTimerManager().ClearTimer(TypewriterTimerHandle);
-        CreateChoiceButtons();
+
+        // [신규] 대사 중 다음 줄이 남아있으면 "다음" 버튼만 표시.
+        // 마지막 줄이거나 단일 텍스트 대화(DialogueLines 비어있음)면 기존 선택지 버튼 표시.
+        if (DialogueLines.Num() > 0 && CurrentLineIndex < DialogueLines.Num() - 1)
+        {
+            CreateContinueButton();
+        }
+        else
+        {
+            CreateChoiceButtons();
+        }
     }
 }
 
@@ -170,7 +218,33 @@ void UCPNPCDialogueWidget::CreateChoiceButtons()
         }
     }
 }
+
+// [신규] 여러 줄 대사 중간에 표시할 "다음" 버튼 하나만 생성.
+// 기존 DialogueButtonClass(다른 선택지 버튼과 동일한 클래스)를 재사용함.
+void UCPNPCDialogueWidget::CreateContinueButton()
+{
+    if (!HBox_ChoiceList || !DialogueButtonClass) { return; }
+
+    HBox_ChoiceList->ClearChildren();
+
+    UCPNPCDialogueButtonWidget* NewButton = CreateWidget<UCPNPCDialogueButtonWidget>(this, DialogueButtonClass);
+    if (NewButton) {
+        NewButton->SetButtonText(FText::FromString(TEXT("다음")));
+        NewButton->OnButtonClickedEvent.AddDynamic(this, &UCPNPCDialogueWidget::OnChoiceSelected);
+        HBox_ChoiceList->AddChild(NewButton);
+    }
+}
+
 void UCPNPCDialogueWidget::OnChoiceSelected(const FString& ButtonText) {
+    
+    // [신규] "다음" 버튼 - 다음 줄로 넘어가며 재생. 이 처리는 QuestManager 등이 필요 없어 가장 먼저 분기.
+    if (ButtonText == TEXT("다음"))
+    {
+        CurrentLineIndex++;
+        PlayCurrentLine();
+        return;
+    }
+
     UGameInstance* GI = GetGameInstance();
     if (!GI) { return; }
 
