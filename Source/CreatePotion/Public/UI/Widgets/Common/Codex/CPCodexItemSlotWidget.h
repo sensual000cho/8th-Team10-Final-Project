@@ -16,7 +16,7 @@ class CREATEPOTION_API UCPCodexItemSlotWidget : public UCPBaseUserWidget
 	GENERATED_BODY()
 	
 public:
-	UPROPERTY(BlueprintReadOnly, Category = "Item")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	TObjectPtr<UCPForageableItemData> ItemData;
 };
 
