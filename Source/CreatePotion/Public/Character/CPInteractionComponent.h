@@ -85,6 +85,10 @@ private:
 	// 진행도 갱신 주기
 	float InteractionUpdateInterval = 0.05f;
 
+private:
+	// GA Event를 전달할때 사용하는 헬퍼 함수
+	bool RequestPickupAbility(AActor* Target);
+
 #pragma region InputMappingContext
 public:
 	UPROPERTY(EditAnywhere, Category = "Interaction|IMC")
