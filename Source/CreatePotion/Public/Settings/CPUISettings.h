@@ -49,4 +49,16 @@ public:
 	// Inventory
 	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Inventory")
 	TSoftClassPtr<UUserWidget> InventoryMainWidgetClass;
+	
+	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Inventory")
+	TSoftClassPtr<UUserWidget> BlankGridSlotWidgetClass;
+	
+	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Inventory")
+    TSoftClassPtr<UUserWidget> ContainerGridWidgetClass;
+	
+	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Inventory")
+	TSoftClassPtr<UUserWidget> ItemSlotWidgetClass;
+	
+	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Inventory")
+	TSoftClassPtr<UUserWidget> LabSelectItemWidgetClass;
 };
