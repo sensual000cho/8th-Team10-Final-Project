@@ -158,12 +158,13 @@ void ACPPlayerController::ToggleExternalContainerUI(UCPItemContainerComponent* I
 
 bool ACPPlayerController::IsHoldingItem() const
 {
-	return (LeftClickPickedContainer != nullptr) && (LeftClickPickedSlotIndex != -1);
+	return (CurrentHoldingItemData.ItemDataAsset != nullptr);
 }
 
 void ACPPlayerController::ResetHoldingItem()
 {
-	LeftClickPickedContainer = nullptr;
-	LeftClickPickedSlotIndex = -1;
+	CurrentHoldingItemData = FContainerItem();		// 구조체 초기화
+	LeftClickPickedItemOriginContainer = nullptr;
+	LeftClickPickedOriginSlotIndex = -1;
 }
 #pragma endregion

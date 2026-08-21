@@ -73,9 +73,8 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "Container|Drag")
 	UCPItemContainerComponent* LeftClickPickedContainer = nullptr;
 
-	// 마우스 클릭으로 "현재 들고 있는 아이템"의 기존 Index
 	UPROPERTY(BlueprintReadWrite, Category = "Container|Drag")
-	int32 LeftClickPickedSlotIndex = -1;
+	FContainerItem CurrentHoldingItemData;
 
 	// Context를 처리할 Handler
 	UPROPERTY()
@@ -90,5 +89,12 @@ protected:
 	UPROPERTY()
 	UCPContainerMainWidget* CurrentContainerUIInstance;
 
+private:
+	// 마우스 클릭으로 "현재 들고 있는 아이템"의 기존 Container
+	UPROPERTY()
+	UCPItemContainerComponent* LeftClickPickedItemOriginContainer = nullptr;
+
+	// 마우스 클릭으로 "현재 들고 있는 아이템"의 기존 Index
+	int32 LeftClickPickedOriginSlotIndex = -1;
 #pragma endregion
 };
