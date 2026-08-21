@@ -29,10 +29,11 @@ bool UCPCodexSubsystem::RegisterForageableEntry(UCPForageableItemData* ItemData)
 		return AName < BName;
 	});
 	
+	OnForageableCodexUpdated.Broadcast();
 	return true;
 }
 
-bool UCPCodexSubsystem::IncreasedForageableLevel(UCPForageableItemData* ItemData)
+bool UCPCodexSubsystem::IncreaseForageableLevel(UCPForageableItemData* ItemData)
 {
 	if (!ItemData) return false;
 	
@@ -40,6 +41,7 @@ bool UCPCodexSubsystem::IncreasedForageableLevel(UCPForageableItemData* ItemData
 		if (CodexEntry.Entry == ItemData){
 			if (CodexEntry.Level >= 4) return false;
 			CodexEntry.Level++;
+			OnForageableCodexUpdated.Broadcast();
 			return true;
 		}
 	}

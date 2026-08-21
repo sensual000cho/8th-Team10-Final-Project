@@ -8,6 +8,8 @@
 
 class UCPForageableItemData;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnForageableCodexUpdated);
+
 USTRUCT(BlueprintType)
 struct FCPForageableCodexEntry
 {
@@ -37,7 +39,11 @@ public:
 	
 	// 등록된 채집물의 정보 레벨을 증가(~4)
 	UFUNCTION(BlueprintCallable, Category = "Codex|Forageable")
-	bool IncreasedForageableLevel(UCPForageableItemData* ItemData);
+	bool IncreaseForageableLevel(UCPForageableItemData* ItemData);
+	
+public:
+	UPROPERTY(BlueprintAssignable, Category = "Codex|Forageable")
+	FOnForageableCodexUpdated OnForageableCodexUpdated;
 
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Codex|Forageable")
