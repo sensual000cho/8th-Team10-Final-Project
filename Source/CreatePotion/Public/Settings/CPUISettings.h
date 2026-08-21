@@ -6,8 +6,13 @@
 #include "Engine/DeveloperSettings.h"
 #include "CPUISettings.generated.h"
 
-/**
- * 
+/*
+	사용법 관련
+	const UCPUISettings* UISettings = GetDefault<UCPUISettings>();
+	if (!UISettings) return;
+
+	TSubclassOf<UUserWidget> WidgetClass = UISettings->Class 이름.LoadSynchronous();
+	if(!Widget Class) Return;
  */
 UCLASS(Config=Game, DefaultConfig, meta=(DisplayName="CreatePotion UI Settings"))
 class CREATEPOTION_API UCPUISettings : public UDeveloperSettings
