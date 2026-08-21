@@ -24,18 +24,11 @@ void UCPLabIngredientSelectWidget::NativeConstruct()
 	AActor* LabActor = UGameplayStatics::GetActorOfClass(GetWorld(), ACPLabContainerActor::StaticClass());
 	UCPLabContainerComponent* SelectSlot = LabActor ? LabActor->FindComponentByClass<UCPLabContainerComponent>() : nullptr;
 
-	if (InventoryWidget && Inventory)
-	{
-		InventoryWidget->BindContainer(Inventory);
-		UE_LOG(LogTemp, Warning, TEXT("[재료 선택 위젯] 인벤토리 위젯 바인딩 성공"));
-	}
-	
-	// if (SelectSlotWidget && SelectSlot)
+	// if (InventoryWidget && Inventory)
 	// {
-	// 	SelectSlotWidget->BindContainer(SelectSlot);
-	// 	UE_LOG(LogTemp, Warning, TEXT("[재료 선택 위젯] 선택 슬롯 위젯 바인딩 성공"));
+	// 	InventoryWidget->BindContainer(Inventory);
+	// 	UE_LOG(LogTemp, Warning, TEXT("[재료 선택 위젯] 인벤토리 위젯 바인딩 성공"));
 	// }
-	
 	
 	// 디버그용 아이템 추가
 	AddTestItems();

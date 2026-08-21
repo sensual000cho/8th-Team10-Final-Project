@@ -13,7 +13,7 @@ void UCPLabCarriedIngredientWidget::NativeConstruct()
 
 	SetHeaderText(FText::FromString(TEXT("현재 운반중인 재료")));
 	SetVisibility(ESlateVisibility::HitTestInvisible);
-	RefreshHeldIngredient();
+	HandlePropChanged();
 }
 
 void UCPLabCarriedIngredientWidget::BindEvents()
@@ -28,9 +28,9 @@ void UCPLabCarriedIngredientWidget::BindEvents()
 			BoundPotionSession = LabGameState->GetPotionSession();
 			if (BoundPotionSession)
 			{
-				BoundPotionSession->OnSessionChanged.AddUniqueDynamic(
+				BoundPotionSession->OnHeldAlchemyPropChanged.AddUniqueDynamic(
 					this,
-					&UCPLabCarriedIngredientWidget::HandleSessionChanged);
+					&UCPLabCarriedIngredientWidget::HandlePropChanged);
 			}
 		}
 	}
@@ -67,41 +67,16 @@ void UCPLabCarriedIngredientWidget::UnbindEvents()
 
 	if (BoundPotionSession)
 	{
-		BoundPotionSession->OnSessionChanged.RemoveDynamic(
+		BoundPotionSession->OnHeldAlchemyPropChanged.RemoveDynamic(
 			this,
-			&UCPLabCarriedIngredientWidget::HandleSessionChanged);
+			&UCPLabCarriedIngredientWidget::HandlePropChanged);
 		BoundPotionSession = nullptr;
 	}
 
 	Super::UnbindEvents();
 }
 
-void UCPLabCarriedIngredientWidget::HandleSessionChanged()
-{
-	RefreshHeldIngredient();
-}
-
-void UCPLabCarriedIngredientWidget::HandleInteractionFocusChanged(FText Prompt, FName TargetName)
-{
-	(void)Prompt;
-	(void)TargetName;
-
-	AActor* TargetActor = BoundInteractionComponent.IsValid()
-		? BoundInteractionComponent->GetCurrentTarget()
-		: nullptr;
-
-	if (IsValid(TargetActor))
-	{
-		ClearPreviewEffects();
-	}
-}
-
-void UCPLabCarriedIngredientWidget::HandlePreviewIngredientChanged()
-{
-	ClearPreviewEffects();
-}
-
-void UCPLabCarriedIngredientWidget::RefreshHeldIngredient()
+void UCPLabCarriedIngredientWidget::HandlePropChanged()
 {
 	// 슬롯 호버 카드와 달리 운반 카드는 빈손이어도 "비어 있음" 상태로 계속 표시한다.
 	SetVisibility(ESlateVisibility::HitTestInvisible);
@@ -128,6 +103,26 @@ void UCPLabCarriedIngredientWidget::RefreshHeldIngredient()
 	ClearPreviewEffects();
 }
 
+void UCPLabCarriedIngredientWidget::HandleInteractionFocusChanged(FText Prompt, FName TargetName)
+{
+	(void)Prompt;
+	(void)TargetName;
+
+	AActor* TargetActor = BoundInteractionComponent.IsValid()
+		? BoundInteractionComponent->GetCurrentTarget()
+		: nullptr;
+
+	if (IsValid(TargetActor))
+	{
+		ClearPreviewEffects();
+	}
+}
+
+void UCPLabCarriedIngredientWidget::HandlePreviewIngredientChanged()
+{
+	ClearPreviewEffects();
+}
+
 void UCPLabCarriedIngredientWidget::BindPreviewIngredient(ACPAlchemyProp* IngredientProp)
 {
 	if (PreviewIngredient.Get() == IngredientProp) return;
@@ -136,19 +131,9 @@ void UCPLabCarriedIngredientWidget::BindPreviewIngredient(ACPAlchemyProp* Ingred
 	if (!IsValid(IngredientProp)) return;
 
 	PreviewIngredient = IngredientProp;
-	IngredientProp->OnAlchemyPropChanged.AddUniqueDynamic(
-		this,
-		&UCPLabCarriedIngredientWidget::HandlePreviewIngredientChanged);
 }
 
 void UCPLabCarriedIngredientWidget::UnbindPreviewIngredient()
 {
-	if (ACPAlchemyProp* IngredientProp = PreviewIngredient.Get())
-	{
-		IngredientProp->OnAlchemyPropChanged.RemoveDynamic(
-			this,
-			&UCPLabCarriedIngredientWidget::HandlePreviewIngredientChanged);
-	}
-
 	PreviewIngredient.Reset();
 }

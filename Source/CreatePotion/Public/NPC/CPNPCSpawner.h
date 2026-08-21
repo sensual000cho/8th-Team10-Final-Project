@@ -32,7 +32,7 @@ public:
 
 	// 선택한 퀘스트 ID에 해당하는 NPC 1명만 즉시 스폰
 	UFUNCTION(BlueprintCallable, Category = "NPC Spawner")
-	void SpawnNPC(FName QuestID);
+	bool SpawnNPC(FName QuestID);
 
 public:
 	UPROPERTY(EditAnywhere, Category = "NPC")
@@ -43,4 +43,9 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "NPC")
 	FTransform DefaultSpawnTransform;
+
+protected:
+	UPROPERTY()
+	TMap<FName, ACPBaseNPC*> ActiveQuestNPCs;
+
 };

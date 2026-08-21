@@ -12,6 +12,8 @@
 				"Engine",
 				"AIModule",
 				"UMG",
+				"GameplayAbilities",
+				"DeveloperSettings",
 				"CoreUObject"
 			]
 		}
@@ -50,6 +52,10 @@
 		},
 		{
 			"Name": "DrawDebugLibrary",
+			"Enabled": true
+		},
+		{
+			"Name": "GameplayAbilities",
 			"Enabled": true
 		}
 	]
