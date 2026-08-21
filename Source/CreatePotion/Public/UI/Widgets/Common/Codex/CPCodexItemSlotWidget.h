@@ -6,6 +6,7 @@
 #include "UI/Widgets/Base/CPBaseUserWidget.h"
 #include "CPCodexItemSlotWidget.generated.h"
 
+class UCPForageableItemData;
 /**
  * 
  */
@@ -13,4 +14,9 @@ UCLASS()
 class CREATEPOTION_API UCPCodexItemSlotWidget : public UCPBaseUserWidget
 {
 	GENERATED_BODY()
+	
+public:
+	UPROPERTY(BlueprintReadOnly, Category = "Item")
+	TObjectPtr<UCPForageableItemData> ItemData;
 };
+
