@@ -59,8 +59,8 @@ public:
 	bool RefinePotion(const TArray<FGameplayTag>& EffectTags, const FTransform& SpawnTransform);
 	
 	// 상호작용으로 전달된 Potion Prop의 결과를 납품 결과 구조로 변환
-	UFUNCTION(BlueprintPure, Category = "Lab|Result")
-	FCPPotionDeliveryResult GetPotionDeliveryResult(FName QuestId, const ACPAlchemyProp* PotionProp) const;
+	UFUNCTION(BlueprintCallable, Category = "Lab|Result")
+	FCPPotionDeliveryResult GetPotionDeliveryResult(FName QuestId, const ACPAlchemyProp* PotionProp);
 	
 private:
 	ACPLabGameState* GetLabGameState() const;
