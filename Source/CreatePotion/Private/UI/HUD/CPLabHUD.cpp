@@ -68,8 +68,11 @@ void ACPLabHUD::HandleTagRangeConfirmed()
 	
 	if (ACPPlayerController* PC = Cast<ACPPlayerController>(GetOwningPlayerController()))
 	{
-		PC->ToggleLabUI();
-		UE_LOG(LogTemp, Warning, TEXT("[LabHUD] 재료 선택 UI 열기 성공"));
+		if (PC->CurrentInteractingContainer)
+		{
+			PC->ToggleExternalContainerUI(PC->CurrentInteractingContainer);
+			UE_LOG(LogTemp, Warning, TEXT("[LabHUD] 재료 선택 UI 열기 성공"));
+		}
 	}
 	else
 	{
