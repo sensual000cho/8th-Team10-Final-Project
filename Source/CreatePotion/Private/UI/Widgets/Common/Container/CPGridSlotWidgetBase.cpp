@@ -23,6 +23,8 @@ FReply UCPGridSlotWidgetBase::NativeOnMouseButtonDown(const FGeometry& InGeometr
 		return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 	}
 
+	ClickedGridIndex = GetClickedSlotGridIndex(InGeometry, InMouseEvent);
+
 	ACPPlayerController* PC = Cast<ACPPlayerController>(GetOwningPlayer());
 	if (!PC || !PC->CurrentContextHandler)
 	{

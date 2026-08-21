@@ -22,6 +22,8 @@ protected:
 	// 자식 클래스에서도 private 타이머를 취소시키기 위한 함수
 	void CancelLeftClickCheckHandler();
 
+	virtual int32 GetClickedSlotGridIndex(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) const { return SlotGridIndex; }
+
 private:
 	// 실제 좌클
 	void ExecuteLeftClickOnce();
@@ -33,6 +35,10 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Container|Data")
 	int32 SlotGridIndex = -1;
+
+	// 아이템을 놓을 때 클릭한 Index
+	UPROPERTY(BlueprintReadOnly, Category = "Container|Data")
+	int32 ClickedGridIndex = -1;
 
 private:
 	// 임계 시간동안 더블 클릭을 체크할 타이머
