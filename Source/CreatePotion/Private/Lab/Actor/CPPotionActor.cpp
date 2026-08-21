@@ -84,6 +84,12 @@ void ACPPotionActor::HandleThrownImpact(AActor* OtherActor, const FHitResult& Hi
     {
         return;
     }
+    
+    // 플레이어 제외
+    if (IsValid(OtherActor) && OtherActor == GetLastThrower())
+    {
+        return;
+    }
 
     // 포션 컴포넌트에서 첫 Impact시 폭발로 넘어감
     if (!PotionImpactComponent->TryTriggerPotionImpact(HitResult))
