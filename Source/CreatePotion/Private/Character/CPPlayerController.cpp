@@ -10,10 +10,12 @@
 #include "CreatePotion.h"   // 로그용 헤더
 #include "UI/Widgets/Common/Container/CPContainerMainWidget.h"
 #include "UI/Widgets/Common/Container/CPContainerGridWidget.h"
+#include "UI/Widgets/Common/Container/CPHandHeldItemWidget.h"
 #include "Components/CPItemContainerComponent.h"
 #include "Components/CPHandItemContainerComponent.h"
 #include "Components/CPInventoryComponent.h"
 #include "UI/Context/CPContextInventoryOnly.h"
+
 
 void ACPPlayerController::BeginPlay()
 {
@@ -56,8 +58,15 @@ void ACPPlayerController::SetPawn(APawn* InPawn)
 			UE_LOG(LogContainer, Log, TEXT("인벤토리 컴포넌트 캐싱 완료"));
 		}
 
-		if (LeftClickPickedContainer)
+		if (LeftClickPickedContainer && HandHeldItemWidgetClass && !HandHeldItemWidgetInstance)
 		{
+			HandHeldItemWidgetInstance = CreateWidget<UCPHandHeldItemWidget>(this, HandHeldItemWidgetClass);
+			if (HandHeldItemWidgetInstance)
+			{
+				HandHeldItemWidgetInstance->AddToViewport(100); // 다른 UI보다 항상 위에 그려지도록
+				HandHeldItemWidgetInstance->TryBindHandContainer(LeftClickPickedContainer);
+			}
+
 			UE_LOG(LogContainer, Log, TEXT("아이템 집기 컴포넌트 캐싱 완료"));
 		}
 	}
