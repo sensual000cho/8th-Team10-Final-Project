@@ -18,7 +18,12 @@ UCPForageableCodexWidget::UCPForageableCodexWidget(const FObjectInitializer& Obj
 
 void UCPForageableCodexWidget::SetCodexEntry(const FCPForageableCodexEntry& InCodexEntry)
 {
-	CurrentCodexEntry = InCodexEntry;
+	SetForageableItem(InCodexEntry.Entry);
+}
+
+void UCPForageableCodexWidget::SetForageableItem(UCPForageableItemData* InItemData)
+{
+	CurrentItemData = InItemData;
 	RefreshCodex();
 }
 
@@ -46,21 +51,24 @@ void UCPForageableCodexWidget::NativeDestruct()
 
 	void UCPForageableCodexWidget::RefreshCodex()
 {
-	// 해당 번호의 Index가 유효하지 않은 경우
-	const UCPForageableItemData* CurrentEntry = CurrentCodexEntry.Entry;
-	if (!CurrentEntry) return;
+	if (!CurrentItemData || !CodexSubsystem) return;
+	
+	FCPForageableCodexEntry CurrentCodexEntry;
+	if (!CodexSubsystem->GetForageableEntry(CurrentItemData, &CurrentCodexEntry)) return;
 	
 	// 전달받은 FCPForageableCodexEntry로 도감 초기화
-	UTexture2D* CodexImageTexture = CurrentEntry->CodexImage.LoadSynchronous();
+	UTexture2D* CodexImageTexture = CurrentItemData->CodexImage.LoadSynchronous();
 	Img_CodexImage->SetBrushFromTexture(CodexImageTexture);
 	
-	Txt_NameText->SetText(CurrentEntry->DisplayName);
-	Txt_TagText->SetText(BuildTagText(CurrentEntry->TagAxes));
-	Txt_TagCombinationText->SetText(BuildTagCombinationText(CurrentEntry->TagAxes));
+	Txt_NameText->SetText(CurrentItemData->DisplayName);
+	Txt_TagText->SetText(BuildTagText(CurrentItemData->TagAxes));
+	Txt_TagCombinationText->SetText(BuildTagCombinationText(CurrentItemData->TagAxes));
+	Txt_HarvestCountText->SetText(FText::Format(
+		FText::FromString(TEXT("{0} 회")), FText::AsNumber(CurrentCodexEntry.HarvestCount)));
 	
 	// ST에서 사용할 키 생성 후 가져오기
-	if (!CurrentEntry->CodexTextKeys.IsEmpty())	{
-		const FName CodexKeyPrefix = CurrentEntry->CodexTextKeys[0];
+	if (!CurrentItemData->CodexTextKeys.IsEmpty())	{
+		const FName CodexKeyPrefix = CurrentItemData->CodexTextKeys[0];
 
 		const FString TextKeyString = FString::Printf(
 			TEXT("%s.%02d"), *CodexKeyPrefix.ToString(), CurrentCodexEntry.Level);
