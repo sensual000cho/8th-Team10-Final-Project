@@ -21,6 +21,9 @@ public:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Codex")
 	int32 Level = 1;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Codex")
+	int32 HarvestCount = 1;
 };
 
 UCLASS()

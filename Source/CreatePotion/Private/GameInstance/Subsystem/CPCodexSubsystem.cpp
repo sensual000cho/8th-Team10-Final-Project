@@ -13,8 +13,13 @@ bool UCPCodexSubsystem::RegisterForageableEntry(UCPForageableItemData* ItemData)
 {
 	if (!ItemData) return false;
 	
+	// 이미 등록되어 있는 경우 채집 횟수만 증가
 	for (FCPForageableCodexEntry& CodexEntry : ForageableCodexEntries){
-		if (CodexEntry.Entry == ItemData) return false;
+		if (CodexEntry.Entry == ItemData){
+			CodexEntry.HarvestCount++;
+			OnForageableCodexUpdated.Broadcast();
+			return false;
+		}
 	}
 	
 	FCPForageableCodexEntry NewEntry;
