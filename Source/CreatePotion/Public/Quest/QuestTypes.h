@@ -25,7 +25,7 @@ struct FQuestData : public FTableRowBase
 
 	// 퀘스트 요약 (수락 후 저널에서 다시 확인할 때 표시)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerFacing")
-	FText QuestText_Summary;
+	FText QuestSummaryText;
 };
 
 // ===================================================================
@@ -58,10 +58,7 @@ struct FQuestAnswerData : public FTableRowBase
 	FText SessionHintText;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerFacing")
-	FText SessionHintText_Detailed;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerFacing")
-	FText SessionHintText_Detailed2;
+	TArray<FText> NPCStoryLines;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hidden")
 	TArray<FQuestEffectRequirement> RequestedEffects;
@@ -86,7 +83,7 @@ enum class EQuestState : uint8
 	Completed
 };
 
-// 조건 충족 결과 (납품 시 항목별 피드백용 - O/Up/Down/태그오답)
+// 조건 충족 결과 (납품 시 항목별 피드백용 - O/태그오답)
 UENUM(BlueprintType)
 enum class EConditionMatchResult : uint8
 {
