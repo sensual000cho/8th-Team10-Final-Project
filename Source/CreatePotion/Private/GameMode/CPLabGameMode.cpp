@@ -37,27 +37,13 @@ bool ACPLabGameMode::StartPotionRequest(FName QuestId)
 bool ACPLabGameMode::AdvancePotionRequest()
 {
 	UCPLabPotionSessionComponent* Session = GetPotionSession();
-	if (!Session) return false;
-	
-	FCPLabPotionRequestState ActiveRequestState;
-	if (!Session->GetActiveRequestState(ActiveRequestState)) return false;
-	
-	if (ActiveRequestState.Phase == ECPLabPotionRequestPhase::Selected){
-		return Session->SetRequestPhase(ECPLabPotionRequestPhase::Processing);
-	}
-	
-	if (ActiveRequestState.Phase == ECPLabPotionRequestPhase::Processing){
-		return Session->SetRequestPhase(ECPLabPotionRequestPhase::PotionReady);
-	}
-	
-	if (ActiveRequestState.Phase == ECPLabPotionRequestPhase::PotionReady){
-		Session->ResetRequest();
-		
-		PotionDeliveryResult = FCPPotionDeliveryResult{};
-		ClearSpawnedIngredients();
-		return true;
-	}
-	return false;
+	if (!Session || !Session->HasActiveRequest()) return false;
+
+	Session->ResetRequest();
+
+	PotionDeliveryResult = FCPPotionDeliveryResult{};
+	ClearSpawnedIngredients();
+	return true;
 }
 
 bool ACPLabGameMode::RefinePotion(const TArray<FGameplayTag>& EffectTags, const FTransform& SpawnTransform)
@@ -71,20 +57,19 @@ bool ACPLabGameMode::RefinePotion(const TArray<FGameplayTag>& EffectTags, const 
 	
 	if (!SpawnPotion(SortedEffectTags, SpawnTransform)) return false;
 	
-	return AdvancePotionRequest();
+	return true;
 }
 
-FCPPotionDeliveryResult ACPLabGameMode::GetPotionDeliveryResult(FName QuestId, const ACPAlchemyProp* PotionProp)
+FCPPotionDeliveryResult ACPLabGameMode::GetPotionDeliveryResult(FName QuestId, const ACPPotionActor* PotionActor)
 {
 	if (PotionDeliveryResult.QuestId == QuestId) return PotionDeliveryResult;
 	
 	PotionDeliveryResult = FCPPotionDeliveryResult{};
 	PotionDeliveryResult.QuestId = QuestId;
 	
-	if (QuestId.IsNone() || !IsValid(PotionProp)) return PotionDeliveryResult;
+	if (QuestId.IsNone() || !IsValid(PotionActor)) return PotionDeliveryResult;
 	
-	const FCPLabIngredientInstance PotionIngredient = PotionProp->GetWorkingIngredient();
-	PotionDeliveryResult.CurrentEffects = PotionIngredient.CurrentEffects;
+	PotionDeliveryResult.CurrentEffects = PotionActor->GetPotionEffectTags();
 	
 	UQuestManager* QuestManager = GetGameInstance() ? GetGameInstance()->GetSubsystem<UQuestManager>() : nullptr;
 	if (!QuestManager) return PotionDeliveryResult;

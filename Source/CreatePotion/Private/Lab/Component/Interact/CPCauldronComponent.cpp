@@ -182,16 +182,8 @@ bool UCPCauldronComponent::CanAcceptProp(
 	{
 		return false;
 	}
-
-	FCPLabPotionRequestState ActiveRequestState;
-
-	if (!BoundPotionSession->GetActiveRequestState(ActiveRequestState))
-	{
-		return false;
-	}
-
-	// 재료 투입은 포션을 제작 중인 단계에서만 허용
-	if (ActiveRequestState.Phase != ECPLabPotionRequestPhase::Processing)
+	
+	if (!BoundPotionSession->HasActiveRequest())
 	{
 		return false;
 	}

@@ -30,7 +30,6 @@ bool UCPLabPotionSessionComponent::StartRequest(const FCPLabPotionRequest& Potio
 	
 	ActiveRequestState = FCPLabPotionRequestState{};
 	ActiveRequestState.PotionRequest = PotionRequest;
-	ActiveRequestState.Phase = ECPLabPotionRequestPhase::Selected;
 	bHasActiveRequest = true;
 	
 	HeldAlchemyProp = nullptr;
@@ -51,15 +50,6 @@ void UCPLabPotionSessionComponent::ResetRequest()
 	
 	OnSessionChanged.Broadcast();
 	OnPotionResultChanged.Broadcast(CurrentPotionResult);
-}
-
-bool UCPLabPotionSessionComponent::SetRequestPhase(ECPLabPotionRequestPhase NewPhase)
-{
-	if (!HasActiveRequest() || !CanTransitionRequestPhase(NewPhase)) return false;
-
-	ActiveRequestState.Phase = NewPhase;
-	OnSessionChanged.Broadcast();
-	return true;
 }
 
 ACPAlchemyProp* UCPLabPotionSessionComponent::GetHeldAlchemyProp() const
@@ -108,38 +98,4 @@ bool UCPLabPotionSessionComponent::FinalizePotionResult(ACPAlchemyProp* PotionPr
 const TArray<FGameplayTag>& UCPLabPotionSessionComponent::GetPotionResult() const
 {
 	return CurrentPotionResult;
-}
-
-bool UCPLabPotionSessionComponent::CanTransitionRequestPhase(ECPLabPotionRequestPhase NewPhase) const
-{
-	if (!HasActiveRequest()) return false;
-	
-	// 리퀘스트 상태는 아래 순서로만 한 단계씩 진행
-	switch (ActiveRequestState.Phase){
-	case ECPLabPotionRequestPhase::Selected:
-		return NewPhase == ECPLabPotionRequestPhase::Processing;
-	case ECPLabPotionRequestPhase::Processing:
-		return NewPhase == ECPLabPotionRequestPhase::PotionReady;
-
-	default:
-		return false;
-	}
-}
-
-bool UCPLabPotionSessionComponent::
-CanThrowHeldAlchemyProp() const
-{
-	if (!HasHeldAlchemyProp())
-	{
-		return false;
-	}
-
-	FCPLabPotionRequestState RequestState;
-
-	if (!GetActiveRequestState(RequestState))
-	{
-		return false;
-	}
-
-	return RequestState.Phase == ECPLabPotionRequestPhase::Processing;
 }

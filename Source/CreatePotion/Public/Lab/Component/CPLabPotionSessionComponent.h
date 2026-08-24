@@ -32,9 +32,6 @@ public:
 
 	// 진행 중인 세션과 슬롯을 모두 초기 상태로 되돌림
 	void ResetRequest();
-
-	// 정해진 진행 순서에 맞을 때만 리퀘스트 상태 변경
-	bool SetRequestPhase(ECPLabPotionRequestPhase NewPhase);
 	
 	// 플레이어가 들고 있는 재료 Prop 참조를 가져옴
 	UFUNCTION(BlueprintPure, Category = "Lab|Carry")
@@ -57,10 +54,6 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Lab|Result")
 	const TArray<FGameplayTag>& GetPotionResult() const;
-
-private:
-	// 현재 상태에서 요청한 다음 상태로 이동할 수 있는지 확인
-	bool CanTransitionRequestPhase(ECPLabPotionRequestPhase NewPhase) const;
 
 public:
 	// 세션이나 슬롯 상태가 바뀌었음을 Blueprint에 알림
@@ -88,9 +81,4 @@ private:
 	
 	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Result")
 	TArray<FGameplayTag> CurrentPotionResult;
-	
-public:
-	// 현재 들고 있는 연금술 재료를 투척할 수 있는지 확인
-	UFUNCTION(BlueprintPure, Category = "Lab|Carry")
-	bool CanThrowHeldAlchemyProp() const;
 };

@@ -47,8 +47,7 @@ void UCPLabPotionResultWidget::UnbindEvents()
 void UCPLabPotionResultWidget::HandlePotionResultChanged(const TArray<FGameplayTag>& EffectTotals)
 {
 	FCPLabPotionRequestState ActiveRequestState;
-	if (!BoundPotionSession || !BoundPotionSession->GetActiveRequestState(ActiveRequestState) || 
-		ActiveRequestState.Phase != ECPLabPotionRequestPhase::Processing) return;
+	if (!BoundPotionSession || !BoundPotionSession->GetActiveRequestState(ActiveRequestState)) return;
 	
 	ReBuildEffectRows(EffectTotals);
 }
@@ -56,8 +55,7 @@ void UCPLabPotionResultWidget::HandlePotionResultChanged(const TArray<FGameplayT
 void UCPLabPotionResultWidget::HandleSessionChanged()
 {
 	FCPLabPotionRequestState ActiveRequestState;
-	if (!BoundPotionSession || !BoundPotionSession->GetActiveRequestState(ActiveRequestState) || 
-		ActiveRequestState.Phase != ECPLabPotionRequestPhase::Processing){
+	if (!BoundPotionSession || !BoundPotionSession->GetActiveRequestState(ActiveRequestState)){
 		SetVisibility(ESlateVisibility::Collapsed);
 		return;
 	}
