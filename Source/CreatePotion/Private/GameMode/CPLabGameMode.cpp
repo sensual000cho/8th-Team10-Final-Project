@@ -1,8 +1,10 @@
 #include "GameMode/CPLabGameMode.h"
 
 #include "Data/CPForageableItemData.h"
+#include "Data/CPPotionData.h"
 #include "GameState/CPLabGameState.h"
 #include "Lab/Actor/CPAlchemyProp.h"
+#include "Lab/Actor/CPPotionActor.h"
 #include "Lab/Component/CPLabPotionSessionComponent.h"
 #include "PlayerState/CPLabPlayerState.h"
 #include "Quest/QuestManager.h"
@@ -134,22 +136,22 @@ bool ACPLabGameMode::SpawnPotion(const TArray<FGameplayTag>& EffectTags, const F
 	UWorld* World = GetWorld();
 	if (!World || !PotionItemData) return false;
 	
-	UClass* PotionPropClass = PotionItemData->AlchemyPropClass.LoadSynchronous();
-	if (!PotionPropClass) return false;
+	UClass* PotionActorClass = PotionItemData->PotionActorClass.LoadSynchronous();
+	if (!PotionActorClass) return false;
 	
-	ACPAlchemyProp* PotionProp = World->SpawnActor<ACPAlchemyProp>(PotionPropClass, SpawnTransform);
-	if (!IsValid(PotionProp)) return false;
+	ACPPotionActor* Potion = World->SpawnActor<ACPPotionActor>(PotionActorClass, SpawnTransform);
+	if (!IsValid(Potion)) return false;
 	
 	FVector PotionBoundsOrigin, PotionBoundsExtent;
-	PotionProp->GetActorBounds(false, PotionBoundsOrigin, PotionBoundsExtent);
+	Potion->GetActorBounds(false, PotionBoundsOrigin, PotionBoundsExtent);
 	
 	// 추가로 보정할 Potion의 Z값 계산 및 보정
 	const float PotionBottomZ = PotionBoundsOrigin.Z - PotionBoundsExtent.Z;
 	const float SpawnSurfaceZ = SpawnTransform.GetLocation().Z;
-	PotionProp->AddActorWorldOffset(FVector(0.f, 0.f, SpawnSurfaceZ - PotionBottomZ));
+	Potion->AddActorWorldOffset(FVector(0.f, 0.f, SpawnSurfaceZ - PotionBottomZ));
 	
 	// 정렬된 Tags로 초기화
-	PotionProp->InitializeAlchemyProp(PotionItemData, EffectTags);
+	Potion->InitializePotionEffects(EffectTags);
 	return true;
 	//return AdvancePotionRequest();
 }
