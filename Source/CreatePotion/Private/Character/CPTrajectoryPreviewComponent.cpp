@@ -8,6 +8,7 @@
 #include "Lab/Actor/CPThrowablePropBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/Pawn.h"
+#include "Components/SplineMeshComponent.h"
 
 UCPTrajectoryPreviewComponent::UCPTrajectoryPreviewComponent()
 {
@@ -39,6 +40,8 @@ void UCPTrajectoryPreviewComponent::BeginPlay()
 		UE_LOG(LogTemp, Warning, TEXT("[TrajectoryPreview] %s에 CarryComponent가 없습니다."), *GetNameSafe(OwnerActor));
 		return;
 	}
+
+	CreatePreviewSegments();
 
 	CarryComponent->OnHeldPropChanged.AddUniqueDynamic(this, &UCPTrajectoryPreviewComponent::HandleHeldPropChanged);
 
@@ -93,16 +96,17 @@ void UCPTrajectoryPreviewComponent::ActivatePreview(ACPThrowablePropBase* InHeld
 
 	HeldProp = InHeldProp;
 	CachedPredictionRadius = ResolvePredictionRadius(HeldProp);
-	SetHiddenInGame(false, true);
-	SetVisibility(true, true);
+	SetHiddenInGame(false);
+	SetVisibility(true);
 	SetComponentTickEnabled(true);
 }
 
 void UCPTrajectoryPreviewComponent::DeactivatePreview()
 {
 	SetComponentTickEnabled(false);
-	SetHiddenInGame(true, true);
-	SetVisibility(false, true);
+	HidePreviewSegments();
+	SetHiddenInGame(true);
+	SetVisibility(false);
 	ClearSplinePoints();
 	CachedPredictionRadius = DefaultPredictionRadius;
 	HeldProp = nullptr;
@@ -129,7 +133,7 @@ float UCPTrajectoryPreviewComponent::ResolvePredictionRadius(const ACPThrowableP
 		return DefaultPredictionRadius;
 	}
 
-	return ShortestExtent;	
+	return ShortestExtent;
 }
 
 bool UCPTrajectoryPreviewComponent::CalculateTrajectory(FPredictProjectilePathResult& OutPathResult) const
@@ -194,6 +198,7 @@ void UCPTrajectoryPreviewComponent::UpdatePreview()
 	if (!CalculateTrajectory(PathResult))
 	{
 		ClearSplinePoints();
+		HidePreviewSegments();
 		return;
 	}
 
@@ -221,6 +226,7 @@ void UCPTrajectoryPreviewComponent::UpdatePreview()
 	if (TotalPathLength <= KINDA_SMALL_NUMBER)
 	{
 		ClearSplinePoints();
+		HidePreviewSegments();
 		return;
 	}
 
@@ -261,4 +267,105 @@ void UCPTrajectoryPreviewComponent::UpdatePreview()
 	}
 
 	UpdateSpline();
+	UpdatePreviewSegments();
+}
+
+void UCPTrajectoryPreviewComponent::CreatePreviewSegments()
+{
+	if (!PreviewSegments.IsEmpty() || !IsValid(PreviewSegmentMesh))
+	{
+		return;
+	}
+
+	AActor* OwnerActor = GetOwner();
+	if (!IsValid(OwnerActor))
+	{
+		return;
+	}
+
+	PreviewSegments.Reserve(MaxPreviewSegments);
+
+	for (int32 SegmentIndex = 0; SegmentIndex < MaxPreviewSegments; ++SegmentIndex)
+	{
+		const FName SegmentName(*FString::Printf(TEXT("TrajectoryPreviewSegment_%02d"), SegmentIndex));
+		USplineMeshComponent* PreviewSegment = NewObject<USplineMeshComponent>(OwnerActor, SegmentName);
+
+		if (!IsValid(PreviewSegment))
+		{
+			continue;
+		}
+
+		OwnerActor->AddInstanceComponent(PreviewSegment);
+		PreviewSegment->SetupAttachment(this);
+		PreviewSegment->SetMobility(EComponentMobility::Movable);
+		PreviewSegment->SetStaticMesh(PreviewSegmentMesh);
+		PreviewSegment->SetForwardAxis(ESplineMeshAxis::X, false);
+		PreviewSegment->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		PreviewSegment->SetGenerateOverlapEvents(false);
+		PreviewSegment->SetCanEverAffectNavigation(false);
+		PreviewSegment->SetCastShadow(false);
+
+		if (PreviewMaterial)
+		{
+			PreviewSegment->SetMaterial(0, PreviewMaterial);
+		}
+
+		PreviewSegment->SetHiddenInGame(true);
+		PreviewSegment->SetVisibility(false);
+		PreviewSegment->RegisterComponent();
+
+		PreviewSegments.Add(PreviewSegment);
+	}
+}
+
+void UCPTrajectoryPreviewComponent::UpdatePreviewSegments()
+{
+	const int32 VisibleSegmentCount = FMath::Min(FMath::Max(GetNumberOfSplinePoints() - 1, 0), PreviewSegments.Num());
+	const FVector2D LineScale(PreviewLineScale, PreviewLineScale);
+
+	for (int32 SegmentIndex = 0; SegmentIndex < VisibleSegmentCount; ++SegmentIndex)
+	{
+		USplineMeshComponent* PreviewSegment = PreviewSegments[SegmentIndex];
+		if (!IsValid(PreviewSegment))
+		{
+			continue;
+		}
+
+		const FVector StartLocation = GetLocationAtSplinePoint(SegmentIndex, ESplineCoordinateSpace::Local);
+		const FVector StartTangent = GetTangentAtSplinePoint(SegmentIndex, ESplineCoordinateSpace::Local);
+		const FVector EndLocation = GetLocationAtSplinePoint(SegmentIndex + 1, ESplineCoordinateSpace::Local);
+		const FVector EndTangent = GetTangentAtSplinePoint(SegmentIndex + 1, ESplineCoordinateSpace::Local);
+
+		PreviewSegment->SetStartScale(LineScale, false);
+		PreviewSegment->SetEndScale(LineScale, false);
+		PreviewSegment->SetStartAndEnd(StartLocation, StartTangent, EndLocation, EndTangent, true);
+		PreviewSegment->SetHiddenInGame(false);
+		PreviewSegment->SetVisibility(true);
+	}
+
+	for (int32 SegmentIndex = VisibleSegmentCount; SegmentIndex < PreviewSegments.Num(); ++SegmentIndex)
+	{
+		USplineMeshComponent* PreviewSegment = PreviewSegments[SegmentIndex];
+		if (!IsValid(PreviewSegment))
+		{
+			continue;
+		}
+
+		PreviewSegment->SetHiddenInGame(true);
+		PreviewSegment->SetVisibility(false);
+	}
+}
+
+void UCPTrajectoryPreviewComponent::HidePreviewSegments()
+{
+	for (USplineMeshComponent* PreviewSegment : PreviewSegments)
+	{
+		if (!IsValid(PreviewSegment))
+		{
+			continue;
+		}
+
+		PreviewSegment->SetHiddenInGame(true);
+		PreviewSegment->SetVisibility(false);
+	}
 }
