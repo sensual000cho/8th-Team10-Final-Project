@@ -32,13 +32,16 @@ class CREATEPOTION_API UCPCodexSubsystem : public UGameInstanceSubsystem
 	GENERATED_BODY()
 	
 public:
-	// 등록된 전체 채집물을 반환
+	// 등록된 전체 채집물을 반환(미사용)
 	UFUNCTION(BlueprintPure, Category = "Codex|Forageable")
 	TArray<FCPForageableCodexEntry> GetForageableCodexEntries() const;
 	
-	// 해당 채집물이 등록되어 있는지 반환
+	// 등록된 전체 채집물 DA를 반환
 	UFUNCTION(BlueprintPure, Category = "Codex|Forageable")
-	bool IsForageableRegistered(UCPForageableItemData* ItemData) const;
+	TArray<UCPForageableItemData*> GetRegisteredForageableItems() const;
+	
+	// 등록된 채집물이 있는 경우 정보를 반환, 등록 여부만 필요할 경우 ItemData만 인자로 전달
+	bool GetForageableEntry(UCPForageableItemData* ItemData, FCPForageableCodexEntry* OutForageableEntry = nullptr) const;
 	
 	// 도감 SubSystem에 새로운 채집물을 등록 및 채집 횟수 증가
 	UFUNCTION(BlueprintCallable, Category = "Codex|Forageable")

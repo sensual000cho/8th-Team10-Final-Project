@@ -21,11 +21,40 @@ TArray<FCPForageableCodexEntry> UCPCodexSubsystem::GetForageableCodexEntries() c
 	return CodexEntries;
 }
 
-bool UCPCodexSubsystem::IsForageableRegistered(UCPForageableItemData* ItemData) const
+TArray<UCPForageableItemData*> UCPCodexSubsystem::GetRegisteredForageableItems() const
+{
+	TArray<TObjectPtr<UCPForageableItemData>> Keys;
+	ForageableCodexEntries.GenerateKeyArray(Keys);
+	
+	TArray<UCPForageableItemData*> Items;
+	Items.Reserve(Keys.Num());
+	
+	for (const TObjectPtr<UCPForageableItemData>& Key : Keys) {
+		Items.Add(Key.Get());
+	}
+	
+	// 사전 순 정렬
+	Items.Sort([](const UCPForageableItemData& A, const UCPForageableItemData& B)
+	{
+		return A.DisplayName.ToString() < B.DisplayName.ToString();
+	});
+	
+	return Items;
+}
+
+bool UCPCodexSubsystem::GetForageableEntry(UCPForageableItemData* ItemData, 
+	FCPForageableCodexEntry* OutForageableEntry) const
 {
 	if (!ItemData) return false;
 	
-	return ForageableCodexEntries.Contains(ItemData);
+	const FCPForageableCodexEntry* CodexEntry = ForageableCodexEntries.Find(ItemData);
+	if (!CodexEntry) return false;
+	
+	// 구조체 인자가 들어왔을 경우 Subsystem의 값으로 초기화
+	if (OutForageableEntry){
+		*OutForageableEntry = *CodexEntry;	
+	}
+	return true;
 }
 
 bool UCPCodexSubsystem::RecordForageableEntry(UCPForageableItemData* ItemData)
