@@ -12,6 +12,7 @@ class ACPAlchemyProp;
 class ACPLabGameState;
 class UCPLabPotionSessionComponent;
 class UCPForageableItemData;
+class UCPPotionData;
 
 USTRUCT(BlueprintType)
 struct FCPPotionDeliveryResult
@@ -82,7 +83,7 @@ private:
 	
 	// 포션 Prop을 만들 때 사용할 DA
 	UPROPERTY(EditDefaultsOnly, Category = "Lab|Potion")
-	TObjectPtr<UCPForageableItemData> PotionItemData;
+	TObjectPtr<UCPPotionData> PotionItemData;
 		
 	// 재료를 놓을 SlotActor 탐색용 태그
 	UPROPERTY(EditDefaultsOnly, Category = "Lab|Session")
