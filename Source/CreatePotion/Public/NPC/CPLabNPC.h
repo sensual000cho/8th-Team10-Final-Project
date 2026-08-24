@@ -20,7 +20,7 @@ public:
 	void SetRequestConfirmed(bool bConfirmed) { bRequestConfirmed = bConfirmed; }
 
 	UFUNCTION()
-	void OpenResultWidget();
+	void OpenResultWidget(AActor* Interactor);
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
