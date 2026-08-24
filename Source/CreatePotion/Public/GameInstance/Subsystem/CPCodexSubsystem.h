@@ -36,9 +36,13 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Codex|Forageable")
 	TArray<FCPForageableCodexEntry> GetForageableCodexEntries() const;
 	
-	// 도감 SubSystem에 새로운 채집물을 등록
+	// 해당 채집물이 등록되어 있는지 반환
+	UFUNCTION(BlueprintPure, Category = "Codex|Forageable")
+	bool IsForageableRegistered(UCPForageableItemData* ItemData) const;
+	
+	// 도감 SubSystem에 새로운 채집물을 등록 및 채집 횟수 증가
 	UFUNCTION(BlueprintCallable, Category = "Codex|Forageable")
-	bool RegisterForageableEntry(UCPForageableItemData* ItemData);
+	bool RecordForageableEntry(UCPForageableItemData* ItemData);
 	
 	// 등록된 채집물의 정보 레벨을 증가(~4)
 	UFUNCTION(BlueprintCallable, Category = "Codex|Forageable")
@@ -50,5 +54,5 @@ public:
 
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Codex|Forageable")
-	TArray<FCPForageableCodexEntry> ForageableCodexEntries;
+	TMap<TObjectPtr<UCPForageableItemData>, FCPForageableCodexEntry> ForageableCodexEntries;
 };

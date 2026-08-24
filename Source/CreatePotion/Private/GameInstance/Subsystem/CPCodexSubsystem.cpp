@@ -6,33 +6,43 @@
 
 TArray<FCPForageableCodexEntry> UCPCodexSubsystem::GetForageableCodexEntries() const
 {
-	return ForageableCodexEntries;
-}
-
-bool UCPCodexSubsystem::RegisterForageableEntry(UCPForageableItemData* ItemData)
-{
-	if (!ItemData) return false;
+	TArray<FCPForageableCodexEntry> CodexEntries;
+	ForageableCodexEntries.GenerateValueArray(CodexEntries);
 	
-	// 이미 등록되어 있는 경우 채집 횟수만 증가
-	for (FCPForageableCodexEntry& CodexEntry : ForageableCodexEntries){
-		if (CodexEntry.Entry == ItemData){
-			CodexEntry.HarvestCount++;
-			OnForageableCodexUpdated.Broadcast();
-			return false;
-		}
-	}
-	
-	FCPForageableCodexEntry NewEntry;
-	NewEntry.Entry = ItemData;
-	ForageableCodexEntries.Add(NewEntry);
-	
-	ForageableCodexEntries.Sort([](const FCPForageableCodexEntry& A, const FCPForageableCodexEntry& B)
+	// 사전 순 정렬
+	CodexEntries.Sort([](const FCPForageableCodexEntry& A, const FCPForageableCodexEntry& B)
 	{
 		const FString AName = A.Entry->DisplayName.ToString();
 		const FString BName = B.Entry->DisplayName.ToString();
 		
 		return AName < BName;
 	});
+	
+	return CodexEntries;
+}
+
+bool UCPCodexSubsystem::IsForageableRegistered(UCPForageableItemData* ItemData) const
+{
+	if (!ItemData) return false;
+	
+	return ForageableCodexEntries.Contains(ItemData);
+}
+
+bool UCPCodexSubsystem::RecordForageableEntry(UCPForageableItemData* ItemData)
+{
+	if (!ItemData) return false;
+	
+	// 등록이 되어 있는 경우 채집 횟수 증가
+	if (FCPForageableCodexEntry* CodexEntry = ForageableCodexEntries.Find(ItemData)){
+		CodexEntry->HarvestCount++;
+		OnForageableCodexUpdated.Broadcast();
+		return true;
+	}
+	
+	// 채집물 등록
+	FCPForageableCodexEntry NewEntry;
+	NewEntry.Entry = ItemData;
+	ForageableCodexEntries.Add(ItemData, NewEntry);
 	
 	OnForageableCodexUpdated.Broadcast();
 	return true;
@@ -42,14 +52,10 @@ bool UCPCodexSubsystem::IncreaseForageableLevel(UCPForageableItemData* ItemData)
 {
 	if (!ItemData) return false;
 	
-	for (FCPForageableCodexEntry& CodexEntry : ForageableCodexEntries){
-		if (CodexEntry.Entry == ItemData){
-			if (CodexEntry.Level >= 4) return false;
-			CodexEntry.Level++;
-			OnForageableCodexUpdated.Broadcast();
-			return true;
-		}
-	}
-	
-	return false;
+	FCPForageableCodexEntry* CodexEntry = ForageableCodexEntries.Find(ItemData);
+	if (!CodexEntry || CodexEntry->Level >= 4) return false;
+
+	CodexEntry->Level++;
+	OnForageableCodexUpdated.Broadcast();
+	return true;
 }
