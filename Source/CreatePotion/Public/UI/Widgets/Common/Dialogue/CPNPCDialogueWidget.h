@@ -23,7 +23,7 @@ public:
     void InitDialogueLines(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const TArray<FText>& InDialogueLines, class ACPLabNPC* InSourceLabNPC = nullptr);
 
     UFUNCTION(BlueprintCallable, Category = "Dialogue")
-    void InitResultDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const FText& InDialogueText, class ACPLabNPC* InSourceLabNPC = nullptr);
+    void InitResultDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const FText& InDialogueText, class ACPLabNPC* InSourceLabNPC, AActor* InInteractor);
 protected:
     virtual void BindEvents() override;
     virtual void UnbindEvents() override;
@@ -99,4 +99,7 @@ private:
 
     // [신규] DialogueLines 중 현재 몇 번째 줄을 보여주고 있는지 추적하는 인덱스.
     int32 CurrentLineIndex = 0;
+    
+    UPROPERTY()
+    TObjectPtr<AActor> ResultInteractor;
 };

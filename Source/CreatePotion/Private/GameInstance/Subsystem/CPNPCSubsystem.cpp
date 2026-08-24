@@ -29,39 +29,28 @@ void UCPNPCSubsystem::Deinitialize()
 	Super::Deinitialize();
 }
 
-void UCPNPCSubsystem::RegisterNPCEffect(FName NPCId, FGameplayTag EffectTag, int64 DurationWorldMinutes)
+void UCPNPCSubsystem::RegisterNPCEffect(FName NPCId, FGameplayTag EffectTag, int64 DurationWorldMinutes, float Magnitude)
 {
 	if (NPCId.IsNone() || !EffectTag.IsValid()) return;
 
-	int64 AppliedAt = CachedCurrentWorldMinute;
-	int64 ExpiresAt = AppliedAt + DurationWorldMinutes;
+	const int64 AppliedAt = CachedCurrentWorldMinute;
+	const int64 ExpiresAt = AppliedAt + DurationWorldMinutes;
 
 	FCPActiveEffectInfo Info;
 	Info.EffectTag = EffectTag;
 	Info.AppliedAtWorldMinute = AppliedAt;
 	Info.ExpiresAtWorldMinute = ExpiresAt;
+	Info.Magnitude = Magnitude;
 
 	FCPNPCEffectSaveData& SaveData = NPCStateRepository.FindOrAdd(NPCId);
 	SaveData.ActiveEffects.Add(EffectTag, Info);
 
-	/*FString DisplayMsg = FString::Printf(TEXT("[%s]에게 %s 효과 적용됨! (만료 예정: %lld분 / 지속: %lld분)"),
-		*NPCId.ToString(), *EffectTag.GetTagName().ToString(), ExpiresAt, DurationWorldMinutes);
-
-	UE_LOG(LogTemp, Log, TEXT("%s"), *DisplayMsg);
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Cyan, DisplayMsg);
-	}*/
+	OnNPCEffectApplied.Broadcast(NPCId, EffectTag, ExpiresAt, Magnitude);
 }
 
 void UCPNPCSubsystem::OnWorldClockMinuteTick(int64 CurrentWorldMinute)
 {
 	CachedCurrentWorldMinute = CurrentWorldMinute;
-
-	/*if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(1, 1.5f, FColor::Green, FString::Printf(TEXT("월드 시간: %lld분"), CurrentWorldMinute));
-	}*/
 
 	TArray<FName> EmptyNPCIds;
 
@@ -73,16 +62,6 @@ void UCPNPCSubsystem::OnWorldClockMinuteTick(int64 CurrentWorldMinute)
 
 		for (auto& EffectPair : SaveData.ActiveEffects)
 		{
-			/*
-			int64 LeftTime = EffectPair.Value.ExpiresAtWorldMinute - CurrentWorldMinute;
-
-			if (GEngine)
-			{
-				GEngine->AddOnScreenDebugMessage(-1, 1.5f, FColor::Yellow,
-					FString::Printf(TEXT("[%s] %s 남은 시간: %lld분"),
-						*NPCId.ToString(), *EffectPair.Key.GetTagName().ToString(), LeftTime));
-			}
-			*/
 			if (CurrentWorldMinute >= EffectPair.Value.ExpiresAtWorldMinute)
 			{
 				ExpiredTags.Add(EffectPair.Key);
@@ -93,14 +72,6 @@ void UCPNPCSubsystem::OnWorldClockMinuteTick(int64 CurrentWorldMinute)
 		{
 			SaveData.ActiveEffects.Remove(Tag);
 			OnNPCEffectExpired.Broadcast(NPCId, Tag);
-			/*
-			FString ExpiredMsg = FString::Printf(TEXT("[%s]의 %s 효과 만료!"), *NPCId.ToString(), *Tag.GetTagName().ToString());
-			UE_LOG(LogTemp, Warning, TEXT("%s"), *ExpiredMsg);
-			if (GEngine)
-			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, ExpiredMsg);
-			}
-			*/
 		}
 
 		if (SaveData.ActiveEffects.Num() == 0)
@@ -139,7 +110,6 @@ void UCPNPCSubsystem::ClearNPCEffect(FName NPCId, FGameplayTag EffectTag)
 	}
 }
 
-// 디버그용
 void UCPNPCSubsystem::DebugAddNPCEffect(FName NPCId, FGameplayTag EffectTag, int64 DurationWorldMinutes)
 {
 	RegisterNPCEffect(NPCId, EffectTag, DurationWorldMinutes);
