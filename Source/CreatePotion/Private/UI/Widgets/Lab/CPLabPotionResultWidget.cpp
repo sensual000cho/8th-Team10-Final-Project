@@ -5,6 +5,7 @@
 
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
+#include "GameMode/CPLabGameMode.h"
 #include "GameState/CPLabGameState.h"
 #include "Lab/Component/CPLabPotionSessionComponent.h"
 #include "UI/Widgets/Lab/CPLabIngredientEffectRowWidget.h"
@@ -46,16 +47,16 @@ void UCPLabPotionResultWidget::UnbindEvents()
 
 void UCPLabPotionResultWidget::HandlePotionResultChanged(const TArray<FGameplayTag>& EffectTotals)
 {
-	FCPLabPotionRequestState ActiveRequestState;
-	if (!BoundPotionSession || !BoundPotionSession->GetActiveRequestState(ActiveRequestState)) return;
+	const ACPLabGameMode* LabGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ACPLabGameMode>() : nullptr;
+	if (!BoundPotionSession || !LabGameMode || !LabGameMode->HasActiveRequest()) return;
 	
 	ReBuildEffectRows(EffectTotals);
 }
 
 void UCPLabPotionResultWidget::HandleSessionChanged()
 {
-	FCPLabPotionRequestState ActiveRequestState;
-	if (!BoundPotionSession || !BoundPotionSession->GetActiveRequestState(ActiveRequestState)){
+	const ACPLabGameMode* LabGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ACPLabGameMode>() : nullptr;
+	if (!BoundPotionSession || !LabGameMode || !LabGameMode->HasActiveRequest()){
 		SetVisibility(ESlateVisibility::Collapsed);
 		return;
 	}

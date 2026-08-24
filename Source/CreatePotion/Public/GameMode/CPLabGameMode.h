@@ -6,8 +6,8 @@
 #include "Quest/QuestManager.h"
 #include "CPLabGameMode.generated.h"
 
+class ACPPotionActor;
 enum class EDeliveryGrade : uint8;
-enum class EConditionMatchResult : uint8;
 class ACPAlchemyProp;
 class ACPLabGameState;
 class UCPLabPotionSessionComponent;
@@ -65,10 +65,13 @@ public:
 
 	UCPLabPotionSessionComponent* GetPotionSession() const;
 	
+	UFUNCTION(BlueprintPure, Category = "Lab|Request")
+	bool HasActiveRequest() const;
+	
+	FName GetActiveRequestId() const;
+	
 private:
 	ACPLabGameState* GetLabGameState() const;
-	//UCPLabPotionSessionComponent* GetPotionSession() const; public으로 위치만 이동, 일단 cpp는 안 건들여서 cpp 함수 순서는 원래랑 같습니다!
-	FName GetActiveRequestId() const;
 	
 	// Spawn된 재료 초기화
 	void ClearSpawnedIngredients();
@@ -92,6 +95,10 @@ private:
 	// 생성된 재료를 관리하는 배열
 	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Ingredients")
 	TArray<TObjectPtr<ACPAlchemyProp>> SpawnedIngredients;
+	
+	// 현재 공방 요청 QuestId
+	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Request")
+	FName ActiveRequestId = NAME_None;
 	
 	// 납품 판정 결과
 	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Result")

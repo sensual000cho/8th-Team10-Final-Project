@@ -9,7 +9,6 @@
 #include "CPCauldronComponent.generated.h"
 
 class ACPAlchemyProp;
-class UCPLabPotionSessionComponent;
 class UPrimitiveComponent;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -36,7 +35,7 @@ public:
 	
 private:
 	// PotionSession에서 Held 재료를 꺼내 투입
-	bool AddHeldProp();
+	bool AddHeldProp(AActor* Interactor);
 
 	// F 방식과 투척 방식이 공통으로 사용하는 실제 투입 처리
 	bool AddProp(ACPAlchemyProp* Prop);
@@ -63,10 +62,6 @@ private:
 		bool bFromSweep,
 		const FHitResult& SweepResult);
 	
-	// 슬롯(배열) 초기화, 리퀘스트 종료 시에만 작동
-	UFUNCTION()
-	void HandleSessionChanged();
-	
 	// UI 도입 or PR확인 이후 삭제
 	UFUNCTION(BlueprintCallable, Category = "Lab|Interaction|Debug")
 	void DebugPrintSlots() const;
@@ -84,9 +79,6 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "Lab|Potion")
 	FComponentReference PotionSpawnMesh;
-
-	UPROPERTY()
-	TObjectPtr<UCPLabPotionSessionComponent> BoundPotionSession;
 
 	UPROPERTY()
 	TObjectPtr<UPrimitiveComponent> BoundIngredientTrigger;

@@ -3,6 +3,7 @@
 
 #include "Lab/Component/Interact/CPCauldronComponent.h"
 
+#include "Character/CPCarryComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Data/CPForageableItemData.h"
@@ -22,15 +23,6 @@ void UCPCauldronComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	if (BoundPotionSession) return;
-	
-	const UWorld* World = GetWorld();
-	const ACPLabGameState* LabState = World? World->GetGameState<ACPLabGameState>(): nullptr;
-	BoundPotionSession = LabState? LabState->GetPotionSession(): nullptr;
-	if (BoundPotionSession){
-		BoundPotionSession->OnSessionChanged.AddUniqueDynamic(this, &UCPCauldronComponent::HandleSessionChanged);
-	}
-	
 	// BP 가마솥에 배치한 내부 Trigger 탐색
 	BoundIngredientTrigger = Cast<UPrimitiveComponent>(IngredientTrigger.GetComponent(GetOwner()));
 
@@ -43,12 +35,7 @@ void UCPCauldronComponent::BeginPlay()
 }
 
 void UCPCauldronComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
-{
-	if (BoundPotionSession){
-		BoundPotionSession->OnSessionChanged.RemoveDynamic(this, &UCPCauldronComponent::HandleSessionChanged);
-		BoundPotionSession = nullptr;
-	}
-	
+{	
 	if (BoundIngredientTrigger)
 	{
 		BoundIngredientTrigger->OnComponentBeginOverlap.RemoveDynamic(
@@ -68,7 +55,7 @@ bool UCPCauldronComponent::ExecuteInteraction(AActor* Interactor)
 		return false;
 	}
 
-	if (!AddHeldProp())
+	if (!AddHeldProp(Interactor))
 	{
 		return false;
 	}
@@ -78,12 +65,15 @@ bool UCPCauldronComponent::ExecuteInteraction(AActor* Interactor)
 
 bool UCPCauldronComponent::CanExecuteInteraction(AActor* Interactor) const
 {
-	if (!Super::CanExecuteInteraction(Interactor) || !BoundPotionSession)
-	{
-		return false;
-	}
+	if (!Super::CanExecuteInteraction(Interactor)) return false;
 
-	ACPAlchemyProp* HeldProp = BoundPotionSession->GetHeldAlchemyProp();
+	const UCPCarryComponent* CarryComponent = IsValid(Interactor)
+	? Interactor->FindComponentByClass<UCPCarryComponent>()
+	: nullptr;
+
+	ACPAlchemyProp* HeldProp = CarryComponent
+		? Cast<ACPAlchemyProp>(CarryComponent->GetHeldProp())
+		: nullptr;
 
 	return CanAcceptProp(HeldProp);
 }
@@ -110,46 +100,19 @@ TArray<FCPLabIngredientInstance> UCPCauldronComponent::GetIngredientInstance() c
 	return IngredientInstances;
 }
 
-bool UCPCauldronComponent::AddHeldProp()
+bool UCPCauldronComponent::AddHeldProp(AActor* Interactor)
 {
-	if (!BoundPotionSession)
-	{
-		return false;
-	}
+	UCPCarryComponent* CarryComponent = IsValid(Interactor)
+		? Interactor->FindComponentByClass<UCPCarryComponent>() : nullptr;
 
-	ACPAlchemyProp* HeldProp = BoundPotionSession->GetHeldAlchemyProp();
+	ACPAlchemyProp* HeldProp = CarryComponent
+		? Cast<ACPAlchemyProp>(CarryComponent->GetHeldProp()) : nullptr;
 
-	if (!CanAcceptProp(HeldProp))
-	{
-		return false;
-	}
+	if (!CarryComponent || !CanAcceptProp(HeldProp)) return false;
 
-	ACPAlchemyProp* ReleasedProp = nullptr;
+	if (!CarryComponent->DetachProp(HeldProp, HeldProp->GetActorLocation())) return false;
 
-	if (!BoundPotionSession->ReleaseHeldAlchemyProp(ReleasedProp))
-	{
-		return false;
-	}
-
-	// 일반적으로 발생하지 않지만 상태 불일치 방어
-	if (ReleasedProp != HeldProp)
-	{
-		if (IsValid(ReleasedProp))
-		{
-			BoundPotionSession->HoldAlchemyProp(ReleasedProp);
-		}
-
-		return false;
-	}
-
-	if (!AddProp(ReleasedProp))
-	{
-		// 아직 파괴되지 않았으므로 Session 상태 복구
-		BoundPotionSession->HoldAlchemyProp(ReleasedProp);
-		return false;
-	}
-
-	return true;
+	return AddProp(HeldProp);
 }
 
 bool UCPCauldronComponent::AddProp(ACPAlchemyProp* Prop)
@@ -178,12 +141,10 @@ bool UCPCauldronComponent::AddProp(ACPAlchemyProp* Prop)
 bool UCPCauldronComponent::CanAcceptProp(
 	const ACPAlchemyProp* Prop) const
 {
-	if (!BoundPotionSession || !IsValid(Prop) || MaxSlotCount <= 0 || IngredientInstances.Num() >= MaxSlotCount)
-	{
-		return false;
-	}
+	if (!IsValid(Prop) || MaxSlotCount <= 0 || IngredientInstances.Num() >= MaxSlotCount) return false;
 	
-	if (!BoundPotionSession->HasActiveRequest())
+	const ACPLabGameMode* LabGameMode = Cast<ACPLabGameMode>(UGameplayStatics::GetGameMode(this));
+	if (!LabGameMode || !LabGameMode->HasActiveRequest())
 	{
 		return false;
 	}
@@ -205,19 +166,14 @@ bool UCPCauldronComponent::ConfirmPotion()
 {
 	const UStaticMeshComponent* SpawnMesh = Cast<UStaticMeshComponent>(PotionSpawnMesh.GetComponent(GetOwner()));
 
-	if (!SpawnMesh)
-	{
-		return false;
-	}
+	if (!SpawnMesh) return false;
 
 	ACPLabGameMode* LabGameMode = Cast<ACPLabGameMode>(UGameplayStatics::GetGameMode(this));
 
-	if (!LabGameMode)
-	{
-		return false;
-	}
+	if (!LabGameMode || !LabGameMode->RefinePotion(GetEffectTags(), MakePotionTransform())) return false;
 
-	return LabGameMode->RefinePotion(GetEffectTags(), MakePotionTransform());
+	IngredientInstances.Reset();
+	return true;
 }
 
 FTransform UCPCauldronComponent::MakePotionTransform() const
@@ -258,30 +214,12 @@ void UCPCauldronComponent::HandleIngredientOverlap(
 	 * 아직 Session이 들고 있다고 판단되는 액터는
 	 * 머리 위에 있는 Held된 재료일 수 있으므로 받지 않음.
 	 */
-	if (BoundPotionSession->GetHeldAlchemyProp() == Ingredient)
-	{
-		return;
-	}
-
 	if (!AddProp(Ingredient))
 	{
 		return;
 	}
 
 	ConfirmPotionIfReady();
-}
-
-void UCPCauldronComponent::HandleSessionChanged()
-{
-	if (!BoundPotionSession)
-	{
-		return;
-	}
-	// 리퀘스트 종료 시에만 초기화
-	if (!BoundPotionSession->HasActiveRequest())
-	{
-		IngredientInstances.Reset();
-	}
 }
 
 // UI 도입 or PR확인 이후 삭제
