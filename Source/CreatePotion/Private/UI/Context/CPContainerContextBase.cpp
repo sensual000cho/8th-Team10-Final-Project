@@ -31,10 +31,10 @@ bool UCPContainerContextBase::HandleLeftClickOnly(UCPGridSlotWidgetBase* Clicked
         FContainerItem PoppedItem;
         if (ClickedSlot->OwnerContainer->PopItemFromContainer(ClickedSlot->SlotGridIndex, PoppedItem))
         {
-            UE_LOG(LogContainer, Warning, TEXT("[Pick] 집기 성공: %s, 손 컨테이너 개수: %d"),
+            UE_LOG(LogContainer, Warning, TEXT("[Pick] 집기 성공: %s, Hand 컨테이너 개수: %d"),
                 *PoppedItem.ItemDataAsset->DisplayName.ToString(), PC->LeftClickPickedContainer->ContainerItems.Num());
 
-            PoppedItem.GridIndex = 0; // 손-컨테이너는 칸이 1개뿐
+            PoppedItem.GridIndex = 0; // Hand 컨테이너는 1칸만 존재
             PC->LeftClickPickedContainer->ContainerItems.Add(PoppedItem);
             PC->LeftClickPickedContainer->OnContainerUpdated.Broadcast();
 
