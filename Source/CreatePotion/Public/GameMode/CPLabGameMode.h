@@ -61,10 +61,12 @@ public:
 	// 상호작용으로 전달된 Potion Prop의 결과를 납품 결과 구조로 변환
 	UFUNCTION(BlueprintCallable, Category = "Lab|Result")
 	FCPPotionDeliveryResult GetPotionDeliveryResult(FName QuestId, const ACPAlchemyProp* PotionProp);
+
+	UCPLabPotionSessionComponent* GetPotionSession() const;
 	
 private:
 	ACPLabGameState* GetLabGameState() const;
-	UCPLabPotionSessionComponent* GetPotionSession() const;
+	//UCPLabPotionSessionComponent* GetPotionSession() const; public으로 위치만 이동, 일단 cpp는 안 건들여서 cpp 함수 순서는 원래랑 같습니다!
 	FName GetActiveRequestId() const;
 	
 	// Spawn된 재료 초기화
