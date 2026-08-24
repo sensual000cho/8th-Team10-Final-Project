@@ -6,7 +6,11 @@
 #include "UI/Widgets/Base/CPBaseUserWidget.h"
 #include "CPCodexItemSlotWidget.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCodexItemSlotClicked, UCPForageableItemData*, ItemData);
+
 class UCPForageableItemData;
+class UButton;
+class UImage;
 /**
  * 
  */
@@ -16,7 +20,36 @@ class CREATEPOTION_API UCPCodexItemSlotWidget : public UCPBaseUserWidget
 	GENERATED_BODY()
 	
 public:
+	void BindEvents() override;
+	void UnbindEvents() override;
+
+	// --- Set 함수 ---
+	void SetItemData(UCPForageableItemData* NewItemData);
+	
+protected:
+	UFUNCTION(BlueprintCallable, Category = "UPCodexItemSlotWidget")
+	void HandleButtonClicked();
+	
+	UFUNCTION(BlueprintCallable, Category = "UPCodexItemSlotWidget")
+	
+	void InitSlotWidget();
+	
+
+public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	TObjectPtr<UCPForageableItemData> ItemData;
+	
+	// --- 델리게이트 ---
+	UPROPERTY(BlueprintAssignable, Category = "Item")
+	FOnCodexItemSlotClicked OnCodexItemSlotClicked;
+	
+private:
+	// --- 위젯 바인딩 ---
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UButton> Button_Item;
+	
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UImage> Image_Item;
+	
 };
 
