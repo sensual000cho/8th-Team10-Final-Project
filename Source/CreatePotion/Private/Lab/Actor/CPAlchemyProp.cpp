@@ -4,8 +4,6 @@
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Data/CPForageableItemData.h"
-#include "GameState/CPLabGameState.h"
-#include "Lab/Component/CPLabPotionSessionComponent.h"
 
 ACPAlchemyProp::ACPAlchemyProp()
 {
@@ -55,7 +53,8 @@ void ACPAlchemyProp::Tick(float DeltaSeconds)
 
 void ACPAlchemyProp::OnInteract_Implementation(AActor* Interactor)
 {
-    /* Legacy PotionSession 상호작용.
+    /*
+     * Legacy 상호작용.
      *
      * 새로운 GAS 집기에서는 CPInteractionComponent가
      * Event.Carry.Pickup을 전달하므로 이 함수가 호출되지 않음.

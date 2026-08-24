@@ -5,7 +5,6 @@
 #include "GameState/CPLabGameState.h"
 #include "Lab/Actor/CPAlchemyProp.h"
 #include "Lab/Actor/CPPotionActor.h"
-#include "Lab/Component/CPLabPotionSessionComponent.h"
 #include "PlayerState/CPLabPlayerState.h"
 #include "Quest/QuestManager.h"
 
@@ -78,17 +77,6 @@ FCPPotionDeliveryResult ACPLabGameMode::GetPotionDeliveryResult(FName QuestId, c
 	PotionDeliveryResult.TipAmount = 0;
 	
 	return PotionDeliveryResult;
-}
-
-ACPLabGameState* ACPLabGameMode::GetLabGameState() const
-{
-	return Cast<ACPLabGameState>(GameState);
-}
-
-UCPLabPotionSessionComponent* ACPLabGameMode::GetPotionSession() const
-{
-	const ACPLabGameState* LabState = GetLabGameState();
-	return LabState ? LabState->GetPotionSession() : nullptr;
 }
 
 bool ACPLabGameMode::HasActiveRequest() const

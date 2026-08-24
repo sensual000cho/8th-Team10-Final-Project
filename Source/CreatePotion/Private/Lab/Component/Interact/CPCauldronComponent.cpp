@@ -8,10 +8,8 @@
 #include "Components/StaticMeshComponent.h"
 #include "Data/CPForageableItemData.h"
 #include "GameMode/CPLabGameMode.h"
-#include "GameState/CPLabGameState.h"
 #include "Kismet/GameplayStatics.h"
 #include "Lab/Actor/CPAlchemyProp.h"
-#include "Lab/Component/CPLabPotionSessionComponent.h"
 
 UCPCauldronComponent::UCPCauldronComponent(): MaxSlotCount(3)
 {
@@ -199,25 +197,10 @@ void UCPCauldronComponent::HandleIngredientOverlap(
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
-	ACPAlchemyProp* Ingredient =
-		Cast<ACPAlchemyProp>(OtherActor);
+	ACPAlchemyProp* Ingredient = Cast<ACPAlchemyProp>(OtherActor);
 
-	if (!CanAcceptProp(Ingredient))
-	{
-		return;
-	}
-
-	/*
-	 * 정상적인 투척 흐름이라면 투척 순간 Session에서 이미
-	 * HeldAlchemyProp이 해제되어 있어야 한다.
-	 *
-	 * 아직 Session이 들고 있다고 판단되는 액터는
-	 * 머리 위에 있는 Held된 재료일 수 있으므로 받지 않음.
-	 */
-	if (!AddProp(Ingredient))
-	{
-		return;
-	}
+	if (!CanAcceptProp(Ingredient)) return;
+	if (!AddProp(Ingredient)) return;
 
 	ConfirmPotionIfReady();
 }

@@ -7,10 +7,8 @@
 #include "GameMode/CPLabGameMode.h"
 #include "UI/Widgets/Common/Dialogue/CPNPCDialogueWidget.h"
 #include "UI/Widgets/Lab/CPLabResultWidget.h"
-#include "GameState/CPLabGameState.h" 
 #include "Lab/Actor/CPAlchemyProp.h"
 #include "Lab/Actor/CPPotionActor.h"
-#include "Lab/Component/CPLabPotionSessionComponent.h"
 
 void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 {
@@ -33,14 +31,6 @@ void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 
 	UCPUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UCPUIManagerSubsystem>();
 	if (!UIManager) { return; }
-
-	// NPC가 담당하는 리퀘스트의 공방 Phase를 확인하기 이해 세션 컴포넌트를 가져온다
-	UCPLabPotionSessionComponent* SessionComp = nullptr;
-	if (UWorld* World = GetWorld()) {
-		if (ACPLabGameState* LabState = World->GetGameState<ACPLabGameState>()) {
-			SessionComp = LabState->GetPotionSession();
-		}
-	}
 
 	for (const FName& QuestID : NPCData->LabQuestIDs)
 	{
@@ -118,17 +108,7 @@ bool ACPLabNPC::CanInteract_Implementation(AActor* Interactor)
 	{
 		return true;
 	}
-
-	UWorld* World = GetWorld();
-	if (!World) return false;
 	
-	ACPLabGameState* LabGameState = World->GetGameState<ACPLabGameState>();
-	if (!LabGameState) return false;
-	
-	UCPLabPotionSessionComponent* SessionComp = LabGameState->GetPotionSession();
-	if (!SessionComp) return false;
-	
-	FCPLabPotionRequestState RequestState;
 	ACPLabGameMode* LabGameMode = Cast<ACPLabGameMode>(GetWorld()->GetAuthGameMode());
 	if (!LabGameMode || LabGameMode->GetActiveRequestId() != QuestID) return false;
 	
@@ -149,7 +129,6 @@ void ACPLabNPC::OpenResultWidget(AActor* Interactor)
 
 	UCPUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UCPUIManagerSubsystem>();
 	ACPLabGameMode* LabGameMode = Cast<ACPLabGameMode>(GetWorld()->GetAuthGameMode());
-	ACPLabGameState* LabGameState = World->GetGameState<ACPLabGameState>();
 	if (!UIManager || !LabGameMode || !ResultWidgetClass) return;
 
 	const FName QuestId = LabGameMode->GetActiveRequestId();

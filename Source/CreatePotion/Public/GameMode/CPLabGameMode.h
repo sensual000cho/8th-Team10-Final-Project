@@ -10,7 +10,6 @@ class ACPPotionActor;
 enum class EDeliveryGrade : uint8;
 class ACPAlchemyProp;
 class ACPLabGameState;
-class UCPLabPotionSessionComponent;
 class UCPForageableItemData;
 class UCPPotionData;
 
@@ -62,17 +61,13 @@ public:
 	// 상호작용으로 전달된 Potion Prop의 결과를 납품 결과 구조로 변환
 	UFUNCTION(BlueprintCallable, Category = "Lab|Result")
 	FCPPotionDeliveryResult GetPotionDeliveryResult(FName QuestId, const ACPPotionActor* PotionActor);
-
-	UCPLabPotionSessionComponent* GetPotionSession() const;
 	
 	UFUNCTION(BlueprintPure, Category = "Lab|Request")
 	bool HasActiveRequest() const;
 	
 	FName GetActiveRequestId() const;
 	
-private:
-	ACPLabGameState* GetLabGameState() const;
-	
+private:	
 	// Spawn된 재료 초기화
 	void ClearSpawnedIngredients();
 	

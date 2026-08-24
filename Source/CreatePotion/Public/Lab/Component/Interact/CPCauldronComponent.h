@@ -34,13 +34,13 @@ public:
 	TArray<FCPLabIngredientInstance> GetIngredientInstance() const;
 	
 private:
-	// PotionSession에서 Held 재료를 꺼내 투입
+	// Held 재료를 꺼내 투입
 	bool AddHeldProp(AActor* Interactor);
 
 	// F 방식과 투척 방식이 공통으로 사용하는 실제 투입 처리
 	bool AddProp(ACPAlchemyProp* Prop);
 
-	// 현재 세션과 가마솥이 해당 재료를 받을 수 있는지 검사
+	// 현재 가마솥이 해당 재료를 받을 수 있는지 검사
 	bool CanAcceptProp(const ACPAlchemyProp* Prop) const;
 
 	// 슬롯이 모두 찼다면 포션 제작
