@@ -5,7 +5,6 @@
 #include "GameState/CPLabGameState.h"
 #include "Lab/Actor/CPAlchemyProp.h"
 #include "Lab/Actor/CPPotionActor.h"
-#include "Lab/Component/CPLabPotionSessionComponent.h"
 #include "PlayerState/CPLabPlayerState.h"
 #include "Quest/QuestManager.h"
 
@@ -28,36 +27,21 @@ bool ACPLabGameMode::StartPotionRequest(FName QuestId)
 	PotionRequest.RequestId = QuestId;
 	PotionRequest.DisplayText = QuestManager->GetQuestSummaryText(QuestId);
 	
-	UCPLabPotionSessionComponent* Session = GetPotionSession();
-	if (!Session) return false;
-	
-	return Session->StartRequest(PotionRequest);
+	if (HasActiveRequest()) return false;
+
+	ActiveRequestId = QuestId;
+	PotionDeliveryResult = FCPPotionDeliveryResult{};
+	return true;
 }
 
 bool ACPLabGameMode::AdvancePotionRequest()
 {
-	UCPLabPotionSessionComponent* Session = GetPotionSession();
-	if (!Session) return false;
-	
-	FCPLabPotionRequestState ActiveRequestState;
-	if (!Session->GetActiveRequestState(ActiveRequestState)) return false;
-	
-	if (ActiveRequestState.Phase == ECPLabPotionRequestPhase::Selected){
-		return Session->SetRequestPhase(ECPLabPotionRequestPhase::Processing);
-	}
-	
-	if (ActiveRequestState.Phase == ECPLabPotionRequestPhase::Processing){
-		return Session->SetRequestPhase(ECPLabPotionRequestPhase::PotionReady);
-	}
-	
-	if (ActiveRequestState.Phase == ECPLabPotionRequestPhase::PotionReady){
-		Session->ResetRequest();
-		
-		PotionDeliveryResult = FCPPotionDeliveryResult{};
-		ClearSpawnedIngredients();
-		return true;
-	}
-	return false;
+	if (!HasActiveRequest()) return false;
+
+	ActiveRequestId = NAME_None;
+	PotionDeliveryResult = FCPPotionDeliveryResult{};
+	ClearSpawnedIngredients();
+	return true;
 }
 
 bool ACPLabGameMode::RefinePotion(const TArray<FGameplayTag>& EffectTags, const FTransform& SpawnTransform)
@@ -71,20 +55,19 @@ bool ACPLabGameMode::RefinePotion(const TArray<FGameplayTag>& EffectTags, const 
 	
 	if (!SpawnPotion(SortedEffectTags, SpawnTransform)) return false;
 	
-	return AdvancePotionRequest();
+	return true;
 }
 
-FCPPotionDeliveryResult ACPLabGameMode::GetPotionDeliveryResult(FName QuestId, const ACPAlchemyProp* PotionProp)
+FCPPotionDeliveryResult ACPLabGameMode::GetPotionDeliveryResult(FName QuestId, const ACPPotionActor* PotionActor)
 {
 	if (PotionDeliveryResult.QuestId == QuestId) return PotionDeliveryResult;
 	
 	PotionDeliveryResult = FCPPotionDeliveryResult{};
 	PotionDeliveryResult.QuestId = QuestId;
 	
-	if (QuestId.IsNone() || !IsValid(PotionProp)) return PotionDeliveryResult;
+	if (QuestId.IsNone() || !IsValid(PotionActor)) return PotionDeliveryResult;
 	
-	const FCPLabIngredientInstance PotionIngredient = PotionProp->GetWorkingIngredient();
-	PotionDeliveryResult.CurrentEffects = PotionIngredient.CurrentEffects;
+	PotionDeliveryResult.CurrentEffects = PotionActor->GetPotionEffectTags();
 	
 	UQuestManager* QuestManager = GetGameInstance() ? GetGameInstance()->GetSubsystem<UQuestManager>() : nullptr;
 	if (!QuestManager) return PotionDeliveryResult;
@@ -96,28 +79,14 @@ FCPPotionDeliveryResult ACPLabGameMode::GetPotionDeliveryResult(FName QuestId, c
 	return PotionDeliveryResult;
 }
 
-ACPLabGameState* ACPLabGameMode::GetLabGameState() const
+bool ACPLabGameMode::HasActiveRequest() const
 {
-	return Cast<ACPLabGameState>(GameState);
-}
-
-UCPLabPotionSessionComponent* ACPLabGameMode::GetPotionSession() const
-{
-	const ACPLabGameState* LabState = GetLabGameState();
-	return LabState ? LabState->GetPotionSession() : nullptr;
+	return !ActiveRequestId.IsNone();
 }
 
 FName ACPLabGameMode::GetActiveRequestId() const
 {
-	const UCPLabPotionSessionComponent* Session = GetPotionSession();
-	if (!Session) {
-		return NAME_None;
-	}
-
-	FCPLabPotionRequestState ActiveRequestState;
-	return Session->GetActiveRequestState(ActiveRequestState)
-		? ActiveRequestState.PotionRequest.RequestId
-		: NAME_None;
+	return ActiveRequestId;
 }
 
 void ACPLabGameMode::ClearSpawnedIngredients()

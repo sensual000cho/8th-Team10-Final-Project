@@ -1,10 +1,9 @@
 #include "Lab/Actor/CPAlchemyProp.h"
 
+#include "Character/CPCarryComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Data/CPForageableItemData.h"
-#include "GameState/CPLabGameState.h"
-#include "Lab/Component/CPLabPotionSessionComponent.h"
 
 ACPAlchemyProp::ACPAlchemyProp()
 {
@@ -54,45 +53,28 @@ void ACPAlchemyProp::Tick(float DeltaSeconds)
 
 void ACPAlchemyProp::OnInteract_Implementation(AActor* Interactor)
 {
-    /* Legacy PotionSession 상호작용.
+    /*
+     * Legacy 상호작용.
      *
      * 새로운 GAS 집기에서는 CPInteractionComponent가
      * Event.Carry.Pickup을 전달하므로 이 함수가 호출되지 않음.
      */
-    UWorld* World = GetWorld();
-    ACPLabGameState* LabGameState = World ? World->GetGameState<ACPLabGameState>() : nullptr;
-    UCPLabPotionSessionComponent* Session = LabGameState ? LabGameState->GetPotionSession() : nullptr;
+    UCPCarryComponent* CarryComponent = IsValid(Interactor)
+    ? Interactor->FindComponentByClass<UCPCarryComponent>()
+    : nullptr;
 
-    if (!Session)
+    if (!CarryComponent)
     {
         return;
     }
 
-    // 기존에 들고 있던 재료가 있다면 플레이어 앞에 내려놓는다.
-    ACPAlchemyProp* PreviousHeldProp = nullptr;
-
-    if (Session->ReleaseHeldAlchemyProp(PreviousHeldProp) && IsValid(PreviousHeldProp))
+    if (CarryComponent->HasHeldProp())
     {
-        FVector DropLocation = Interactor ? Interactor->GetActorForwardVector() * 100.f : FVector::ZeroVector;
-
-        if (IsValid(Interactor))
-        {
-            DropLocation += Interactor->GetActorLocation();
-        }
-
-        PreviousHeldProp->SetActorLocation(DropLocation);
-        PreviousHeldProp->SetActorHiddenInGame(false);
-        PreviousHeldProp->SetActorEnableCollision(true);
+        const FVector DropLocation = Interactor->GetActorLocation() + Interactor->GetActorForwardVector() * 100.f;
+        CarryComponent->DropHeldProp(DropLocation);
     }
 
-    // 기존 PotionSession 보유 방식
-    if (!Session->HoldAlchemyProp(this))
-    {
-        return;
-    }
-
-    SetActorHiddenInGame(true);
-    SetActorEnableCollision(false);
+    CarryComponent->AttachProp(this);
 }
 
 FText ACPAlchemyProp::GetInteractionPrompt_Implementation()
