@@ -22,9 +22,13 @@ class CREATEPOTION_API UCPForageableCodexWidget : public UCPBasePopupWidget
 public:
 	UCPForageableCodexWidget(const FObjectInitializer& ObjectInitializer);
 	
-	// 해당 WBP가 표시할 내용 설정
+	// 해당 WBP가 표시할 내용 설정(미사용)
 	UFUNCTION(BlueprintCallable, Category = "Codex")
 	void SetCodexEntry(const FCPForageableCodexEntry& InCodexEntry);
+	
+	// 해당 WBP가 표시할 채집물 설정
+	UFUNCTION(BlueprintCallable, Category = "Codex")
+	void SetForageableItem(UCPForageableItemData* InItemData);
 	
 protected:
 	virtual void NativeConstruct() override;
@@ -64,6 +68,9 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Txt_TagCombinationText;
 	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> Txt_HarvestCountText;
+	
 protected:
 	// 도감 데이터 서브시스템
 	UPROPERTY(BlueprintReadOnly, Category = "Codex")
@@ -73,7 +80,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Codex")
     TObjectPtr<UStringTable> CodexStringTable;
 	
-	// 현재 표시 대상 채집물 도감 Entry
+	// 현재 표시 대상 채집물 DA
 	UPROPERTY(BlueprintReadOnly, Category = "Codex")
-	FCPForageableCodexEntry CurrentCodexEntry;
+	TObjectPtr<UCPForageableItemData> CurrentItemData;
 };
