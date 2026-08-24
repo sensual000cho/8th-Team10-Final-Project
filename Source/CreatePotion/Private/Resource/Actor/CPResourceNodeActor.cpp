@@ -1,5 +1,6 @@
 #include "Resource/Actor/CPResourceNodeActor.h"
 #include "Data/CPResourceDefinition.h"
+#include "GameInstance/Subsystem/CPCodexSubsystem.h"
 #include "Resource/System/CPResourceStateSubsystem.h"
 #include "Resource/Component/CPHarvestComponent.h"
 #include "Resource/System/CPObjectPoolSubsystem.h"
@@ -34,20 +35,50 @@ void ACPResourceNodeActor::InitializeResource(const FCPResourceNodeKey& InNodeKe
 
 void ACPResourceNodeActor::OnInteract_Implementation(AActor* Interactor)
 {
-	//TODO: 처음 발견하는 거라면 조사하기
-	//Inspect(Interactor);
-	
-	//지금은 일단 채집 바로
-	Harvest(Interactor);
+	UGameInstance* GI = GetGameInstance();
+	if (GI)
+	{
+		UCPCodexSubsystem* CodexSubsystem = GI->GetSubsystem<UCPCodexSubsystem>();
+		if (CodexSubsystem)
+		{
+			// 처음 발견하는 거라면 조사하기
+			if (!CodexSubsystem->GetForageableEntry(ResourceDefinition->HarvestData.HarvestedItem))
+			{
+				Inspect(Interactor);
+			}
+
+			// 아니라면 수확
+			else
+			{
+				Harvest(Interactor);
+			}
+		}
+	}
 }
 
 FText ACPResourceNodeActor::GetInteractionPrompt_Implementation()
 {
-	//TODO: 처음 발견하는 거라면 조사하기
-	//return FText::FromString(TEXT("조사하기"));
+	UGameInstance* GI = GetGameInstance();
+	if (GI)
+	{
+		UCPCodexSubsystem* CodexSubsystem = GI->GetSubsystem<UCPCodexSubsystem>();
+		if (CodexSubsystem)
+		{
+			//처음 발견하는 거라면 조사하기
+			if (!CodexSubsystem->GetForageableEntry(ResourceDefinition->HarvestData.HarvestedItem))
+			{
+				return FText::FromString(TEXT("조사하기"));
+			}
+
+			//아니라면 채집
+			else
+			{
+				return FText::FromString(TEXT("채집하기"));
+			}
+		}
+	}
 	
-	//지금은 일단 채집 바로
-	return FText::FromString(TEXT("채집하기"));
+	return FText::FromString(TEXT("None"));
 }
 
 FName ACPResourceNodeActor::GetInteractionName_Implementation()
@@ -66,11 +97,27 @@ float ACPResourceNodeActor::GetInteractionDuration_Implementation(AActor* Intera
 {
 	if (!ResourceDefinition) return 0.f;
 	
-	//TODO: 처음 발견하는 거라면 고정값
-	//return InspectDuration;
+	UGameInstance* GI = GetGameInstance();
+	if (GI)
+	{
+		UCPCodexSubsystem* CodexSubsystem = GI->GetSubsystem<UCPCodexSubsystem>();
+		if (CodexSubsystem)
+		{
+			// 처음 발견하는 거라면 조사시간
+			if (!CodexSubsystem->GetForageableEntry(ResourceDefinition->HarvestData.HarvestedItem))
+			{
+				return InspectDuration;
+			}
+
+			// 아니라면 채집물 채집시간
+			else
+			{
+				return ResourceDefinition->HarvestData.HarvestDuration;
+			}
+		}
+	}
 	
-	//아니라면 채집물 채집시간
-	return ResourceDefinition->HarvestData.HarvestDuration;
+	return 0.f;
 }
 
 void ACPResourceNodeActor::OnAcquireFromPool_Implementation()
@@ -112,6 +159,11 @@ void ACPResourceNodeActor::Harvest(AActor* Interactor)
 	if (!StateSubsystem) return;
 	
 	StateSubsystem->MarkHarvested(NodeKey, ResourceDefinition->RespawnDuration);
+	
+	UCPCodexSubsystem* CodexSubsystem = GI->GetSubsystem<UCPCodexSubsystem>();
+	if (!CodexSubsystem) return;
+	
+	CodexSubsystem->RecordForageableEntry(ResourceDefinition->HarvestData.HarvestedItem);
 
 	UWorld* World = GetWorld();
 	if (!World) return;
@@ -124,5 +176,14 @@ void ACPResourceNodeActor::Harvest(AActor* Interactor)
 
 void ACPResourceNodeActor::Inspect(AActor* Interactor)
 {
-	//TODO: 도감 상태 갱신
+	if (!Interactor) return;
+	if (!ResourceDefinition) return;
+	
+	UGameInstance* GI = GetGameInstance();
+	if (!GI) return;
+	
+	UCPCodexSubsystem* CodexSubsystem = GI->GetSubsystem<UCPCodexSubsystem>();
+	if (!CodexSubsystem) return;
+	
+	CodexSubsystem->RecordForageableEntry(ResourceDefinition->HarvestData.HarvestedItem);
 }

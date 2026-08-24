@@ -39,7 +39,7 @@ public:
 			&& SlotIndex == Other.SlotIndex;
 	}
 	
-	// 해시 값 변환(빠른 검색을 위해)
+	// 해시 값 변환
 	friend uint32 GetTypeHash(const FCPResourceNodeKey& Key)
 	{
 		uint32 Hash = GetTypeHash(Key.LevelId);
