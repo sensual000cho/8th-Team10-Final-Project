@@ -2,10 +2,9 @@
 
 #include "Character/CPCarryComponent.h"
 
-#include "GameState/CPLabGameState.h"
+#include "GameMode/CPLabGameMode.h"
 #include "Lab/Actor/CPAlchemyProp.h"
 #include "Lab/Actor/CPThrowablePropBase.h"
-#include "Lab/Component/CPLabPotionSessionComponent.h"
 
 UCPCarryComponent::UCPCarryComponent() : ResetDropForwardDistance(100.f)
 {
@@ -161,10 +160,10 @@ ACPThrowablePropBase* UCPCarryComponent::GetHeldProp() const
 
 /*
  * -------------------------------------------------------------------------
- * Legacy / PotionSession 전용
+ * Legacy
  *
  * 새로운 Carry 시스템 및 GA에는 사용 X
- * 기존 BP나 세션이 바뀌면 제거 예정.
+ * 기존 BP가 정리되면 제거 예정.
  * -------------------------------------------------------------------------
  */
 bool UCPCarryComponent::TryThrowHeldAlchemyProp(float ThrowSpeed, float UpwardBias)
@@ -185,57 +184,12 @@ bool UCPCarryComponent::TryThrowHeldAlchemyProp(float ThrowSpeed, float UpwardBi
     }
 
     UWorld* World = GetWorld();
-
-    ACPLabGameState* LabGameState = World ? World->GetGameState<ACPLabGameState>() : nullptr;
-
-    UCPLabPotionSessionComponent* PotionSession = LabGameState ? LabGameState->GetPotionSession() : nullptr;
-
-    if (!PotionSession)
-    {
-        return false;
-    }
-
-    // 기존 세션 규칙: Processing 단계에서만 재료 투척 가능
-    if (!PotionSession->CanThrowHeldAlchemyProp())
-    {
-        return false;
-    }
-
-    // CarryComponent와 PotionSession이 같은 재료를 보관하는지 확인
-    if (PotionSession->GetHeldAlchemyProp() != HeldAlchemyProp)
-    {
-        return false;
-    }
+    const ACPLabGameMode* LabGameMode = World ? World->GetAuthGameMode<ACPLabGameMode>() : nullptr;
+    if (!LabGameMode || !LabGameMode->HasActiveRequest()) return false;
 
     const FVector ThrowDirection = (OwnerActor->GetActorForwardVector() + FVector::UpVector * UpwardBias).GetSafeNormal();
 
-    ACPAlchemyProp* ReleasedProp = nullptr;
-
-    // 기존 PotionSession에서 Held 참조 해제
-    if (!PotionSession->ReleaseHeldAlchemyProp(ReleasedProp))
-    {
-        return false;
-    }
-
-    if (ReleasedProp != HeldAlchemyProp)
-    {
-        // 세션 참조 불일치가 발생했다면 기존 상태로 복구
-        if (IsValid(ReleasedProp))
-        {
-            PotionSession->HoldAlchemyProp(ReleasedProp);
-        }
-
-        return false;
-    }
-
-    if (!ThrowHeldProp(ThrowDirection, ThrowSpeed))
-    {
-        // 실제 투척에 실패했다면 세션 Held 참조 복구
-        PotionSession->HoldAlchemyProp(HeldAlchemyProp);
-        return false;
-    }
-
-    return true;
+    return ThrowHeldProp(ThrowDirection, ThrowSpeed);
 }
 
 void UCPCarryComponent::SetHeldProp(ACPThrowablePropBase* NewHeldProp)

@@ -3,32 +3,10 @@
 #include "Components/TextBlock.h"
 #include "Components/HorizontalBox.h"
 #include "Components/Button.h"
-#include "Kismet/GameplayStatics.h"
 #include "Quest/QuestManager.h"
 #include "TimerManager.h"
 #include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
-#include "GameState/CPLabGameState.h" 
-#include "Lab/Component/CPLabPotionSessionComponent.h"
 #include "NPC/CPLabNPC.h"
-#include "GameMode/CPLabGameMode.h"
-
-void UCPNPCDialogueWidget::InitResultDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const FText& InDialogueText, ACPLabNPC* InSourceLabNPC)
-{
-    // [신규] 이전 대화의 여러 줄 상태가 남아있지 않도록 초기화
-    DialogueLines.Empty();
-    CurrentLineIndex = 0;
-
-    CurrentQuestID = InQuestID;
-    bCurrentIsWorkshopQuest = bIsWorkshopQuest;
-    SourceLabNPC = InSourceLabNPC;
-    bIsPotionResultDialogue = true; 
-
-    if (Text_NPCName) {
-        Text_NPCName->SetText(InNPCName);
-    }
-
-    PlayTypewriterEffect(InDialogueText);
-}
 
 // [신규] 여러 줄 대사(TArray<FText>)를 받는 오버로드.
 // DialogueLines에 배열을 저장하고, 0번째 줄부터 재생 시작.
@@ -69,6 +47,26 @@ void UCPNPCDialogueWidget::InitDialogueLines(bool bIsWorkshopQuest, FName InQues
     }
 
     PlayCurrentLine();
+}
+
+void UCPNPCDialogueWidget::InitResultDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName,
+    const FText& InDialogueText, class ACPLabNPC* InSourceLabNPC, AActor* InInteractor)
+{
+    // [신규] 이전 대화의 여러 줄 상태가 남아있지 않도록 초기화
+    DialogueLines.Empty();
+    CurrentLineIndex = 0;
+
+    CurrentQuestID = InQuestID;
+    bCurrentIsWorkshopQuest = bIsWorkshopQuest;
+    SourceLabNPC = InSourceLabNPC;
+    ResultInteractor = InInteractor;
+    bIsPotionResultDialogue = true;
+
+    if (Text_NPCName) {
+        Text_NPCName->SetText(InNPCName);
+    }
+
+    PlayTypewriterEffect(InDialogueText);
 }
 
 // [신규] DialogueLines[CurrentLineIndex]를 꺼내 타자기 효과로 재생.
@@ -124,7 +122,7 @@ void UCPNPCDialogueWidget::OnChoiceSelected(const FString& ButtonText) {
         if (ACPLabNPC* LabNPC = SourceLabNPC.Get())
         {
             // NPC에게 명령해서 ResultWidget을 열도록 함
-            LabNPC->OpenResultWidget();
+            LabNPC->OpenResultWidget(ResultInteractor.Get());
         }
         RequestClose(); // 대화창 닫기
         return;
@@ -140,24 +138,6 @@ void UCPNPCDialogueWidget::OnChoiceSelected(const FString& ButtonText) {
         if (ACPLabNPC* LabNPC = SourceLabNPC.Get())
         {
             LabNPC->SetRequestConfirmed(true);
-        }
-        if (UWorld* World = GetWorld())
-        {
-            if (ACPLabGameMode* LabGameMode = World->GetAuthGameMode<ACPLabGameMode>())
-            {
-                if (UCPLabPotionSessionComponent* Session = LabGameMode->GetPotionSession())
-                {
-                    FCPLabPotionRequestState ActiveRequestState;
-                    if (Session->GetActiveRequestState(ActiveRequestState))
-                    {
-                        if (ActiveRequestState.Phase == ECPLabPotionRequestPhase::Selected)
-                        {
-                            LabGameMode->AdvancePotionRequest();
-                            UE_LOG(LogTemp, Warning, TEXT("[CPNPCDialogueWidget] 포션 세션 상태 Selected-> Processing"));
-                        }
-                    }
-                }
-            }
         }
         RequestClose();
     }

@@ -12,11 +12,9 @@ class ACPThrowablePropBase;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FCPOnCarryHeldPropChanged, ACPThrowablePropBase*, HeldProp);
 
 /**
- * 플레이어가 들고 있는 공용 기능(부착, 투척, 해제) 
+ * 플레이어가 들고 있는 공용 기능(부착, 투척, 해제)
  *
  * Ingredient와 Potion 모두 ACPThrowablePropBase를 통해 동일하게 처리.
- * Carry 시스템은 CPLabPotionSessionComponent와 독립적으로 동작하도록 구현.
- * (기존 세션 시스템도 현재 동작하긴 함)
  *
  * 실제 입력과 상태 전환은 Gameplay Ability가 담당하고,
  * 지속적으로 유지해야 하는 Held 참조와 물리 처리는 현재 컴포넌트가 담당.
@@ -64,10 +62,7 @@ public:
     ACPThrowablePropBase* GetHeldProp() const;
 
     /*
-     * 기존 PotionSession 전용 임시 투척 함수.
-     *
-     * Processing 단계와 PotionSession의 HeldAlchemyProp을 확인하고
-     * 세션 참조를 해제한 뒤 재료를 투척.
+     * 기존 임시 투척 함수.
      *
      * 기존 BP와 코드의 호환성을 위해 당장은 유지(추후 삭제).
      * 새로운 GA 기반 Carry 시스템에서는 사용하지 않음.

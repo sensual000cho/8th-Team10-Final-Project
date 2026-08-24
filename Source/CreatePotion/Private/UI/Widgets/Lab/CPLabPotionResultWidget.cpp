@@ -5,8 +5,6 @@
 
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
-#include "GameState/CPLabGameState.h"
-#include "Lab/Component/CPLabPotionSessionComponent.h"
 #include "UI/Widgets/Lab/CPLabIngredientEffectRowWidget.h"
 
 void UCPLabPotionResultWidget::NativeConstruct()
@@ -14,56 +12,6 @@ void UCPLabPotionResultWidget::NativeConstruct()
 	Super::NativeConstruct();
 	
 	SetVisibility(ESlateVisibility::Collapsed);
-}
-
-void UCPLabPotionResultWidget::BindEvents()
-{
-	Super::BindEvents();
-	
-	UWorld* World = GetWorld();
-	if (!World) return;
-	
-	ACPLabGameState* LabGameState = World->GetGameState<ACPLabGameState>();
-	if (!LabGameState) return;
-	
-	BoundPotionSession = LabGameState->GetPotionSession();
-	if (!BoundPotionSession) return;
-	
-	BoundPotionSession->OnPotionResultChanged.AddUniqueDynamic(this, &UCPLabPotionResultWidget::HandlePotionResultChanged);
-	BoundPotionSession->OnSessionChanged.AddUniqueDynamic(this, &UCPLabPotionResultWidget::HandleSessionChanged);
-}
-
-void UCPLabPotionResultWidget::UnbindEvents()
-{
-	if (BoundPotionSession){
-		BoundPotionSession->OnPotionResultChanged.RemoveDynamic(this, &UCPLabPotionResultWidget::HandlePotionResultChanged);
-		BoundPotionSession->OnSessionChanged.RemoveDynamic(this, &UCPLabPotionResultWidget::HandleSessionChanged);
-		BoundPotionSession = nullptr;
-	}
-	
-	Super::UnbindEvents();
-}
-
-void UCPLabPotionResultWidget::HandlePotionResultChanged(const TArray<FGameplayTag>& EffectTotals)
-{
-	FCPLabPotionRequestState ActiveRequestState;
-	if (!BoundPotionSession || !BoundPotionSession->GetActiveRequestState(ActiveRequestState) || 
-		ActiveRequestState.Phase != ECPLabPotionRequestPhase::Processing) return;
-	
-	ReBuildEffectRows(EffectTotals);
-}
-
-void UCPLabPotionResultWidget::HandleSessionChanged()
-{
-	FCPLabPotionRequestState ActiveRequestState;
-	if (!BoundPotionSession || !BoundPotionSession->GetActiveRequestState(ActiveRequestState) || 
-		ActiveRequestState.Phase != ECPLabPotionRequestPhase::Processing){
-		SetVisibility(ESlateVisibility::Collapsed);
-		return;
-	}
-	
-	SetVisibility(ESlateVisibility::HitTestInvisible);
-	ReBuildEffectRows(BoundPotionSession->GetPotionResult());
 }
 
 void UCPLabPotionResultWidget::ReBuildEffectRows(const TArray<FGameplayTag>& EffectTotals)
