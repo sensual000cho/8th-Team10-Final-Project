@@ -23,18 +23,17 @@ void UCPCodexItemSlotWidget::UnbindEvents()
 	Super::UnbindEvents();
 }
 
-void UCPCodexItemSlotWidget::SetCodexEntry(const FCPForageableCodexEntry& NewCodexEntry)
+void UCPCodexItemSlotWidget::SetItemData(UCPForageableItemData* NewItemData)
 {
-	CodexEntry.Entry = NewCodexEntry.Entry;
-	CodexEntry.Level = NewCodexEntry.Level;
+	ItemData = NewItemData;
 	RefreshImage();
 }
 
 void UCPCodexItemSlotWidget::RefreshImage()
 {
-	if (!IsValid(CodexEntry.Entry)) return;
+	if (!IsValid(ItemData)) return;
 	
-	UTexture2D* LoadedTexture = CodexEntry.Entry->CodexImage.LoadSynchronous();
+	UTexture2D* LoadedTexture = ItemData->CodexImage.LoadSynchronous();
 	if (LoadedTexture)
 	{
 		Image_Item->SetBrushFromTexture(LoadedTexture);
@@ -48,12 +47,19 @@ void UCPCodexItemSlotWidget::RefreshImage()
 
 void UCPCodexItemSlotWidget::HandleSlotClicked()
 {
-	if(!IsValid(CodexEntry.Entry))
+	UE_LOG(LogTemp, Warning, TEXT("[CodexItemSlotWidget] HandleSlotClicked 호출됨"));
+	if(!IsValid(ItemData))
 	{
 		UE_LOG(LogTemp, Error, TEXT("[CPCodexItemSlotWidget] 아이템 데이터가 유효하지 않습니다."));
 		return;
 	}
 	
-	OnCodexItemSlotClicked.Broadcast(CodexEntry);
+	UGameInstance* GI = GetGameInstance();
+	if (!GI) return;
+	UCPCodexSubsystem* CodexSubsystem = GI->GetSubsystem<UCPCodexSubsystem>();
+	if (!CodexSubsystem) return;
+	
+	CodexSubsystem->OnCodexItemSelected.Broadcast(ItemData);
+	
 }
 

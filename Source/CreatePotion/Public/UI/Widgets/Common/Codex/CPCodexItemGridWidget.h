@@ -8,8 +8,6 @@
 #include "GameInstance/Subsystem/CPCodexSubsystem.h"
 #include "CPCodexItemGridWidget.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCodexGridItemClicked, const FCPForageableCodexEntry&, CodexEntry);
-
 class UCPCodexItemSlotWidget;
 /**
  * 
@@ -27,11 +25,9 @@ public:
 	void BindEvents() override;
 	void UnbindEvents() override;
 	
-	UFUNCTION()
-	void HandleSlotClicked(const FCPForageableCodexEntry& SelectedCodexEntry);
-	
 	// --- Set 함수 ---
-	void SetCodexEntries();
+	UFUNCTION(BlueprintCallable, Category = "UCPCodexItemGridWidget")
+	void SetItemData();
 	
 private:
 	void GenerateSlots();
@@ -43,14 +39,11 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Codex | Grid")
 	int32 GridRow;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Codex")
-	TObjectPtr<UCPCodexSubsystem> CodexSubsystem;
-	
 	UPROPERTY(EditAnywhere, Category = "Codex | Grid")
 	TSubclassOf<class UCPCodexItemSlotWidget> CodexItemSlotWidgetClass;	
-	
-	UPROPERTY(BlueprintAssignable, Category = "Codex | Grid")
-	FOnCodexGridItemClicked OnCodexGridItemClicked;
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Codex")
+	TObjectPtr<UCPCodexSubsystem> CodexSubsystem;
 private:
 	
 	// --- 위젯 바인딩 ---

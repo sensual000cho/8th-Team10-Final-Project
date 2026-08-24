@@ -7,8 +7,6 @@
 #include "GameInstance/Subsystem/CPCodexSubsystem.h"
 #include "CPCodexItemSlotWidget.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCodexItemSlotClicked, const FCPForageableCodexEntry&, SelectedCodexEntry);
-
 class UCPForageableItemData;
 class UButton;
 class UImage;
@@ -25,7 +23,7 @@ public:
 	void UnbindEvents() override;
 
 	// --- Set 함수 ---
-	void SetCodexEntry(const FCPForageableCodexEntry& NewCodexEntry);
+	void SetItemData(UCPForageableItemData* NewItemData);
 	
 protected:
 	UFUNCTION(BlueprintCallable, Category = "UPCodexItemSlotWidget")
@@ -36,12 +34,8 @@ protected:
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
-	FCPForageableCodexEntry CodexEntry;
-	
-	// --- 델리게이트 ---
-	UPROPERTY(BlueprintAssignable, Category = "Item")
-	FOnCodexItemSlotClicked OnCodexItemSlotClicked;
-	
+	TObjectPtr<UCPForageableItemData> ItemData;
+
 private:
 	// --- 위젯 바인딩 ---
 	UPROPERTY(meta=(BindWidget))

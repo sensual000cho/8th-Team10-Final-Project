@@ -13,43 +13,43 @@ UCPCodexItemGridWidget::UCPCodexItemGridWidget()
 
 void UCPCodexItemGridWidget::NativeConstruct()
 {
-	Super::NativeConstruct();
-	
 	UGameInstance* GI = GetGameInstance();
 	if (!GI) return;
 	CodexSubsystem = GI->GetSubsystem<UCPCodexSubsystem>();
 	if (!CodexSubsystem) return;
 	
+	Super::NativeConstruct();
+	
 	GenerateSlots();
+	SetItemData();
 }
 
 void UCPCodexItemGridWidget::BindEvents()
 {
 	Super::BindEvents();
-	CodexSubsystem->OnForageableCodexUpdated.AddUniqueDynamic(this, &UCPCodexItemGridWidget::SetCodexEntries);
+	CodexSubsystem->OnForageableCodexUpdated.AddUniqueDynamic(this, &UCPCodexItemGridWidget::SetItemData);
 }
 
 void UCPCodexItemGridWidget::UnbindEvents()
 {
 	Super::UnbindEvents();
-	CodexSubsystem->OnForageableCodexUpdated.RemoveDynamic(this, &UCPCodexItemGridWidget::SetCodexEntries);
+	CodexSubsystem->OnForageableCodexUpdated.RemoveDynamic(this, &UCPCodexItemGridWidget::SetItemData);
 }
 
-void UCPCodexItemGridWidget::HandleSlotClicked(const FCPForageableCodexEntry& SelectedCodexEntry)
+void UCPCodexItemGridWidget::SetItemData()
 {
-	OnCodexGridItemClicked.Broadcast(SelectedCodexEntry);
-}
-
-void UCPCodexItemGridWidget::SetCodexEntries()
-{
-	
-	TArray<FCPForageableCodexEntry> CodexEntries = CodexSubsystem->GetForageableCodexEntries();
+	TArray<UCPForageableItemData*> ItemDatas = CodexSubsystem->GetRegisteredForageableItems();
 	
 	for (int32 i = 0; i < SlotWidgets.Num(); ++i)
 	{
-		if (CodexEntries.IsValidIndex(i))
+		if (ItemDatas.IsValidIndex(i))
 		{
-			SlotWidgets[i]->SetCodexEntry(CodexEntries[i]);
+			UE_LOG(LogTemp, Warning, TEXT("Slot [%d]에 할당된 아이템 이름: %s"), i, *ItemDatas[i]->GetName());
+			SlotWidgets[i]->SetItemData(ItemDatas[i]);
+		}
+		else
+		{
+			continue;
 		}
 	}
 }
@@ -75,8 +75,6 @@ void UCPCodexItemGridWidget::GenerateSlots()
 		const int32 Col = i % GridColumn;
 		
 		Grid_ItemCodex->AddChildToUniformGrid(NewSlot, Row, Col);
-		
-		NewSlot->OnCodexItemSlotClicked.AddDynamic(this, &UCPCodexItemGridWidget::HandleSlotClicked);
 		
 		SlotWidgets.Add(NewSlot);
 	}
