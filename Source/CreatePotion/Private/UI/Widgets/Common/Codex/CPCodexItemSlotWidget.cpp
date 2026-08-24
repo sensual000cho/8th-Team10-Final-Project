@@ -8,6 +8,7 @@
 #include "Components/Image.h"
 #include "Components/Button.h"
 #include "GameInstance/Subsystem/CPCodexSubsystem.h"
+#include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
 
 void UCPCodexItemSlotWidget::BindEvents()
 {
@@ -60,6 +61,5 @@ void UCPCodexItemSlotWidget::HandleSlotClicked()
 	if (!CodexSubsystem) return;
 	
 	CodexSubsystem->OnCodexItemSelected.Broadcast(ItemData);
-	
 }
 

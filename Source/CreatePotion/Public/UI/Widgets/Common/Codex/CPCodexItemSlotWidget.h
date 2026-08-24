@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/Widgets/Base/CPBaseUserWidget.h"
+#include "UI/Widgets/Base/CPBaseFixedWidget.h"
 #include "GameInstance/Subsystem/CPCodexSubsystem.h"
 #include "CPCodexItemSlotWidget.generated.h"
 

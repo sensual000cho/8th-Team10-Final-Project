@@ -47,4 +47,5 @@ void UCPCodexMainWidget::OpenItemDetail(UCPForageableItemData* SelectedItemData)
 	}
 	
 	DetailWidget->SetForageableItem(SelectedItemData);
+	
 }
