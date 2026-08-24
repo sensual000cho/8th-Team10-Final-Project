@@ -1,8 +1,75 @@
 #include "Lab/Actor/CPAlchemyProp.h"
 
+#include "Components/SceneComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Data/CPForageableItemData.h"
 #include "GameState/CPLabGameState.h"
 #include "Lab/Component/CPLabPotionSessionComponent.h"
+
+ACPAlchemyProp::ACPAlchemyProp()
+{
+    PrimaryActorTick.bCanEverTick = true;
+    PrimaryActorTick.bStartWithTickEnabled = true;
+    PrimaryActorTick.TickGroup = TG_PostPhysics;
+
+    IngredientUprightPivot = CreateDefaultSubobject<USceneComponent>(TEXT("IngredientUprightPivot"));
+    IngredientUprightPivot->SetupAttachment(StaticMeshComponent);
+
+    IngredientBobblePivot = CreateDefaultSubobject<USceneComponent>(TEXT("IngredientBobblePivot"));
+    IngredientBobblePivot->SetupAttachment(IngredientUprightPivot);
+
+    IngredientMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("IngredientMesh"));
+    IngredientMeshComponent->SetupAttachment(IngredientBobblePivot);
+    IngredientMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    IngredientMeshComponent->SetGenerateOverlapEvents(false);
+    IngredientMeshComponent->SetSimulatePhysics(false);
+    IngredientMeshComponent->SetCanEverAffectNavigation(false);
+}
+
+void ACPAlchemyProp::BeginPlay()
+{
+    Super::BeginPlay();
+
+    const bool bHasPresentationMesh = IsValid(IngredientUprightPivot) && IsValid(IngredientBobblePivot) && IsValid(IngredientMeshComponent) && IsValid(IngredientMeshComponent->GetStaticMesh());
+    SetActorTickEnabled(bEnableIngredientBobble && bHasPresentationMesh);
+
+    if (!bHasPresentationMesh)
+    {
+        return;
+    }
+
+    IngredientBobbleBaseLocation = IngredientBobblePivot->GetRelativeLocation();
+    BobbleElapsedTime = 0.f;
+}
+
+void ACPAlchemyProp::Tick(float DeltaSeconds)
+{
+    Super::Tick(DeltaSeconds);
+
+    UpdateIngredientPresentation(DeltaSeconds);
+}
+
+void ACPAlchemyProp::UpdateIngredientPresentation(float DeltaSeconds)
+{
+    if (!bEnableIngredientBobble || !IsValid(IngredientUprightPivot) || !IsValid(IngredientBobblePivot))
+    {
+        return;
+    }
+
+    if (UprightRecoverySpeed > 0.f)
+    {
+        const FRotator CurrentRotation = IngredientUprightPivot->GetComponentRotation();
+        const FRotator TargetRotation(0.f, CurrentRotation.Yaw, 0.f);
+        const FRotator UprightRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaSeconds, UprightRecoverySpeed);
+        IngredientUprightPivot->SetWorldRotation(UprightRotation);
+    }
+
+    BobbleElapsedTime += DeltaSeconds * BobbleSpeed * 2.f * UE_PI;
+    BobbleElapsedTime = FMath::Fmod(BobbleElapsedTime, 2.f * UE_PI);
+
+    const float BobbleOffset = FMath::Sin(BobbleElapsedTime) * BobbleAmplitude;
+    IngredientBobblePivot->SetRelativeLocation(IngredientBobbleBaseLocation + FVector::UpVector * BobbleOffset);
+}
 
 void ACPAlchemyProp::OnInteract_Implementation(AActor* Interactor)
 {
