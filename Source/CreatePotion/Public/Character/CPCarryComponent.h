@@ -6,52 +6,93 @@
 #include "Components/SceneComponent.h"
 #include "CPCarryComponent.generated.h"
 
+class AActor;
 class ACPThrowablePropBase;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FCPOnCarryHeldPropChanged, ACPThrowablePropBase*, HeldProp);
+
 /**
- * 플레이어가 들고 있는 Prop의 부착과 투척을 관리한다.
+ * 플레이어가 들고 있는 공용 기능(부착, 투척, 해제) 
  *
- * 현재 재료의 세션 보유 상태는 CPLabPotionSessionComponent와
- * 동기화하여 사용한다.
+ * Ingredient와 Potion 모두 ACPThrowablePropBase를 통해 동일하게 처리.
+ * Carry 시스템은 CPLabPotionSessionComponent와 독립적으로 동작하도록 구현.
+ * (기존 세션 시스템도 현재 동작하긴 함)
+ *
+ * 실제 입력과 상태 전환은 Gameplay Ability가 담당하고,
+ * 지속적으로 유지해야 하는 Held 참조와 물리 처리는 현재 컴포넌트가 담당.
  */
 UCLASS(ClassGroup = (Carry), meta = (BlueprintSpawnableComponent))
 class CREATEPOTION_API UCPCarryComponent : public USceneComponent
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:
-	UCPCarryComponent();
+    UCPCarryComponent();
 
-	// Prop을 이 컴포넌트 위치에 부착
-	UFUNCTION(BlueprintCallable, Category = "Carry")
-	bool AttachProp(ACPThrowablePropBase* Prop);
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-	// Prop을 분리하고 월드에 배치
-	UFUNCTION(BlueprintCallable, Category = "Carry")
-	bool DetachProp(ACPThrowablePropBase* Prop, const FVector& DropLocation);
+    // 현재 Prop을 부착할 수 있는지 확인
+    UFUNCTION(BlueprintPure, Category = "Carry")
+    bool CanAttachProp(ACPThrowablePropBase* Prop) const;
 
-	UFUNCTION(BlueprintPure, Category = "Carry")
-	bool HasHeldProp() const;
+    // Prop을 이 컴포넌트 위치에 부착하고 Held 참조로 등록
+    UFUNCTION(BlueprintCallable, Category = "Carry")
+    bool AttachProp(ACPThrowablePropBase* Prop);
 
-	UFUNCTION(BlueprintPure, Category = "Carry")
-	ACPThrowablePropBase* GetHeldProp() const;
+    // 지정한 Held Prop을 분리하고 월드 위치에 배치
+    UFUNCTION(BlueprintCallable, Category = "Carry")
+    bool DetachProp(ACPThrowablePropBase* Prop, const FVector& DropLocation);
 
-	/*
-	 * 임시 테스트용 재료 투척 함수.
-	 *
-	 * Processing 단계인지 확인하고,
-	 * PotionSession에서 재료를 해제한 뒤 투척한다.
-	 *
-	 * 이후 GA_ThrowIngredient가 만들어지면
-	 * 세션 검사는 Ability로 이동.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "Carry|Throw")
-	bool TryThrowHeldAlchemyProp(float ThrowSpeed = 800.f, float UpwardBias = 0.2f);
+    // 현재 Held Prop을 지정한 월드 위치에 내려놓음
+    UFUNCTION(BlueprintCallable, Category = "Carry")
+    bool DropHeldProp(const FVector& DropLocation);
 
-	// 공통 Prop 물리 투척
-	bool ThrowHeldProp(const FVector& Direction, float Speed);
+    // 현재 Held Prop을 지정한 방향과 속도로 투척
+    // 새로운 GA_ThrowThrowable은 이 함수를 사용한다.
+    UFUNCTION(BlueprintCallable, Category = "Carry|Throw")
+    bool ThrowHeldProp(const FVector& Direction, float Speed);
+
+    // Held 상태를 강제로 초기화
+    // 캐릭터 리셋이나 비정상적인 Ability 취소 복구 시 사용
+    UFUNCTION(BlueprintCallable, Category = "Carry")
+    void ResetCarryState();
+
+    UFUNCTION(BlueprintPure, Category = "Carry")
+    bool HasHeldProp() const;
+
+    UFUNCTION(BlueprintPure, Category = "Carry")
+    ACPThrowablePropBase* GetHeldProp() const;
+
+    /*
+     * 기존 PotionSession 전용 임시 투척 함수.
+     *
+     * Processing 단계와 PotionSession의 HeldAlchemyProp을 확인하고
+     * 세션 참조를 해제한 뒤 재료를 투척.
+     *
+     * 기존 BP와 코드의 호환성을 위해 당장은 유지(추후 삭제).
+     * 새로운 GA 기반 Carry 시스템에서는 사용하지 않음.
+     */
+    UFUNCTION(BlueprintCallable, Category = "Carry|Legacy")
+    bool TryThrowHeldAlchemyProp(float ThrowSpeed = 800.f, float UpwardBias = 0.2f);
+
+public:
+    // 현재 들고 있는 Prop이 변경되었음을 알림
+    UPROPERTY(BlueprintAssignable, Category = "Carry")
+    FCPOnCarryHeldPropChanged OnHeldPropChanged;
 
 private:
-	UPROPERTY()
-	TObjectPtr<ACPThrowablePropBase> HeldProp;
+    // Held 참조 변경과 OnDestroyed 바인딩을 한곳에서 처리
+    void SetHeldProp(ACPThrowablePropBase* NewHeldProp);
+
+    // 들고 있는 Prop이 외부에서 파괴됐을 때 참조 정리
+    UFUNCTION()
+    void HandleHeldPropDestroyed(AActor* DestroyedActor);
+
+private:
+    // ResetCarryState 호출 시 캐릭터 전방에 내려놓을 거리
+    UPROPERTY(EditAnywhere, Category = "Carry", meta = (ClampMin = "0.0"))
+    float ResetDropForwardDistance;
+
+    UPROPERTY(VisibleInstanceOnly, Category = "Carry")
+    TObjectPtr<ACPThrowablePropBase> HeldProp;
 };

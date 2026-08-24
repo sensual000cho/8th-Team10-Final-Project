@@ -5,10 +5,11 @@
 #include "Components/UniformGridSlot.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
-#include "Components/SizeBox.h"				// 사이즈 조절
+#include "Components/SizeBox.h"		// 사이즈 조절
 
 #include "CreatePotion.h"   // 로그용 헤더
 #include "UI/Widgets/Common/Container/CPItemSlotWidget.h"
+#include "UI/Widgets/Common/Container/CPBlankGridSlotWidget.h"
 #include "Components/CPItemContainerComponent.h"
 
 void UCPContainerGridWidget::InitializeGrid(UCPItemContainerComponent* TargetContainer)
@@ -37,9 +38,12 @@ void UCPContainerGridWidget::InitializeGrid(UCPItemContainerComponent* TargetCon
 	// 텅 빈 배경 Grid를 Column, Row에 맞춰 배치
 	for (int32 i = 0; i < TotalSlots; ++i)
 	{
-		UUserWidget* BgSlot = CreateWidget<UUserWidget>(this, BackgroundSlotClass);
+		UCPBlankGridSlotWidget* BgSlot = CreateWidget<UCPBlankGridSlotWidget>(this, BackgroundSlotClass);
 		if (BgSlot)
 		{
+			BgSlot->OwnerContainer = TargetContainer;
+			BgSlot->SlotGridIndex = i;
+
 			int32 Row = 0;
 			int32 Col = i;
 
@@ -140,7 +144,7 @@ void UCPContainerGridWidget::UpdateGrid(const TArray<FContainerItem>& ContainerI
 
 			NewItemWidget->UpdateSlot(Item);
 			NewItemWidget->OwnerContainer = CachedContainer;
-			NewItemWidget->CachedItemData = Item;
+			// NewItemWidget->CachedItemData = Item; // UpdateSlot(Item)에서 이미 처리
 		}
 	}
 }

@@ -87,11 +87,11 @@ void UCPInventoryComponent::TryBindInput()
 
 void UCPInventoryComponent::ToggleInventoryUI()
 {
-	UE_LOG(LogTemp, Warning, TEXT("[Inventory] 토글 버튼 눌림!"));
+	UE_LOG(LogTemp, Warning, TEXT("[Inventory] Toggle"));
 
 	if (!InventoryUIInstance)
 	{
-		UE_LOG(LogTemp, Error, TEXT("[Inventory] UI 인스턴스가 없어서 리턴됨!"));
+		UE_LOG(LogTemp, Error, TEXT("[Inventory] UI Instance를 찾을 수 없음"));
 		return;
 	}
 

@@ -7,15 +7,15 @@
 class UTextBlock;
 class UHorizontalBox;
 class UCPNPCDialogueButtonWidget;
-class UCPTagSelectionWidget;
+class UButton;
 
 UCLASS()
 class CREATEPOTION_API UCPNPCDialogueWidget : public UCPBasePopupWidget {
     GENERATED_BODY()
 
 public:
-    UFUNCTION(BlueprintCallable, Category = "Dialogue")
-    void InitDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const FText& InDialogueText, class ACPLabNPC* InSourceLabNPC = nullptr);
+    //UFUNCTION(BlueprintCallable, Category = "Dialogue")
+   // void InitDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const FText& InDialogueText, class ACPLabNPC* InSourceLabNPC = nullptr);
 
     // [신규] 여러 줄 대사(TArray<FText>)를 순서대로 타이핑해서 보여주기 위한 함수
     // UFUNCTION 오버로드가 블루프린트에서 지원되지 않아 이름을 다르게 지정
@@ -27,6 +27,12 @@ public:
 protected:
     virtual void BindEvents() override;
     virtual void UnbindEvents() override;
+
+    // 마우스 좌클릭 감지
+    virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+
+    // 스페이스바 등 키보드 입력 감지
+    virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 
 private:
     UFUNCTION()
@@ -44,6 +50,13 @@ private:
     // "다음" 버튼 하나만 표시하기 위한 함수. ( 줄 넘기기 전용, 기존 CreateChoiceButtons와는 별개)
     void CreateContinueButton();
 
+    // 전체 대화 스킵 버튼 클릭 시 호출
+    UFUNCTION()
+    void OnSkipAllClicked();
+
+    // 진행 중인 타이핑을 즉시 끝내고 전체 텍스트를 보여주는 함수
+    void SkipTypewriterEffect();
+
 protected:
     UPROPERTY(meta = (BindWidget))
     TObjectPtr<UTextBlock> Text_NPCName;
@@ -54,11 +67,11 @@ protected:
     UPROPERTY(meta = (BindWidget))
     TObjectPtr<UHorizontalBox> HBox_ChoiceList;
 
+    UPROPERTY(meta = (BindWidgetOptional))
+    TObjectPtr<UButton> Button_SkipAll;
+
     UPROPERTY(EditDefaultsOnly, Category = "Dialogue")
     TSubclassOf<UCPNPCDialogueButtonWidget> DialogueButtonClass;
-
-    UPROPERTY(EditDefaultsOnly, Category = "UI")
-    TSubclassOf<UCPTagSelectionWidget> TagSelectionWidgetClass;
 
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue|Typewriter")

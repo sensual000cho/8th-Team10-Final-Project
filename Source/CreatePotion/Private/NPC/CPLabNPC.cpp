@@ -83,7 +83,10 @@ void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 			if (ActiveDialogueWidget)
 			{
 				FText NPCNameText = FText::FromName(NPCData->NPCName);
-				ActiveDialogueWidget->InitDialogue(true, QuestID, NPCNameText, FirstHint, this);
+				TArray<FText> DialogueLines;
+				DialogueLines.Add(FirstHint);
+
+				ActiveDialogueWidget->InitDialogueLines(true,QuestID,NPCNameText,DialogueLines,this);
 			}
 		}
 		break;
@@ -100,7 +103,10 @@ bool ACPLabNPC::CanInteract_Implementation(AActor* Interactor)
 	if (QuestManager->GetQuestState(QuestID) != EQuestState::Accepted) {
 		return false;
 	}
-
+	if (QuestManager->GetQuestHintLevel(QuestID) < 2)
+	{
+		return true;
+	}
 	if (!bRequestConfirmed)
 	{
 		return true;
