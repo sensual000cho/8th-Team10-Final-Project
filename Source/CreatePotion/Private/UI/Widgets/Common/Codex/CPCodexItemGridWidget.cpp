@@ -11,20 +11,45 @@ UCPCodexItemGridWidget::UCPCodexItemGridWidget()
 {
 }
 
-void UCPCodexItemGridWidget::HandleSlotClicked(UCPForageableItemData* ItemData)
+void UCPCodexItemGridWidget::NativeConstruct()
 {
-	OnCodexGridItemClicked.Broadcast(ItemData);
+	Super::NativeConstruct();
+	
+	UGameInstance* GI = GetGameInstance();
+	if (!GI) return;
+	CodexSubsystem = GI->GetSubsystem<UCPCodexSubsystem>();
+	if (!CodexSubsystem) return;
+	
+	GenerateSlots();
 }
 
-void UCPCodexItemGridWidget::InitGrid(const TArray<class UCPForageableItemData*>& ItemDatas)
+void UCPCodexItemGridWidget::BindEvents()
 {
-	GenerateSlots();
+	Super::BindEvents();
+	CodexSubsystem->OnForageableCodexUpdated.AddUniqueDynamic(this, &UCPCodexItemGridWidget::SetCodexEntries);
+}
+
+void UCPCodexItemGridWidget::UnbindEvents()
+{
+	Super::UnbindEvents();
+	CodexSubsystem->OnForageableCodexUpdated.RemoveDynamic(this, &UCPCodexItemGridWidget::SetCodexEntries);
+}
+
+void UCPCodexItemGridWidget::HandleSlotClicked(const FCPForageableCodexEntry& SelectedCodexEntry)
+{
+	OnCodexGridItemClicked.Broadcast(SelectedCodexEntry);
+}
+
+void UCPCodexItemGridWidget::SetCodexEntries()
+{
+	
+	TArray<FCPForageableCodexEntry> CodexEntries = CodexSubsystem->GetForageableCodexEntries();
 	
 	for (int32 i = 0; i < SlotWidgets.Num(); ++i)
 	{
-		if (ItemDatas.IsValidIndex(i))
+		if (CodexEntries.IsValidIndex(i))
 		{
-			SlotWidgets[i]->SetItemData(ItemDatas[i]);
+			SlotWidgets[i]->SetCodexEntry(CodexEntries[i]);
 		}
 	}
 }

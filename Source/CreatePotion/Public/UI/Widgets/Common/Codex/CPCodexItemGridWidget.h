@@ -5,9 +5,10 @@
 #include "CoreMinimal.h"
 #include "UI/Widgets/Base/CPBaseUserWidget.h"
 #include "Data/CPForageableItemData.h"
+#include "GameInstance/Subsystem/CPCodexSubsystem.h"
 #include "CPCodexItemGridWidget.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCodexGridItemClicked, UCPForageableItemData*, ItemData);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCodexGridItemClicked, const FCPForageableCodexEntry&, CodexEntry);
 
 class UCPCodexItemSlotWidget;
 /**
@@ -21,11 +22,16 @@ class CREATEPOTION_API UCPCodexItemGridWidget : public UCPBaseUserWidget
 public:
 	UCPCodexItemGridWidget();
 	
-	UFUNCTION()
-	void HandleSlotClicked(UCPForageableItemData* ItemData);
+	void NativeConstruct() override;
 	
-	void InitGrid(const TArray<class UCPForageableItemData*>& ItemDatas);
-
+	void BindEvents() override;
+	void UnbindEvents() override;
+	
+	UFUNCTION()
+	void HandleSlotClicked(const FCPForageableCodexEntry& SelectedCodexEntry);
+	
+	// --- Set 함수 ---
+	void SetCodexEntries();
 	
 private:
 	void GenerateSlots();
@@ -37,12 +43,16 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Codex | Grid")
 	int32 GridRow;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Codex")
+	TObjectPtr<UCPCodexSubsystem> CodexSubsystem;
+	
 	UPROPERTY(EditAnywhere, Category = "Codex | Grid")
 	TSubclassOf<class UCPCodexItemSlotWidget> CodexItemSlotWidgetClass;	
 	
 	UPROPERTY(BlueprintAssignable, Category = "Codex | Grid")
 	FOnCodexGridItemClicked OnCodexGridItemClicked;
 private:
+	
 	// --- 위젯 바인딩 ---
 	UPROPERTY(meta = (BindWidget))	
 	TObjectPtr<class UUniformGridPanel> Grid_ItemCodex;

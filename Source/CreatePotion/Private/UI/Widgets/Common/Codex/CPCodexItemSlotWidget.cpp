@@ -7,43 +7,34 @@
 // --- UI Components ---
 #include "Components/Image.h"
 #include "Components/Button.h"
+#include "GameInstance/Subsystem/CPCodexSubsystem.h"
 
 void UCPCodexItemSlotWidget::BindEvents()
 {
 	Super::BindEvents();
-	Button_Item->OnClicked.AddDynamic(this, &UCPCodexItemSlotWidget::HandleButtonClicked);
+	Button_Item->OnClicked.AddDynamic(this, &UCPCodexItemSlotWidget::HandleSlotClicked);
 	
-	InitSlotWidget();
+	RefreshImage();
 }
 
 void UCPCodexItemSlotWidget::UnbindEvents()
 {
-	Button_Item->OnClicked.RemoveDynamic(this, &UCPCodexItemSlotWidget::HandleButtonClicked);
+	Button_Item->OnClicked.RemoveDynamic(this, &UCPCodexItemSlotWidget::HandleSlotClicked);
 	Super::UnbindEvents();
 }
 
-void UCPCodexItemSlotWidget::SetItemData(UCPForageableItemData* NewItemData)
+void UCPCodexItemSlotWidget::SetCodexEntry(const FCPForageableCodexEntry& NewCodexEntry)
 {
-	ItemData = NewItemData;
-	InitSlotWidget();
+	CodexEntry.Entry = NewCodexEntry.Entry;
+	CodexEntry.Level = NewCodexEntry.Level;
+	RefreshImage();
 }
 
-void UCPCodexItemSlotWidget::HandleButtonClicked()
+void UCPCodexItemSlotWidget::RefreshImage()
 {
-	if(!IsValid(ItemData))
-	{
-		UE_LOG(LogTemp, Error, TEXT("[CPCodexItemSlotWidget] 아이템 데이터가 지정되지 않았습니다."));
-		return;
-	}
+	if (!IsValid(CodexEntry.Entry)) return;
 	
-	OnCodexItemSlotClicked.Broadcast(ItemData);
-}
-
-void UCPCodexItemSlotWidget::InitSlotWidget()
-{
-	if (!IsValid(ItemData)) return;
-	
-	UTexture2D* LoadedTexture = ItemData->CodexImage.LoadSynchronous();
+	UTexture2D* LoadedTexture = CodexEntry.Entry->CodexImage.LoadSynchronous();
 	if (LoadedTexture)
 	{
 		Image_Item->SetBrushFromTexture(LoadedTexture);
@@ -52,5 +43,17 @@ void UCPCodexItemSlotWidget::InitSlotWidget()
 	{
 		UE_LOG(LogTemp, Error, TEXT("[CPCodexItemSlotWidget] 아이템 아이콘 텍스쳐가 nullptr입니다."));
 	}
-	
 }
+
+
+void UCPCodexItemSlotWidget::HandleSlotClicked()
+{
+	if(!IsValid(CodexEntry.Entry))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[CPCodexItemSlotWidget] 아이템 데이터가 유효하지 않습니다."));
+		return;
+	}
+	
+	OnCodexItemSlotClicked.Broadcast(CodexEntry);
+}
+
