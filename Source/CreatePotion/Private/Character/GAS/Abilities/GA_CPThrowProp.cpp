@@ -67,7 +67,7 @@ void UGA_CPThrowProp::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
         return;
     }
 
-    const FVector ThrowDirection = CalculateThrowDirection(ActorInfo);
+    const FVector ThrowDirection = CalculateThrowDirection(ActorInfo->AvatarActor.Get(), ActorInfo->PlayerController.Get());
 
     if (ThrowDirection.IsNearlyZero())
     {
@@ -90,6 +90,11 @@ void UGA_CPThrowProp::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
     EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
 }
 
+float UGA_CPThrowProp::GetThrowSpeed() const
+{
+    return ThrowSpeed;
+}
+
 UCPCarryComponent* UGA_CPThrowProp::FindCarryComponent(const FGameplayAbilityActorInfo* ActorInfo) const
 {
     if (!ActorInfo)
@@ -107,22 +112,16 @@ UCPCarryComponent* UGA_CPThrowProp::FindCarryComponent(const FGameplayAbilityAct
     return AvatarActor->FindComponentByClass<UCPCarryComponent>();
 }
 
-FVector UGA_CPThrowProp::CalculateThrowDirection(const FGameplayAbilityActorInfo* ActorInfo) const
+FVector UGA_CPThrowProp::CalculateThrowDirection(const AActor* AvatarActor, const APlayerController* PlayerController) const
 {
-    if (!ActorInfo)
-    {
-        return FVector::ZeroVector;
-    }
-
-    AActor* AvatarActor = ActorInfo->AvatarActor.Get();
-
+    //매개변수 수정에 따른 방어코드 수정
+    
     if (!IsValid(AvatarActor))
     {
         return FVector::ZeroVector;
     }
 
     FVector ForwardDirection = AvatarActor->GetActorForwardVector();
-    APlayerController* PlayerController = ActorInfo->PlayerController.Get();
 
     if (IsValid(PlayerController) && IsValid(PlayerController->PlayerCameraManager))
     {
