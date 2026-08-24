@@ -100,7 +100,7 @@ bool ACPLabNPC::CanInteract_Implementation(AActor* Interactor)
 	if (QuestManager->GetQuestState(QuestID) != EQuestState::Accepted) {
 		return false;
 	}
-	if (QuestManager->GetQuestHintLevel(QuestID) < 2)
+	if (QuestManager->GetQuestHintLevel(QuestID) < 1)
 	{
 		return true;
 	}
