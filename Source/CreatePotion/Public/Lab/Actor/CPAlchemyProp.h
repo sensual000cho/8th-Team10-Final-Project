@@ -55,14 +55,11 @@ protected:
 	float BobbleSpeed = 0.45f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lab|Ingredient|Presentation", meta = (ClampMin = "0.0"))
-	float UprightRecoverySpeed = 1.2f;
+	float UprightRecoverySpeed = 0.9f;
 
 private:
-	void UpdateIngredientPresentation(float DeltaSeconds);
-
 	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Ingredient")
 	FCPLabIngredientInstance WorkingIngredient;
 
 	FVector IngredientBobbleBaseLocation = FVector::ZeroVector;
-	float BobbleElapsedTime = 0.f;
 };

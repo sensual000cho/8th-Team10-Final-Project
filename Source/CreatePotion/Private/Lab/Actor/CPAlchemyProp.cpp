@@ -9,8 +9,6 @@
 ACPAlchemyProp::ACPAlchemyProp()
 {
     PrimaryActorTick.bCanEverTick = true;
-    PrimaryActorTick.bStartWithTickEnabled = true;
-    PrimaryActorTick.TickGroup = TG_PostPhysics;
 
     IngredientUprightPivot = CreateDefaultSubobject<USceneComponent>(TEXT("IngredientUprightPivot"));
     IngredientUprightPivot->SetupAttachment(StaticMeshComponent);
@@ -30,28 +28,14 @@ void ACPAlchemyProp::BeginPlay()
 {
     Super::BeginPlay();
 
-    const bool bHasPresentationMesh = IsValid(IngredientUprightPivot) && IsValid(IngredientBobblePivot) && IsValid(IngredientMeshComponent) && IsValid(IngredientMeshComponent->GetStaticMesh());
-    SetActorTickEnabled(bEnableIngredientBobble && bHasPresentationMesh);
-
-    if (!bHasPresentationMesh)
-    {
-        return;
-    }
-
     IngredientBobbleBaseLocation = IngredientBobblePivot->GetRelativeLocation();
-    BobbleElapsedTime = 0.f;
 }
 
 void ACPAlchemyProp::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
 
-    UpdateIngredientPresentation(DeltaSeconds);
-}
-
-void ACPAlchemyProp::UpdateIngredientPresentation(float DeltaSeconds)
-{
-    if (!bEnableIngredientBobble || !IsValid(IngredientUprightPivot) || !IsValid(IngredientBobblePivot))
+    if (!bEnableIngredientBobble)
     {
         return;
     }
@@ -64,10 +48,7 @@ void ACPAlchemyProp::UpdateIngredientPresentation(float DeltaSeconds)
         IngredientUprightPivot->SetWorldRotation(UprightRotation);
     }
 
-    BobbleElapsedTime += DeltaSeconds * BobbleSpeed * 2.f * UE_PI;
-    BobbleElapsedTime = FMath::Fmod(BobbleElapsedTime, 2.f * UE_PI);
-
-    const float BobbleOffset = FMath::Sin(BobbleElapsedTime) * BobbleAmplitude;
+    const float BobbleOffset = FMath::Sin(GetGameTimeSinceCreation() * BobbleSpeed * 2.f * UE_PI) * BobbleAmplitude;
     IngredientBobblePivot->SetRelativeLocation(IngredientBobbleBaseLocation + FVector::UpVector * BobbleOffset);
 }
 
