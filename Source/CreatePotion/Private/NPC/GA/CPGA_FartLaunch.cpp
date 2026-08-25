@@ -84,7 +84,7 @@ void UCPGA_FartLaunch::OnCapsuleHit(UPrimitiveComponent* HitComponent, AActor* O
 		Mesh->OnComponentHit.AddUniqueDynamic(this, &UCPGA_FartLaunch::OnMeshHit);
 
 		FVector IncomingDir = TargetCharacter->GetVelocity().GetSafeNormal();
-		if (IncomingDir.IsNearlyZero()) IncomingDir = TargetCharacter->GetActorForwardVector();
+		if (IncomingDir.IsNearlyZero()) { IncomingDir = TargetCharacter->GetActorForwardVector(); }
 
 		const FVector BounceDir = (FMath::GetReflectionVector(IncomingDir, Hit.ImpactNormal) + Hit.ImpactNormal * 1.5f).GetSafeNormal();
 		Mesh->SetPhysicsLinearVelocity(BounceDir * LaunchForce);
@@ -212,7 +212,7 @@ void UCPGA_FartLaunch::RecoverFromRagdoll()
 void UCPGA_FartLaunch::ApplyRagdollThrust()
 {
 	ACPBaseNPC* TargetCharacter = GetOwningPotionNPC(CurrentActorInfo);
-	if (!IsValid(TargetCharacter) || !bIsRagdolling) return;
+	if (!IsValid(TargetCharacter) || !bIsRagdolling) { return; }
 
 	if (USkeletalMeshComponent* Mesh = TargetCharacter->GetMesh())
 	{
