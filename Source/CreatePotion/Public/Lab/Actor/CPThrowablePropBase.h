@@ -108,7 +108,7 @@ protected:
 
     // 20.0만큼 투척방향으로 이동(물리 활성화 전)
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Throw", meta = (ClampMin = "0.0", Units = "cm"))
-    float ThrowStartOffset = 20.f;
+    float ThrowStartOffset = 100.f;
 
     // 0.1초마다 정지 상태 확인
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Rest", meta = (ClampMin = "0.01", Units = "s"))
