@@ -134,17 +134,21 @@ void ACPLabNPC::OpenResultWidget(AActor* Interactor)
 	const FName QuestId = LabGameMode->GetActiveRequestId();
 	if (QuestId.IsNone()) return;
 
-	const UCPCarryComponent* CarryComponent = IsValid(Interactor)
-	? Interactor->FindComponentByClass<UCPCarryComponent>()
-	: nullptr;
-
-	ACPPotionActor* HeldPotion = CarryComponent
-		? Cast<ACPPotionActor>(CarryComponent->GetHeldProp())
-		: nullptr;
-
-	if (!IsValid(HeldPotion)) return;
+	FCPPotionDeliveryResult DeliveryResult;
+	ACPPotionActor* HeldPotion = nullptr;
 	
-	const FCPPotionDeliveryResult DeliveryResult = LabGameMode->GetPotionDeliveryResult(QuestId, HeldPotion);
+	if (bHasPendingThrownPotionResult){
+		DeliveryResult = PendingThrownPotionDeliveryResult;
+	}else{
+		const UCPCarryComponent* CarryComponent = IsValid(Interactor)
+			? Interactor->FindComponentByClass<UCPCarryComponent>() : nullptr;
+
+		HeldPotion = CarryComponent
+			? Cast<ACPPotionActor>(CarryComponent->GetHeldProp()) : nullptr;
+
+		if (!IsValid(HeldPotion)) return;	
+		DeliveryResult = LabGameMode->GetPotionDeliveryResult(QuestId, HeldPotion);
+	}
 	
 	if (DeliveryResult.QuestId.IsNone()) return;
 	
@@ -157,13 +161,59 @@ void ACPLabNPC::OpenResultWidget(AActor* Interactor)
 		return;
 	}
 
-	HeldPotion->Destroy();
+	if (IsValid(HeldPotion)){
+		HeldPotion->Destroy();
+	}
 	
 	LabGameMode->AdvancePotionRequest();
 	ActiveResultWidget = ResultWidget;
 	
+	bHasPendingThrownPotionResult = false;
+	PendingThrownPotionDeliveryResult = FCPPotionDeliveryResult{};
+	
 	// NPC 반응 추가 시 삭제
 	Destroy();
+}
+
+void ACPLabNPC::HandleThrownPotionImpact(const TArray<FGameplayTag>& PotionEffectTags)
+{
+	if (!bRequestConfirmed || PotionEffectTags.IsEmpty() || !NPCData || NPCData->LabQuestIDs.IsEmpty()) return;
+	
+	UGameInstance* GameInstance = GetGameInstance();
+	UWorld* World = GetWorld();
+	if (!GameInstance || !World) return;
+	
+	UQuestManager* QuestManager = GameInstance->GetSubsystem<UQuestManager>();
+	UCPUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UCPUIManagerSubsystem>();
+	ACPLabGameMode* LabGameMode = Cast<ACPLabGameMode>(World->GetAuthGameMode());
+	if (!QuestManager || !UIManager || !LabGameMode || !DialogueWidgetClass) return;
+	
+	const FName QuestId = LabGameMode->GetActiveRequestId();
+	if (QuestId.IsNone() || !NPCData->LabQuestIDs.Contains(QuestId)) return;
+	if (QuestManager->GetQuestState(QuestId) != EQuestState::Accepted) return;
+	
+	// 결과 계산 및 저장
+	FCPPotionDeliveryResult DeliveryResult;
+	DeliveryResult.QuestId = QuestId;
+	DeliveryResult.CurrentEffects = PotionEffectTags;
+	DeliveryResult.DeliveryGrade = QuestManager->TryDeliver(QuestId, DeliveryResult.CurrentEffects);
+	DeliveryResult.RewardAmount = QuestManager->GetRewardGold(QuestId);
+	DeliveryResult.TipAmount = 0;
+	
+	PendingThrownPotionDeliveryResult = DeliveryResult;
+	bHasPendingThrownPotionResult = true;
+	
+	ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
+	if (!ActiveDialogueWidget) return;
+	
+	FText NPCNameText = FText::FromName(NPCData->NPCName);
+	ActiveDialogueWidget->InitResultDialogue(
+		false,
+		QuestId,
+		NPCNameText,
+		QuestManager->GetQuestSummaryText(QuestId),
+		this,
+		nullptr);
 }
 
 //넘어가기 버튼 클릭 시 (퀘스트 완료 처리 및 NPC 사라짐)

@@ -3,9 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameMode/CPLabGameMode.h"
 #include "NPC/CPBaseNPC.h"
 #include "CPLabNPC.generated.h"
 
+class ACPPotionActor;
 class UCPNPCDialogueWidget;
 class UCPLabResultWidget;
 
@@ -21,6 +23,8 @@ public:
 
 	UFUNCTION()
 	void OpenResultWidget(AActor* Interactor);
+	
+	void HandleThrownPotionImpact(const TArray<FGameplayTag>& PotionEffectTags);
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
@@ -31,6 +35,10 @@ public:
 	TSubclassOf<UCPLabResultWidget> ResultWidgetClass;
 private:
 	bool bRequestConfirmed = false;
+	bool bHasPendingThrownPotionResult = false;
+	
+	UPROPERTY(Transient)
+	FCPPotionDeliveryResult PendingThrownPotionDeliveryResult;
 
 	//Result UI 결과 송출용 함수들
 	UFUNCTION()
