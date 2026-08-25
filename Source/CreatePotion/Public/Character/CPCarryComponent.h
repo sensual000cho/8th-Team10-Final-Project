@@ -71,7 +71,7 @@ public:
     FCPOnCarryHeldPropChanged OnHeldPropChanged;
 
 private:
-    FVector MakeReplacementDropLocation() const;
+    FVector MakeReplacementDropLocation(const ACPThrowablePropBase* Prop) const;
     
     // Held 참조 변경과 OnDestroyed 바인딩을 한곳에서 처리
     void SetHeldProp(ACPThrowablePropBase* NewHeldProp);
@@ -81,8 +81,18 @@ private:
     void HandleHeldPropDestroyed(AActor* DestroyedActor);
 
 private:
+    // Drop에 사용할 지면 탐색 변수들
     UPROPERTY(EditAnywhere, Category = "Carry|Drop", meta = (ClampMin = "0.0", Units = "cm"))
     float ReplacementDropForwardDistance;
+    
+    UPROPERTY(EditAnywhere, Category = "Carry|Drop", meta = (ClampMin = "0.0", Units = "cm"))
+    float ReplacementDropTraceUpDistance;
+
+    UPROPERTY(EditAnywhere, Category = "Carry|Drop", meta = (ClampMin = "0.0", Units = "cm"))
+    float ReplacementDropTraceDownDistance;
+
+    UPROPERTY(EditAnywhere, Category = "Carry|Drop", meta = (ClampMin = "0.0", Units = "cm"))
+    float ReplacementDropGroundClearance;
     
     // ResetCarryState 호출 시 캐릭터 전방에 내려놓을 거리
     UPROPERTY(EditAnywhere, Category = "Carry", meta = (ClampMin = "0.0"))

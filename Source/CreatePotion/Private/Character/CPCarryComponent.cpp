@@ -4,7 +4,12 @@
 
 #include "Lab/Actor/CPThrowablePropBase.h"
 
-UCPCarryComponent::UCPCarryComponent() : ReplacementDropForwardDistance(120.f), ResetDropForwardDistance(100.f)
+UCPCarryComponent::UCPCarryComponent()  
+    : ReplacementDropForwardDistance(120.f),
+      ReplacementDropTraceUpDistance(100.f),
+      ReplacementDropTraceDownDistance(300.f),
+      ReplacementDropGroundClearance(3.f),
+      ResetDropForwardDistance(100.f)
 {
     PrimaryComponentTick.bCanEverTick = false;
 }
@@ -91,7 +96,7 @@ bool UCPCarryComponent::ReplaceHeldProp(ACPThrowablePropBase* NewProp)
 
     if (IsValid(PreviousHeldProp))
     {
-        const FVector DropLocation = MakeReplacementDropLocation();
+        const FVector DropLocation = MakeReplacementDropLocation(PreviousHeldProp);
 
         if (!DropHeldProp(DropLocation))
         {
@@ -200,18 +205,56 @@ ACPThrowablePropBase* UCPCarryComponent::GetHeldProp() const
     return IsValid(HeldProp) ? HeldProp.Get() : nullptr;
 }
 
-FVector UCPCarryComponent::MakeReplacementDropLocation() const
+FVector UCPCarryComponent::MakeReplacementDropLocation(const ACPThrowablePropBase* Prop) const
 {
-    FVector DropLocation = GetComponentLocation();
-
     const AActor* OwnerActor = GetOwner();
 
-    if (IsValid(OwnerActor))
+    if (!IsValid(OwnerActor))
     {
-        DropLocation += OwnerActor->GetActorForwardVector() * ReplacementDropForwardDistance;
+        return GetComponentLocation();
     }
 
-    return DropLocation;
+    const FVector ForwardLocation = OwnerActor->GetActorLocation() + OwnerActor->GetActorForwardVector() * ReplacementDropForwardDistance;
+
+    const FVector TraceStart = ForwardLocation + FVector::UpVector * ReplacementDropTraceUpDistance;
+
+    const FVector TraceEnd = ForwardLocation - FVector::UpVector * ReplacementDropTraceDownDistance;
+
+    FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(CarryReplacementDrop), false);
+    QueryParams.AddIgnoredActor(OwnerActor);
+
+    if (IsValid(Prop))
+    {
+        QueryParams.AddIgnoredActor(Prop);
+    }
+
+    FHitResult GroundHit;
+
+    const bool bGroundFound = GetWorld() && GetWorld()->LineTraceSingleByChannel(
+        GroundHit,
+        TraceStart,
+        TraceEnd,
+        ECC_Visibility,
+        QueryParams);
+
+    if (!bGroundFound)
+    {
+        return ForwardLocation;
+    }
+
+    float PropHalfHeight = 10.f;
+
+    if (IsValid(Prop))
+    {
+        FVector BoundsOrigin;
+        FVector BoundsExtent;
+        Prop->GetActorBounds(true, BoundsOrigin, BoundsExtent);
+
+        PropHalfHeight = FMath::Max(BoundsExtent.Z, 1.f);
+    }
+
+    return GroundHit.ImpactPoint +
+        FVector::UpVector * (PropHalfHeight + ReplacementDropGroundClearance);
 }
 
 void UCPCarryComponent::SetHeldProp(ACPThrowablePropBase* NewHeldProp)
