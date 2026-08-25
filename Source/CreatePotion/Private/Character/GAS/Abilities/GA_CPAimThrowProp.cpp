@@ -11,11 +11,8 @@
 UGA_CPAimThrowProp::UGA_CPAimThrowProp()
 {
     InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
-
-    /*
-     * 우클릭 Started에서 전달한 Gameplay Event로
-     * Aim Ability를 활성화한다.
-     */
+    
+    // Aim Pressed/Released일 때 Action Value의 bool값에 따라 Event를 보냄.
     FAbilityTriggerData TriggerData;
     TriggerData.TriggerTag = GetAimStartEventTag();
     TriggerData.TriggerSource = EGameplayAbilityTriggerSource::GameplayEvent;
@@ -23,11 +20,8 @@ UGA_CPAimThrowProp::UGA_CPAimThrowProp()
 
     // 이 Ability를 구분하기 위한 태그
     AbilityTags.AddTag(GetAimAbilityTag());
-
-    /*
-     * Ability가 활성화되어 있는 동안 ASC에 Aiming 상태를 부여한다.
-     * EndAbility가 호출되면 GAS가 자동으로 제거한다.
-     */
+    
+    // Ability 활성화 동안 Tag 부여(아래의 Tag가 있어야 Throw GA를 실행할 수 있음)
     ActivationOwnedTags.AddTag(GetAimingStateTag());
 }
 
