@@ -9,6 +9,7 @@
 class UCPForageableItemData;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnForageableCodexUpdated);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCodexItemSelected, UCPForageableItemData*, ItemData);
 
 USTRUCT(BlueprintType)
 struct FCPForageableCodexEntry
@@ -54,6 +55,9 @@ public:
 public:
 	UPROPERTY(BlueprintAssignable, Category = "Codex|Forageable")
 	FOnForageableCodexUpdated OnForageableCodexUpdated;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Codex|Forageable")
+	FOnCodexItemSelected OnCodexItemSelected;
 
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Codex|Forageable")
