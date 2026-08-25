@@ -8,6 +8,7 @@
 
 class ACPThrowablePropBase;
 class UCPCarryComponent;
+class UCPTrajectoryPreviewComponent;
 class UAbilityTask_WaitGameplayEvent;
 
 UCLASS()
@@ -41,6 +42,9 @@ private:
 private:
 	UPROPERTY()
 	TObjectPtr<UCPCarryComponent> BoundCarryComponent;
+	
+	UPROPERTY()
+	TObjectPtr<UCPTrajectoryPreviewComponent> TrajectoryPreviewComponent;
 
 	UPROPERTY()
 	TObjectPtr<UAbilityTask_WaitGameplayEvent> WaitAimEndTask;

@@ -77,13 +77,15 @@ void UCPTrajectoryPreviewComponent::TickComponent(float DeltaTime, ELevelTick Ti
 
 void UCPTrajectoryPreviewComponent::HandleHeldPropChanged(ACPThrowablePropBase* NewHeldProp)
 {
-	if (IsValid(NewHeldProp))
+	if (!IsValid(NewHeldProp))
 	{
-		ActivatePreview(NewHeldProp);
+		DeactivatePreview();
 		return;
 	}
 
-	DeactivatePreview();
+	// 상태만 동기화, 프리뷰 활성화는 조준 GA에서 실행
+	HeldProp = NewHeldProp;
+	CachedPredictionRadius = ResolvePredictionRadius(HeldProp);
 }
 
 void UCPTrajectoryPreviewComponent::ActivatePreview(ACPThrowablePropBase* InHeldProp)

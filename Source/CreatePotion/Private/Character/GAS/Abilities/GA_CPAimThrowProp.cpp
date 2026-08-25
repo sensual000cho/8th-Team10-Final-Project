@@ -6,6 +6,7 @@
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "AbilitySystemComponent.h"
 #include "Character/CPCarryComponent.h"
+#include "Character/CPTrajectoryPreviewComponent.h"
 #include "Lab/Actor/CPThrowablePropBase.h"
 
 UGA_CPAimThrowProp::UGA_CPAimThrowProp()
@@ -87,7 +88,7 @@ void UGA_CPAimThrowProp::ActivateAbility(const FGameplayAbilitySpecHandle Handle
         EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
         return;
     }
-
+    
     // 투척 혹은 투척물이 사라지는 상황에서 어빌리티 종료
     BoundCarryComponent->OnHeldPropChanged.AddUniqueDynamic(this, &UGA_CPAimThrowProp::HandleHeldPropChanged);
 
@@ -109,15 +110,26 @@ void UGA_CPAimThrowProp::ActivateAbility(const FGameplayAbilitySpecHandle Handle
     WaitAimEndTask->EventReceived.AddDynamic(this, &UGA_CPAimThrowProp::HandleAimEndEvent);
     WaitAimEndTask->ReadyForActivation();
 
-    // TODO: CPTrajectoryPreviewComponent의 ActivatePreview()를 호출
+    TrajectoryPreviewComponent = AvatarActor->FindComponentByClass<UCPTrajectoryPreviewComponent>();
+
+    // 조준 프리뷰 실행
+    if (IsValid(TrajectoryPreviewComponent))
+    {
+        TrajectoryPreviewComponent->ActivatePreview(BoundCarryComponent->GetHeldProp());
+    }
     
     UE_LOG(LogTemp, Log, TEXT("[AimThrowAbility] 투척 조준 시작"));
 }
 
 void UGA_CPAimThrowProp::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
-    // TODO: CPTrajectoryPreviewComponent의 DeactivatePreview()를 호출
+    // 조준 프리뷰 해제
+    if (IsValid(TrajectoryPreviewComponent))
+    {
+        TrajectoryPreviewComponent->DeactivatePreview();
+    }
 
+    TrajectoryPreviewComponent = nullptr;
 
     if (IsValid(BoundCarryComponent))
     {

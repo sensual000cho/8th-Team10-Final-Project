@@ -26,6 +26,9 @@ class CREATEPOTION_API UCPTrajectoryPreviewComponent : public USplineComponent
 	
 public:
 	UCPTrajectoryPreviewComponent();
+	
+	void ActivatePreview(ACPThrowablePropBase* InHeldProp);
+	void DeactivatePreview();
 
 protected:
 	virtual void BeginPlay() override;
@@ -35,9 +38,6 @@ protected:
 private:
 	UFUNCTION()
 	void HandleHeldPropChanged(ACPThrowablePropBase* NewHeldProp);
-
-	void ActivatePreview(ACPThrowablePropBase* InHeldProp);
-	void DeactivatePreview();
 	
 	//충돌 크기 받아오기
 	float ResolvePredictionRadius(const ACPThrowablePropBase* InHeldProp) const;
