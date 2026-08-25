@@ -126,7 +126,7 @@ protected:
 
     // 공중에서 날아가는 동안의 감쇠
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Physics")
-    float FlightLinearDamping = 1.f;
+    float FlightLinearDamping = 0.7f;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Physics")
     float FlightAngularDamping = 1.f;
@@ -149,6 +149,14 @@ protected:
     // 멈춘 시간 0.2초까지는 정지상태로 인정하지 않음
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Rest", meta = (ClampMin = "0.0", Units = "s"))
     float RestConfirmationDuration = 0.2f;
+    
+    // Prop이 Pawn에 밀렸을 때 허용할 최대 이동 속도
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Physics", meta = (ClampMin = "0.0", Units = "cm/s"))
+    float PushMaxLinearSpeed = 50.f;
+
+    // Prop이 Pawn에 밀렸을 때 허용할 최대 회전 속도
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Physics", meta = (ClampMin = "0.0", Units = "deg/s"))
+    float PushMaxAngularSpeed = 80.f;
 
 private:
     UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Prop|State", meta = (AllowPrivateAccess = "true"))

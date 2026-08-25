@@ -4,6 +4,7 @@
 
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "GameFramework/Pawn.h"
 #include "TimerManager.h"
 
 ACPThrowablePropBase::ACPThrowablePropBase()
@@ -294,24 +295,40 @@ void ACPThrowablePropBase::HandleMeshHit(UPrimitiveComponent* HitComponent, AAct
 {
     const bool bIsThrown = PropState == ECPThrowablePropState::Thrown;
     const bool bIsDropped = PropState == ECPThrowablePropState::Dropped;
+    const bool bIsResting = PropState == ECPThrowablePropState::Resting;
+    const bool bIsPhysicsRelease = bIsThrown || bIsDropped;
     
-    if (!bIsThrown && !bIsDropped)
+    if (!bIsPhysicsRelease && !bIsResting)
     {
         return;
     }
-
-    const bool bIsFirstHit = !bHasHitSinceThrow;
-    // Throw, Dropped 둘 다 정지(Rest) 판정을 위해 충돌을 기록해줌
-    bHasHitSinceThrow = true;
     
-    if (bIsFirstHit && IsValid(StaticMeshComponent))
+    // 충돌 최초 1회 발생 이후 댐핑 적용
+    if (bIsPhysicsRelease)
     {
-        StaticMeshComponent->SetLinearDamping(PostImpactLinearDamping);
-        StaticMeshComponent->SetAngularDamping(PostImpactAngularDamping);
+        const bool bIsFirstHit = !bHasHitSinceThrow;
+        bHasHitSinceThrow = true;
+
+        if (bIsFirstHit && IsValid(StaticMeshComponent))
+        {
+            StaticMeshComponent->SetLinearDamping(PostImpactLinearDamping);
+            StaticMeshComponent->SetAngularDamping(PostImpactAngularDamping);
+        }
+    }
+    
+    // 바닥에 뒹구는 Prop 속도 조절
+    if (CanBePickedUp() && IsValid(OtherActor) && OtherActor->IsA<APawn>() && IsValid(StaticMeshComponent))
+    {
+        const FVector LinearVelocity = StaticMeshComponent->GetPhysicsLinearVelocity();
+        const FVector AngularVelocity = StaticMeshComponent->GetPhysicsAngularVelocityInDegrees();
+
+        StaticMeshComponent->SetPhysicsLinearVelocity(LinearVelocity.GetClampedToMaxSize(PushMaxLinearSpeed));
+        StaticMeshComponent->SetPhysicsAngularVelocityInDegrees(AngularVelocity.GetClampedToMaxSize(PushMaxAngularSpeed));
     }
     
     // Dropped인 경우 포션 폭발(Impact) 실행을 하지 않고 return
-    if (bIsDropped)
+    // 교체 시 바닥에 Drop하므로 Resting 조건도 추가(Drop하는 순간 Resting 가능성)
+    if (bIsResting || bIsDropped)
     {
         return;
     }
