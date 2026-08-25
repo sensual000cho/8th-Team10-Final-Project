@@ -65,15 +65,6 @@ public:
     UFUNCTION(BlueprintPure, Category = "Carry")
     ACPThrowablePropBase* GetHeldProp() const;
 
-    /*
-     * 기존 임시 투척 함수.
-     *
-     * 기존 BP와 코드의 호환성을 위해 당장은 유지(추후 삭제).
-     * 새로운 GA 기반 Carry 시스템에서는 사용하지 않음.
-     */
-    UFUNCTION(BlueprintCallable, Category = "Carry|Legacy")
-    bool TryThrowHeldAlchemyProp(float ThrowSpeed = 800.f, float UpwardBias = 0.2f);
-
 public:
     // 현재 들고 있는 Prop이 변경되었음을 알림
     UPROPERTY(BlueprintAssignable, Category = "Carry")

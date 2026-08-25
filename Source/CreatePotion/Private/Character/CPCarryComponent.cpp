@@ -2,8 +2,6 @@
 
 #include "Character/CPCarryComponent.h"
 
-#include "GameMode/CPLabGameMode.h"
-#include "Lab/Actor/CPAlchemyProp.h"
 #include "Lab/Actor/CPThrowablePropBase.h"
 
 UCPCarryComponent::UCPCarryComponent() : ReplacementDropForwardDistance(120.f), ResetDropForwardDistance(100.f)
@@ -214,40 +212,6 @@ FVector UCPCarryComponent::MakeReplacementDropLocation() const
     }
 
     return DropLocation;
-}
-
-/*
- * -------------------------------------------------------------------------
- * Legacy
- *
- * 새로운 Carry 시스템 및 GA에는 사용 X
- * 기존 BP가 정리되면 제거 예정.
- * -------------------------------------------------------------------------
- */
-bool UCPCarryComponent::TryThrowHeldAlchemyProp(float ThrowSpeed, float UpwardBias)
-{
-    AActor* OwnerActor = GetOwner();
-
-    if (!IsValid(OwnerActor) || !HasHeldProp())
-    {
-        return false;
-    }
-
-    // 기존 세션 시스템은 연금술 재료만 처리
-    ACPAlchemyProp* HeldAlchemyProp = Cast<ACPAlchemyProp>(HeldProp);
-
-    if (!IsValid(HeldAlchemyProp))
-    {
-        return false;
-    }
-
-    UWorld* World = GetWorld();
-    const ACPLabGameMode* LabGameMode = World ? World->GetAuthGameMode<ACPLabGameMode>() : nullptr;
-    if (!LabGameMode || !LabGameMode->HasActiveRequest()) return false;
-
-    const FVector ThrowDirection = (OwnerActor->GetActorForwardVector() + FVector::UpVector * UpwardBias).GetSafeNormal();
-
-    return ThrowHeldProp(ThrowDirection, ThrowSpeed);
 }
 
 void UCPCarryComponent::SetHeldProp(ACPThrowablePropBase* NewHeldProp)

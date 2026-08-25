@@ -51,32 +51,6 @@ void ACPAlchemyProp::Tick(float DeltaSeconds)
     IngredientBobblePivot->SetRelativeLocation(IngredientBobbleBaseLocation + FVector::UpVector * BobbleOffset);
 }
 
-void ACPAlchemyProp::OnInteract_Implementation(AActor* Interactor)
-{
-    /*
-     * Legacy 상호작용.
-     *
-     * 새로운 GAS 집기에서는 CPInteractionComponent가
-     * Event.Carry.Pickup을 전달하므로 이 함수가 호출되지 않음.
-     */
-    UCPCarryComponent* CarryComponent = IsValid(Interactor)
-    ? Interactor->FindComponentByClass<UCPCarryComponent>()
-    : nullptr;
-
-    if (!CarryComponent)
-    {
-        return;
-    }
-
-    if (CarryComponent->HasHeldProp())
-    {
-        const FVector DropLocation = Interactor->GetActorLocation() + Interactor->GetActorForwardVector() * 100.f;
-        CarryComponent->DropHeldProp(DropLocation);
-    }
-
-    CarryComponent->AttachProp(this);
-}
-
 FText ACPAlchemyProp::GetInteractionPrompt_Implementation()
 {
     return FText::FromString(TEXT("재료 들기"));
