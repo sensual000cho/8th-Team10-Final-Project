@@ -354,14 +354,12 @@ bool UCPItemContainerComponent::TryPlaceHoldingItem(UCPItemContainerComponent* H
     int32 TargetArrayIdx = FindItemArrayIndexCoveringGridIndex(TargetIndex);
     bool bTargetEmpty = (TargetArrayIdx == INDEX_NONE);
 
-    // 케이스 A : 빈 칸
+    // Case A : 빈 칸
     if (bTargetEmpty)
     {
         bool bCanPlace = (ContainerType == EContainerType::Grid2D)
             ? IsGridSpaceEnough(TargetIndex, ItemW, ItemH)
             : (TargetIndex < MaxSlots);
-
-        UE_LOG(LogContainer, Warning, TEXT("[Place] bCanPlace = %s"), bCanPlace ? TEXT("true") : TEXT("false"));
 
         if (!bCanPlace)
         {
@@ -380,7 +378,7 @@ bool UCPItemContainerComponent::TryPlaceHoldingItem(UCPItemContainerComponent* H
 
     FContainerItem ExistingItem = ContainerItems[TargetArrayIdx];
 
-    // 케이스 B : 같은 타입 -> 스택 합치기 (기존 로직 그대로, 위치 무관)
+    // Case B : 같은 타입 -> 스택 합치기 (기존 로직 그대로, 위치 무관)
     if (ExistingItem.ItemDataAsset == HeldItem.ItemDataAsset)
     {
         int32 SpaceLeft = MaxStack - ExistingItem.Stacked;
@@ -404,14 +402,13 @@ bool UCPItemContainerComponent::TryPlaceHoldingItem(UCPItemContainerComponent* H
             return false;
         }
     }
-    // 케이스 C : 다른 타입 -> "통째로 치우고, 클릭한 자리에 새로 배치" 방식 Swap
+    // Case C : Swap
     else
     {
-        // 1. 기존 아이템을 먼저 배열에서 완전히 제거 (더 이상 공간 검사에 걸리지 않도록)
+        // 기존 아이템을 먼저 배열에서 완전히 제거
         ContainerItems.RemoveAt(TargetArrayIdx);
 
-        // 2. 기존 아이템이 사라진 상태에서, 클릭한 위치(TargetIndex)에
-        //    Held 아이템이 실제로 들어갈 수 있는지 검사 (제외 처리 필요 없음 - 이미 지웠으니까)
+        // 기존 아이템이 사라진 상태에서 클릭한 위치(TargetIndex)에 Holding 아이템이 들어갈 수 있는지 검사
         bool bCanPlace = (ContainerType == EContainerType::Grid2D)
             ? IsGridSpaceEnough(TargetIndex, ItemW, ItemH)
             : (TargetIndex < MaxSlots);
@@ -423,17 +420,16 @@ bool UCPItemContainerComponent::TryPlaceHoldingItem(UCPItemContainerComponent* H
             return false;
         }
 
-        // 3. Held 아이템을 클릭한 자리에 배치
+        // (bCanPlace == true)배치가 가능하다면 Holding 아이템을 클릭한 자리에 배치
         FContainerItem NewItem = HeldItem;
         NewItem.GridIndex = TargetIndex;
         ContainerItems.Add(NewItem);
         OnContainerUpdated.Broadcast();
 
-        // 4. 기존 아이템이 이제 손으로 넘어감 (위치 정보는 무의미해지므로 0번 칸으로)
+        // 이제 Hand로 기존 아이템을 Swap
         ExistingItem.GridIndex = 0;
         HandContainer->ContainerItems[0] = ExistingItem;
         HandContainer->OnContainerUpdated.Broadcast();
         return false; // 손은 안 비었음 - 대신 기존 아이템을 들게 됨
     }
 }
-

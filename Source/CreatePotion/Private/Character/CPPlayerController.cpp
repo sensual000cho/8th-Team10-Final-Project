@@ -10,10 +10,12 @@
 #include "CreatePotion.h"   // 로그용 헤더
 #include "UI/Widgets/Common/Container/CPContainerMainWidget.h"
 #include "UI/Widgets/Common/Container/CPContainerGridWidget.h"
+#include "UI/Widgets/Common/Container/CPHandHeldItemWidget.h"
 #include "Components/CPItemContainerComponent.h"
-#include "Components/CPHandItemContainerComponent.h"
 #include "Components/CPInventoryComponent.h"
+#include "Components/CPHandItemContainerComponent.h"
 #include "UI/Context/CPContextInventoryOnly.h"
+
 
 void ACPPlayerController::BeginPlay()
 {
@@ -51,13 +53,23 @@ void ACPPlayerController::SetPawn(APawn* InPawn)
 		CachedInventoryComponent = InPawn->FindComponentByClass<UCPInventoryComponent>();
 		LeftClickPickedContainer = InPawn->FindComponentByClass<UCPHandItemContainerComponent>();
 
+		// TODO[Container] : 레벨 전환시 자동 수거 기능을 구현하려면
+		// 레벨에 배치된 별도의 Actor(또는 GameMode, GameState 등 레벨 단위로 바뀌는 객체)에 구현해야함
+
 		if (CachedInventoryComponent)
 		{
 			UE_LOG(LogContainer, Log, TEXT("인벤토리 컴포넌트 캐싱 완료"));
 		}
 
-		if (LeftClickPickedContainer)
+		if (LeftClickPickedContainer && HandHeldItemWidgetClass && !HandHeldItemWidgetInstance)
 		{
+			HandHeldItemWidgetInstance = CreateWidget<UCPHandHeldItemWidget>(this, HandHeldItemWidgetClass);
+			if (HandHeldItemWidgetInstance)
+			{
+				HandHeldItemWidgetInstance->AddToViewport(100); // 다른 UI보다 항상 위에 그려지도록
+				HandHeldItemWidgetInstance->TryBindHandContainer(LeftClickPickedContainer);
+			}
+
 			UE_LOG(LogContainer, Log, TEXT("아이템 집기 컴포넌트 캐싱 완료"));
 		}
 	}
