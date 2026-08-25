@@ -47,6 +47,9 @@ public:
 
     // 머리 위에서 분리하고 물리 투척
     bool Throw(const FVector& Direction, float Speed);
+    
+    UFUNCTION(BlueprintPure, Category = "Prop|State")
+    bool CanBePickedUp() const;
 
     UFUNCTION(BlueprintPure, Category = "Prop|State")
     ECPThrowablePropState GetPropState() const;
@@ -113,7 +116,7 @@ protected:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Carry")
     FTransform HeldRelativeTransform;
 
-    // 20.0만큼 투척방향으로 이동(물리 활성화 전)
+    // 100.0만큼 투척방향으로 이동(물리 활성화 전)
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Throw", meta = (ClampMin = "0.0", Units = "cm"))
     float ThrowStartOffset = 100.f;
 
@@ -121,13 +124,19 @@ protected:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Rest", meta = (ClampMin = "0.01", Units = "s"))
     float RestCheckInterval = 0.1f;
 
-    // 투척 후 선형 이동 감쇠
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Physics", meta = (ClampMin = "0.0"))
-    float ThrowLinearDamping = 1.5f;
+    // 공중에서 날아가는 동안의 감쇠
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Physics")
+    float FlightLinearDamping = 1.f;
 
-    // 투척 후 회전 감쇠
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Physics", meta = (ClampMin = "0.0"))
-    float ThrowAngularDamping = 5.f;
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Physics")
+    float FlightAngularDamping = 1.f;
+
+    // 첫 충돌 이후 굴러가는 동안의 감쇠
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Physics")
+    float PostImpactLinearDamping = 1.5f;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Physics")
+    float PostImpactAngularDamping = 5.f;
     
     // 60.0의 선속도 이하면 정지상태로 인정
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Rest", meta = (ClampMin = "0.0", Units = "cm/s"))

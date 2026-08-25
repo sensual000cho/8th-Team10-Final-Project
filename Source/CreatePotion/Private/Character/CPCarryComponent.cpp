@@ -37,7 +37,7 @@ bool UCPCarryComponent::CanAttachProp(ACPThrowablePropBase* Prop) const
         return Prop->IsHeld();
     }
 
-    return !HasHeldProp() && Prop->IsResting();
+    return !HasHeldProp() && Prop->CanBePickedUp();
 }
 
 bool UCPCarryComponent::AttachProp(ACPThrowablePropBase* Prop)
@@ -84,7 +84,7 @@ bool UCPCarryComponent::ReplaceHeldProp(ACPThrowablePropBase* NewProp)
     }
 
     // 날아가거나 Drop 중인 Prop으로 교체할 수 없음
-    if (!NewProp->IsResting())
+    if (!NewProp->CanBePickedUp())
     {
         return false;
     }

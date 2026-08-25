@@ -54,7 +54,7 @@ bool ACPThrowablePropBase::AttachAsHeld(USceneComponent* CarryAnchor)
     }
 
     // 날아가는 중인 Prop은 바로 집을 수는 없음
-    if (PropState != ECPThrowablePropState::Resting)
+    if (!CanBePickedUp())
     {
         return false;
     }
@@ -133,8 +133,8 @@ bool ACPThrowablePropBase::Drop(const FVector& DropLocation)
 
     StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
     StaticMeshComponent->SetGenerateOverlapEvents(true);
-    StaticMeshComponent->SetLinearDamping(ThrowLinearDamping);
-    StaticMeshComponent->SetAngularDamping(ThrowAngularDamping);
+    StaticMeshComponent->SetLinearDamping(PostImpactLinearDamping);
+    StaticMeshComponent->SetAngularDamping(PostImpactAngularDamping);
     StaticMeshComponent->SetSimulatePhysics(true);
     StaticMeshComponent->SetPhysicsLinearVelocity(FVector::ZeroVector);
     StaticMeshComponent->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
@@ -181,8 +181,8 @@ bool ACPThrowablePropBase::Throw(const FVector& Direction, float Speed)
     StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
     StaticMeshComponent->SetGenerateOverlapEvents(true);
     
-    StaticMeshComponent->SetLinearDamping(ThrowLinearDamping);
-    StaticMeshComponent->SetAngularDamping(ThrowAngularDamping);
+    StaticMeshComponent->SetLinearDamping(FlightLinearDamping);
+    StaticMeshComponent->SetAngularDamping(FlightAngularDamping);
     
     StaticMeshComponent->SetSimulatePhysics(true);
     StaticMeshComponent->WakeAllRigidBodies();
@@ -196,6 +196,18 @@ bool ACPThrowablePropBase::Throw(const FVector& Direction, float Speed)
     HandleThrowStarted(LastThrower);
 
     return true;
+}
+
+bool ACPThrowablePropBase::CanBePickedUp() const
+{
+    if (PropState == ECPThrowablePropState::Resting)
+    {
+        return true;
+    }
+
+    const bool bWasPhysicallyReleased = PropState == ECPThrowablePropState::Thrown || PropState == ECPThrowablePropState::Dropped;
+
+    return bWasPhysicallyReleased && bHasHitSinceThrow;
 }
 
 void ACPThrowablePropBase::SetPropState(ECPThrowablePropState NewState)
@@ -288,8 +300,15 @@ void ACPThrowablePropBase::HandleMeshHit(UPrimitiveComponent* HitComponent, AAct
         return;
     }
 
+    const bool bIsFirstHit = !bHasHitSinceThrow;
     // Throw, Dropped 둘 다 정지(Rest) 판정을 위해 충돌을 기록해줌
     bHasHitSinceThrow = true;
+    
+    if (bIsFirstHit && IsValid(StaticMeshComponent))
+    {
+        StaticMeshComponent->SetLinearDamping(PostImpactLinearDamping);
+        StaticMeshComponent->SetAngularDamping(PostImpactAngularDamping);
+    }
     
     // Dropped인 경우 포션 폭발(Impact) 실행을 하지 않고 return
     if (bIsDropped)
@@ -348,7 +367,7 @@ AActor* ACPThrowablePropBase::GetLastThrower() const
 
 bool ACPThrowablePropBase::CanInteract_Implementation(AActor* Interactor)
 {
-    return IsValid(Interactor) && PropState == ECPThrowablePropState::Resting;
+    return IsValid(Interactor) && CanBePickedUp();
 }
 
 FName ACPThrowablePropBase::GetInteractionName_Implementation()
