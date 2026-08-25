@@ -10,8 +10,7 @@ bool FCPLabResultUICalc::ApplyDeliveryResult(const FCPPotionDeliveryResult& Deli
 
 	ResultWidget->ResetResultView();
 	ResultWidget->SetHeaderText(
-		FText::FromString(TEXT("포션 제조 결과")),
-		GetGradeText(DeliveryResult.DeliveryGrade));
+		FText::FromString(TEXT("포션 제조 결과")), GetGradeText(DeliveryResult.DeliveryGrade));
 
 	// 현재 계약에서 TipAmount는 세부 사유 없이 합산된 추가 보상이다.
 	if (DeliveryResult.TipAmount != 0)
@@ -22,7 +21,8 @@ bool FCPLabResultUICalc::ApplyDeliveryResult(const FCPPotionDeliveryResult& Deli
 	}
 
 	// RewardAmount와 TipAmount는 판정 측에서 확정된 값이며 여기서는 표시 합계만 만든다.
-	const int32 FinalRewardAmount = DeliveryResult.RewardAmount + DeliveryResult.TipAmount;
+	int32 FinalRewardAmount = DeliveryResult.DeliveryGrade == EDeliveryGrade::Perfect ? 
+		DeliveryResult.RewardAmount + DeliveryResult.TipAmount : DeliveryResult.TipAmount;
 	ResultWidget->SetRewardText(
 		FormatGold(DeliveryResult.RewardAmount, false),
 		FormatGold(FinalRewardAmount, false));
