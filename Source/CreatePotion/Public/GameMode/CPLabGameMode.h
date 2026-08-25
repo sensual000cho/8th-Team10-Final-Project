@@ -6,12 +6,12 @@
 #include "Quest/QuestManager.h"
 #include "CPLabGameMode.generated.h"
 
+class ACPPotionActor;
 enum class EDeliveryGrade : uint8;
-enum class EConditionMatchResult : uint8;
 class ACPAlchemyProp;
 class ACPLabGameState;
-class UCPLabPotionSessionComponent;
 class UCPForageableItemData;
+class UCPPotionData;
 
 USTRUCT(BlueprintType)
 struct FCPPotionDeliveryResult
@@ -60,13 +60,14 @@ public:
 	
 	// 상호작용으로 전달된 Potion Prop의 결과를 납품 결과 구조로 변환
 	UFUNCTION(BlueprintCallable, Category = "Lab|Result")
-	FCPPotionDeliveryResult GetPotionDeliveryResult(FName QuestId, const ACPAlchemyProp* PotionProp);
+	FCPPotionDeliveryResult GetPotionDeliveryResult(FName QuestId, const ACPPotionActor* PotionActor);
 	
-private:
-	ACPLabGameState* GetLabGameState() const;
-	UCPLabPotionSessionComponent* GetPotionSession() const;
+	UFUNCTION(BlueprintPure, Category = "Lab|Request")
+	bool HasActiveRequest() const;
+	
 	FName GetActiveRequestId() const;
 	
+private:	
 	// Spawn된 재료 초기화
 	void ClearSpawnedIngredients();
 	
@@ -80,7 +81,7 @@ private:
 	
 	// 포션 Prop을 만들 때 사용할 DA
 	UPROPERTY(EditDefaultsOnly, Category = "Lab|Potion")
-	TObjectPtr<UCPForageableItemData> PotionItemData;
+	TObjectPtr<UCPPotionData> PotionItemData;
 		
 	// 재료를 놓을 SlotActor 탐색용 태그
 	UPROPERTY(EditDefaultsOnly, Category = "Lab|Session")
@@ -89,6 +90,10 @@ private:
 	// 생성된 재료를 관리하는 배열
 	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Ingredients")
 	TArray<TObjectPtr<ACPAlchemyProp>> SpawnedIngredients;
+	
+	// 현재 공방 요청 QuestId
+	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Request")
+	FName ActiveRequestId = NAME_None;
 	
 	// 납품 판정 결과
 	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Result")

@@ -27,8 +27,6 @@ class CREATEPOTION_API UQuestManager : public UGameInstanceSubsystem
 
 public:
 
-	UQuestManager();
-
 	// 텍스트 전용 DataTable (Row Structure: FQuestData)
 	UPROPERTY(EditDefaultsOnly, Category = "Quest")
 	UDataTable* QuestScriptTable;
@@ -85,29 +83,23 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	FText GetQuestSummaryText(FName QuestID) const;
 
-	// [임시] InitDialogue가 배열 지원 전까지 사용할 임시 함수. NPC 담당자 협의 후 제거 예정.
+	// 저널 UI 등에서 여러 줄 대사를 한 번에(줄바꿈 없이 이어서) 보여줄 때 사용
 	UFUNCTION(BlueprintCallable, Category = "Quest")
-	FText GetQuestFullTextJoined(FName QuestID) const;
-	// ===================================================================
-	// [세션 힌트 - 단계별 조회 및 현재 단계 자동 관리]
-	// GetSessionHintText/Detailed/Detailed2 : 단계별 개별 조회 (저수준)
-	// GetCurrentSessionHintText : 저장된 현재 단계에 맞는 힌트를 자동으로 골라 반환 (UI 권장 사용)
-	// ===================================================================
+	FText GetQuestScriptTextJoined(FName QuestID) const;
+
+// ===================================================================
+// [세션 힌트 - 단계별 조회 및 현재 단계 자동 관리]
+// DT_QuestAnswer에서 값을 가져옴. 실제 판정 수치(RequestedEffects)는 노출하지 않음.
+// - GetSessionHintText / Detailed / Detailed2 : 단계별 개별 조회 (저수준)
+// - GetCurrentSessionHintText : 저장된 현재 단계에 맞는 힌트를 자동으로 골라 반환 (UI 권장 사용)
+// ===================================================================
 
 
 	// [세션힌트 1차]
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	FText GetSessionHintText(FName QuestID) const;
 
-	// [세션힌트 2차]
-	UFUNCTION(BlueprintCallable, Category = "Quest")
-	FText GetSessionHintTextDetailed(FName QuestID) const;
-
-	// [세션힌트 3차]
-	UFUNCTION(BlueprintCallable, Category = "Quest")
-	FText GetSessionHintTextDetailed2(FName QuestID) const;
-
-	// 특정 퀘스트의 현재 힌트 단계 조회
+	// 특정 퀘스트의 현재 힌트 단계 조회 - 현재는 스토리용 스크립트 출력용으로 사용
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	int32 GetQuestHintLevel(FName QuestID) const;
 
@@ -115,9 +107,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	void SetQuestHintLevel(FName QuestID, int32 NewLevel);
 
-	// 현재 저장된 힌트 단계에 맞는 텍스트 자동 반환 (UI는 이 함수만 호출하면 됨)
+	// 스크립트 반환용
 	UFUNCTION(BlueprintCallable, Category = "Quest")
-	FText GetCurrentSessionHintText(FName QuestID) const;
+	TArray<FText> GetNPCStoryLines(FName QuestID) const;
+
+
 
 	// ===================================================================
 	// [납품 판정 - 퍼즐 시스템과의 연결 지점]

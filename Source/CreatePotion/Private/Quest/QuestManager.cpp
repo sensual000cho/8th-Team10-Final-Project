@@ -1,6 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Public/Quest/QuestManager.h"
+#include "Quest/QuestSettings.h"
 
 // ===================================================================
 // [초기화 - GameInstanceSubsystem 생성 시 자동 호출]
@@ -10,54 +11,22 @@ void UQuestManager::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 
+	if (const UQuestSettings* Settings = GetDefault<UQuestSettings>())
+	{
+		QuestScriptTable = Settings->QuestScriptTable.LoadSynchronous();
+		QuestAnswerTable = Settings->QuestAnswerTable.LoadSynchronous();
+		RandomQuestAnswerTable = Settings->RandomQuestAnswerTable.LoadSynchronous();
+
+		UE_LOG(LogTemp, Warning, TEXT("QuestScriptTable 로드 %s"), QuestScriptTable ? TEXT("성공") : TEXT("실패 - QuestSettings 확인 필요"));
+		UE_LOG(LogTemp, Warning, TEXT("QuestAnswerTable 로드 %s"), QuestAnswerTable ? TEXT("성공") : TEXT("실패 - QuestSettings 확인 필요"));
+		UE_LOG(LogTemp, Warning, TEXT("RandomQuestAnswerTable 로드 %s"), RandomQuestAnswerTable ? TEXT("성공") : TEXT("실패 - QuestSettings 확인 필요"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("UQuestSettings를 찾을 수 없습니다."));
+	}
 }
 
-// ===================================================================
-// [퀘스트 수락/상태 관리]
-// ===================================================================
-
-/* NPC 대화 UI에서 "수락" 버튼을 눌렀을 때 호출
- 퀘스트 상태를 Accepted로 기록하고, OnQuestUpdated 델리게이트를 방송하여
- 이를 구독 중인 UI(퀘스트 저널 등)가 자동으로 갱신*/
-
-UQuestManager::UQuestManager()
-{
-	static ConstructorHelpers::FObjectFinder<UDataTable> ScriptTableFinder(
-		TEXT("/Game/CreatePotion/Quest/DT_QuestScript.DT_QuestScript"));
-	if (ScriptTableFinder.Succeeded())
-	{
-		QuestScriptTable = ScriptTableFinder.Object;
-		UE_LOG(LogTemp, Warning, TEXT("QuestScriptTable 로드 성공 (생성자)"));
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("QuestScriptTable 로드 실패 - 경로 확인 필요 (생성자)"));
-	}
-
-	static ConstructorHelpers::FObjectFinder<UDataTable> AnswerTableFinder(
-		TEXT("/Game/CreatePotion/Quest/DT_QuestAnswer.DT_QuestAnswer"));
-	if (AnswerTableFinder.Succeeded())
-	{
-		QuestAnswerTable = AnswerTableFinder.Object;
-		UE_LOG(LogTemp, Warning, TEXT("QuestAnswerTable 로드 성공 (생성자)"));
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("QuestAnswerTable 로드 실패 - 경로 확인 필요 (생성자)"));
-	}
-
-	static ConstructorHelpers::FObjectFinder<UDataTable> RandomAnswerTableFinder(
-		TEXT("/Game/CreatePotion/Quest/DT_RandomQuestAnswer.DT_RandomQuestAnswer"));
-	if (RandomAnswerTableFinder.Succeeded())
-	{
-		RandomQuestAnswerTable = RandomAnswerTableFinder.Object;
-		UE_LOG(LogTemp, Warning, TEXT("QuestRandomTable 로드 성공 (생성자)"));
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("QuestRandomTable 로드 실패 - 경로 확인 필요 (생성자)"));
-	}
-}
 
 void UQuestManager::AcceptQuest(FName QuestID)
 {
@@ -176,21 +145,20 @@ FText UQuestManager::GetQuestSummaryText(FName QuestID) const
 	if (!QuestScriptTable) return FText::GetEmpty();
 
 	FQuestData* Quest = QuestScriptTable->FindRow<FQuestData>(QuestID, TEXT(""));
-	return Quest ? Quest->QuestText_Summary : FText::GetEmpty();
+	return Quest ? Quest->QuestSummaryText : FText::GetEmpty();
 }
 
-//임시 연결용 함수
-FText UQuestManager::GetQuestFullTextJoined(FName QuestID) const
+FText UQuestManager::GetQuestScriptTextJoined(FName QuestID) const
 {
 	TArray<FText> Lines = GetQuestScriptLines(QuestID);
-	return FText::Join(FText::FromString(TEXT(" ")), Lines);
+	return FText::Join(FText::FromString(TEXT("\n")), Lines);
 }
 
 // ===================================================================
-// [세션 힌트 - 단계별 조회 및 현재 단계 자동 관리]
-// DT_QuestAnswer에서 값을 가져옴. 실제 판정 수치(RequestedEffects)는 노출하지 않음.
-// - GetSessionHintText / Detailed / Detailed2 : 단계별 개별 조회 (저수준)
-// - GetCurrentSessionHintText : 저장된 현재 단계에 맞는 힌트를 자동으로 골라 반환 (UI 권장 사용)
+// [세션 힌트 / NPC 스토리]
+// GetSessionHintText : 1차 힌트 (레벨 0)
+// GetNPCStoryLines : 힌트 열람 후 보여줄 NPC 스토리 (레벨 1) - 단일/배열 버전
+// GetQuestHintLevel / SetQuestHintLevel : 현재 열람 단계 조회/갱신
 // ===================================================================
 
 // 1차 힌트
@@ -200,19 +168,7 @@ FText UQuestManager::GetSessionHintText(FName QuestID) const
 	return Answer ? Answer->SessionHintText : FText::GetEmpty();
 }
 
-// 2차(상세) 힌트
-FText UQuestManager::GetSessionHintTextDetailed(FName QuestID) const
-{
-	FQuestAnswerData* Answer = FindAnswerData(QuestID);
-	return Answer ? Answer->SessionHintText_Detailed : FText::GetEmpty();
-}
 
-// 3차(최종) 힌트
-FText UQuestManager::GetSessionHintTextDetailed2(FName QuestID) const
-{
-	FQuestAnswerData* Answer = FindAnswerData(QuestID);
-	return Answer ? Answer->SessionHintText_Detailed2 : FText::GetEmpty();
-}
 
 // 특정 퀘스트가 현재 몇 번째 힌트 단계까지 열람했는지 조회 (0: 기본, 1: 2차, 2: 3차)
 int32 UQuestManager::GetQuestHintLevel(FName QuestID) const
@@ -231,24 +187,11 @@ void UQuestManager::SetQuestHintLevel(FName QuestID, int32 NewLevel)
 	UE_LOG(LogTemp, Log, TEXT("퀘스트 %s 힌트 단계 %d(으)로 갱신"), *QuestID.ToString(), NewLevel);
 }
 
-// 저장된 힌트 단계에 맞는 텍스트를 자동으로 골라 반환 (UI는 이 함수 하나만 호출하면 됨)
-FText UQuestManager::GetCurrentSessionHintText(FName QuestID) const
+
+TArray<FText> UQuestManager::GetNPCStoryLines(FName QuestID) const
 {
 	FQuestAnswerData* Answer = FindAnswerData(QuestID);
-	if (!Answer) return FText::GetEmpty();
-
-	int32 Level = GetQuestHintLevel(QuestID);
-
-	if (Level == 1)
-	{
-		return Answer->SessionHintText_Detailed;
-	}
-	else if (Level >= 2)
-	{
-		return Answer->SessionHintText_Detailed2;
-	}
-
-	return Answer->SessionHintText;
+	return Answer ? Answer->NPCStoryLines : TArray<FText>();
 }
 
 // 퀘스트 정답 찾기 함수 - QuestAnswerTable(고유)을 먼저 찾고, 없으면 RandomQuestAnswerTable(랜덤)에서 찾음

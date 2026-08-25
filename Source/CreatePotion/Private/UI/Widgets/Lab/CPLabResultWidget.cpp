@@ -55,10 +55,7 @@ bool UCPLabResultWidget::InitializeResult(const FCPPotionDeliveryResult& Deliver
 	return true;
 }
 
-void UCPLabResultWidget::AddLabelValueRow(
-	UVerticalBox* Container,
-	const FText& LabelText,
-	const FText& ValueText) const
+void UCPLabResultWidget::AddLabelValueRow(UVerticalBox* Container, const FText& LabelText, const FText& ValueText) const
 {
 	if (!LabelValueRowWidgetClass) return;
 
