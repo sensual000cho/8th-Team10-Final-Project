@@ -231,6 +231,12 @@ FName UQuestManager::GetRandomQuestID() const
 	if (!RandomQuestAnswerTable) return NAME_None;
 
 	TArray<FName> AllIDs = RandomQuestAnswerTable->GetRowNames();
+
+	// 이미 수락했거나 완료한 퀘스트는 후보에서 제외
+	AllIDs.RemoveAll([this](const FName& ID) {
+		return GetQuestState(ID) != EQuestState::NotAccepted;
+		});
+
 	if (AllIDs.Num() == 0) return NAME_None;
 
 	int32 RandomIndex = FMath::RandRange(0, AllIDs.Num() - 1);
