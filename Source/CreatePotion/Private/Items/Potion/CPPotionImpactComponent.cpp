@@ -5,6 +5,7 @@
 #include "Abilities/GameplayAbilityTypes.h"
 #include "GameFramework/Pawn.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "NPC/CPLabNPC.h"
 
 UCPPotionImpactComponent::UCPPotionImpactComponent()
 {
@@ -98,6 +99,11 @@ bool UCPPotionImpactComponent::ResolvePotionEffectArea(const FHitResult& HitResu
 		}
 
 		ProcessedActors.Add(TargetActor);
+		
+		if (ACPLabNPC* LabNPC = Cast<ACPLabNPC>(TargetActor)){
+			LabNPC->HandleThrownPotionImpact(PotionEffectTags);
+		}
+		
 		UAbilitySystemComponent* TargetAbilitySystem = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
 
 		if (!IsValid(TargetAbilitySystem))
