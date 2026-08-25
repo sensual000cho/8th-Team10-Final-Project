@@ -10,9 +10,10 @@
 
 class UInputAction;
 class UInputMappingContext;
+
 class UCPItemContainerComponent;
-class UCPHandItemContainerComponent;
 class UCPInventoryComponent;
+class UCPHandItemContainerComponent;
 class UCPContainerMainWidget;
 class UCPContainerContextBase;
 class UCPHandHeldItemWidget;

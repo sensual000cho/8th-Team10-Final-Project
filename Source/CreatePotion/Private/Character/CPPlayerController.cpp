@@ -12,8 +12,8 @@
 #include "UI/Widgets/Common/Container/CPContainerGridWidget.h"
 #include "UI/Widgets/Common/Container/CPHandHeldItemWidget.h"
 #include "Components/CPItemContainerComponent.h"
-#include "Components/CPHandItemContainerComponent.h"
 #include "Components/CPInventoryComponent.h"
+#include "Components/CPHandItemContainerComponent.h"
 #include "UI/Context/CPContextInventoryOnly.h"
 
 
@@ -52,6 +52,9 @@ void ACPPlayerController::SetPawn(APawn* InPawn)
 		// 폰에 성공적으로 빙의되었을 때, 딱 한 번만 찾아서 캐싱
 		CachedInventoryComponent = InPawn->FindComponentByClass<UCPInventoryComponent>();
 		LeftClickPickedContainer = InPawn->FindComponentByClass<UCPHandItemContainerComponent>();
+
+		// TODO[Container] : 레벨 전환시 자동 수거 기능을 구현하려면
+		// 레벨에 배치된 별도의 Actor(또는 GameMode, GameState 등 레벨 단위로 바뀌는 객체)에 구현해야함
 
 		if (CachedInventoryComponent)
 		{
