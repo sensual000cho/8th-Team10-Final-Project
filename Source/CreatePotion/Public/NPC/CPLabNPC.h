@@ -7,8 +7,6 @@
 #include "NPC/CPBaseNPC.h"
 #include "CPLabNPC.generated.h"
 
-class ACPPotionActor;
-class UCPNPCDialogueWidget;
 class UCPLabResultWidget;
 
 UCLASS()
@@ -26,22 +24,15 @@ public:
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
-	TSubclassOf<UCPNPCDialogueWidget> DialogueWidgetClass;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UCPLabResultWidget> ResultWidgetClass;
+	
 private:
 	UPROPERTY(Transient)
 	FCPPotionDeliveryResult PendingThrownPotionDeliveryResult;
-
-	//Result UI 결과 송출용 함수들
-	UFUNCTION()
-	void HandleResultAccepted();
 
 	UPROPERTY(Transient)
 	TObjectPtr<UCPLabResultWidget> ActiveResultWidget;
 
 	UPROPERTY()
 	class UCPNPCDialogueWidget* ActiveDialogueWidget;
-
 };

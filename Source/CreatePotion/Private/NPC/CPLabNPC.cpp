@@ -6,8 +6,7 @@
 #include "GameMode/CPLabGameMode.h"
 #include "UI/Widgets/Common/Dialogue/CPNPCDialogueWidget.h"
 #include "UI/Widgets/Lab/CPLabResultWidget.h"
-#include "Lab/Actor/CPAlchemyProp.h"
-#include "Lab/Actor/CPPotionActor.h"
+#include "Settings/CPUISettings.h"
 
 void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 {
@@ -38,12 +37,10 @@ void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 		EQuestState CurrentState = QuestManager->GetQuestState(QuestID);
 		if (CurrentState != EQuestState::Accepted) continue;
 
-		// QuestId에 대응되는 리퀘스트 상태를 조회한다
-		FCPLabPotionRequestState RequestState;
-		ACPLabGameMode* LabGameMode = Cast<ACPLabGameMode>(GetWorld()->GetAuthGameMode());
-		const bool bHasRequestState = LabGameMode && LabGameMode->GetActiveRequestId() == QuestID;
-		
 		FText FirstHint = QuestManager->GetSessionHintText(QuestID);
+
+		const UCPUISettings* UISettings = GetDefault<UCPUISettings>();
+		UClass* DialogueWidgetClass = UISettings ? UISettings->NPCDialogueWidgetClass.LoadSynchronous() : nullptr;
 
 		// 포션 준비 단계 아니라면 기존 힌트 대화 출력
 		if (DialogueWidgetClass)
@@ -122,6 +119,10 @@ void ACPLabNPC::HandleThrownPotionImpact(const TArray<FGameplayTag>& PotionEffec
 	UQuestManager* QuestManager = GameInstance->GetSubsystem<UQuestManager>();
 	UCPUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UCPUIManagerSubsystem>();
 	ACPLabGameMode* LabGameMode = Cast<ACPLabGameMode>(World->GetAuthGameMode());
+	
+	const UCPUISettings* UISettings = GetDefault<UCPUISettings>();
+	UClass* DialogueWidgetClass = UISettings ? UISettings->NPCDialogueWidgetClass.LoadSynchronous() : nullptr;
+	
 	if (!QuestManager || !UIManager || !LabGameMode || !DialogueWidgetClass) return;
 	
 	const FName QuestId = LabGameMode->GetActiveRequestId();
@@ -148,31 +149,4 @@ void ACPLabNPC::HandleThrownPotionImpact(const TArray<FGameplayTag>& PotionEffec
 		QuestManager->GetQuestSummaryText(QuestId),
 		this,
 		nullptr);
-}
-
-//넘어가기 버튼 클릭 시 (퀘스트 완료 처리 및 NPC 사라짐)
-void ACPLabNPC::HandleResultAccepted()
-{
-	//퀘스트 완료 처리
-	if (UGameInstance* GameInstance = GetGameInstance())
-	{
-		if (UQuestManager* QuestManager = GameInstance->GetSubsystem<UQuestManager>())
-		{
-			for (const FName& QuestID : NPCData->LabQuestIDs)
-			{
-				if (!QuestID.IsNone() && QuestManager->GetQuestState(QuestID) == EQuestState::Accepted)
-				{
-					QuestManager->CompleteQuest(QuestID);
-					break;
-				}
-			}
-		}
-	}
-	if (IsValid(ActiveResultWidget))
-	{
-		ActiveResultWidget->RequestClose();
-	}
-
-	ActiveResultWidget = nullptr;
-	Destroy();
 }
