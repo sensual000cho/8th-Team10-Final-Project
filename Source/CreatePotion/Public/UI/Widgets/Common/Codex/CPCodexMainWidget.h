@@ -9,6 +9,7 @@
 class UCPForageableItemData;
 class UCPForageableCodexWidget;
 class UCPCodexSubsystem;
+class UWidgetSwitcher;
 /**
  * 
  */
@@ -34,4 +35,12 @@ protected:
 	// 도감 서브시스템
 	UPROPERTY(BlueprintReadOnly, Category = "Codex")
 	TObjectPtr<UCPCodexSubsystem> CodexSubsystem;
+	
+private:
+	// --- 위젯 바인딩 ---
+	UPROPERTY(meta=(BindWidget, AllowPrivateAccess = "true"), BlueprintReadWrite, Category = "Codex")
+	TObjectPtr<UWidgetSwitcher> WidgetSwitcher;
+	
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UCPForageableCodexWidget> WBP_CPForageableCodex;
 };
