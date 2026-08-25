@@ -25,9 +25,6 @@ protected:
 	
 	UFUNCTION()
 	void HandleCancelButtonClicked();
-	
-	// 임시 QuestID 탐색 함수
-	bool FirstAcceptedQuestId();
 
 public:
 	// NPC 호출 시 사용할 QuestId;
