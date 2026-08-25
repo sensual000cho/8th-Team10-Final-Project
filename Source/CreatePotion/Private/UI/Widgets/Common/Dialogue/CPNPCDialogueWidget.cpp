@@ -140,11 +140,6 @@ void UCPNPCDialogueWidget::OnChoiceSelected(const FString& ButtonText) {
         RequestClose();
     }
     else if (ButtonText == TEXT("알겠습니다")) {
-
-        if (ACPLabNPC* LabNPC = SourceLabNPC.Get())
-        {
-            LabNPC->SetRequestConfirmed(true);
-        }
         RequestClose();
     }
 
