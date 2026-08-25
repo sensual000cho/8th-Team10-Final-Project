@@ -120,6 +120,7 @@ void ACPBaseNPC::InitializeFromDataAsset()
 	if (LoadedMesh)
 	{
 		GetMesh()->SetSkeletalMesh(LoadedMesh);
+		GetMesh()->SetRelativeRotation(NPCData->MeshRotationOffset);
 		GetMesh()->SetRelativeScale3D(NPCData->MeshScale);
 		BaseMeshScale = NPCData->MeshScale;
 		FitCapsuleToMesh(LoadedMesh);
