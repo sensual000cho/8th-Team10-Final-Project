@@ -4,8 +4,7 @@
 #include "Lab/Component/Interact/CPLabBellComponent.h"
 
 #include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
-#include "GameState/CPLabGameState.h"
-#include "Lab/Component/CPLabPotionSessionComponent.h"
+#include "GameMode/CPLabGameMode.h"
 #include "UI/Widgets/Common/Quest/CPQuestSelectWidget.h"
 
 UCPLabBellComponent::UCPLabBellComponent()
@@ -32,8 +31,7 @@ bool UCPLabBellComponent::CanExecuteInteraction(AActor* Interactor) const
 	if (!Super::CanExecuteInteraction(Interactor)) return false;
 	
 	const UWorld* World = GetWorld();
-	const ACPLabGameState* LabGameState = World ? World->GetGameState<ACPLabGameState>() : nullptr;
-	const UCPLabPotionSessionComponent* Session = LabGameState ? LabGameState->GetPotionSession() : nullptr;
-	
-	return Session && !Session->HasActiveRequest();
+	const ACPLabGameMode* LabGameMode = World ? World->GetAuthGameMode<ACPLabGameMode>() : nullptr;
+
+	return LabGameMode && !LabGameMode->HasActiveRequest();
 }

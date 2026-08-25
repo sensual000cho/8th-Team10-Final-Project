@@ -4,8 +4,6 @@
 #include "UI/Widgets/Lab/CPLabIngredientInfoWidget.h"
 #include "CPLabSlotIngredientInfoWidget.generated.h"
 
-class UCPLabPotionSessionComponent;
-
 /**
  * 현재 가리키는 공방 슬롯의 재료를 보여주는 호버 카드다.
  * 슬롯 선택, 세션 변경 갱신, 호버 중에만 보이는 정책을 담당한다.
@@ -26,18 +24,10 @@ public:
 
 protected:
 	virtual void NativeConstruct() override;
-	virtual void BindEvents() override;
-	virtual void UnbindEvents() override;
 
 private:
-	UFUNCTION()
-	void HandleSessionChanged();
-
 	void RefreshHoveredSlot();
 	void HideSlotInfo();
-
-	UPROPERTY(Transient)
-	TObjectPtr<UCPLabPotionSessionComponent> BoundPotionSession;
 
 	// 현재 카드가 추적 중인 슬롯이다. 초기값은 INDEX_NONE으로. 
 	int32 HoveredSlotIndex = INDEX_NONE;
