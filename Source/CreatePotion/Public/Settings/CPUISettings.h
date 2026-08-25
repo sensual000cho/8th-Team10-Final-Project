@@ -47,18 +47,21 @@ public:
 	TSoftClassPtr<UUserWidget> NPCDialogueWidgetClass;
 	
 	// Inventory
-	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Inventory")
+	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Container")
 	TSoftClassPtr<UUserWidget> InventoryMainWidgetClass;
 	
-	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Inventory")
+	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Container")
 	TSoftClassPtr<UUserWidget> BlankGridSlotWidgetClass;
 	
-	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Inventory")
+	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Container")
     TSoftClassPtr<UUserWidget> ContainerGridWidgetClass;
 	
-	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Inventory")
+	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Container")
 	TSoftClassPtr<UUserWidget> ItemSlotWidgetClass;
+
+	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Container")
+	TSoftClassPtr<UUserWidget> HandHeldItemWidgetClass;
 	
-	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Inventory")
+	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Container")
 	TSoftClassPtr<UUserWidget> LabSelectItemWidgetClass;
 };
