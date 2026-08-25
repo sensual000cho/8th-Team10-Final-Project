@@ -36,6 +36,10 @@ public:
     // Prop을 이 컴포넌트 위치에 부착하고 Held 참조로 등록
     UFUNCTION(BlueprintCallable, Category = "Carry")
     bool AttachProp(ACPThrowablePropBase* Prop);
+    
+    // 기존 Held Prop을 Drop한 뒤 새로운 Prop을 부착
+    UFUNCTION(BlueprintCallable, Category = "Carry")
+    bool ReplaceHeldProp(ACPThrowablePropBase* NewProp);
 
     // 지정한 Held Prop을 분리하고 월드 위치에 배치
     UFUNCTION(BlueprintCallable, Category = "Carry")
@@ -76,6 +80,8 @@ public:
     FCPOnCarryHeldPropChanged OnHeldPropChanged;
 
 private:
+    FVector MakeReplacementDropLocation() const;
+    
     // Held 참조 변경과 OnDestroyed 바인딩을 한곳에서 처리
     void SetHeldProp(ACPThrowablePropBase* NewHeldProp);
 
@@ -84,6 +90,9 @@ private:
     void HandleHeldPropDestroyed(AActor* DestroyedActor);
 
 private:
+    UPROPERTY(EditAnywhere, Category = "Carry|Drop", meta = (ClampMin = "0.0", Units = "cm"))
+    float ReplacementDropForwardDistance;
+    
     // ResetCarryState 호출 시 캐릭터 전방에 내려놓을 거리
     UPROPERTY(EditAnywhere, Category = "Carry", meta = (ClampMin = "0.0"))
     float ResetDropForwardDistance;

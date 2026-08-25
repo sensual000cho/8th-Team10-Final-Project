@@ -115,6 +115,37 @@ void ACPThrowablePropBase::DetachAsHeld(const FVector& DropLocation)
     SetPropState(ECPThrowablePropState::Resting);
 }
 
+bool ACPThrowablePropBase::Drop(const FVector& DropLocation)
+{
+    if (!IsValid(StaticMeshComponent) || PropState != ECPThrowablePropState::Held)
+    {
+        return false;
+    }
+
+    DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+
+    SetActorLocation(DropLocation, false, nullptr, ETeleportType::TeleportPhysics);
+    SetActorHiddenInGame(false);
+
+    LastThrower = nullptr;
+    bHasHitSinceThrow = false;
+    LowSpeedElapsedTime = 0.f;
+
+    StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+    StaticMeshComponent->SetGenerateOverlapEvents(true);
+    StaticMeshComponent->SetLinearDamping(ThrowLinearDamping);
+    StaticMeshComponent->SetAngularDamping(ThrowAngularDamping);
+    StaticMeshComponent->SetSimulatePhysics(true);
+    StaticMeshComponent->SetPhysicsLinearVelocity(FVector::ZeroVector);
+    StaticMeshComponent->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+    StaticMeshComponent->WakeAllRigidBodies();
+    
+    SetPropState(ECPThrowablePropState::Dropped);
+    StartRestCheck();
+
+    return true;
+}
+
 bool ACPThrowablePropBase::Throw(const FVector& Direction, float Speed)
 {
     if (!IsValid(StaticMeshComponent) || Direction.IsNearlyZero() || Speed <= 0.f)
@@ -201,7 +232,9 @@ void ACPThrowablePropBase::StopRestCheck()
 
 void ACPThrowablePropBase::CheckForRest()
 {
-    if (PropState != ECPThrowablePropState::Thrown || !IsValid(StaticMeshComponent))
+    const bool bCanBecomeResting = PropState == ECPThrowablePropState::Thrown || PropState == ECPThrowablePropState::Dropped;
+
+    if (!bCanBecomeResting || !IsValid(StaticMeshComponent))
     {
         StopRestCheck();
         return;
@@ -247,12 +280,22 @@ void ACPThrowablePropBase::CheckForRest()
 
 void ACPThrowablePropBase::HandleMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& HitResult)
 {
-    if (PropState != ECPThrowablePropState::Thrown)
+    const bool bIsThrown = PropState == ECPThrowablePropState::Thrown;
+    const bool bIsDropped = PropState == ECPThrowablePropState::Dropped;
+    
+    if (!bIsThrown && !bIsDropped)
     {
         return;
     }
 
+    // Throw, Dropped 둘 다 정지(Rest) 판정을 위해 충돌을 기록해줌
     bHasHitSinceThrow = true;
+    
+    // Dropped인 경우 포션 폭발(Impact) 실행을 하지 않고 return
+    if (bIsDropped)
+    {
+        return;
+    }
 
     // Base에서는 Hit을 차단하지 않음.
     // PotionImpactComponent 내부의 bImpactTriggered를 이용해 첫 Impact만 처리.
@@ -286,6 +329,11 @@ bool ACPThrowablePropBase::IsHeld() const
 bool ACPThrowablePropBase::IsThrown() const
 {
     return PropState == ECPThrowablePropState::Thrown;
+}
+
+bool ACPThrowablePropBase::IsDropped() const
+{
+    return PropState == ECPThrowablePropState::Dropped;
 }
 
 bool ACPThrowablePropBase::IsResting() const

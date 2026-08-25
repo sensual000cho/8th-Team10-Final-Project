@@ -6,7 +6,7 @@
 #include "Lab/Actor/CPAlchemyProp.h"
 #include "Lab/Actor/CPThrowablePropBase.h"
 
-UCPCarryComponent::UCPCarryComponent() : ResetDropForwardDistance(100.f)
+UCPCarryComponent::UCPCarryComponent() : ReplacementDropForwardDistance(120.f), ResetDropForwardDistance(100.f)
 {
     PrimaryComponentTick.bCanEverTick = false;
 }
@@ -34,24 +34,29 @@ bool UCPCarryComponent::CanAttachProp(ACPThrowablePropBase* Prop) const
         return false;
     }
     
-    return IsValid(Prop) && !HasHeldProp();
+    if (HeldProp == Prop)
+    {
+        return Prop->IsHeld();
+    }
+
+    return !HasHeldProp() && Prop->IsResting();
 }
 
 bool UCPCarryComponent::AttachProp(ACPThrowablePropBase* Prop)
 {
-    if (!CanAttachProp(Prop))
+    if (!IsValid(Prop))
     {
         return false;
     }
-
-    // 동일한 Prop이 이미 정상적으로 등록되어 있으면 성공으로 처리
+    
     if (HeldProp == Prop)
     {
-        return true;
+        return Prop->IsHeld();
     }
     
     // 다른 Prop을 들고 있다면 새 Prop을 집을 수 없음
     // 이 부분은 GA에서 다른 Prop으로 교체하게 추후에 수정예정
+    // -> ReplaceHeldProp으로 기능을 뺐음
     if (!CanAttachProp(Prop))
     {
         return false;
@@ -64,6 +69,39 @@ bool UCPCarryComponent::AttachProp(ACPThrowablePropBase* Prop)
 
     SetHeldProp(Prop);
     return true;
+}
+
+bool UCPCarryComponent::ReplaceHeldProp(ACPThrowablePropBase* NewProp)
+{
+    if (!IsValid(NewProp))
+    {
+        return false;
+    }
+
+    ACPThrowablePropBase* PreviousHeldProp = GetHeldProp();
+
+    if (PreviousHeldProp == NewProp)
+    {
+        return NewProp->IsHeld();
+    }
+
+    // 날아가거나 Drop 중인 Prop으로 교체할 수 없음
+    if (!NewProp->IsResting())
+    {
+        return false;
+    }
+
+    if (IsValid(PreviousHeldProp))
+    {
+        const FVector DropLocation = MakeReplacementDropLocation();
+
+        if (!DropHeldProp(DropLocation))
+        {
+            return false;
+        }
+    }
+    
+    return AttachProp(NewProp);
 }
 
 bool UCPCarryComponent::DetachProp(ACPThrowablePropBase* Prop, const FVector& DropLocation)
@@ -94,7 +132,13 @@ bool UCPCarryComponent::DropHeldProp(const FVector& DropLocation)
         return false;
     }
 
-    return DetachProp(PropToDrop, DropLocation);
+    if (!PropToDrop->Drop(DropLocation))
+    {
+        return false;
+    }
+
+    SetHeldProp(nullptr);
+    return true;
 }
 
 bool UCPCarryComponent::ThrowHeldProp(const FVector& Direction, float Speed)
@@ -156,6 +200,20 @@ bool UCPCarryComponent::HasHeldProp() const
 ACPThrowablePropBase* UCPCarryComponent::GetHeldProp() const
 {
     return IsValid(HeldProp) ? HeldProp.Get() : nullptr;
+}
+
+FVector UCPCarryComponent::MakeReplacementDropLocation() const
+{
+    FVector DropLocation = GetComponentLocation();
+
+    const AActor* OwnerActor = GetOwner();
+
+    if (IsValid(OwnerActor))
+    {
+        DropLocation += OwnerActor->GetActorForwardVector() * ReplacementDropForwardDistance;
+    }
+
+    return DropLocation;
 }
 
 /*

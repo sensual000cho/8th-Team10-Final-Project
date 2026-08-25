@@ -16,7 +16,8 @@ enum class ECPThrowablePropState : uint8
 {
     Resting,
     Held,
-    Thrown
+    Thrown,
+    Dropped
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FCPOnThrowablePropStateChanged, ECPThrowablePropState, NewState);
@@ -40,6 +41,9 @@ public:
 
     bool AttachAsHeld(USceneComponent* CarryAnchor);
     void DetachAsHeld(const FVector& DropLocation);
+    
+    // 포션 Impact를 활성화하지 않고 Drop
+    bool Drop(const FVector& DropLocation);
 
     // 머리 위에서 분리하고 물리 투척
     bool Throw(const FVector& Direction, float Speed);
@@ -52,6 +56,9 @@ public:
 
     UFUNCTION(BlueprintPure, Category = "Prop|State")
     bool IsThrown() const;
+    
+    UFUNCTION(BlueprintPure, Category = "Prop|State")
+    bool IsDropped() const;
 
     UFUNCTION(BlueprintPure, Category = "Prop|State")
     bool IsResting() const;
@@ -122,13 +129,13 @@ protected:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Physics", meta = (ClampMin = "0.0"))
     float ThrowAngularDamping = 5.f;
     
-    // 30.0의 선속도 이하면 정지상태로 인정
+    // 60.0의 선속도 이하면 정지상태로 인정
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Rest", meta = (ClampMin = "0.0", Units = "cm/s"))
-    float RestLinearSpeedThreshold = 30.f;
+    float RestLinearSpeedThreshold = 60.f;
 
-    // 45.0의 각속도 이하면 정지상태로 인정
+    // 90.0의 각속도 이하면 정지상태로 인정
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Rest", meta = (ClampMin = "0.0", Units = "deg/s"))
-    float RestAngularSpeedThreshold = 45.f;
+    float RestAngularSpeedThreshold = 90.f;
 
     // 멈춘 시간 0.2초까지는 정지상태로 인정하지 않음
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Rest", meta = (ClampMin = "0.0", Units = "s"))
