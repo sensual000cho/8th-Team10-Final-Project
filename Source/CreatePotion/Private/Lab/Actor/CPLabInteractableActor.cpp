@@ -44,3 +44,8 @@ FText ACPLabInteractableActor::GetInteractionPrompt_Implementation()
 {
 	return CachedActionComponent ? CachedActionComponent->GetInteractionPrompt() : FText::GetEmpty();
 }
+
+FName ACPLabInteractableActor::GetInteractionName_Implementation()
+{
+	return CachedActionComponent ? CachedActionComponent->GetInteractionName() : NAME_None;
+}

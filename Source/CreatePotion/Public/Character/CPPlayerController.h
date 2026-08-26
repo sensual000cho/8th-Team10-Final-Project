@@ -18,6 +18,9 @@ class UCPContainerMainWidget;
 class UCPContainerContextBase;
 class UCPHandHeldItemWidget;
 
+//디버깅용 포션생성 함수용
+class UCPPotionData;
+
 UCLASS()
 class CREATEPOTION_API ACPPlayerController : public APlayerController
 {
@@ -105,5 +108,25 @@ private:
 
 	// 마우스 클릭으로 "현재 들고 있는 아이템"의 기존 Index
 	int32 LeftClickPickedOriginSlotIndex = -1;
+#pragma endregion
+	
+//디버깅용 포션생성
+#pragma region DebugPotionHotkeys
+public:
+	UFUNCTION(BlueprintCallable, Category = "Debug|Potion Hotkeys")
+	void DebugSpawnFartLaunchPotion();
+
+	UFUNCTION(BlueprintCallable, Category = "Debug|Potion Hotkeys")
+	void DebugSpawnGiantPotion();
+
+	UFUNCTION(BlueprintCallable, Category = "Debug|Potion Hotkeys")
+	void DebugSpawnCombinedPotion();
+
+private:
+	// TEMP: Cauldron과 레벨 이동을 우회하는 포션 생성 기능.
+	UPROPERTY(EditDefaultsOnly, Category = "Debug|Potion Hotkeys")
+	TObjectPtr<UCPPotionData> DebugPotionData;
+
+	void SpawnDebugPotion(const TArray<FGameplayTag>& EffectTags);
 #pragma endregion
 };
