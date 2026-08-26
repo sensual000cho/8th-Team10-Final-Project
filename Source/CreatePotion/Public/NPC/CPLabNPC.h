@@ -3,10 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameMode/CPLabGameMode.h"
 #include "NPC/CPBaseNPC.h"
 #include "CPLabNPC.generated.h"
 
-class UCPNPCDialogueWidget;
 class UCPLabResultWidget;
 
 UCLASS()
@@ -17,32 +17,22 @@ public:
 	virtual void OnInteract_Implementation(AActor* Interactor) override;
 	virtual bool CanInteract_Implementation(AActor* Interactor) override;
 
-	void SetRequestConfirmed(bool bConfirmed) { bRequestConfirmed = bConfirmed; }
-
 	UFUNCTION()
 	void OpenResultWidget(AActor* Interactor);
+	
+	void HandleThrownPotionImpact(const TArray<FGameplayTag>& PotionEffectTags);
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
-	TSubclassOf<UCPNPCDialogueWidget> DialogueWidgetClass;
-	
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UCPLabResultWidget> ResultWidgetClass;
+	
 private:
-	bool bRequestConfirmed = false;
-
-	//Result UI 결과 송출용 함수들
-	UFUNCTION()
-	void HandleResultAccepted();
-
-	UFUNCTION()
-	void HandleResultRetryRequested();
+	UPROPERTY(Transient)
+	FCPPotionDeliveryResult PendingThrownPotionDeliveryResult;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UCPLabResultWidget> ActiveResultWidget;
 
 	UPROPERTY()
 	class UCPNPCDialogueWidget* ActiveDialogueWidget;
-
 };

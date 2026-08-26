@@ -54,22 +54,3 @@ void UCPQuestSelectWidget::HandleCancelButtonClicked()
 {
 	RequestClose();
 }
-
-bool UCPQuestSelectWidget::FirstAcceptedQuestId()
-{
-	SelectedQuestId = NAME_None;
-	
-	UGameInstance* GameInstance = GetGameInstance();
-	UQuestManager* QuestManager = GameInstance ? GameInstance->GetSubsystem<UQuestManager>() : nullptr;
-	if (!QuestManager) return false;
-	
-	const TArray<FName> QuestIds = QuestManager->GetAllTrackedQuestIDs();
-	for (const FName& QuestId : QuestIds){
-		if (!QuestId.IsNone() && QuestManager->GetQuestState(QuestId) == EQuestState::Accepted){
-			SelectedQuestId = QuestId;
-			return true;
-		}
-	}
-	
-	return false;
-}

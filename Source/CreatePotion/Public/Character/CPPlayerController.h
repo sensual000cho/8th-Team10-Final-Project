@@ -10,11 +10,13 @@
 
 class UInputAction;
 class UInputMappingContext;
+
 class UCPItemContainerComponent;
-class UCPHandItemContainerComponent;
 class UCPInventoryComponent;
+class UCPHandItemContainerComponent;
 class UCPContainerMainWidget;
 class UCPContainerContextBase;
+class UCPHandHeldItemWidget;
 
 UCLASS()
 class CREATEPOTION_API ACPPlayerController : public APlayerController
@@ -85,12 +87,18 @@ public:
 	UPROPERTY()
 	UCPInventoryComponent* CachedInventoryComponent = nullptr;
 
+	UPROPERTY(EditAnywhere, Category = "Container|UI")
+	TSubclassOf<UCPHandHeldItemWidget> HandHeldItemWidgetClass;
+
 protected:
 	// 현재 화면에 떠 있는 외부 컨테이너 UI 인스턴스 (Lab, Storage, Shop 공용)
 	UPROPERTY()
 	UCPContainerMainWidget* CurrentContainerUIInstance;
 
 private:
+	UPROPERTY()
+	UCPHandHeldItemWidget* HandHeldItemWidgetInstance;
+
 	// 마우스 클릭으로 "현재 들고 있는 아이템"을 우클릭 등으로 취소할 경우 되돌아갈 기존 Container
 	UPROPERTY()
 	UCPItemContainerComponent* LeftClickPickedItemOriginContainer = nullptr;
