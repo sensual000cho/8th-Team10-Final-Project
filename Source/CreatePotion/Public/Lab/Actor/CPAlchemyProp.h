@@ -19,10 +19,9 @@ public:
 	ACPAlchemyProp();
 
 	virtual void Tick(float DeltaSeconds) override;
-
-	// 재료 전용 상호작용
-	virtual void OnInteract_Implementation(AActor* Interactor) override;
+	
 	virtual FText GetInteractionPrompt_Implementation() override;
+	virtual FName GetInteractionName_Implementation() override;
 
 	UFUNCTION(BlueprintCallable, Category = "Lab|Ingredient")
 	void InitializeFromItemData(UCPForageableItemData* ItemData);

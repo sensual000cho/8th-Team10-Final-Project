@@ -2,11 +2,14 @@
 
 #include "Character/CPCarryComponent.h"
 
-#include "GameMode/CPLabGameMode.h"
-#include "Lab/Actor/CPAlchemyProp.h"
 #include "Lab/Actor/CPThrowablePropBase.h"
 
-UCPCarryComponent::UCPCarryComponent() : ResetDropForwardDistance(100.f)
+UCPCarryComponent::UCPCarryComponent()  
+    : ReplacementDropForwardDistance(120.f),
+      ReplacementDropTraceUpDistance(100.f),
+      ReplacementDropTraceDownDistance(300.f),
+      ReplacementDropGroundClearance(3.f),
+      ResetDropForwardDistance(100.f)
 {
     PrimaryComponentTick.bCanEverTick = false;
 }
@@ -34,24 +37,29 @@ bool UCPCarryComponent::CanAttachProp(ACPThrowablePropBase* Prop) const
         return false;
     }
     
-    return IsValid(Prop) && !HasHeldProp();
+    if (HeldProp == Prop)
+    {
+        return Prop->IsHeld();
+    }
+
+    return !HasHeldProp() && Prop->CanBePickedUp();
 }
 
 bool UCPCarryComponent::AttachProp(ACPThrowablePropBase* Prop)
 {
-    if (!CanAttachProp(Prop))
+    if (!IsValid(Prop))
     {
         return false;
     }
-
-    // 동일한 Prop이 이미 정상적으로 등록되어 있으면 성공으로 처리
+    
     if (HeldProp == Prop)
     {
-        return true;
+        return Prop->IsHeld();
     }
     
     // 다른 Prop을 들고 있다면 새 Prop을 집을 수 없음
     // 이 부분은 GA에서 다른 Prop으로 교체하게 추후에 수정예정
+    // -> ReplaceHeldProp으로 기능을 뺐음
     if (!CanAttachProp(Prop))
     {
         return false;
@@ -64,6 +72,39 @@ bool UCPCarryComponent::AttachProp(ACPThrowablePropBase* Prop)
 
     SetHeldProp(Prop);
     return true;
+}
+
+bool UCPCarryComponent::ReplaceHeldProp(ACPThrowablePropBase* NewProp)
+{
+    if (!IsValid(NewProp))
+    {
+        return false;
+    }
+
+    ACPThrowablePropBase* PreviousHeldProp = GetHeldProp();
+
+    if (PreviousHeldProp == NewProp)
+    {
+        return NewProp->IsHeld();
+    }
+
+    // 날아가거나 Drop 중인 Prop으로 교체할 수 없음
+    if (!NewProp->CanBePickedUp())
+    {
+        return false;
+    }
+
+    if (IsValid(PreviousHeldProp))
+    {
+        const FVector DropLocation = MakeReplacementDropLocation(PreviousHeldProp);
+
+        if (!DropHeldProp(DropLocation))
+        {
+            return false;
+        }
+    }
+    
+    return AttachProp(NewProp);
 }
 
 bool UCPCarryComponent::DetachProp(ACPThrowablePropBase* Prop, const FVector& DropLocation)
@@ -94,7 +135,13 @@ bool UCPCarryComponent::DropHeldProp(const FVector& DropLocation)
         return false;
     }
 
-    return DetachProp(PropToDrop, DropLocation);
+    if (!PropToDrop->Drop(DropLocation))
+    {
+        return false;
+    }
+
+    SetHeldProp(nullptr);
+    return true;
 }
 
 bool UCPCarryComponent::ThrowHeldProp(const FVector& Direction, float Speed)
@@ -158,38 +205,56 @@ ACPThrowablePropBase* UCPCarryComponent::GetHeldProp() const
     return IsValid(HeldProp) ? HeldProp.Get() : nullptr;
 }
 
-/*
- * -------------------------------------------------------------------------
- * Legacy
- *
- * 새로운 Carry 시스템 및 GA에는 사용 X
- * 기존 BP가 정리되면 제거 예정.
- * -------------------------------------------------------------------------
- */
-bool UCPCarryComponent::TryThrowHeldAlchemyProp(float ThrowSpeed, float UpwardBias)
+FVector UCPCarryComponent::MakeReplacementDropLocation(const ACPThrowablePropBase* Prop) const
 {
-    AActor* OwnerActor = GetOwner();
+    const AActor* OwnerActor = GetOwner();
 
-    if (!IsValid(OwnerActor) || !HasHeldProp())
+    if (!IsValid(OwnerActor))
     {
-        return false;
+        return GetComponentLocation();
     }
 
-    // 기존 세션 시스템은 연금술 재료만 처리
-    ACPAlchemyProp* HeldAlchemyProp = Cast<ACPAlchemyProp>(HeldProp);
+    const FVector ForwardLocation = OwnerActor->GetActorLocation() + OwnerActor->GetActorForwardVector() * ReplacementDropForwardDistance;
 
-    if (!IsValid(HeldAlchemyProp))
+    const FVector TraceStart = ForwardLocation + FVector::UpVector * ReplacementDropTraceUpDistance;
+
+    const FVector TraceEnd = ForwardLocation - FVector::UpVector * ReplacementDropTraceDownDistance;
+
+    FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(CarryReplacementDrop), false);
+    QueryParams.AddIgnoredActor(OwnerActor);
+
+    if (IsValid(Prop))
     {
-        return false;
+        QueryParams.AddIgnoredActor(Prop);
     }
 
-    UWorld* World = GetWorld();
-    const ACPLabGameMode* LabGameMode = World ? World->GetAuthGameMode<ACPLabGameMode>() : nullptr;
-    if (!LabGameMode || !LabGameMode->HasActiveRequest()) return false;
+    FHitResult GroundHit;
 
-    const FVector ThrowDirection = (OwnerActor->GetActorForwardVector() + FVector::UpVector * UpwardBias).GetSafeNormal();
+    const bool bGroundFound = GetWorld() && GetWorld()->LineTraceSingleByChannel(
+        GroundHit,
+        TraceStart,
+        TraceEnd,
+        ECC_Visibility,
+        QueryParams);
 
-    return ThrowHeldProp(ThrowDirection, ThrowSpeed);
+    if (!bGroundFound)
+    {
+        return ForwardLocation;
+    }
+
+    float PropHalfHeight = 10.f;
+
+    if (IsValid(Prop))
+    {
+        FVector BoundsOrigin;
+        FVector BoundsExtent;
+        Prop->GetActorBounds(true, BoundsOrigin, BoundsExtent);
+
+        PropHalfHeight = FMath::Max(BoundsExtent.Z, 1.f);
+    }
+
+    return GroundHit.ImpactPoint +
+        FVector::UpVector * (PropHalfHeight + ReplacementDropGroundClearance);
 }
 
 void UCPCarryComponent::SetHeldProp(ACPThrowablePropBase* NewHeldProp)
