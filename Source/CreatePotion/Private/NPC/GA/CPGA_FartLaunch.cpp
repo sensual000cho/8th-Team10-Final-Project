@@ -54,6 +54,17 @@ void UCPGA_FartLaunch::ActivateAbility(const FGameplayAbilitySpecHandle Handle, 
 	const FVector WorldStartDir = TargetCharacter->GetActorTransform().TransformVectorNoScale(LaunchRotation.Vector());
 	TargetCharacter->LaunchCharacter(WorldStartDir * LaunchForce, true, true);
 
+	// 임시 프로토용 날아가는 애니메이션 추가
+	if (TargetCharacter->NPCData)
+	{
+		if (UAnimSequence* LaunchAnim = TargetCharacter->NPCData->LaunchAnimation.LoadSynchronous())
+		{
+			if (USkeletalMeshComponent* Mesh = TargetCharacter->GetMesh())
+			{
+				Mesh->PlayAnimation(LaunchAnim, true);
+			}
+		}
+	}
 	GetWorld()->GetTimerManager().SetTimer(DurationTimerHandle, this, &UCPGA_FartLaunch::EndFloatBehavior, FloatDuration, false);
 }
 
@@ -158,55 +169,9 @@ void UCPGA_FartLaunch::CheckRagdollVelocity()
 		if (Mesh->GetComponentVelocity().SizeSquared() <= FMath::Square(StopVelocityThreshold))
 		{
 			GetWorld()->GetTimerManager().ClearTimer(VelocityCheckTimerHandle);
-			RecoverFromRagdoll();
+			EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
 		}
 	}
-}
-
-void UCPGA_FartLaunch::RecoverFromRagdoll()
-{
-	if (ACPBaseNPC* TargetCharacter = GetOwningPotionNPC(CurrentActorInfo))
-	{
-		USkeletalMeshComponent* Mesh = TargetCharacter->GetMesh();
-		UCapsuleComponent* Capsule = TargetCharacter->GetCapsuleComponent();
-
-		if (Mesh && Capsule)
-		{
-			Capsule->SetWorldLocation(Mesh->GetSocketLocation(FName("pelvis")) + FVector(0.f, 0.f, Capsule->GetScaledCapsuleHalfHeight()));
-			Capsule->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-
-			Mesh->SetSimulatePhysics(false);
-			Mesh->SetUseCCD(false);
-			Mesh->SetCollisionProfileName(TEXT("CharacterMesh"));
-			Mesh->AttachToComponent(Capsule, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-			Mesh->SetRelativeLocation(FVector(0.f, 0.f, -Capsule->GetScaledCapsuleHalfHeight()));
-
-			if (TargetCharacter->NPCData)
-			{
-				Mesh->SetRelativeRotation(TargetCharacter->NPCData->MeshRotationOffset);
-				FVector FinalScale = TargetCharacter->NPCData->MeshScale;
-
-				if (UGameInstance* GI = GetWorld()->GetGameInstance())
-				{
-					if (UCPNPCSubsystem* NPCSubsystem = GI->GetSubsystem<UCPNPCSubsystem>())
-					{
-						FCPNPCEffectSaveData SaveData;
-						if (NPCSubsystem->GetNPCEffectData(TargetCharacter->GetPotionNPCId(), SaveData))
-						{
-							FGameplayTag GiantTag = FGameplayTag::RequestGameplayTag(FName("State.Effect.Giant"));
-							if (const FCPActiveEffectInfo* EffectInfo = SaveData.ActiveEffects.Find(GiantTag))
-							{
-								FinalScale *= EffectInfo->Magnitude;
-							}
-						}
-					}
-				}
-				Mesh->SetRelativeScale3D(FinalScale);
-			}
-		}
-	}
-
-	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
 }
 
 void UCPGA_FartLaunch::ApplyRagdollThrust()
@@ -231,20 +196,64 @@ void UCPGA_FartLaunch::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 	{
 		if (ACPBaseNPC* TargetCharacter = Cast<ACPBaseNPC>(ActorInfo->AvatarActor.Get()))
 		{
-			if (UCharacterMovementComponent* MovementComp = TargetCharacter->GetCharacterMovement())
+			UCharacterMovementComponent* MovementComp = TargetCharacter->GetCharacterMovement();
+			UCapsuleComponent* Capsule = TargetCharacter->GetCapsuleComponent();
+			USkeletalMeshComponent* Mesh = TargetCharacter->GetMesh();
+
+			if (MovementComp)
 			{
 				MovementComp->GravityScale = OriginalGravityScale;
 			}
-
-			if (UCapsuleComponent* Capsule = TargetCharacter->GetCapsuleComponent())
+			if (Capsule)
 			{
 				Capsule->OnComponentHit.RemoveDynamic(this, &UCPGA_FartLaunch::OnCapsuleHit);
 			}
-
-			if (USkeletalMeshComponent* Mesh = TargetCharacter->GetMesh())
+			if (Mesh)
 			{
 				Mesh->OnComponentHit.RemoveDynamic(this, &UCPGA_FartLaunch::OnMeshHit);
 				Mesh->SetEnableGravity(true);
+			}
+			if (bIsRagdolling && Mesh && Capsule)
+			{
+				Capsule->SetWorldLocation(Mesh->GetSocketLocation(FName("pelvis")) + FVector(0.f, 0.f, Capsule->GetScaledCapsuleHalfHeight()));
+				Capsule->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+
+				Mesh->SetSimulatePhysics(false);
+				Mesh->SetUseCCD(false);
+				Mesh->SetCollisionProfileName(TEXT("CharacterMesh"));
+				Mesh->AttachToComponent(Capsule, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+				Mesh->SetRelativeLocation(FVector(0.f, 0.f, -Capsule->GetScaledCapsuleHalfHeight()));
+
+				if (TargetCharacter->NPCData)
+				{
+					Mesh->SetRelativeRotation(TargetCharacter->NPCData->MeshRotationOffset);
+					FVector FinalScale = TargetCharacter->NPCData->MeshScale;
+
+					if (UGameInstance* GI = GetWorld()->GetGameInstance())
+					{
+						if (UCPNPCSubsystem* NPCSubsystem = GI->GetSubsystem<UCPNPCSubsystem>())
+						{
+							FCPNPCEffectSaveData SaveData;
+							if (NPCSubsystem->GetNPCEffectData(TargetCharacter->GetPotionNPCId(), SaveData))
+							{
+								FGameplayTag GiantTag = FGameplayTag::RequestGameplayTag(FName("State.Effect.Giant"));
+								if (const FCPActiveEffectInfo* EffectInfo = SaveData.ActiveEffects.Find(GiantTag))
+								{
+									FinalScale *= EffectInfo->Magnitude;
+								}
+							}
+						}
+					}
+					Mesh->SetRelativeScale3D(FinalScale);
+				}
+			}
+
+			if (TargetCharacter->NPCData && Mesh)
+			{
+				if (UAnimSequence* IdleAnim = TargetCharacter->NPCData->IdleAnimation.LoadSynchronous())
+				{
+					Mesh->PlayAnimation(IdleAnim, true);
+				}
 			}
 		}
 	}

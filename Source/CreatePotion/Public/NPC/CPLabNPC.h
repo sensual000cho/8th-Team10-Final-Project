@@ -19,7 +19,9 @@ public:
 
 	UFUNCTION()
 	void OpenResultWidget(AActor* Interactor);
-	
+
+	UFUNCTION()
+	void ShowResultDialogue();
 	void HandleThrownPotionImpact(const TArray<FGameplayTag>& PotionEffectTags);
 
 public:

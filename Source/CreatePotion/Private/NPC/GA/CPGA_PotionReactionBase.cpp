@@ -1,5 +1,6 @@
 ﻿#include "NPC/GA/CPGA_PotionReactionBase.h"
 #include "NPC/CPBaseNPC.h"
+#include "NPC/CPLabNPC.h"
 #include "AbilitySystemComponent.h"
 
 UCPGA_PotionReactionBase::UCPGA_PotionReactionBase()
@@ -12,6 +13,19 @@ UCPGA_PotionReactionBase::UCPGA_PotionReactionBase()
 
 	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Immunity.Potion.All")));
 	ActivationOwnedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Reaction.Potion")));
+}
+
+void UCPGA_PotionReactionBase::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
+{
+	if (ActorInfo && ActorInfo->AvatarActor.IsValid())
+	{
+		if (ACPLabNPC* LabNPC = Cast<ACPLabNPC>(ActorInfo->AvatarActor.Get()))
+		{
+			LabNPC->ShowResultDialogue();
+		}
+	}
+
+	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
 bool UCPGA_PotionReactionBase::ExtractImpactHitResult(const FGameplayEventData* TriggerEventData, FHitResult& OutHitResult)

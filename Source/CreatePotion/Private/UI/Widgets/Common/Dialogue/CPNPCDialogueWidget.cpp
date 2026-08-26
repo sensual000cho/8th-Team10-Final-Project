@@ -35,14 +35,16 @@ void UCPNPCDialogueWidget::InitDialogueLines(bool bIsWorkshopQuest, FName InQues
             {
                 DialogueLines.Empty();
 
-                // 레벨 0: 힌트, 레벨 1 이상: NPC 스토리
-                if (CurrentHintLevel >= 1)
+                FText HintText = QuestManager->GetSessionHintText(CurrentQuestID);
+                if (!HintText.IsEmpty())
                 {
-                    DialogueLines = QuestManager->GetNPCStoryLines(CurrentQuestID);  // 배열 그대로 대입
+                    DialogueLines.Add(HintText);
                 }
-                else
+
+                TArray<FText> StoryLines = QuestManager->GetNPCStoryLines(CurrentQuestID);
+                if (StoryLines.Num() > 0)
                 {
-                    DialogueLines.Add(QuestManager->GetSessionHintText(CurrentQuestID));  // 힌트는 원래 단일 텍스트라 그대로 유지
+                    DialogueLines.Append(StoryLines);
                 }
             }
             else
@@ -135,23 +137,14 @@ void UCPNPCDialogueWidget::OnChoiceSelected(const FString& ButtonText) {
     }
     if (ButtonText == TEXT("네")) {
         if (QuestManager && !CurrentQuestID.IsNone()) {
-            QuestManager->AcceptQuest(CurrentQuestID);
+            if (QuestManager->GetQuestState(CurrentQuestID) == EQuestState::NotAccepted) {
+                QuestManager->AcceptQuest(CurrentQuestID);
+            }
+            else {
+                UE_LOG(LogTemp, Log, TEXT("이미 수락되었거나 완료된 퀘스트"));
+            }
         }
         RequestClose();
-    }
-    else if (ButtonText == TEXT("알겠습니다")) {
-        RequestClose();
-    }
-
-    else if (ButtonText == TEXT("네? 그게 뭐죠?")) {
-        if (QuestManager && !CurrentQuestID.IsNone()) {
-            CurrentHintLevel++;
-            QuestManager->SetQuestHintLevel(CurrentQuestID, CurrentHintLevel);
-
-            DialogueLines = QuestManager->GetNPCStoryLines(CurrentQuestID);
-            CurrentLineIndex = 0;
-            PlayCurrentLine();
-        }
     }
 }
 
@@ -268,33 +261,11 @@ void UCPNPCDialogueWidget::CreateChoiceButtons()
         return;
     }
 
-    if (!bCurrentIsWorkshopQuest) {
-        // [마을 퀘스트] "네" 버튼 생성
-        UCPNPCDialogueButtonWidget* NewButton = CreateWidget<UCPNPCDialogueButtonWidget>(this, DialogueButtonClass);
-        if (NewButton) {
-            NewButton->SetButtonText(FText::FromString(TEXT("네")));
-            NewButton->OnButtonClickedEvent.AddDynamic(this, &UCPNPCDialogueWidget::OnChoiceSelected);
-            HBox_ChoiceList->AddChild(NewButton);
-        }
-    }
-    else {
-        TArray<FString> Choices;
-
-        if (CurrentHintLevel < 1) {
-            Choices = { TEXT("알겠습니다"), TEXT("네? 그게 뭐죠?") };  // 문구는 추후 변경 가능
-        }
-        else {
-            Choices = { TEXT("알겠습니다") };
-        }
-
-        for (const FString& ChoiceText : Choices) {
-            UCPNPCDialogueButtonWidget* NewButton = CreateWidget<UCPNPCDialogueButtonWidget>(this, DialogueButtonClass);
-            if (NewButton) {
-                NewButton->SetButtonText(FText::FromString(ChoiceText));
-                NewButton->OnButtonClickedEvent.AddDynamic(this, &UCPNPCDialogueWidget::OnChoiceSelected);
-                HBox_ChoiceList->AddChild(NewButton);
-            }
-        }
+    UCPNPCDialogueButtonWidget* NewButton = CreateWidget<UCPNPCDialogueButtonWidget>(this, DialogueButtonClass);
+    if (NewButton) {
+        NewButton->SetButtonText(FText::FromString(TEXT("네")));
+        NewButton->OnButtonClickedEvent.AddDynamic(this, &UCPNPCDialogueWidget::OnChoiceSelected);
+        HBox_ChoiceList->AddChild(NewButton);
     }
 }
 
