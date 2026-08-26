@@ -25,3 +25,8 @@ FText UCPLabInteractActionComponent::GetInteractionPrompt() const
 {
 	return InteractionPrompt;
 }
+
+FName UCPLabInteractActionComponent::GetInteractionName() const
+{
+	return InteractionName;
+}

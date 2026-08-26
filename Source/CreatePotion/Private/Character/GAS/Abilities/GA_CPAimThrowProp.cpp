@@ -20,7 +20,9 @@ UGA_CPAimThrowProp::UGA_CPAimThrowProp()
     AbilityTriggers.Add(TriggerData);
 
     // 이 Ability를 구분하기 위한 태그
-    AbilityTags.AddTag(GetAimAbilityTag());
+    FGameplayTagContainer AssetTags = GetAssetTags();
+    AssetTags.AddTag(GetAimAbilityTag());
+    SetAssetTags(AssetTags);
     
     // Ability 활성화 동안 Tag 부여(아래의 Tag가 있어야 Throw GA를 실행할 수 있음)
     ActivationOwnedTags.AddTag(GetAimingStateTag());

@@ -13,7 +13,12 @@ ACPPotionActor::ACPPotionActor()
 
 FText ACPPotionActor::GetInteractionPrompt_Implementation()
 {
-    return FText::FromString(TEXT("포션 들기"));
+    return FText::FromString(TEXT("들기"));
+}
+
+FName ACPPotionActor::GetInteractionName_Implementation()
+{
+    return FName(TEXT("수상한 포션"));
 }
 
 void ACPPotionActor::InitializePotionEffects(const TArray<FGameplayTag>& InEffectTags)

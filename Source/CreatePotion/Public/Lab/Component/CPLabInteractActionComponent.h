@@ -19,10 +19,14 @@ public:
 	virtual bool ExecuteInteraction(AActor* Interactor);
 	virtual bool CanExecuteInteraction(AActor* Interactor) const;
 	virtual FText GetInteractionPrompt() const;
+	virtual FName GetInteractionName() const;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lab|Interaction")
 	FText InteractionPrompt;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lab|Interaction")
+	FName InteractionName;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lab|Interaction")
 	bool bEnabled;

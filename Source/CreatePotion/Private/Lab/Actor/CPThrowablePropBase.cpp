@@ -4,6 +4,7 @@
 
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "GameFramework/Pawn.h"
 #include "TimerManager.h"
 
 ACPThrowablePropBase::ACPThrowablePropBase()
@@ -54,7 +55,7 @@ bool ACPThrowablePropBase::AttachAsHeld(USceneComponent* CarryAnchor)
     }
 
     // 날아가는 중인 Prop은 바로 집을 수는 없음
-    if (PropState != ECPThrowablePropState::Resting)
+    if (!CanBePickedUp())
     {
         return false;
     }
@@ -115,6 +116,37 @@ void ACPThrowablePropBase::DetachAsHeld(const FVector& DropLocation)
     SetPropState(ECPThrowablePropState::Resting);
 }
 
+bool ACPThrowablePropBase::Drop(const FVector& DropLocation)
+{
+    if (!IsValid(StaticMeshComponent) || PropState != ECPThrowablePropState::Held)
+    {
+        return false;
+    }
+
+    DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+
+    SetActorLocation(DropLocation, false, nullptr, ETeleportType::TeleportPhysics);
+    SetActorHiddenInGame(false);
+
+    LastThrower = nullptr;
+    bHasHitSinceThrow = false;
+    LowSpeedElapsedTime = 0.f;
+
+    StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+    StaticMeshComponent->SetGenerateOverlapEvents(true);
+    StaticMeshComponent->SetLinearDamping(PostImpactLinearDamping);
+    StaticMeshComponent->SetAngularDamping(PostImpactAngularDamping);
+    StaticMeshComponent->SetSimulatePhysics(true);
+    StaticMeshComponent->SetPhysicsLinearVelocity(FVector::ZeroVector);
+    StaticMeshComponent->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+    StaticMeshComponent->WakeAllRigidBodies();
+    
+    SetPropState(ECPThrowablePropState::Dropped);
+    StartRestCheck();
+
+    return true;
+}
+
 bool ACPThrowablePropBase::Throw(const FVector& Direction, float Speed)
 {
     if (!IsValid(StaticMeshComponent) || Direction.IsNearlyZero() || Speed <= 0.f)
@@ -150,8 +182,8 @@ bool ACPThrowablePropBase::Throw(const FVector& Direction, float Speed)
     StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
     StaticMeshComponent->SetGenerateOverlapEvents(true);
     
-    StaticMeshComponent->SetLinearDamping(ThrowLinearDamping);
-    StaticMeshComponent->SetAngularDamping(ThrowAngularDamping);
+    StaticMeshComponent->SetLinearDamping(FlightLinearDamping);
+    StaticMeshComponent->SetAngularDamping(FlightAngularDamping);
     
     StaticMeshComponent->SetSimulatePhysics(true);
     StaticMeshComponent->WakeAllRigidBodies();
@@ -165,6 +197,18 @@ bool ACPThrowablePropBase::Throw(const FVector& Direction, float Speed)
     HandleThrowStarted(LastThrower);
 
     return true;
+}
+
+bool ACPThrowablePropBase::CanBePickedUp() const
+{
+    if (PropState == ECPThrowablePropState::Resting)
+    {
+        return true;
+    }
+
+    const bool bWasPhysicallyReleased = PropState == ECPThrowablePropState::Thrown || PropState == ECPThrowablePropState::Dropped;
+
+    return bWasPhysicallyReleased && bHasHitSinceThrow;
 }
 
 void ACPThrowablePropBase::SetPropState(ECPThrowablePropState NewState)
@@ -201,7 +245,9 @@ void ACPThrowablePropBase::StopRestCheck()
 
 void ACPThrowablePropBase::CheckForRest()
 {
-    if (PropState != ECPThrowablePropState::Thrown || !IsValid(StaticMeshComponent))
+    const bool bCanBecomeResting = PropState == ECPThrowablePropState::Thrown || PropState == ECPThrowablePropState::Dropped;
+
+    if (!bCanBecomeResting || !IsValid(StaticMeshComponent))
     {
         StopRestCheck();
         return;
@@ -247,12 +293,45 @@ void ACPThrowablePropBase::CheckForRest()
 
 void ACPThrowablePropBase::HandleMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& HitResult)
 {
-    if (PropState != ECPThrowablePropState::Thrown)
+    const bool bIsThrown = PropState == ECPThrowablePropState::Thrown;
+    const bool bIsDropped = PropState == ECPThrowablePropState::Dropped;
+    const bool bIsResting = PropState == ECPThrowablePropState::Resting;
+    const bool bIsPhysicsRelease = bIsThrown || bIsDropped;
+    
+    if (!bIsPhysicsRelease && !bIsResting)
     {
         return;
     }
+    
+    // 충돌 최초 1회 발생 이후 댐핑 적용
+    if (bIsPhysicsRelease)
+    {
+        const bool bIsFirstHit = !bHasHitSinceThrow;
+        bHasHitSinceThrow = true;
 
-    bHasHitSinceThrow = true;
+        if (bIsFirstHit && IsValid(StaticMeshComponent))
+        {
+            StaticMeshComponent->SetLinearDamping(PostImpactLinearDamping);
+            StaticMeshComponent->SetAngularDamping(PostImpactAngularDamping);
+        }
+    }
+    
+    // 바닥에 뒹구는 Prop 속도 조절
+    if (CanBePickedUp() && IsValid(OtherActor) && OtherActor->IsA<APawn>() && IsValid(StaticMeshComponent))
+    {
+        const FVector LinearVelocity = StaticMeshComponent->GetPhysicsLinearVelocity();
+        const FVector AngularVelocity = StaticMeshComponent->GetPhysicsAngularVelocityInDegrees();
+
+        StaticMeshComponent->SetPhysicsLinearVelocity(LinearVelocity.GetClampedToMaxSize(PushMaxLinearSpeed));
+        StaticMeshComponent->SetPhysicsAngularVelocityInDegrees(AngularVelocity.GetClampedToMaxSize(PushMaxAngularSpeed));
+    }
+    
+    // Dropped인 경우 포션 폭발(Impact) 실행을 하지 않고 return
+    // 교체 시 바닥에 Drop하므로 Resting 조건도 추가(Drop하는 순간 Resting 가능성)
+    if (bIsResting || bIsDropped)
+    {
+        return;
+    }
 
     // Base에서는 Hit을 차단하지 않음.
     // PotionImpactComponent 내부의 bImpactTriggered를 이용해 첫 Impact만 처리.
@@ -288,6 +367,11 @@ bool ACPThrowablePropBase::IsThrown() const
     return PropState == ECPThrowablePropState::Thrown;
 }
 
+bool ACPThrowablePropBase::IsDropped() const
+{
+    return PropState == ECPThrowablePropState::Dropped;
+}
+
 bool ACPThrowablePropBase::IsResting() const
 {
     return PropState == ECPThrowablePropState::Resting;
@@ -300,7 +384,7 @@ AActor* ACPThrowablePropBase::GetLastThrower() const
 
 bool ACPThrowablePropBase::CanInteract_Implementation(AActor* Interactor)
 {
-    return IsValid(Interactor) && PropState == ECPThrowablePropState::Resting;
+    return IsValid(Interactor) && CanBePickedUp();
 }
 
 FName ACPThrowablePropBase::GetInteractionName_Implementation()

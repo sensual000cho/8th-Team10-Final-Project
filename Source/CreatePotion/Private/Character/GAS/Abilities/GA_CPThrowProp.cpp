@@ -8,13 +8,13 @@
 #include "GameFramework/Actor.h"
 #include "GameFramework/PlayerController.h"
 
-UGA_CPThrowProp::UGA_CPThrowProp() : ThrowSpeed(800.f), UpwardBias(0.2f)
+UGA_CPThrowProp::UGA_CPThrowProp() : ThrowSpeed(800.f), UpwardBias(0.5f)
 {
     InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
     
     // 조준 상태에서만 Throw가 되도록
-    const FGameplayTag AimingStateTag = FGameplayTag::RequestGameplayTag(TEXT("State.Carry.Aiming"));
-    ActivationRequiredTags.AddTag(AimingStateTag);
+    // const FGameplayTag AimingStateTag = FGameplayTag::RequestGameplayTag(TEXT("State.Carry.Aiming"));
+    // ActivationRequiredTags.AddTag(AimingStateTag);
 
     FAbilityTriggerData TriggerData;
     TriggerData.TriggerTag = GetThrowEventTag();
