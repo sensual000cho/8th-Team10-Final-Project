@@ -18,6 +18,7 @@ public:
 	ACPPotionActor();
 
 	virtual FText GetInteractionPrompt_Implementation() override;
+	virtual FName GetInteractionName_Implementation() override;
 
 	// 완성된 포션의 태그를 저장하고 PotionImpactComponent에도 전달.
 	UFUNCTION(BlueprintCallable, Category = "Potion")
