@@ -16,7 +16,8 @@ enum class ECPThrowablePropState : uint8
 {
     Resting,
     Held,
-    Thrown
+    Thrown,
+    Dropped
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FCPOnThrowablePropStateChanged, ECPThrowablePropState, NewState);
@@ -40,9 +41,15 @@ public:
 
     bool AttachAsHeld(USceneComponent* CarryAnchor);
     void DetachAsHeld(const FVector& DropLocation);
+    
+    // 포션 Impact를 활성화하지 않고 Drop
+    bool Drop(const FVector& DropLocation);
 
     // 머리 위에서 분리하고 물리 투척
     bool Throw(const FVector& Direction, float Speed);
+    
+    UFUNCTION(BlueprintPure, Category = "Prop|State")
+    bool CanBePickedUp() const;
 
     UFUNCTION(BlueprintPure, Category = "Prop|State")
     ECPThrowablePropState GetPropState() const;
@@ -52,6 +59,9 @@ public:
 
     UFUNCTION(BlueprintPure, Category = "Prop|State")
     bool IsThrown() const;
+    
+    UFUNCTION(BlueprintPure, Category = "Prop|State")
+    bool IsDropped() const;
 
     UFUNCTION(BlueprintPure, Category = "Prop|State")
     bool IsResting() const;
@@ -106,7 +116,7 @@ protected:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Carry")
     FTransform HeldRelativeTransform;
 
-    // 20.0만큼 투척방향으로 이동(물리 활성화 전)
+    // 100.0만큼 투척방향으로 이동(물리 활성화 전)
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Throw", meta = (ClampMin = "0.0", Units = "cm"))
     float ThrowStartOffset = 100.f;
 
@@ -114,25 +124,39 @@ protected:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Rest", meta = (ClampMin = "0.01", Units = "s"))
     float RestCheckInterval = 0.1f;
 
-    // 투척 후 선형 이동 감쇠
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Physics", meta = (ClampMin = "0.0"))
-    float ThrowLinearDamping = 1.5f;
+    // 공중에서 날아가는 동안의 감쇠
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Physics")
+    float FlightLinearDamping = 0.7f;
 
-    // 투척 후 회전 감쇠
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Physics", meta = (ClampMin = "0.0"))
-    float ThrowAngularDamping = 5.f;
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Physics")
+    float FlightAngularDamping = 1.f;
+
+    // 첫 충돌 이후 굴러가는 동안의 감쇠
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Physics")
+    float PostImpactLinearDamping = 1.5f;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Physics")
+    float PostImpactAngularDamping = 5.f;
     
-    // 30.0의 선속도 이하면 정지상태로 인정
+    // 60.0의 선속도 이하면 정지상태로 인정
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Rest", meta = (ClampMin = "0.0", Units = "cm/s"))
-    float RestLinearSpeedThreshold = 30.f;
+    float RestLinearSpeedThreshold = 60.f;
 
-    // 45.0의 각속도 이하면 정지상태로 인정
+    // 90.0의 각속도 이하면 정지상태로 인정
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Rest", meta = (ClampMin = "0.0", Units = "deg/s"))
-    float RestAngularSpeedThreshold = 45.f;
+    float RestAngularSpeedThreshold = 90.f;
 
     // 멈춘 시간 0.2초까지는 정지상태로 인정하지 않음
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Rest", meta = (ClampMin = "0.0", Units = "s"))
     float RestConfirmationDuration = 0.2f;
+    
+    // Prop이 Pawn에 밀렸을 때 허용할 최대 이동 속도
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Physics", meta = (ClampMin = "0.0", Units = "cm/s"))
+    float PushMaxLinearSpeed = 50.f;
+
+    // Prop이 Pawn에 밀렸을 때 허용할 최대 회전 속도
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Physics", meta = (ClampMin = "0.0", Units = "deg/s"))
+    float PushMaxAngularSpeed = 80.f;
 
 private:
     UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Prop|State", meta = (AllowPrivateAccess = "true"))
