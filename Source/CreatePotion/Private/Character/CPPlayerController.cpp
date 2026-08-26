@@ -16,6 +16,11 @@
 #include "Components/CPHandItemContainerComponent.h"
 #include "UI/Context/CPContextInventoryOnly.h"
 
+//디버그용 포션 Spawn 용 include
+#include "Character/CPCarryComponent.h"
+#include "Data/CPPotionData.h"
+#include "Lab/Actor/CPPotionActor.h"
+
 
 void ACPPlayerController::BeginPlay()
 {
@@ -191,4 +196,72 @@ void ACPPlayerController::ResetHoldingItem()
 	LeftClickPickedItemOriginContainer = nullptr;
 	LeftClickPickedOriginSlotIndex = -1;
 }
+#pragma endregion
+
+
+#pragma region DebugPotionHotkeys
+void ACPPlayerController::DebugSpawnFartLaunchPotion()
+{
+	TArray<FGameplayTag> EffectTags;
+	EffectTags.Add(FGameplayTag::RequestGameplayTag(FName(TEXT("Potion.Effect.FartLaunch"))));
+
+	SpawnDebugPotion(EffectTags);
+}
+
+void ACPPlayerController::DebugSpawnGiantPotion()
+{
+	TArray<FGameplayTag> EffectTags;
+	EffectTags.Add(FGameplayTag::RequestGameplayTag(FName(TEXT("Potion.Effect.Giant"))));
+
+	SpawnDebugPotion(EffectTags);
+}
+
+void ACPPlayerController::DebugSpawnCombinedPotion()
+{
+	TArray<FGameplayTag> EffectTags;
+	EffectTags.Add(FGameplayTag::RequestGameplayTag(FName(TEXT("Potion.Effect.FartLaunch"))));
+	EffectTags.Add(FGameplayTag::RequestGameplayTag(FName(TEXT("Potion.Effect.Giant"))));
+
+	SpawnDebugPotion(EffectTags);
+}
+void ACPPlayerController::SpawnDebugPotion(const TArray<FGameplayTag>& EffectTags)
+{
+	UWorld* World = GetWorld();
+	APawn* ControlledPawn = GetPawn();
+
+	if (!World || !ControlledPawn || !DebugPotionData)
+	{
+		return;
+	}
+
+	UCPCarryComponent* CarryComponent = ControlledPawn->FindComponentByClass<UCPCarryComponent>();
+
+	if (!CarryComponent || CarryComponent->HasHeldProp())
+	{
+		return;
+	}
+
+	UClass* PotionActorClass = DebugPotionData->PotionActorClass.LoadSynchronous();
+
+	if (!PotionActorClass)
+	{
+		return;
+	}
+
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	ACPPotionActor* Potion = World->SpawnActor<ACPPotionActor>(PotionActorClass, CarryComponent->GetComponentTransform(), SpawnParameters);
+	if (!Potion)
+	{
+		return;
+	}
+	Potion->InitializePotionEffects(EffectTags);
+	if (!CarryComponent->AttachProp(Potion))
+	{
+		Potion->Destroy();
+	}
+}
+
+
 #pragma endregion
