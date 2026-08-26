@@ -48,7 +48,7 @@ FText ACPBaseNPC::GetInteractionPrompt_Implementation()
 		return FText::GetEmpty();
 	}
 
-	return FText::FromString(TEXT("F : 대화하기"));
+	return FText::FromString(TEXT("대화하기"));
 }
 
 bool ACPBaseNPC::CanInteract_Implementation(AActor* Interactor)
@@ -57,6 +57,15 @@ bool ACPBaseNPC::CanInteract_Implementation(AActor* Interactor)
 		*GetName(),
 		Interactor ? *Interactor->GetName() : TEXT("Unknown"));
 	return true;
+}
+
+FName ACPBaseNPC::GetInteractionName_Implementation()
+{
+	if (NPCData && NPCData->NPCName != NAME_None)
+	{
+		return NPCData->NPCName;
+	}
+	return GetFName();
 }
 
 UAbilitySystemComponent* ACPBaseNPC::GetAbilitySystemComponent() const
