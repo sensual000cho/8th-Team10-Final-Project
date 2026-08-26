@@ -1,9 +1,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "CPForageableItemData.h"
 //#include "NiagaraSystem.h"
 #include "Engine/DataAsset.h"
+#include "Resource/CPResourceType.h"
 #include "CPResourceDefinition.generated.h"
 
 UCLASS()
@@ -24,18 +24,9 @@ public:
 	//UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Presentation")
 	//TSoftObjectPtr<UNiagaraSystem> HarvestVFX;
 	
-	// 채집 시간
+	// 채집 데이터
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Harvest")
-	float HarvestDuration = 1.f;
-	
-	// 채집 아이템
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Harvest")
-	TObjectPtr<UCPForageableItemData> HarvestedItem;
-	
-	// 채집 개수
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Harvest",
-		meta = (ClampMin = "1"))
-	int32 HarvestAmount = 1;
+	FCPHarvestData HarvestData;
 	
 	// 리스폰 시간
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Respawn",
