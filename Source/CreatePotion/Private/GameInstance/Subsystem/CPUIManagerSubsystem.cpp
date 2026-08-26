@@ -4,7 +4,31 @@
 #include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
 #include "GameFramework/PlayerController.h"
 #include "Blueprint/UserWidget.h"
+#include "Kismet/GameplayStatics.h"
 #include "UI/Widgets/Base/CPBasePopupWidget.h"
+
+UUserWidget* UCPUIManagerSubsystem::PushWidget(TSubclassOf<UUserWidget> WidgetClass)
+{
+	if (!WidgetClass) return nullptr;
+	
+	UUserWidget* Widget = CreateWidget<UUserWidget>(GetGameInstance(), WidgetClass);
+	
+	if (Widget)
+	{
+		Widget->AddToViewport(OpenWidgets.Num());
+		
+		ECPInputMode InputMode = ECPInputMode::GameOnly;
+		if (auto* PopupWidget = Cast<UCPBasePopupWidget>(Widget))
+		{
+			InputMode = PopupWidget->GetInputMode();
+			UE_LOG(LogTemp, Warning, TEXT("[UIManager] PushWidgetBP InputMode 읽음: %d"), (int32)InputMode);
+		}
+		
+		OpenWidgets.Add({Widget, InputMode});
+		UpdateInputMode();
+	}
+	return Widget;
+}
 
 void UCPUIManagerSubsystem::CloseWidget(UUserWidget* Widget)
 {
@@ -29,23 +53,10 @@ void UCPUIManagerSubsystem::CloseWidget(UUserWidget* Widget)
 	}
 }
 
-void UCPUIManagerSubsystem::BringWidgetToFront(UUserWidget* Widget)
+void UCPUIManagerSubsystem::CloseTopWidget()
 {
-	int32 Index = OpenWidgets.IndexOfByPredicate([Widget](const FPopupEntry& Entry)
-	{
-		return Entry.Widget == Widget;
-	});
-	
-	if (Index != INDEX_NONE && Index != OpenWidgets.Num() - 1)
-	{
-		// 기존의 위젯 제거 후 다시 추가하여 Zorder 최상위로 올리기
-		FPopupEntry EntryToMove = OpenWidgets[Index];
-		OpenWidgets.RemoveAt(Index);
-		
-		OpenWidgets.Add(EntryToMove);
-		
-		UpdateInputMode();
-	}
+	if (OpenWidgets.Num() == 0) return;
+	CloseWidget(OpenWidgets.Last().Widget.Get());
 }
 
 UUserWidget* UCPUIManagerSubsystem::ToggleWidget(TSubclassOf<UUserWidget> WidgetClass)
@@ -71,6 +82,25 @@ UUserWidget* UCPUIManagerSubsystem::ToggleWidget(TSubclassOf<UUserWidget> Widget
 	}
 }
 
+void UCPUIManagerSubsystem::BringWidgetToFront(UUserWidget* Widget)
+{
+	int32 Index = OpenWidgets.IndexOfByPredicate([Widget](const FPopupEntry& Entry)
+	{
+		return Entry.Widget == Widget;
+	});
+	
+	if (Index != INDEX_NONE && Index != OpenWidgets.Num() - 1)
+	{
+		// 기존의 위젯 제거 후 다시 추가하여 Zorder 최상위로 올리기
+		FPopupEntry EntryToMove = OpenWidgets[Index];
+		OpenWidgets.RemoveAt(Index);
+		
+		OpenWidgets.Add(EntryToMove);
+		
+		UpdateInputMode();
+	}
+}
+
 UUserWidget* UCPUIManagerSubsystem::FindOpenWidget(TSubclassOf<UUserWidget> WidgetClass)
 {
 	if (!WidgetClass)
@@ -88,10 +118,12 @@ UUserWidget* UCPUIManagerSubsystem::FindOpenWidget(TSubclassOf<UUserWidget> Widg
 	return nullptr;
 }
 
-void UCPUIManagerSubsystem::CloseTopWidget()
+void UCPUIManagerSubsystem::PlayWidgetSound(USoundBase* Sound)
 {
-	if (OpenWidgets.Num() == 0) return;
-	CloseWidget(OpenWidgets.Last().Widget.Get());
+	if (IsValid(Sound))
+	{
+		UGameplayStatics::PlaySound2D(GetWorld(), Sound);
+	}
 }
 
 void UCPUIManagerSubsystem::UpdateInputMode()
@@ -139,29 +171,6 @@ void UCPUIManagerSubsystem::UpdateInputMode()
 			break;
 		}
 	}
-}
-
-UUserWidget* UCPUIManagerSubsystem::PushWidget(TSubclassOf<UUserWidget> WidgetClass)
-{
-	if (!WidgetClass) return nullptr;
-	
-	UUserWidget* Widget = CreateWidget<UUserWidget>(GetGameInstance(), WidgetClass);
-	
-	if (Widget)
-	{
-		Widget->AddToViewport(OpenWidgets.Num());
-		
-		ECPInputMode InputMode = ECPInputMode::GameOnly;
-		if (auto* PopupWidget = Cast<UCPBasePopupWidget>(Widget))
-		{
-			InputMode = PopupWidget->GetInputMode();
-			UE_LOG(LogTemp, Warning, TEXT("[UIManager] PushWidgetBP InputMode 읽음: %d"), (int32)InputMode);
-		}
-		
-		OpenWidgets.Add({Widget, InputMode});
-		UpdateInputMode();
-	}
-	return Widget;
 }
 
 void UCPUIManagerSubsystem::RegisterPushedWidget(UUserWidget* Widget)
