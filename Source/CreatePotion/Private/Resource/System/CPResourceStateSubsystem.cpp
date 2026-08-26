@@ -1,4 +1,5 @@
 #include "Resource/System/CPResourceStateSubsystem.h"
+#include "GameInstance/Subsystem/CPTimeSubsystem.h"
 
 FCPResourceNodeState& UCPResourceStateSubsystem::GetOrCreateState(const FCPResourceNodeKey& Key)
 {
@@ -10,17 +11,31 @@ const FCPResourceNodeState* UCPResourceStateSubsystem::FindState(const FCPResour
 	return NodeStates.Find(Key);
 }
 
-void UCPResourceStateSubsystem::MarkHarvested(const FCPResourceNodeKey& Key, double CurrentTime, double RespawnDuration)
+void UCPResourceStateSubsystem::MarkHarvested(const FCPResourceNodeKey& Key, double RespawnDuration)
 {
+	UGameInstance* GI = GetGameInstance();
+	if (!GI) return;
+	
+	UCPTimeSubsystem* TimeSubsystem = GI->GetSubsystem<UCPTimeSubsystem>();
+	if (!TimeSubsystem) return;
+	
 	FCPResourceNodeState& State = NodeStates.FindOrAdd(Key);
 	
 	++State.Generation;
 	
-	State.RespawnAt = CurrentTime + RespawnDuration;
+	State.RespawnAt = TimeSubsystem->GetTotalWorldMinutes() + RespawnDuration;
+	
+	OnResourceNodeHarvested.Broadcast(Key);
 }
 
-bool UCPResourceStateSubsystem::IsReady(const FCPResourceNodeKey& Key, double CurrentTime) const
+bool UCPResourceStateSubsystem::IsReady(const FCPResourceNodeKey& Key) const
 {
+	UGameInstance* GI = GetGameInstance();
+	if (!GI) return false;
+	
+	UCPTimeSubsystem* TimeSubsystem = GI->GetSubsystem<UCPTimeSubsystem>();
+	if (!TimeSubsystem) return false;
+	
 	const FCPResourceNodeState* State = NodeStates.Find(Key);
 	
 	if (!State)
@@ -28,5 +43,5 @@ bool UCPResourceStateSubsystem::IsReady(const FCPResourceNodeKey& Key, double Cu
 		return true;
 	}
 	
-	return CurrentTime >= State->RespawnAt;
+	return TimeSubsystem->GetTotalWorldMinutes() >= State->RespawnAt;
 }
