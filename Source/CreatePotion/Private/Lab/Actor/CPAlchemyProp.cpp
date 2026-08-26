@@ -79,7 +79,13 @@ void ACPAlchemyProp::OnInteract_Implementation(AActor* Interactor)
 
 FText ACPAlchemyProp::GetInteractionPrompt_Implementation()
 {
-    return FText::FromString(TEXT("재료 들기"));
+    return FText::FromString(TEXT("들기"));
+}
+
+FName ACPAlchemyProp::GetInteractionName_Implementation()
+{
+    return WorkingIngredient.SourceItemData ? 
+        FName(*WorkingIngredient.SourceItemData->DisplayName.ToString()) : Super::GetInteractionName_Implementation();
 }
 
 void ACPAlchemyProp::InitializeFromItemData(UCPForageableItemData* ItemData)
