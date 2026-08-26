@@ -27,6 +27,7 @@ public:
 	virtual void OnInteract_Implementation(AActor* Interactor) override;
 	virtual FText GetInteractionPrompt_Implementation() override;
 	virtual bool CanInteract_Implementation(AActor* Interactor) override;
+	virtual FName GetInteractionName_Implementation() override;
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
 	UFUNCTION(BlueprintPure, Category = "NPC|Potion")
