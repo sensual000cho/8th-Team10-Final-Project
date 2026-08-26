@@ -36,6 +36,10 @@ public:
     // Prop을 이 컴포넌트 위치에 부착하고 Held 참조로 등록
     UFUNCTION(BlueprintCallable, Category = "Carry")
     bool AttachProp(ACPThrowablePropBase* Prop);
+    
+    // 기존 Held Prop을 Drop한 뒤 새로운 Prop을 부착
+    UFUNCTION(BlueprintCallable, Category = "Carry")
+    bool ReplaceHeldProp(ACPThrowablePropBase* NewProp);
 
     // 지정한 Held Prop을 분리하고 월드 위치에 배치
     UFUNCTION(BlueprintCallable, Category = "Carry")
@@ -61,21 +65,14 @@ public:
     UFUNCTION(BlueprintPure, Category = "Carry")
     ACPThrowablePropBase* GetHeldProp() const;
 
-    /*
-     * 기존 임시 투척 함수.
-     *
-     * 기존 BP와 코드의 호환성을 위해 당장은 유지(추후 삭제).
-     * 새로운 GA 기반 Carry 시스템에서는 사용하지 않음.
-     */
-    UFUNCTION(BlueprintCallable, Category = "Carry|Legacy")
-    bool TryThrowHeldAlchemyProp(float ThrowSpeed = 800.f, float UpwardBias = 0.2f);
-
 public:
     // 현재 들고 있는 Prop이 변경되었음을 알림
     UPROPERTY(BlueprintAssignable, Category = "Carry")
     FCPOnCarryHeldPropChanged OnHeldPropChanged;
 
 private:
+    FVector MakeReplacementDropLocation(const ACPThrowablePropBase* Prop) const;
+    
     // Held 참조 변경과 OnDestroyed 바인딩을 한곳에서 처리
     void SetHeldProp(ACPThrowablePropBase* NewHeldProp);
 
@@ -84,6 +81,19 @@ private:
     void HandleHeldPropDestroyed(AActor* DestroyedActor);
 
 private:
+    // Drop에 사용할 지면 탐색 변수들
+    UPROPERTY(EditAnywhere, Category = "Carry|Drop", meta = (ClampMin = "0.0", Units = "cm"))
+    float ReplacementDropForwardDistance;
+    
+    UPROPERTY(EditAnywhere, Category = "Carry|Drop", meta = (ClampMin = "0.0", Units = "cm"))
+    float ReplacementDropTraceUpDistance;
+
+    UPROPERTY(EditAnywhere, Category = "Carry|Drop", meta = (ClampMin = "0.0", Units = "cm"))
+    float ReplacementDropTraceDownDistance;
+
+    UPROPERTY(EditAnywhere, Category = "Carry|Drop", meta = (ClampMin = "0.0", Units = "cm"))
+    float ReplacementDropGroundClearance;
+    
     // ResetCarryState 호출 시 캐릭터 전방에 내려놓을 거리
     UPROPERTY(EditAnywhere, Category = "Carry", meta = (ClampMin = "0.0"))
     float ResetDropForwardDistance;

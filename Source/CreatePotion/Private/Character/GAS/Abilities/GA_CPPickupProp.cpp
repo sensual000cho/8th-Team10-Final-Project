@@ -25,15 +25,7 @@ bool UGA_CPPickupProp::CanActivateAbility(const FGameplayAbilitySpecHandle Handl
         return false;
     }
 
-    const UCPCarryComponent* CarryComponent = FindCarryComponent(ActorInfo);
-
-    if (!IsValid(CarryComponent))
-    {
-        return false;
-    }
-
-    // 한 번에 하나만 들 수 있으므로 이미 들고 있다면 활성화 불가
-    return !CarryComponent->HasHeldProp();
+    return IsValid(FindCarryComponent(ActorInfo));
 }
 
 void UGA_CPPickupProp::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
@@ -69,8 +61,9 @@ void UGA_CPPickupProp::ActivateAbility(const FGameplayAbilitySpecHandle Handle, 
         EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
         return;
     }
-
-    const bool bPickupSucceeded = CarryComponent->AttachProp(TargetProp);
+    
+    const bool bWasReplacing = CarryComponent->HasHeldProp() && CarryComponent->GetHeldProp() != TargetProp;
+    const bool bPickupSucceeded = CarryComponent->ReplaceHeldProp(TargetProp);
 
     if (!bPickupSucceeded)
     {
@@ -80,7 +73,14 @@ void UGA_CPPickupProp::ActivateAbility(const FGameplayAbilitySpecHandle Handle, 
         return;
     }
 
-    UE_LOG(LogTemp, Log, TEXT("[PickupAbility] Prop 부착 성공: %s"), *GetNameSafe(TargetProp));
+    if (bWasReplacing)
+    {
+        UE_LOG(LogTemp, Log, TEXT("[PickupAbility] Prop 교체 성공: %s"), *GetNameSafe(TargetProp));
+    }
+    else
+    {
+        UE_LOG(LogTemp, Log, TEXT("[PickupAbility] Prop 부착 성공: %s"), *GetNameSafe(TargetProp));
+    }
 
     EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
 }
