@@ -61,11 +61,30 @@ void ACPTimeOfDayController::UpdateSunRotation(double GameMinutes)
 	if (SunLight)
 	{
 		SunLight->SetActorRotation(FRotator(SunPitch, SunYaw, 0.f));
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, FString::Printf(TEXT("Sun Pitch: %f"), SunPitch));
 	}
 	
 	if (MoonLight)
 	{
 		MoonLight->SetActorRotation(FRotator(MoonPitch, SunYaw, 0.f));
+	}
+	
+	if (SkySphere)
+	{
+		UStaticMeshComponent* Mesh = SkySphere->FindComponentByClass<UStaticMeshComponent>();
+		if (Mesh)
+		{
+			UMaterialInstanceDynamic* Material = Mesh->CreateDynamicMaterialInstance(0);
+			if (Material)
+			{
+				float Intensity = FMath::GetMappedRangeValueClamped(
+					FVector2D(-0.1f, 0.1f),
+					FVector2D(0.f, 1.f),
+					FMath::Sin(FMath::DegreesToRadians(SunPitch)));
+				
+				Material->SetScalarParameterValue(TEXT("Intensity"), Intensity);
+			}
+		}
 	}
 }
 

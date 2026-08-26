@@ -37,6 +37,10 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Time")
 	TObjectPtr<ADirectionalLight> MoonLight;
 	
+	// 하늘 액터
+	UPROPERTY(EditAnywhere, Category = "Time")
+	TObjectPtr<AActor> SkySphere;
+	
 	// 태양 궤도 시작 각도
 	UPROPERTY(EditAnywhere, Category = "Time")
 	float SunPitchOffset = -90.f;
