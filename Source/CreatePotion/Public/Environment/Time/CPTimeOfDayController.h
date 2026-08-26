@@ -29,16 +29,20 @@ private:
 	void UpdateVisualTime();
 	
 private:
-	// Directional Light
+	// Sun Light
 	UPROPERTY(EditAnywhere, Category = "Time")
 	TObjectPtr<ADirectionalLight> SunLight;
 	
+	// Moon Light
+	UPROPERTY(EditAnywhere, Category = "Time")
+	TObjectPtr<ADirectionalLight> MoonLight;
+	
 	// 태양 궤도 시작 각도
-	UPROPERTY(EditDefaultsOnly, Category = "Time")
+	UPROPERTY(EditAnywhere, Category = "Time")
 	float SunPitchOffset = -90.f;
 	
 	// 방향 조절용
-	UPROPERTY(EditDefaultsOnly, Category = "Time")
+	UPROPERTY(EditAnywhere, Category = "Time")
 	float SunYaw = 0.f;
 	
 	UPROPERTY(Transient)

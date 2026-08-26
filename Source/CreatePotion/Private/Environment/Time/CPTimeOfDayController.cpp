@@ -51,13 +51,22 @@ void ACPTimeOfDayController::UpdateSunRotation(double GameMinutes)
 {
 	if (!SunLight) return;
 	
-	constexpr double MinutesPerDay = 1440.0;
+	constexpr double MinutesPerDay = 144.0;
 	
 	const double MinutesOfDay = FMath::Fmod(GameMinutes, MinutesPerDay);
 	const double DayAlpha = MinutesOfDay / MinutesPerDay;
 	const float SunPitch = SunPitchOffset + static_cast<float>(DayAlpha * 360.0);
+	const float MoonPitch = SunPitch + 180.f;
 	
-	SunLight->SetActorRotation(FRotator(SunPitch, SunYaw, 0.f));
+	if (SunLight)
+	{
+		SunLight->SetActorRotation(FRotator(SunPitch, SunYaw, 0.f));
+	}
+	
+	if (MoonLight)
+	{
+		MoonLight->SetActorRotation(FRotator(MoonPitch, SunYaw, 0.f));
+	}
 }
 
 void ACPTimeOfDayController::UpdateVisualTime()
