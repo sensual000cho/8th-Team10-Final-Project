@@ -21,6 +21,7 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 	
 	virtual FText GetInteractionPrompt_Implementation() override;
+	virtual FName GetInteractionName_Implementation() override;
 
 	UFUNCTION(BlueprintCallable, Category = "Lab|Ingredient")
 	void InitializeFromItemData(UCPForageableItemData* ItemData);
