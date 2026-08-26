@@ -8,6 +8,7 @@
 #include "Resource/CPResourceType.h"
 #include "CPResourceNodeActor.generated.h"
 
+class UCPHarvestComponent;
 class UCPResourceDefinition;
 class ACPDroppedItemBase;
 
@@ -52,6 +53,9 @@ private:
 private:
 	UPROPERTY(VisibleAnywhere, Category = "Component")
 	TObjectPtr<UStaticMeshComponent> Mesh;
+	
+	UPROPERTY(VisibleAnywhere, Category =  "Component")
+	TObjectPtr<UCPHarvestComponent> HarvestComponent;
 	
 	UPROPERTY(VisibleInstanceOnly, Category = "Resource")
 	FCPResourceNodeKey NodeKey;

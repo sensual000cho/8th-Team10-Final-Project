@@ -5,6 +5,8 @@
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "CPResourceStateSubsystem.generated.h"
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnResourceNodeHarvested, const FCPResourceNodeKey&);
+
 // 채집물 상태 관리를 위한 서브시스템
 UCLASS()
 class CREATEPOTION_API UCPResourceStateSubsystem : public UGameInstanceSubsystem
@@ -19,10 +21,12 @@ public:
 	const FCPResourceNodeState* FindState(const FCPResourceNodeKey& Key) const;
 	
 	// 채집 시(Pool 반환 및 Generation 갱신)
-	void MarkHarvested(const FCPResourceNodeKey& Key, double CurrentTime = 0, double RespawnDuration = 0);
+	void MarkHarvested(const FCPResourceNodeKey& Key, double RespawnDuration);
 	
 	// 리스폰 검사
-	bool IsReady(const FCPResourceNodeKey& Key, double CurrentTime) const;
+	bool IsReady(const FCPResourceNodeKey& Key) const;
+	
+	FOnResourceNodeHarvested OnResourceNodeHarvested;
 	
 private:
 	// 키 상태 맵핑
