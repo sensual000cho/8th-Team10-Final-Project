@@ -342,6 +342,21 @@ void ACPThrowablePropBase::HandleMeshHit(UPrimitiveComponent* HitComponent, AAct
     HandleThrownImpact(OtherActor, HitResult);
 }
 
+bool ACPThrowablePropBase::GetPropCollisionBounds(FVector& OutOrigin, FVector& OutExtent) const
+{
+    if (!IsValid(StaticMeshComponent))
+    {
+        OutOrigin = FVector::ZeroVector;
+        OutExtent = FVector::ZeroVector;
+        return false;
+    }
+
+    OutOrigin = StaticMeshComponent->Bounds.Origin;
+    OutExtent = StaticMeshComponent->Bounds.BoxExtent;
+
+    return true;
+}
+
 void ACPThrowablePropBase::HandleThrowStarted(AActor* Thrower)
 {
     // 자식 Actor에서 필요한 경우 재정의(Potion)
