@@ -35,11 +35,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Container|UI")
 	TSubclassOf<UCPItemSlotWidget> ItemWidgetClass;
 
-	UPROPERTY(EditAnywhere, Category = "Container|UI")
-	float SlotSize = 80.0f;
-	UPROPERTY(EditAnywhere, Category = "Container|UI")
-	float SlotPadding = 5.0f;
-
 	// 추후 다른 클래스와의 상호작용을 위해 캐싱
 	UPROPERTY()
 	UCPItemContainerComponent* CachedContainer;

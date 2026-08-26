@@ -42,17 +42,4 @@ struct FContainerItem
     // 현재 아이템이 회전되어 있는지 여부, false = 정방향, true = 회전
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
     bool bIsRotated = false;
-
-    // Hash를 사용하여 Key값으로 정렬도 되지 않고 레플리케이션을 지원하지 않는 TMap 대신
-    // 몇 가지 안되는 특성의 값을 캐싱해서 정렬 구현, 이후에 속성이 늘어날 경우 배열로 관리
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Tag")
-    int32 Tag_A = 0;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Tag")
-    int32 Tag_B = 0;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Tag")
-    int32 Tag_C = 0;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Tag")
-    int32 Tag_D = 0;
-    //UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Tag")
-    //FString Tag_SP = 0;
 };
