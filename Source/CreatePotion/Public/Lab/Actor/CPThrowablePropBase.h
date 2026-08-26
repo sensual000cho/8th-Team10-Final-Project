@@ -36,6 +36,7 @@ public:
     virtual void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
+    virtual void OnInteract_Implementation(AActor* Interactor) override;
     virtual bool CanInteract_Implementation(AActor* Interactor) override;
     virtual FName GetInteractionName_Implementation() override;
 
