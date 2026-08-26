@@ -31,7 +31,6 @@ private:
 	// 래그돌이 바닥에 굴러가다 완전히 멈췄는지 주기적으로 확인
 	UFUNCTION()
 	void CheckRagdollVelocity();
-	void RecoverFromRagdoll();
 
 	UFUNCTION()
 	void ApplyRagdollThrust();

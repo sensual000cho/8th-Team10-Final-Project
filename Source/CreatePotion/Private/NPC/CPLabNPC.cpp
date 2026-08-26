@@ -1,5 +1,4 @@
 ﻿#include "NPC/CPLabNPC.h"
-
 #include "Quest/QuestManager.h"
 #include "Data/CPNPCDataAsset.h"
 #include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
@@ -28,7 +27,19 @@ void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 	if (!QuestManager) { return; }
 
 	UCPUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UCPUIManagerSubsystem>();
+
+	const UCPUISettings* UISettings = GetDefault<UCPUISettings>();
+	UClass* DialogueWidgetClass = UISettings ? UISettings->NPCDialogueWidgetClass.LoadSynchronous() : nullptr;
+
 	if (!UIManager) { return; }
+
+	if (!DialogueWidgetClass) { return; }
+
+	if (!PendingThrownPotionDeliveryResult.QuestId.IsNone())
+	{
+		ShowResultDialogue();
+		return;
+	}
 
 	for (const FName& QuestID : NPCData->LabQuestIDs)
 	{
@@ -38,24 +49,17 @@ void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 		if (CurrentState != EQuestState::Accepted) continue;
 
 		FText FirstHint = QuestManager->GetSessionHintText(QuestID);
+		ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
 
-		const UCPUISettings* UISettings = GetDefault<UCPUISettings>();
-		UClass* DialogueWidgetClass = UISettings ? UISettings->NPCDialogueWidgetClass.LoadSynchronous() : nullptr;
-
-		// 포션 준비 단계 아니라면 기존 힌트 대화 출력
-		if (DialogueWidgetClass)
+		if (ActiveDialogueWidget)
 		{
-			ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
+			FText NPCNameText = FText::FromName(NPCData->NPCName);
+			TArray<FText> DialogueLines;
+			DialogueLines.Add(FirstHint);
 
-			if (ActiveDialogueWidget)
-			{
-				FText NPCNameText = FText::FromName(NPCData->NPCName);
-				TArray<FText> DialogueLines;
-				DialogueLines.Add(FirstHint);
-
-				ActiveDialogueWidget->InitDialogueLines(true,QuestID,NPCNameText,DialogueLines,this);
-			}
+			ActiveDialogueWidget->InitDialogueLines(true, QuestID, NPCNameText, DialogueLines, this);
 		}
+
 		break;
 	}
 }
@@ -104,8 +108,36 @@ void ACPLabNPC::OpenResultWidget(AActor* Interactor)
 	ActiveResultWidget = ResultWidget;
 	PendingThrownPotionDeliveryResult = FCPPotionDeliveryResult{};
 	
-	// NPC 반응 추가 시 삭제
 	Destroy();
+}
+
+void ACPLabNPC::ShowResultDialogue()
+{
+	if (PendingThrownPotionDeliveryResult.QuestId.IsNone()) return;
+
+	UGameInstance* GameInstance = GetGameInstance();
+	if (!GameInstance) return;
+
+	UCPUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UCPUIManagerSubsystem>();
+	UQuestManager* QuestManager = GameInstance->GetSubsystem<UQuestManager>();
+	const UCPUISettings* UISettings = GetDefault<UCPUISettings>();
+	UClass* DialogueWidgetClass = UISettings ? UISettings->NPCDialogueWidgetClass.LoadSynchronous() : nullptr;
+
+	if (!UIManager || !QuestManager || !DialogueWidgetClass) return;
+
+	const FName QuestId = PendingThrownPotionDeliveryResult.QuestId;
+
+	ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
+	if (!ActiveDialogueWidget) return;
+
+	FText NPCNameText = FText::FromName(NPCData->NPCName);
+	ActiveDialogueWidget->InitResultDialogue(
+		false,
+		QuestId,
+		NPCNameText,
+		QuestManager->GetQuestSummaryText(QuestId),
+		this,
+		nullptr);
 }
 
 void ACPLabNPC::HandleThrownPotionImpact(const TArray<FGameplayTag>& PotionEffectTags)
@@ -138,15 +170,4 @@ void ACPLabNPC::HandleThrownPotionImpact(const TArray<FGameplayTag>& PotionEffec
 	DeliveryResult.TipAmount = 0;
 	
 	PendingThrownPotionDeliveryResult = DeliveryResult;
-	ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
-	if (!ActiveDialogueWidget) return;
-	
-	FText NPCNameText = FText::FromName(NPCData->NPCName);
-	ActiveDialogueWidget->InitResultDialogue(
-		false,
-		QuestId,
-		NPCNameText,
-		QuestManager->GetQuestSummaryText(QuestId),
-		this,
-		nullptr);
 }

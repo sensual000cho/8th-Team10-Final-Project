@@ -31,6 +31,7 @@ void UCPCodexMainWidget::UnbindEvents()
 
 void UCPCodexMainWidget::OpenItemDetail(UCPForageableItemData* SelectedItemData)
 {
+	CachedUIManager->PlayWidgetSound(OpenSound);
 	WBP_CPForageableCodex->SetForageableItem(SelectedItemData);
 	WidgetSwitcher->SetActiveWidgetIndex(2);
 }
