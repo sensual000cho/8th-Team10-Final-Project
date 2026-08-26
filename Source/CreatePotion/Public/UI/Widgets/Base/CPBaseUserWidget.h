@@ -23,8 +23,16 @@ protected:
 	// 자식 클래스에서 override해서 사용
 	virtual void BindEvents();
 	virtual void UnbindEvents();
+
+public:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "UI|Sound")
+	class USoundBase* OpenSound;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "UI|Sound")
+	class USoundBase* CloseSound;
 	
 protected:
+	// 캐싱된 UIMangerSubsystem
 	UPROPERTY()
 	TObjectPtr<UCPUIManagerSubsystem> CachedUIManager;
 };
