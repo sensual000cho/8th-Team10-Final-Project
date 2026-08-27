@@ -1,10 +1,8 @@
 ﻿#include "NPC/CPNPCSpawner.h"
 #include "NPC/CPBaseNPC.h"
-#include "Data/CPNPCDataAsset.h"
+#include "Data/NPC/CPQuestNPCDataAsset.h"
 #include "Kismet/GameplayStatics.h"
 #include "Quest/QuestManager.h"
-#include "GameMode/CPLabGameMode.h"
-#include "Lab/CPLabTypes.h"
 
 ACPNPCSpawner::ACPNPCSpawner()
 {
@@ -13,11 +11,15 @@ ACPNPCSpawner::ACPNPCSpawner()
 
 bool ACPNPCSpawner::SpawnNPC(FName QuestID)
 {
-	if (!NPCClass || QuestID.IsNone()) return false;
+	if (!NPCClass || QuestID.IsNone())
+	{
+		return false;
+	}
+
 	if (ActiveQuestNPCs.Contains(QuestID) && IsValid(ActiveQuestNPCs[QuestID]))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[CPNPCSpawner] 이미 스폰되었습니다 %s"), *QuestID.ToString());
-		return false; 
+		return false;
 	}
 
 	UGameInstance* GameInstance = GetGameInstance();
@@ -38,7 +40,10 @@ bool ACPNPCSpawner::SpawnNPC(FName QuestID)
 		}
 	}
 
-	if (!FoundConfig || !FoundConfig->NPCData) return false;
+	if (!FoundConfig || !FoundConfig->NPCData)
+	{
+		return false;
+	}
 
 	const FTransform FinalTransform = FoundConfig->bUseCustomTransform ? FoundConfig->CustomTransform : DefaultSpawnTransform;
 

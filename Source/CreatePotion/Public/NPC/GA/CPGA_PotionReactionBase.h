@@ -17,8 +17,7 @@ public:
 protected:
 	static bool ExtractImpactHitResult(const FGameplayEventData* TriggerEventData, FHitResult& OutHitResult);
 	ACPBaseNPC* GetOwningPotionNPC(const FGameplayAbilityActorInfo* ActorInfo) const;
-	FGameplayEffectContextHandle BuildPotionEffectContext(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayEventData* TriggerEventData) const;
-
+	
 	//디버그용
 	void PrintPotionEventLog(const FGameplayEventData* TriggerEventData) const;
 
