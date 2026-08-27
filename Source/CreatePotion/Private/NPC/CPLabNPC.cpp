@@ -6,6 +6,18 @@
 #include "UI/Widgets/Common/Dialogue/CPNPCDialogueWidget.h"
 #include "UI/Widgets/Lab/CPLabResultWidget.h"
 #include "Settings/CPUISettings.h"
+#include "AbilitySystemComponent.h"
+
+void ACPLabNPC::BeginPlay()
+{
+	Super::BeginPlay(); 
+
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		FGameplayTag ReactionTag = FGameplayTag::RequestGameplayTag(FName("State.Reaction.Potion"));
+		ASC->RegisterGameplayTagEvent(ReactionTag, EGameplayTagEventType::NewOrRemoved).AddUObject(this, &ACPLabNPC::OnPotionReactionTagChanged);
+	}
+}
 
 void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 {
@@ -131,11 +143,46 @@ void ACPLabNPC::ShowResultDialogue()
 	if (!ActiveDialogueWidget) return;
 
 	FText NPCNameText = FText::FromName(NPCData->NPCName);
+	TArray<FConditionEvaluation> Evaluations = QuestManager->EvaluateConditions(QuestId, PendingThrownPotionDeliveryResult.CurrentEffects);
+
+	FConditionEvaluation SelectedEval;
+	bool bFoundEval = false;
+
+	if (PendingThrownPotionDeliveryResult.DeliveryGrade == EDeliveryGrade::Perfect)
+	{
+		for (const FConditionEvaluation& Eval : Evaluations)
+		{
+			if (Eval.Result == EConditionMatchResult::Correct)
+			{
+				SelectedEval = Eval;
+				bFoundEval = true;
+				break;
+			}
+		}
+	}
+	else
+	{
+		for (const FConditionEvaluation& Eval : Evaluations)
+		{
+			if (Eval.Result == EConditionMatchResult::WrongTag)
+			{
+				SelectedEval = Eval;
+				bFoundEval = true;
+				break;
+			}
+		}
+	}
+	FText ReactionText;
+	if (bFoundEval)
+	{
+		ReactionText = QuestManager->GetReactionText(QuestId, SelectedEval);
+	}
+
 	ActiveDialogueWidget->InitResultDialogue(
 		false,
 		QuestId,
 		NPCNameText,
-		QuestManager->GetQuestSummaryText(QuestId),
+		ReactionText,
 		this,
 		nullptr);
 }
@@ -168,6 +215,17 @@ void ACPLabNPC::HandleThrownPotionImpact(const TArray<FGameplayTag>& PotionEffec
 	DeliveryResult.DeliveryGrade = QuestManager->TryDeliver(QuestId, DeliveryResult.CurrentEffects);
 	DeliveryResult.RewardAmount = QuestManager->GetRewardGold(QuestId);
 	DeliveryResult.TipAmount = 0;
-	
+
 	PendingThrownPotionDeliveryResult = DeliveryResult;
+}
+
+void ACPLabNPC::OnPotionReactionTagChanged(const FGameplayTag Tag, int32 NewCount)
+{
+	if (NewCount == 0)
+	{
+		if (!PendingThrownPotionDeliveryResult.QuestId.IsNone())
+		{
+			ShowResultDialogue();
+		}
+	}
 }
