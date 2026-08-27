@@ -8,6 +8,9 @@
 #include "Camera/CameraComponent.h"
 #include "GameCore/Interface/CPHighlightable.h"
 #include "HAL/IConsoleManager.h"
+#include "DrawDebugHelpers.h"
+#include "Engine/World.h"
+#include "Components/MeshComponent.h"
 
 #include "EnhancedInputSubsystems.h"	// IMC 바인딩
 #include "EnhancedInputComponent.h"		// IA 바인딩
@@ -23,6 +26,16 @@ static TAutoConsoleVariable<bool> CVarDebugInteraction(
 	TEXT("1: Enabled"),
 	ECVF_Cheat
 );
+
+UCPInteractionComponent::UCPInteractionComponent()
+{
+	PrimaryComponentTick.bCanEverTick = false;
+
+	InteractionObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldStatic));
+	InteractionObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldDynamic));
+	InteractionObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
+	InteractionObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_PhysicsBody));
+}
 
 void UCPInteractionComponent::BeginPlay()
 {
@@ -40,7 +53,7 @@ void UCPInteractionComponent::BeginPlay()
 			TraceTimerHandle,
 			this,
 			&UCPInteractionComponent::PerformTrace,
-			0.15f,
+			TraceUpdateInterval,
 			true
 		);
 	}
@@ -81,180 +94,166 @@ void UCPInteractionComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void UCPInteractionComponent::PerformTrace()
 {
-	if (!Camera || !GetOwner())
-	{
-		return;
-	}
+	if (!IsValid(Camera) || !IsValid(GetOwner()))
+    {
+        ClearCurrentTarget();
+        return;
+    }
 
-	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return;
-	}
+    UWorld* World = GetWorld();
 
-	FCollisionQueryParams QueryParams;
-	QueryParams.AddIgnoredActor(GetOwner());
-	
-	// 카메라 기준 LineTrace
-	constexpr float CameraTraceDistance = 5000.f;
+    if (!IsValid(World) || TraceDistance <= 0.f || InteractionSweepRadius <= 0.f)
+    {
+        ClearCurrentTarget();
+        return;
+    }
 
-	const FVector CameraStart = Camera->GetComponentLocation();
-	const FVector CameraEnd = CameraStart + Camera->GetForwardVector() * CameraTraceDistance;
+    FCollisionQueryParams QueryParams;
+    QueryParams.AddIgnoredActor(GetOwner());
 
-	FHitResult CameraHit;
+    const FVector CameraStart = Camera->GetComponentLocation();
+    const FVector CameraForward = Camera->GetForwardVector().GetSafeNormal();
+    const FVector CameraEnd = CameraStart + CameraForward * CameraTraceDistance;
 
-	const bool bCameraHit = World->LineTraceSingleByChannel(
-		CameraHit,
-		CameraStart,
-		CameraEnd,
-		ECC_Visibility,
-		QueryParams
-	);
+    FHitResult CameraHit;
 
-	const FVector AimPoint = bCameraHit ? CameraHit.ImpactPoint : CameraEnd;
-	
-	// 캐릭터에서 조준 지점을 향해서 Trace
-	
-	constexpr float TraceHeightOffset = 70.f;
-	constexpr float SphereRadius = 50.f;
+    const bool bCameraHit = World->LineTraceSingleByChannel(
+        CameraHit,
+        CameraStart,
+        CameraEnd,
+        ECC_Visibility,
+        QueryParams
+    );
 
-	const FVector CharacterLocation = GetOwner()->GetActorLocation();
-	const FVector SphereStart = CharacterLocation + FVector(0.f, 0.f, TraceHeightOffset);
-	FVector DirectionToAim = AimPoint - SphereStart;
+    const FVector AimPoint = bCameraHit ? CameraHit.ImpactPoint : CameraEnd;
 
-	if (DirectionToAim.IsNearlyZero())
-	{
-		ClearCurrentTarget();
-		return;
-	}
+    const FVector CharacterLocation = GetOwner()->GetActorLocation();
+    const FVector SphereStart = CharacterLocation + FVector::UpVector * TraceHeightOffset;
+    const FVector DirectionToAim = (AimPoint - SphereStart).GetSafeNormal();
 
-	DirectionToAim.Normalize();
-	
-	// 실제 상호작용 거리는 TraceDistance
-	const FVector SphereEnd =
-		SphereStart + DirectionToAim * TraceDistance;
+    if (DirectionToAim.IsNearlyZero())
+    {
+        ClearCurrentTarget();
+        return;
+    }
 
-	FHitResult InteractionHit;
+    const FVector SphereEnd = SphereStart + DirectionToAim * TraceDistance;
 
-	const bool bInteractionHit = World->SweepSingleByChannel(
-		InteractionHit,
-		SphereStart,
-		SphereEnd,
-		FQuat::Identity,
-		ECC_Visibility,
-		FCollisionShape::MakeSphere(SphereRadius),
-		QueryParams
-	);
-	
+    FCollisionObjectQueryParams ObjectQueryParams;
+
+    for (const TEnumAsByte<EObjectTypeQuery>& ObjectType : InteractionObjectTypes)
+    {
+        const ECollisionChannel CollisionChannel = UEngineTypes::ConvertToCollisionChannel(ObjectType.GetValue());
+
+        if (CollisionChannel != ECC_MAX)
+        {
+            ObjectQueryParams.AddObjectTypesToQuery(CollisionChannel);
+        }
+    }
+
+    TArray<FHitResult> InteractionHits;
+
+    const bool bHasInteractionHits = World->SweepMultiByObjectType(
+        InteractionHits,
+        SphereStart,
+        SphereEnd,
+        FQuat::Identity,
+        ObjectQueryParams,
+        FCollisionShape::MakeSphere(InteractionSweepRadius),
+        QueryParams
+    );
+
+    AActor* BestTarget = bHasInteractionHits
+        ? SelectBestInteractionTarget(InteractionHits, CameraStart, CameraForward)
+        : nullptr;
+
 #if ENABLE_DRAW_DEBUG
-	if (CVarDebugInteraction.GetValueOnGameThread())
-	{
-		// 카메라 Line Trace
-		DrawDebugLine(
-			World,
-			CameraStart,
-			AimPoint,
-			bCameraHit ? FColor::Blue : FColor::Cyan,
-			false,
-			0.15f,
-			0,
-			.2f
-		);
+    if (CVarDebugInteraction.GetValueOnGameThread())
+    {
+        DrawDebugLine(
+            World,
+            CameraStart,
+            AimPoint,
+            bCameraHit ? FColor::Blue : FColor::Cyan,
+            false,
+            TraceUpdateInterval,
+            0,
+            1.5f
+        );
 
-		DrawDebugSphere(
-			World,
-			AimPoint,
-			8.f,
-			8,
-			FColor::Blue,
-			false,
-			0.15f
-		);
+        DrawDebugLine(
+            World,
+            SphereStart,
+            SphereEnd,
+            IsValid(BestTarget) ? FColor::Green : FColor::Red,
+            false,
+            TraceUpdateInterval,
+            0,
+            1.5f
+        );
 
-		// 실제 상호작용 Sphere Trace
-		DrawDebugLine(
-			World,
-			SphereStart,
-			SphereEnd,
-			bInteractionHit ? FColor::Green : FColor::Red,
-			false,
-			0.15f,
-			0,
-			.2f
-		);
+        DrawDebugSphere(
+            World,
+            SphereEnd,
+            InteractionSweepRadius,
+            12,
+            IsValid(BestTarget) ? FColor::Green : FColor::Red,
+            false,
+            TraceUpdateInterval
+        );
 
-		DrawDebugSphere(
-			World,
-			bInteractionHit ? InteractionHit.Location : SphereEnd,
-			SphereRadius,
-			12,
-			bInteractionHit ? FColor::Green : FColor::Red,
-			false,
-			0.15f
-		);
+        TSet<AActor*> DebuggedActors;
 
-		if (bInteractionHit)
-		{
-			DrawDebugString(
-				World,
-				InteractionHit.ImpactPoint + FVector(0.f, 0.f, 50.f),
-				InteractionHit.GetActor()
-					? InteractionHit.GetActor()->GetName()
-					: TEXT("Unknown"),
-				nullptr,
-				FColor::Yellow,
-				0.15f
-			);
-		}
-	}
+        for (const FHitResult& InteractionHit : InteractionHits)
+        {
+            AActor* HitActor = InteractionHit.GetActor();
+
+            if (!IsValid(HitActor) || DebuggedActors.Contains(HitActor))
+            {
+                continue;
+            }
+
+            DebuggedActors.Add(HitActor);
+
+            if (!HitActor->Implements<UCPInteractable>())
+            {
+                continue;
+            }
+
+            const FVector FocusLocation = GetInteractionFocusLocation(HitActor);
+            const FColor CandidateColor = HitActor == BestTarget ? FColor::Green : FColor::Yellow;
+
+            DrawDebugSphere(
+                World,
+                FocusLocation,
+                HitActor == BestTarget ? 14.f : 8.f,
+                12,
+                CandidateColor,
+                false,
+                TraceUpdateInterval
+            );
+        }
+
+        if (IsValid(BestTarget))
+        {
+            DrawDebugString(
+                World,
+                GetInteractionFocusLocation(BestTarget) + FVector::UpVector * 30.f,
+                BestTarget->GetName(),
+                nullptr,
+                FColor::Green,
+                TraceUpdateInterval
+            );
+        }
+    }
 #endif
-	
-	AActor* FoundActor = bInteractionHit ? InteractionHit.GetActor() : nullptr;
 
-	if (FoundActor && FoundActor->Implements<UCPInteractable>())
-	{
-		// 같은 대상을 계속 보고 있다면 매번 호출 X
-		if (CurrentTarget.Get() == FoundActor)
-		{
-			return;
-		}
-		
-		// 이전 대상 하이라이트 끄기
-		if (AActor* PrevTarget = CurrentTarget.Get())
-		{
-			SetActorHighlight(PrevTarget, false);
-		}
-		
-		CurrentTarget = FoundActor;
-		
-		// 새 대상 하이라이트 켜기
-		SetActorHighlight(FoundActor, true);
-		
-		const FText Prompt = ICPInteractable::Execute_GetInteractionPrompt(FoundActor);
-		const FName TargetName = ICPInteractable::Execute_GetInteractionName(FoundActor);
-		OnPromptChanged.Broadcast(Prompt, TargetName);
-	}
-	else
-	{
-		ClearCurrentTarget();
-	}
+    UpdateCurrentTarget(BestTarget);
 }
 
 void UCPInteractionComponent::ClearCurrentTarget()
 {
-	if (CurrentTarget.IsExplicitlyNull())
-	{
-		return; // 이미 비어있는 상태면 중복 브로드캐스트 방지
-
-	}
-
-	if (AActor* Target = CurrentTarget.Get())
-	{
-		SetActorHighlight(Target, false);
-	}
-
-	CurrentTarget.Reset();
-	OnPromptChanged.Broadcast(FText::GetEmpty(), NAME_None);
+	UpdateCurrentTarget(nullptr);
 }
 
 void UCPInteractionComponent::TryInteract()
@@ -404,6 +403,189 @@ void UCPInteractionComponent::SetActorHighlight(AActor* Target, bool bHighlighte
 		UE_LOG(LogTemp, Error, TEXT("[InteractionComponent] %s 에서 Mesh 발견되지 않음"), *Target->GetName());
 	}
 }
+
+AActor* UCPInteractionComponent::SelectBestInteractionTarget(const TArray<FHitResult>& InteractionHits, const FVector& CameraLocation, const FVector& CameraForward) const
+{
+	AActor* OwnerActor = GetOwner();
+
+	if (!IsValid(OwnerActor))
+	{
+		return nullptr;
+	}
+
+	AActor* BestTarget = nullptr;
+	float BestScore = -BIG_NUMBER;
+
+	TSet<AActor*> ProcessedActors;
+
+	for (const FHitResult& InteractionHit : InteractionHits)
+	{
+		AActor* Candidate = InteractionHit.GetActor();
+
+		if (!IsValid(Candidate) || Candidate == OwnerActor || ProcessedActors.Contains(Candidate))
+		{
+			continue;
+		}
+
+		ProcessedActors.Add(Candidate);
+
+		if (!Candidate->Implements<UCPInteractable>())
+		{
+			continue;
+		}
+
+		if (!ICPInteractable::Execute_CanInteract(Candidate, OwnerActor))
+		{
+			continue;
+		}
+
+		const FVector TargetLocation = GetInteractionFocusLocation(Candidate);
+		const FVector DirectionToTarget = (TargetLocation - CameraLocation).GetSafeNormal();
+
+		if (DirectionToTarget.IsNearlyZero())
+		{
+			continue;
+		}
+
+		const float CameraAlignment = FVector::DotProduct(CameraForward, DirectionToTarget);
+
+		if (CameraAlignment < MinimumCameraAlignment)
+		{
+			continue;
+		}
+
+		if (!HasLineOfSightToTarget(Candidate, CameraLocation, TargetLocation))
+		{
+			continue;
+		}
+
+		float CandidateScore = CalculateInteractionScore(
+			InteractionHit,
+			TargetLocation,
+			CameraLocation,
+			CameraForward
+		);
+
+		if (CurrentTarget.Get() == Candidate)
+		{
+			CandidateScore += CurrentTargetScoreBonus;
+		}
+
+		if (CandidateScore > BestScore)
+		{
+			BestScore = CandidateScore;
+			BestTarget = Candidate;
+		}
+	}
+
+	return BestTarget;
+}
+
+FVector UCPInteractionComponent::GetInteractionFocusLocation(const AActor* Target) const
+{
+	if (!IsValid(Target))
+	{
+		return FVector::ZeroVector;
+	}
+
+	FVector BoundsOrigin;
+	FVector BoundsExtent;
+	Target->GetActorBounds(true, BoundsOrigin, BoundsExtent);
+
+	if (!BoundsExtent.IsNearlyZero())
+	{
+		return BoundsOrigin;
+	}
+
+	return Target->GetActorLocation();
+}
+
+bool UCPInteractionComponent::HasLineOfSightToTarget(const AActor* Target, const FVector& CameraLocation, const FVector& TargetLocation) const
+{
+	if (!IsValid(Target))
+	{
+		return false;
+	}
+
+	UWorld* World = GetWorld();
+
+	if (!IsValid(World))
+	{
+		return false;
+	}
+
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(GetOwner());
+
+	FHitResult VisibilityHit;
+
+	const bool bHitSomething = World->LineTraceSingleByChannel(
+		VisibilityHit,
+		CameraLocation,
+		TargetLocation,
+		ECC_Visibility,
+		QueryParams
+	);
+
+	if (!bHitSomething)
+	{
+		return true;
+	}
+
+	return VisibilityHit.GetActor() == Target;
+}
+
+float UCPInteractionComponent::CalculateInteractionScore(const FHitResult& HitResult, const FVector& TargetLocation, const FVector& CameraLocation, const FVector& CameraForward) const
+{
+	const FVector DirectionToTarget = (TargetLocation - CameraLocation).GetSafeNormal();
+	const float RawAlignment = FVector::DotProduct(CameraForward, DirectionToTarget);
+
+	const float AlignmentScore = FMath::GetMappedRangeValueClamped(
+		FVector2D(MinimumCameraAlignment, 1.f),
+		FVector2D(0.f, 1.f),
+		RawAlignment
+	);
+
+	const float SafeTraceDistance = FMath::Max(TraceDistance, 1.f);
+	const float DistanceRatio = FMath::Clamp(HitResult.Distance / SafeTraceDistance, 0.f, 1.f);
+	const float DistanceScore = 1.f - DistanceRatio;
+
+	return AlignmentScore * AlignmentScoreWeight + DistanceScore * DistanceScoreWeight;
+}
+
+void UCPInteractionComponent::UpdateCurrentTarget(AActor* NewTarget)
+{
+	if (!IsValid(NewTarget))
+	{
+		NewTarget = nullptr;
+	}
+
+	if (CurrentTarget.Get() == NewTarget)
+	{
+		return;
+	}
+
+	if (AActor* PreviousTarget = CurrentTarget.Get())
+	{
+		SetActorHighlight(PreviousTarget, false);
+	}
+
+	CurrentTarget = NewTarget;
+
+	if (!IsValid(NewTarget))
+	{
+		OnPromptChanged.Broadcast(FText::GetEmpty(), NAME_None);
+		return;
+	}
+
+	SetActorHighlight(NewTarget, true);
+
+	const FText Prompt = ICPInteractable::Execute_GetInteractionPrompt(NewTarget);
+	const FName TargetName = ICPInteractable::Execute_GetInteractionName(NewTarget);
+
+	OnPromptChanged.Broadcast(Prompt, TargetName);
+}
+
 
 #pragma region IMC
 void UCPInteractionComponent::TryBindInputMappingContext()
