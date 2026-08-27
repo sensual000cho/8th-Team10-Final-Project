@@ -145,6 +145,21 @@ void ACPThrowablePropBase::DetachAsHeld(const FVector& DropLocation)
     SetPropState(ECPThrowablePropState::Resting);
 }
 
+bool ACPThrowablePropBase::GetPropCollisionBounds(FVector& OutOrigin, FVector& OutExtent) const
+{
+    if (!IsValid(StaticMeshComponent))
+    {
+        OutOrigin = FVector::ZeroVector;
+        OutExtent = FVector::ZeroVector;
+        return false;
+    }
+
+    OutOrigin = StaticMeshComponent->Bounds.Origin;
+    OutExtent = StaticMeshComponent->Bounds.BoxExtent;
+
+    return true;
+}
+
 bool ACPThrowablePropBase::Drop(const FVector& DropLocation)
 {
     if (!IsValid(StaticMeshComponent) || PropState != ECPThrowablePropState::Held)
