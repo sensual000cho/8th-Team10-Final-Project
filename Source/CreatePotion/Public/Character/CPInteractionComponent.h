@@ -13,9 +13,11 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInteractionStarted);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInteractionProgressChanged, float, Progress);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInteractionCompleted);
 
+class AActor;
 class UCameraComponent;
 class UInputAction;
 class UInputMappingContext;
+class UMaterialInterface;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class CREATEPOTION_API UCPInteractionComponent : public UActorComponent
@@ -23,6 +25,8 @@ class CREATEPOTION_API UCPInteractionComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
+	UCPInteractionComponent();
+	
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
@@ -40,14 +44,59 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnInteractionCompleted OnInteractionCompleted;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float TraceDistance = 200.f; // 감지 거리
+	// 실제 상호작용 거리
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Interaction|Trace", meta = (ClampMin = "0.0", Units = "cm"))
+	float TraceDistance = 200.f;
+	
+	// (카메라 - 지점) 최대거리
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Interaction|Trace", meta = (ClampMin = "0.0", Units = "cm"))
+	float CameraTraceDistance = 5000.f;
+
+	// 실제 캐릭터 상호작용 거리를 측정 할 시작점(캐릭터 위치 + Offset)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Interaction|Trace", meta = (Units = "cm"))
+	float TraceHeightOffset = 70.f;
+
+	// Sphere 반지름(범위 내 삭호작용 판별)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Interaction|Trace", meta = (ClampMin = "0.0", Units = "cm"))
+	float InteractionSweepRadius = 50.f;
+
+	// 상호작용 대상 탐색 주기
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Interaction|Trace", meta = (ClampMin = "0.02", Units = "s"))
+	float TraceUpdateInterval = 0.08f;
+
+	// 후보 탐색에 포함할 Object Type
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Interaction|Trace")
+	TArray<TEnumAsByte<EObjectTypeQuery>> InteractionObjectTypes;
+
+	// 카메라 정면 정렬 점수의 비중
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Interaction|Selection", meta = (ClampMin = "0.0"))
+	float AlignmentScoreWeight = 0.8f;
+
+	// 캐릭터와 후보 사이 거리 점수의 비중
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Interaction|Selection", meta = (ClampMin = "0.0"))
+	float DistanceScoreWeight = 0.2f;
+
+	// 현재 선택 중인 대상을 유지하기 위한 추가 점수
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Interaction|Selection", meta = (ClampMin = "0.0"))
+	float CurrentTargetScoreBonus = 0.1f;
+
+	// 이 값보다 카메라 정면에서 벗어난 후보는 제외
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Interaction|Selection", meta = (ClampMin = "-1.0", ClampMax = "1.0"))
+	float MinimumCameraAlignment = 0.5f;
 	
 	UFUNCTION(BlueprintPure, Category = "Interaction")
 	AActor* GetCurrentTarget() const { return CurrentTarget.Get();}
 
 private:
 	void PerformTrace(); // 타이머로 주기 실행
+	
+	// 상호작용 보완 함수들
+	AActor* SelectBestInteractionTarget(const TArray<FHitResult>& InteractionHits, const FVector& CameraLocation, const FVector& CameraForward) const;
+	FVector GetInteractionFocusLocation(const AActor* Target) const;
+	bool HasLineOfSightToTarget(const AActor* Target, const FVector& CameraLocation, const FVector& TargetLocation) const;
+	float CalculateInteractionScore(const FHitResult& HitResult, const FVector& TargetLocation, const FVector& CameraLocation, const FVector& CameraForward) const;
+	
+	void UpdateCurrentTarget(AActor* NewTarget);
 	void ClearCurrentTarget();
 	
 	// --- Timed Interaction ---
@@ -55,14 +104,13 @@ private:
 	void UpdateTimedInteraction();
 	void CompleteTimedInteraction();
 	
-private:
 	// --- 상호작용 대상 Highlight ---
 	void SetActorHighlight(AActor* Target, bool bHighlighted);
 	
+private:
 	UPROPERTY(EditDefaultsOnly, Category = "Highlight")
 	UMaterialInterface* HighlightMaterial;
 	
-private:
 	// 상호작용 대상 탐색 타이머
 	FTimerHandle TraceTimerHandle;
 	// 시간형 상호작용 진행 타이머
@@ -95,10 +143,8 @@ public:
 
 private:
 	void TryBindInputMappingContext();	// 추가로 IMC를 바인딩 하는 것을 시도할 함수
-
-private:
+	
 	int32 BindRetryCount = 0;
-
 	FTimerHandle IMCBindingTimerHandle;		// IMC를 바인딩 할 타이머 핸들
 #pragma endregion
 };
