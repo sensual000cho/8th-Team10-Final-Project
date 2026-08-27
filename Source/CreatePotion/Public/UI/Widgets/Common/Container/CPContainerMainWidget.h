@@ -9,6 +9,7 @@
 class UCPContainerGridWidget;
 class UCPItemContainerComponent;
 class UBorder;
+class UCPMoneyWidget;
 
 UCLASS()
 class CREATEPOTION_API UCPContainerMainWidget : public UCPBaseFixedWidget
@@ -41,6 +42,10 @@ protected:
 	// 컨테이너를 드래그 할 수 있는 Bar
 	UPROPERTY(meta = (BindWidget))
 	UBorder* DragBorder;
+
+	// Widget이 존재하면 바인딩, 없으면 nullptr
+	UPROPERTY(meta = (BindWidgetOptional))
+	UCPMoneyWidget* MoneyWidget;
 
 	bool bIsDraggingWindow = false;
 
