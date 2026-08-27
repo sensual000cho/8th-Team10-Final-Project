@@ -165,3 +165,48 @@ void UCPInventoryComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 	Super::EndPlay(EndPlayReason);
 }
+
+bool UCPInventoryComponent::TryGetMoney(int32 InAmount)
+{
+	if (InAmount <= 0)
+	{
+		UE_LOG(LogContainer, Warning, TEXT("[Money] TryGetMoney 실패, 0 이하의 금액을 획득 시도 : %d"), InAmount);
+		return false;
+	}
+
+	if (OwningMoney >= MaxMoney)
+	{
+		UE_LOG(LogContainer, Warning, TEXT("[Money] TryGetMoney 실패: 최대 소지 금액 한도에 도달 (%d / %d)"), OwningMoney, MaxMoney);
+		return false;
+	}
+
+	// 초과분은 잘라내고, 최대치(MaxMoney)까지만 채움
+	int32 OldAmount = OwningMoney;
+	OwningMoney = FMath::Min(OwningMoney + InAmount, MaxMoney);
+
+	UE_LOG(LogContainer, Log, TEXT("[Money] 소지금 증가: %d -> %d (요청: +%d)"), OldAmount, OwningMoney, InAmount);
+	OnMoneyChanged.Broadcast(OwningMoney);
+	return true;
+}
+
+bool UCPInventoryComponent::TrySpendMoney(int32 InAmount)
+{
+	if (InAmount <= 0)
+	{
+		UE_LOG(LogContainer, Warning, TEXT("[Money] TrySpendMoney 실패: 0 이하의 금액을 소비 시도 : %d"), InAmount);
+		return false;
+	}
+
+	if (OwningMoney < InAmount)
+	{
+		UE_LOG(LogContainer, Warning, TEXT("[Money] TrySpendMoney 실패: 소지금 부족 (보유 %d / 필요 %d)"), OwningMoney, InAmount);
+		return false;
+	}
+
+	int32 OldAmount = OwningMoney;
+	OwningMoney -= InAmount;
+
+	UE_LOG(LogContainer, Log, TEXT("[Money] 소지금 지출: %d -> %d (요청: -%d)"), OldAmount, OwningMoney, InAmount);
+	OnMoneyChanged.Broadcast(OwningMoney);
+	return true;
+}
