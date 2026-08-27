@@ -10,6 +10,7 @@ class UCPContainerGridWidget;
 class UCPItemContainerComponent;
 class UBorder;
 class UCPMoneyWidget;
+class UButton;
 
 UCLASS()
 class CREATEPOTION_API UCPContainerMainWidget : public UCPBaseFixedWidget
@@ -26,10 +27,18 @@ public:
 	void UpdateUI();
 
 protected:
+	virtual void NativeConstruct() override;
+
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual FReply NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual FReply NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	
+	virtual void HandleCloseRequested();
+
+private:
+	UFUNCTION()
+	void OnCloseButtonClicked();
+
 protected:
 	// 실제 데이터를 가져올 컨테이너 컴포넌트
 	UPROPERTY(BlueprintReadOnly, Category = "Container")
@@ -43,11 +52,12 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	UBorder* DragBorder;
 
+	bool bIsDraggingWindow = false;
+
 	// Widget이 존재하면 바인딩, 없으면 nullptr
 	UPROPERTY(meta = (BindWidgetOptional))
 	UCPMoneyWidget* MoneyWidget;
 
-	bool bIsDraggingWindow = false;
-
-
+	UPROPERTY(meta = (BindWidgetOptional))
+	UButton* CloseButton;
 };

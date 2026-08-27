@@ -2,6 +2,7 @@
 
 #include "UI/Widgets/Common/Container/CPContainerMainWidget.h"
 #include "Components/Border.h"		// 위젯 Border 헤더
+#include "Components/Button.h"		// 위젯 Button 헤더
 #include "Blueprint/WidgetLayoutLibrary.h" // DPI 스케일 계산용 헤더
 
 #include "CreatePotion.h"   // 로그용 헤더
@@ -10,6 +11,16 @@
 #include "UI/Widgets/Common/Container/CPContainerGridWidget.h"
 #include "UI/Widgets/Common/Container/CPMoneyWidget.h"
 
+
+void UCPContainerMainWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	if (CloseButton)
+	{
+		CloseButton->OnClicked.AddDynamic(this, &UCPContainerMainWidget::OnCloseButtonClicked);
+	}
+}
 
 void UCPContainerMainWidget::BindContainer(UCPItemContainerComponent* InContainer)
 {
@@ -97,4 +108,17 @@ FReply UCPContainerMainWidget::NativeOnMouseButtonUp(const FGeometry& InGeometry
 	}
 
 	return Super::NativeOnMouseButtonUp(InGeometry, InMouseEvent);
+}
+
+void UCPContainerMainWidget::OnCloseButtonClicked()
+{
+	HandleCloseRequested();
+}
+
+void UCPContainerMainWidget::HandleCloseRequested()
+{
+	if (ACPPlayerController* PC = Cast<ACPPlayerController>(GetOwningPlayer()))
+	{
+		PC->CloseExternalContainerUI();
+	}
 }
