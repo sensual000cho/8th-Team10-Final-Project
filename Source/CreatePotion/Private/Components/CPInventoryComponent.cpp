@@ -21,7 +21,7 @@ void UCPInventoryComponent::BeginPlay()
 	{
 		if (UCPContainerSubsystem* ContainerSubsystem = GI->GetSubsystem<UCPContainerSubsystem>())
 		{
-			ContainerSubsystem->LoadContainerData(this->ContainerItems);
+			ContainerSubsystem->LoadContainerData(this);
 		}
 	}
 
@@ -122,6 +122,32 @@ void UCPInventoryComponent::ToggleInventoryUI()
 	}
 }
 
+void UCPInventoryComponent::OpenInventoryUI()
+{
+	if (!InventoryUIInstance)
+	{
+		return;
+	}
+
+	if (InventoryUIInstance->GetVisibility() == ESlateVisibility::Collapsed)
+	{
+		ToggleInventoryUI();
+	}
+}
+
+void UCPInventoryComponent::CloseInventoryUI()
+{
+	if (!InventoryUIInstance)
+	{
+		return;
+	}
+
+	if (InventoryUIInstance->GetVisibility() == ESlateVisibility::Visible)
+	{
+		ToggleInventoryUI();
+	}
+}
+
 int32 UCPInventoryComponent::TryGetItem(UCPForageableItemData* InItemData, int32 Count)
 {
 	int32 LeftoverCount = Super::TryGetItem(InItemData, Count);
@@ -157,7 +183,7 @@ void UCPInventoryComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	{
 		if (UCPContainerSubsystem* ContainerSubsystem = GI->GetSubsystem<UCPContainerSubsystem>())
 		{
-			ContainerSubsystem->SaveContainerData(this->ContainerItems);
+			ContainerSubsystem->SaveContainerData(this);
 		}
 	}
 
@@ -209,4 +235,10 @@ bool UCPInventoryComponent::TrySpendMoney(int32 InAmount)
 	UE_LOG(LogContainer, Log, TEXT("[Money] 소지금 지출: %d -> %d (요청: -%d)"), OldAmount, OwningMoney, InAmount);
 	OnMoneyChanged.Broadcast(OwningMoney);
 	return true;
+}
+
+void UCPInventoryComponent::RestoreMoney(int32 InAmount)
+{
+	OwningMoney = FMath::Clamp(InAmount, 0, MaxMoney);
+	OnMoneyChanged.Broadcast(OwningMoney);
 }

@@ -43,6 +43,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Money")
 	bool TrySpendMoney(int32 InAmount);
 
+	void RestoreMoney(int32 InAmount);
+
 	UFUNCTION(BlueprintPure, Category = "Inventory|Money")
 	int32 GetOwningMoney() const { return OwningMoney; }
 
@@ -65,6 +67,12 @@ protected:
 public:
 	UFUNCTION(BlueprintCallable, Category = "Container|UI")
 	void ToggleInventoryUI();
+
+	UFUNCTION(BlueprintCallable, Category = "Container|UI")
+	void OpenInventoryUI();
+
+	UFUNCTION(BlueprintCallable, Category = "Container|UI")
+	void CloseInventoryUI();
 
 private:
 	void TryBindInput();
