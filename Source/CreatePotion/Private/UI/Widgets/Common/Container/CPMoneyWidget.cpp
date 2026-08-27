@@ -20,10 +20,8 @@ void UCPMoneyWidget::BindInventory(UCPInventoryComponent* InInventory)
 
 void UCPMoneyWidget::OnMoneyChanged(int32 NewAmount)
 {
-	if (!MoneyText) return;
-
-	int32 PadWidth = BoundInventory ? FString::FromInt(BoundInventory->GetMaxMoney()).Len() : 6;
-	FString NumberStr = FString::Printf(TEXT("%*d"), PadWidth, NewAmount); // 오른쪽 정렬, 왼쪽 공백 채움
-
-	MoneyText->SetText(FText::FromString(FString::Printf(TEXT("소유 금액 : %s G"), *NumberStr)));
+	if (MoneyText)
+	{
+		MoneyText->SetText(FText::AsNumber(NewAmount));
+	}
 }
