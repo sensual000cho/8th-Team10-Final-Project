@@ -3,15 +3,11 @@
 
 #include "Character/CPInteractionComponent.h"
 
-#include "AbilitySystemBlueprintLibrary.h"
-#include "AbilitySystemComponent.h"
 #include "GameCore/Interface/CPInteractable.h"
 #include "GameCore/Interface/CPTimedInteractable.h"
 #include "Camera/CameraComponent.h"
-#include "Character/CPCharacter.h"
 #include "GameCore/Interface/CPHighlightable.h"
 #include "HAL/IConsoleManager.h"
-#include "Lab/Actor/CPThrowablePropBase.h"
 
 #include "EnhancedInputSubsystems.h"	// IMC 바인딩
 #include "EnhancedInputComponent.h"		// IA 바인딩
@@ -287,16 +283,6 @@ void UCPInteractionComponent::TryInteract()
 		return;
 	}
 	
-	/* GAS
-	 * Throwable 대상은 기존의 OnInteract를 호출하지 않고
-	 * 캐릭터 ASC에 Pickup Gameplay Event를 전달한다.
-	 */
-	if (Target->IsA<ACPThrowablePropBase>())
-	{
-		RequestPickupAbility(Target);
-		return;
-	}
-	
 	if (Target->Implements<UCPTimedInteractable>())
 	{
 		const float Duration = ICPTimedInteractable::Execute_GetInteractionDuration(Target, Interactor);
@@ -310,38 +296,6 @@ void UCPInteractionComponent::TryInteract()
 
 	// 시간형 인터페이스가 없으면 일반 상호작용 실행
 	ICPInteractable::Execute_OnInteract(Target, Interactor);
-}
-
-bool UCPInteractionComponent::RequestPickupAbility(AActor* Target)
-{
-	AActor* Interactor = GetOwner();
-
-	if (!IsValid(Interactor) || !IsValid(Target))
-	{
-		return false;
-	}
-
-	UAbilitySystemComponent* AbilitySystem = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Interactor);
-
-	if (!IsValid(AbilitySystem))
-	{
-		return false;
-	}
-	
-	const FGameplayTag PickupEventTag = FGameplayTag::RequestGameplayTag(FName(TEXT("Event.Carry.Pickup")));
-
-	FGameplayEventData EventData;
-	EventData.EventTag = PickupEventTag;
-	EventData.Instigator = Interactor;
-	EventData.Target = Target;
-
-	const int32 ActivatedAbilityCount =
-		AbilitySystem->HandleGameplayEvent(
-			PickupEventTag,
-			&EventData
-		);
-
-	return ActivatedAbilityCount > 0;
 }
 
 void UCPInteractionComponent::StartTimedInteraction(AActor* Target, float Duration)
@@ -428,7 +382,6 @@ void UCPInteractionComponent::CompleteTimedInteraction()
 void UCPInteractionComponent::SetActorHighlight(AActor* Target, bool bHighlighted)
 {
 	UE_LOG(LogTemp, Warning, TEXT("[InteractionComponent] SetActorHighlight 호출됨"));
-	
 	
 	if (!Target) return;
 	

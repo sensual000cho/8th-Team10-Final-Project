@@ -2,6 +2,7 @@
 
 #include "Lab/Actor/CPThrowablePropBase.h"
 
+#include "AbilitySystemComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "GameFramework/Pawn.h"
@@ -39,6 +40,34 @@ void ACPThrowablePropBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
     }
 
     Super::EndPlay(EndPlayReason);
+}
+
+void ACPThrowablePropBase::OnInteract_Implementation(AActor* Interactor)
+{
+    if (!IsValid(Interactor) || !CanBePickedUp()) return;
+    
+    // Ability System 탐색
+    UAbilitySystemComponent* AbilitySystem = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Interactor);
+    if (!IsValid(AbilitySystem)) return;
+    
+    // 들기, 던지기 GAS 연결
+    static const FGameplayTag PickupEventTag = FGameplayTag::RequestGameplayTag(FName(TEXT("Event.Carry.Pickup")));
+    FGameplayEventData EventData;
+    EventData.EventTag = PickupEventTag;
+    EventData.Instigator = Interactor;
+    EventData.Target = this;
+    
+    AbilitySystem->HandleGameplayEvent(PickupEventTag, &EventData);
+}
+
+bool ACPThrowablePropBase::CanInteract_Implementation(AActor* Interactor)
+{
+    return IsValid(Interactor) && CanBePickedUp();
+}
+
+FName ACPThrowablePropBase::GetInteractionName_Implementation()
+{
+    return FName(TEXT("Prop"));
 }
 
 bool ACPThrowablePropBase::AttachAsHeld(USceneComponent* CarryAnchor)
@@ -114,6 +143,21 @@ void ACPThrowablePropBase::DetachAsHeld(const FVector& DropLocation)
 
     StopRestCheck();
     SetPropState(ECPThrowablePropState::Resting);
+}
+
+bool ACPThrowablePropBase::GetPropCollisionBounds(FVector& OutOrigin, FVector& OutExtent) const
+{
+    if (!IsValid(StaticMeshComponent))
+    {
+        OutOrigin = FVector::ZeroVector;
+        OutExtent = FVector::ZeroVector;
+        return false;
+    }
+
+    OutOrigin = StaticMeshComponent->Bounds.Origin;
+    OutExtent = StaticMeshComponent->Bounds.BoxExtent;
+
+    return true;
 }
 
 bool ACPThrowablePropBase::Drop(const FVector& DropLocation)
@@ -209,6 +253,46 @@ bool ACPThrowablePropBase::CanBePickedUp() const
     const bool bWasPhysicallyReleased = PropState == ECPThrowablePropState::Thrown || PropState == ECPThrowablePropState::Dropped;
 
     return bWasPhysicallyReleased && bHasHitSinceThrow;
+}
+
+ECPThrowablePropState ACPThrowablePropBase::GetPropState() const
+{
+    return PropState;
+}
+
+bool ACPThrowablePropBase::IsHeld() const
+{
+    return PropState == ECPThrowablePropState::Held;
+}
+
+bool ACPThrowablePropBase::IsThrown() const
+{
+    return PropState == ECPThrowablePropState::Thrown;
+}
+
+bool ACPThrowablePropBase::IsDropped() const
+{
+    return PropState == ECPThrowablePropState::Dropped;
+}
+
+bool ACPThrowablePropBase::IsResting() const
+{
+    return PropState == ECPThrowablePropState::Resting;
+}
+
+AActor* ACPThrowablePropBase::GetLastThrower() const
+{
+    return IsValid(LastThrower) ? LastThrower.Get() : nullptr;
+}
+
+void ACPThrowablePropBase::HandleThrowStarted(AActor* Thrower)
+{
+    // 자식 Actor에서 필요한 경우 재정의(Potion)
+}
+
+void ACPThrowablePropBase::HandleThrownImpact(AActor* OtherActor, const FHitResult& HitResult)
+{
+    // 자식 Actor에서 필요한 경우 재정의(Potion)
 }
 
 void ACPThrowablePropBase::SetPropState(ECPThrowablePropState NewState)
@@ -340,54 +424,4 @@ void ACPThrowablePropBase::HandleMeshHit(UPrimitiveComponent* HitComponent, AAct
     // 반드시 함수의 마지막에서 호출.
     // PotionActor가 이 함수 안에서 Destroy될 위험이 있음. 
     HandleThrownImpact(OtherActor, HitResult);
-}
-
-void ACPThrowablePropBase::HandleThrowStarted(AActor* Thrower)
-{
-    // 자식 Actor에서 필요한 경우 재정의(Potion)
-}
-
-void ACPThrowablePropBase::HandleThrownImpact(AActor* OtherActor, const FHitResult& HitResult)
-{
-    // 자식 Actor에서 필요한 경우 재정의(Potion)
-}
-
-ECPThrowablePropState ACPThrowablePropBase::GetPropState() const
-{
-    return PropState;
-}
-
-bool ACPThrowablePropBase::IsHeld() const
-{
-    return PropState == ECPThrowablePropState::Held;
-}
-
-bool ACPThrowablePropBase::IsThrown() const
-{
-    return PropState == ECPThrowablePropState::Thrown;
-}
-
-bool ACPThrowablePropBase::IsDropped() const
-{
-    return PropState == ECPThrowablePropState::Dropped;
-}
-
-bool ACPThrowablePropBase::IsResting() const
-{
-    return PropState == ECPThrowablePropState::Resting;
-}
-
-AActor* ACPThrowablePropBase::GetLastThrower() const
-{
-    return IsValid(LastThrower) ? LastThrower.Get() : nullptr;
-}
-
-bool ACPThrowablePropBase::CanInteract_Implementation(AActor* Interactor)
-{
-    return IsValid(Interactor) && CanBePickedUp();
-}
-
-FName ACPThrowablePropBase::GetInteractionName_Implementation()
-{
-    return FName(TEXT("Prop"));
 }
