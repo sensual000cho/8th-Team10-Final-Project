@@ -236,11 +236,19 @@ void UCPTrajectoryPreviewComponent::UpdatePreview()
 	const float DesiredPathLength = ApexPathLength + PostApexPredictionLength;
 	const float VisiblePathLength = FMath::Min(FMath::Clamp(DesiredPathLength, MinPredictionLength, MaxPredictionLength), TotalPathLength);
 
-	// 이전 프레임의 점을 비우고 이번 프레임의 표시 구간을 다시 구성.
+	// 이전 프레임에 만들어진 경로를 먼저 제거
 	ClearSplinePoints(false);
-	AddSplinePoint(PathPoints[0].Location, ESplineCoordinateSpace::World, false);
+	
+	const float VisibleStartDistance = FMath::Clamp(PreviewStartDistance, 0.f, VisiblePathLength);
+
+	if (VisiblePathLength - VisibleStartDistance <= KINDA_SMALL_NUMBER)
+	{
+		HidePreviewSegments();
+		return;
+	}
 
 	float CurrentPathLength = 0.f;
+	bool bAddedStartPoint = false;
 
 	for (int32 PointIndex = 1; PointIndex < PathPoints.Num(); ++PointIndex)
 	{
@@ -253,19 +261,48 @@ void UCPTrajectoryPreviewComponent::UpdatePreview()
 			continue;
 		}
 
-		// 목표 길이를 넘어가는 마지막 구간은 정확한 끝 위치를 보간.
-		if (CurrentPathLength + SegmentLength >= VisiblePathLength)
-		{
-			const float RemainingLength = VisiblePathLength - CurrentPathLength;
-			const float SegmentAlpha = RemainingLength / SegmentLength;
-			const FVector FinalLocation = FMath::Lerp(PreviousLocation, CurrentLocation, SegmentAlpha);
+		const float SegmentStartDistance = CurrentPathLength;
+		const float SegmentEndDistance = CurrentPathLength + SegmentLength;
 
-			AddSplinePoint(FinalLocation, ESplineCoordinateSpace::World, false);
-			break;
+		// 표시 시작 거리가 현재 구간 안에 있으면 시작점을 보간
+		if (!bAddedStartPoint &&
+			VisibleStartDistance >= SegmentStartDistance &&
+			VisibleStartDistance <= SegmentEndDistance)
+		{
+			const float StartAlpha = (VisibleStartDistance - SegmentStartDistance) / SegmentLength;
+			const FVector StartLocation = FMath::Lerp(PreviousLocation, CurrentLocation, StartAlpha);
+
+			AddSplinePoint(StartLocation, ESplineCoordinateSpace::World, false);
+			bAddedStartPoint = true;
 		}
 
-		AddSplinePoint(CurrentLocation, ESplineCoordinateSpace::World, false);
-		CurrentPathLength += SegmentLength;
+		if (bAddedStartPoint)
+		{
+			// 표시 종료 거리가 현재 구간 안에 있으면 끝점을 보간하고 종료
+			if (VisiblePathLength <= SegmentEndDistance)
+			{
+				const float EndAlpha = (VisiblePathLength - SegmentStartDistance) / SegmentLength;
+				const FVector EndLocation = FMath::Lerp(PreviousLocation, CurrentLocation, EndAlpha);
+
+				AddSplinePoint(EndLocation, ESplineCoordinateSpace::World, false);
+				break;
+			}
+
+			// 시작점을 추가한 구간의 끝점부터 계속 경로 구성
+			if (SegmentEndDistance > VisibleStartDistance)
+			{
+				AddSplinePoint(CurrentLocation, ESplineCoordinateSpace::World, false);
+			}
+		}
+
+		CurrentPathLength = SegmentEndDistance;
+	}
+
+	if (GetNumberOfSplinePoints() < 2)
+	{
+		ClearSplinePoints();
+		HidePreviewSegments();
+		return;
 	}
 
 	UpdateSpline();
