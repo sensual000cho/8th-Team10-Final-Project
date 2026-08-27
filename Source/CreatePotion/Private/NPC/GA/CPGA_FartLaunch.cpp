@@ -5,7 +5,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "AbilitySystemComponent.h"
 #include "TimerManager.h"
-#include "Data/CPNPCDataAsset.h"
+#include "Data/NPC/CPNPCDataAsset.h"
 #include "GameInstance/Subsystem/CPNPCSubsystem.h"
 
 UCPGA_FartLaunch::UCPGA_FartLaunch()

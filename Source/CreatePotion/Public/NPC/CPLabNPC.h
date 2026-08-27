@@ -4,13 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "GameMode/CPLabGameMode.h"
-#include "NPC/CPBaseNPC.h"
+#include "NPC/CPQuestNPC.h"
 #include "CPLabNPC.generated.h"
 
 class UCPLabResultWidget;
+class UCPNPCDialogueWidget;
 
 UCLASS()
-class CREATEPOTION_API ACPLabNPC : public ACPBaseNPC
+class CREATEPOTION_API ACPLabNPC : public ACPQuestNPC
 {
 	GENERATED_BODY()
 public:

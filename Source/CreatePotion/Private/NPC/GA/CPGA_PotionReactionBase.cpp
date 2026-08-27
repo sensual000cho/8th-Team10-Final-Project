@@ -36,26 +36,6 @@ ACPBaseNPC* UCPGA_PotionReactionBase::GetOwningPotionNPC(const FGameplayAbilityA
 	return ActorInfo ? Cast<ACPBaseNPC>(ActorInfo->AvatarActor.Get()) : nullptr;
 }
 
-FGameplayEffectContextHandle UCPGA_PotionReactionBase::BuildPotionEffectContext(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayEventData* TriggerEventData) const
-{
-	UAbilitySystemComponent* ASC = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr;
-	if (!ASC)
-	{
-		return FGameplayEffectContextHandle();
-	}
-
-	FGameplayEffectContextHandle Context = ASC->MakeEffectContext();
-	Context.AddInstigator(ActorInfo->AvatarActor.Get(), ActorInfo->AvatarActor.Get());
-
-	FHitResult ImpactHit;
-	if (ExtractImpactHitResult(TriggerEventData, ImpactHit))
-	{
-		Context.AddHitResult(ImpactHit, true);
-	}
-
-	return Context;
-}
-
 void UCPGA_PotionReactionBase::PrintPotionEventLog(const FGameplayEventData* TriggerEventData) const
 {
 	if (!TriggerEventData)
