@@ -5,7 +5,7 @@
 #include "Engine/LocalPlayer.h"
 #include "CreatePotion.h"   // 로그용 헤더
 
-#include "GameInstance/Subsystem/CPInventorySubsystem.h"
+#include "GameInstance/Subsystem/CPContainerSubsystem.h"
 #include "UI/Widgets/Common/Container/CPContainerMainWidget.h"
 
 UCPInventoryComponent::UCPInventoryComponent()
@@ -19,9 +19,9 @@ void UCPInventoryComponent::BeginPlay()
 
 	if (UGameInstance* GI = GetWorld()->GetGameInstance())
 	{
-		if (UCPInventorySubsystem* InvSubsystem = GI->GetSubsystem<UCPInventorySubsystem>())
+		if (UCPContainerSubsystem* ContainerSubsystem = GI->GetSubsystem<UCPContainerSubsystem>())
 		{
-			InvSubsystem->LoadInventoryData(this->ContainerItems);
+			ContainerSubsystem->LoadContainerData(this->ContainerItems);
 		}
 	}
 
@@ -155,9 +155,9 @@ void UCPInventoryComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (UGameInstance* GI = GetWorld()->GetGameInstance())
 	{
-		if (UCPInventorySubsystem* InvSubsystem = GI->GetSubsystem<UCPInventorySubsystem>())
+		if (UCPContainerSubsystem* ContainerSubsystem = GI->GetSubsystem<UCPContainerSubsystem>())
 		{
-			InvSubsystem->SaveInventoryData(this->ContainerItems);
+			ContainerSubsystem->SaveContainerData(this->ContainerItems);
 		}
 	}
 
