@@ -56,7 +56,7 @@ private:
 	void CompleteTimedInteraction();
 	
 private:
-	// --- 상호작용 대상 Highlight ---
+	// 상호작용 대상 Highlight 
 	void SetActorHighlight(AActor* Target, bool bHighlighted);
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Highlight")

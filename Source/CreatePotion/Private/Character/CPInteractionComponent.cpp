@@ -11,6 +11,7 @@
 
 #include "EnhancedInputSubsystems.h"	// IMC 바인딩
 #include "EnhancedInputComponent.h"		// IA 바인딩
+#include "Components/CPInteractableComponent.h"
 
 // 에디터에서 콘솔창에 cp.Debug.Interaction를 입력해서 Debug On/Off 가능
 // cp.Debug.Interaction 1 --> Debug On
@@ -229,6 +230,20 @@ void UCPInteractionComponent::PerformTrace()
 		
 		// 새 대상 하이라이트 켜기
 		SetActorHighlight(FoundActor, true);
+		
+		if (UCPInteractableComponent* InteractableComp = FoundActor->FindComponentByClass<UCPInteractableComponent>())
+		{
+			if (InteractableComp->CanInteract())
+			{
+				const FText Prompt = InteractableComp->GetInteractionPrompt();
+				const FName TargetName = InteractableComp->GetInteractionName();
+				OnPromptChanged.Broadcast(Prompt, TargetName);
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("[InteractionComponent] 대상 액터에 InteractableComponent가 없습니다."));
+		}
 		
 		const FText Prompt = ICPInteractable::Execute_GetInteractionPrompt(FoundActor);
 		const FName TargetName = ICPInteractable::Execute_GetInteractionName(FoundActor);
