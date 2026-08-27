@@ -4,6 +4,10 @@
 #include "GameFramework/Actor.h"
 #include "CPTimeOfDayController.generated.h"
 
+class UPostProcessComponent;
+class USkyAtmosphereComponent;
+class UExponentialHeightFogComponent;
+class UVolumetricCloudComponent;
 class ADirectionalLight;
 class UCPTimeSubsystem;
 
@@ -29,24 +33,52 @@ private:
 	void UpdateVisualTime();
 	
 private:
+	// Root Component
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<USceneComponent> Root;
+	
 	// Sun Light
-	UPROPERTY(EditAnywhere, Category = "Time")
-	TObjectPtr<ADirectionalLight> SunLight;
+	UPROPERTY(EditAnywhere, Category = "Time Of Day")
+	TObjectPtr<UDirectionalLightComponent> SunLight;
 	
 	// Moon Light
-	UPROPERTY(EditAnywhere, Category = "Time")
-	TObjectPtr<ADirectionalLight> MoonLight;
+	UPROPERTY(EditAnywhere, Category = "Time Of Day")
+	TObjectPtr<UDirectionalLightComponent> MoonLight;
 	
-	// 하늘 액터
-	UPROPERTY(EditAnywhere, Category = "Time")
-	TObjectPtr<AActor> SkySphere;
+	// Sky Light
+	UPROPERTY(EditAnywhere, Category = "Time Of Day")
+	TObjectPtr<USkyLightComponent> SkyLight;
+	
+	// Sky Atmosphere
+	UPROPERTY(EditAnywhere, Category = "Time Of Day")
+	TObjectPtr<USkyAtmosphereComponent> SkyAtmosphere;
+	
+	// Height Fog
+	UPROPERTY(EditAnywhere, Category = "Time Of Day")
+	TObjectPtr<UExponentialHeightFogComponent> HeightFog;
+	
+	// Volumetric Cloud
+	UPROPERTY(EditAnywhere, Category = "Time Of Day")
+	TObjectPtr<UVolumetricCloudComponent> VolumetricCloud;
+	
+	// 하늘 메시
+	UPROPERTY(EditAnywhere, Category = "Time Of Day")
+	TObjectPtr<UStaticMeshComponent> SkySphere;
+	
+	// 포스트 프로세스
+	UPROPERTY(EditAnywhere, Category = "Time Of Day")
+	TObjectPtr<UPostProcessComponent> PostProcess;
+	
+	// Sky Light Intensity Curve
+	UPROPERTY(EditAnywhere, Category = "Time Of Day")
+	TObjectPtr<UCurveFloat> SkyLightIntensityCurve;
 	
 	// 태양 궤도 시작 각도
-	UPROPERTY(EditAnywhere, Category = "Time")
+	UPROPERTY(EditAnywhere, Category = "Time Of Day")
 	float SunPitchOffset = -90.f;
 	
 	// 방향 조절용
-	UPROPERTY(EditAnywhere, Category = "Time")
+	UPROPERTY(EditAnywhere, Category = "Time Of Day")
 	float SunYaw = 0.f;
 	
 	UPROPERTY(Transient)

@@ -1,10 +1,42 @@
 #include "Environment/Time/CPTimeOfDayController.h"
-#include "Engine/DirectionalLight.h"
+#include "Components/DirectionalLightComponent.h"
+#include "Components/ExponentialHeightFogComponent.h"
+#include "Components/PostProcessComponent.h"
+#include "Components/SkyAtmosphereComponent.h"
+#include "Components/SkyLightComponent.h"
+#include "Components/VolumetricCloudComponent.h"
 #include "GameInstance/Subsystem/CPTimeSubsystem.h"
 
 ACPTimeOfDayController::ACPTimeOfDayController()
 {
 	PrimaryActorTick.bCanEverTick = false;
+	
+	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+	SetRootComponent(Root);
+	
+	SunLight = CreateDefaultSubobject<UDirectionalLightComponent>(TEXT("SunLight"));
+	SunLight->SetupAttachment(Root);
+	
+	MoonLight = CreateDefaultSubobject<UDirectionalLightComponent>(TEXT("MoonLight"));
+	MoonLight->SetupAttachment(Root);
+	
+	SkyLight = CreateDefaultSubobject<USkyLightComponent>(TEXT("SkyLight"));
+	SkyLight->SetupAttachment(Root);
+	
+	SkyAtmosphere = CreateDefaultSubobject<USkyAtmosphereComponent>(TEXT("SkyAtmosphere"));
+	SkyAtmosphere->SetupAttachment(Root);
+	
+	HeightFog = CreateDefaultSubobject<UExponentialHeightFogComponent>(TEXT("HeightFog"));
+	HeightFog->SetupAttachment(Root);
+	
+	VolumetricCloud = CreateDefaultSubobject<UVolumetricCloudComponent>(TEXT("VolumetricCloud"));
+	VolumetricCloud->SetupAttachment(Root);
+	
+	SkySphere = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SkySphere"));
+	SkySphere->SetupAttachment(Root);
+	
+	PostProcess = CreateDefaultSubobject<UPostProcessComponent>(TEXT("PostProcess"));
+	PostProcess->SetupAttachment(Root);
 }
 
 void ACPTimeOfDayController::BeginPlay()
@@ -52,7 +84,7 @@ void ACPTimeOfDayController::UpdateSunRotation(double GameMinutes)
 	if (!SunLight) return;
 	
 	constexpr double MinutesPerDay = 144.0;
-	
+
 	const double MinutesOfDay = FMath::Fmod(GameMinutes, MinutesPerDay);
 	const double DayAlpha = MinutesOfDay / MinutesPerDay;
 	const float SunPitch = SunPitchOffset + static_cast<float>(DayAlpha * 360.0);
@@ -60,31 +92,33 @@ void ACPTimeOfDayController::UpdateSunRotation(double GameMinutes)
 	
 	if (SunLight)
 	{
-		SunLight->SetActorRotation(FRotator(SunPitch, SunYaw, 0.f));
-		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, FString::Printf(TEXT("Sun Pitch: %f"), SunPitch));
+		SunLight->SetWorldRotation(FRotator(SunPitch, SunYaw, 0.f));
 	}
 	
 	if (MoonLight)
 	{
-		MoonLight->SetActorRotation(FRotator(MoonPitch, SunYaw, 0.f));
+		MoonLight->SetWorldRotation(FRotator(MoonPitch, SunYaw, 0.f));
 	}
 	
 	if (SkySphere)
 	{
-		UStaticMeshComponent* Mesh = SkySphere->FindComponentByClass<UStaticMeshComponent>();
-		if (Mesh)
+		UMaterialInstanceDynamic* Material = SkySphere->CreateDynamicMaterialInstance(0);
+		if (Material)
 		{
-			UMaterialInstanceDynamic* Material = Mesh->CreateDynamicMaterialInstance(0);
-			if (Material)
-			{
-				float Intensity = FMath::GetMappedRangeValueClamped(
-					FVector2D(-0.1f, 0.1f),
-					FVector2D(0.f, 1.f),
-					FMath::Sin(FMath::DegreesToRadians(SunPitch)));
+			float Intensity = FMath::GetMappedRangeValueClamped(
+			FVector2D(-0.1f, 0.1f),
+			FVector2D(0.f, 1.f),
+			FMath::Sin(FMath::DegreesToRadians(SunPitch)));
 				
-				Material->SetScalarParameterValue(TEXT("Intensity"), Intensity);
-			}
+			Material->SetScalarParameterValue(TEXT("SkyIntensity"), Intensity);
 		}
+	}
+	
+	if (SkyLight && SkyLightIntensityCurve)
+	{
+		const float SkyLightIntensity = SkyLightIntensityCurve->GetFloatValue(DayAlpha);
+		
+		SkyLight->SetIntensity(SkyLightIntensity);
 	}
 }
 
