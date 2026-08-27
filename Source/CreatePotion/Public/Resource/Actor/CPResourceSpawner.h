@@ -32,6 +32,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
 	// 초기 배치 시, 고유 Id 생성
 	virtual void PostActorCreated() override;
@@ -40,6 +41,12 @@ protected:
 	virtual void PostEditImport() override;
 	
 private:
+	UFUNCTION()
+	void HandleNodeHarvested(const FCPResourceNodeKey& Key);
+	
+	UFUNCTION()
+	void HandleTimeChanged(int64 Time);
+	
 	// 전부 스폰
 	void SpawnAllSlots();
 	
@@ -53,7 +60,7 @@ private:
 	FCPResourceNodeKey MakeNodeKey(int32 SlotIndex) const;
 	
 	// 스폰 위치 / 회전 계산
-	FTransform CalculateSpawnTransform(int32 SlotIndex, int32 Generation) const;
+	bool TryCalculateSpawnTransform(int32 SlotIndex, int32 Generation, FTransform& OutTransform) const;
 	
 	// 스폰 시드 생성
 	int32 MakeSpawnSeed(int32 SlotIndex, int32 Generation, int32 Salt) const;
@@ -86,4 +93,7 @@ private:
 	// 최대 허용 경사각(기본적으로 모든 채집물은 하늘을 향하고, 바닥 경사면의 각도에 따라 기울어짐. 기울어지는 정도의 최대치)
 	UPROPERTY(EditAnywhere, Category = "Resource")
 	float MaxGroundAlignAngle = 15;
+	
+	// 현재 필드에서 리스폰 대기 중인 슬롯
+	TSet<int32> PendingRespawnSlots;
 };

@@ -1,9 +1,5 @@
 #include "UI/Widgets/Lab/CPLabSlotIngredientInfoWidget.h"
 
-#include "GameState/CPLabGameState.h"
-#include "Lab/Actor/CPAlchemyProp.h"
-#include "Lab/Component/CPLabPotionSessionComponent.h"
-
 void UCPLabSlotIngredientInfoWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -37,69 +33,10 @@ void UCPLabSlotIngredientInfoWidget::EndSlotHover(int32 InSlotIndex)
 	HideSlotInfo();
 }
 
-void UCPLabSlotIngredientInfoWidget::BindEvents()
-{
-	Super::BindEvents();
-
-	if (UWorld* World = GetWorld())
-	{
-		if (ACPLabGameState* LabGameState = World->GetGameState<ACPLabGameState>())
-		{
-			BoundPotionSession = LabGameState->GetPotionSession();
-			if (BoundPotionSession)
-			{
-				BoundPotionSession->OnSessionChanged.AddUniqueDynamic(
-					this,
-					&UCPLabSlotIngredientInfoWidget::HandleSessionChanged);
-			}
-		}
-	}
-}
-
-void UCPLabSlotIngredientInfoWidget::UnbindEvents()
-{
-	if (BoundPotionSession)
-	{
-		BoundPotionSession->OnSessionChanged.RemoveDynamic(
-			this,
-			&UCPLabSlotIngredientInfoWidget::HandleSessionChanged);
-		BoundPotionSession = nullptr;
-	}
-
-	HoveredSlotIndex = INDEX_NONE;
-	Super::UnbindEvents();
-}
-
-void UCPLabSlotIngredientInfoWidget::HandleSessionChanged()
-{
-	// 호버 중에 슬롯의 재료가 교체돼도 카드를 닫지 않고 같은 슬롯의 최신 재료로 갱신한다.
-	if (HoveredSlotIndex != INDEX_NONE)
-	{
-		RefreshHoveredSlot();
-	}
-}
-
 void UCPLabSlotIngredientInfoWidget::RefreshHoveredSlot()
 {
-	if (HoveredSlotIndex == INDEX_NONE || !IsValid(BoundPotionSession))
-	{
-		HideSlotInfo();
-		return;
-	}
-
-	ACPAlchemyProp* IngredientProp = nullptr;
-	if (!BoundPotionSession->GetIngredientPropFromSlot(HoveredSlotIndex, IngredientProp) ||
-		!IsValid(IngredientProp))
-	{
-		HideSlotInfo();
-		return;
-	}
-
-	SetHeaderText(FText::FromString(FString::Printf(
-		TEXT("슬롯 %d"),
-		HoveredSlotIndex + 1)));
-	SetObservedIngredient(IngredientProp);
-	SetVisibility(ESlateVisibility::HitTestInvisible);
+	// 슬롯 재료 조회 API가 현재 세션에서 제거되어 표시할 재료를 가져올 수 없다.
+	HideSlotInfo();
 }
 
 void UCPLabSlotIngredientInfoWidget::HideSlotInfo()

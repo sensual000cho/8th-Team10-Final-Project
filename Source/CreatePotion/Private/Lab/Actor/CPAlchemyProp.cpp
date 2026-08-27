@@ -1,124 +1,94 @@
 #include "Lab/Actor/CPAlchemyProp.h"
 
+#include "Character/CPCarryComponent.h"
+#include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Data/CPForageableItemData.h"
 
-// 물리 재료 Actor의 기본 컴포넌트 구성
-ACPAlchemyProp::ACPAlchemyProp(): ProcessMultiplier(1) 
+ACPAlchemyProp::ACPAlchemyProp()
 {
-	// 직접 이동·가공 요청을 받을 때만 갱신하므로 Tick은 사용하지 않음
-	PrimaryActorTick.bCanEverTick = false;
-	
-	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>("Mesh");
-	SetRootComponent(StaticMeshComponent);
+    PrimaryActorTick.bCanEverTick = true;
+
+    IngredientUprightPivot = CreateDefaultSubobject<USceneComponent>(TEXT("IngredientUprightPivot"));
+    IngredientUprightPivot->SetupAttachment(StaticMeshComponent);
+
+    IngredientBobblePivot = CreateDefaultSubobject<USceneComponent>(TEXT("IngredientBobblePivot"));
+    IngredientBobblePivot->SetupAttachment(IngredientUprightPivot);
+
+    IngredientMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("IngredientMesh"));
+    IngredientMeshComponent->SetupAttachment(IngredientBobblePivot);
+    IngredientMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    IngredientMeshComponent->SetGenerateOverlapEvents(false);
+    IngredientMeshComponent->SetSimulatePhysics(false);
+    IngredientMeshComponent->SetCanEverAffectNavigation(false);
+}
+
+void ACPAlchemyProp::BeginPlay()
+{
+    Super::BeginPlay();
+
+    IngredientBobbleBaseLocation = IngredientBobblePivot->GetRelativeLocation();
+}
+
+void ACPAlchemyProp::Tick(float DeltaSeconds)
+{
+    Super::Tick(DeltaSeconds);
+
+    if (!bEnableIngredientBobble)
+    {
+        return;
+    }
+
+    if (UprightRecoverySpeed > 0.f)
+    {
+        const FRotator CurrentRotation = IngredientUprightPivot->GetComponentRotation();
+        const FRotator TargetRotation(0.f, CurrentRotation.Yaw, 0.f);
+        const FRotator UprightRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaSeconds, UprightRecoverySpeed);
+        IngredientUprightPivot->SetWorldRotation(UprightRotation);
+    }
+
+    const float BobbleOffset = FMath::Sin(GetGameTimeSinceCreation() * BobbleSpeed * 2.f * UE_PI) * BobbleAmplitude;
+    IngredientBobblePivot->SetRelativeLocation(IngredientBobbleBaseLocation + FVector::UpVector * BobbleOffset);
+}
+
+FText ACPAlchemyProp::GetInteractionPrompt_Implementation()
+{
+    return FText::FromString(TEXT("들기"));
+}
+
+FName ACPAlchemyProp::GetInteractionName_Implementation()
+{
+    return WorkingIngredient.SourceItemData ? 
+        FName(*WorkingIngredient.SourceItemData->DisplayName.ToString()) : Super::GetInteractionName_Implementation();
 }
 
 void ACPAlchemyProp::InitializeFromItemData(UCPForageableItemData* ItemData)
 {
-	ResetWorkingIngredient();
-
-	if (!ItemData){
-		OnAlchemyPropChanged.Broadcast();
-		return;
-	}
-
-	WorkingIngredient.SourceItemData = ItemData;
-
-	// DataAsset의 원본 효과값을 복사해 Actor만의 작업값 생성
-	for (const FAlchemyProperty& Property : ItemData->TagAxes){
-		if (!Property.Tag.IsValid())continue;
-
-		WorkingIngredient.CurrentEffects.Add(Property.Tag, Property.Value);
-	}
-	
-	OnAlchemyPropChanged.Broadcast();
+    InitializeAlchemyProp(ItemData);
 }
 
-void ACPAlchemyProp::InitializeFromEffects(UCPForageableItemData* ItemData, const TArray<FAlchemyProperty>& Effects)
+void ACPAlchemyProp::InitializeAlchemyProp(UCPForageableItemData* ItemData, const TArray<FGameplayTag>& EffectTags)
 {
-	ResetWorkingIngredient();
-	
-	if (!ItemData){
-		OnAlchemyPropChanged.Broadcast();
-		return;
-	}
-	
-	WorkingIngredient.SourceItemData = ItemData;
-	for (const FAlchemyProperty& Property : Effects){
-		if (!Property.Tag.IsValid()) continue;
-		
-		WorkingIngredient.CurrentEffects.Add(Property.Tag, Property.Value);
-	}
-	
-	OnAlchemyPropChanged.Broadcast();
+    WorkingIngredient = FCPLabIngredientInstance{};
+
+    if (!ItemData)
+    {
+        return;
+    }
+
+    WorkingIngredient.SourceItemData = ItemData;
+
+    if (EffectTags.Num() > 0)
+    {
+        WorkingIngredient.CurrentEffects = EffectTags;
+    }
+    else
+    {
+        WorkingIngredient.CurrentEffects = ItemData->TagAxes;
+    }
 }
 
-FCPLabIngredientInstance
-ACPAlchemyProp::GetWorkingIngredient() const
+FCPLabIngredientInstance ACPAlchemyProp::GetWorkingIngredient() const
 {
-	return WorkingIngredient;
+    return WorkingIngredient;
 }
-
-bool ACPAlchemyProp::SetWorkingIngredient(const FCPLabIngredientInstance& Ingredient)
-{
-	if (!Ingredient.IsValid()) return false;
-	
-	if (WorkingIngredient.IsValid() && WorkingIngredient.SourceItemData != Ingredient.SourceItemData) return false;
-	
-	WorkingIngredient = Ingredient;
-	OnAlchemyPropChanged.Broadcast();
-	return true;
-}
-
-UCPForageableItemData* ACPAlchemyProp::GetSourceItemData() const
-{
-	return WorkingIngredient.SourceItemData.Get();
-}
-
-int32 ACPAlchemyProp::GetEffectValue(const FGameplayTag& EffectTag) const
-{
-	return WorkingIngredient.GetEffectValue(EffectTag);
-}
-
-bool ACPAlchemyProp::HasBeenProcessedBy(FName InProcessorId) const
-{
-	return !InProcessorId.IsNone() && AppliedProcessorIds.Contains(InProcessorId);
-}
-
-bool ACPAlchemyProp::MarkProcessedBy(FName InProcessorId)
-{
-	if (InProcessorId.IsNone() || AppliedProcessorIds.Contains(InProcessorId)) return false;
-	
-	AppliedProcessorIds.Add(InProcessorId);
-	return true;
-}
-
-bool ACPAlchemyProp::ResetToItemData()
-{
-	UCPForageableItemData* ItemData = GetSourceItemData();
-	if (!ItemData) return false;
-	
-	InitializeFromItemData(ItemData);
-	return true;
-}
-
-float ACPAlchemyProp::GetProcessMultiplier() const
-{
-	return ProcessMultiplier;
-}
-
-void ACPAlchemyProp::SetProcessMultiplier(float InMultiplier)
-{
-	ProcessMultiplier = InMultiplier;
-}
-
-
-void ACPAlchemyProp::ResetWorkingIngredient()
-{
-	// 다른 재료로 다시 초기화할 때 이전 재료 정보가 남지 않도록 초기화
-	WorkingIngredient = FCPLabIngredientInstance{};
-	AppliedProcessorIds.Reset();
-	ProcessMultiplier = 1;
-}
-
-

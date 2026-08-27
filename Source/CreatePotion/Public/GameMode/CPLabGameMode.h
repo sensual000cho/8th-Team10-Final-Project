@@ -6,14 +6,12 @@
 #include "Quest/QuestManager.h"
 #include "CPLabGameMode.generated.h"
 
+class ACPPotionActor;
 enum class EDeliveryGrade : uint8;
-enum class EConditionMatchResult : uint8;
-class UCPProcessorComponent;
 class ACPAlchemyProp;
 class ACPLabGameState;
-class UCPLabPotionSessionComponent;
 class UCPForageableItemData;
-class UCPLabContainerComponent;
+class UCPPotionData;
 
 USTRUCT(BlueprintType)
 struct FCPPotionDeliveryResult
@@ -28,13 +26,7 @@ struct FCPPotionDeliveryResult
 	EDeliveryGrade DeliveryGrade = EDeliveryGrade::Fail;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Lab|Result")
-	TArray<FAlchemyProperty> MinTargetEffects;
-	
-	UPROPERTY(BlueprintReadOnly, Category = "Lab|Result")
-	TArray<FAlchemyProperty> MaxTargetEffects;
-	
-	UPROPERTY(BlueprintReadOnly, Category = "Lab|Result")
-	TArray<FAlchemyProperty> CurrentEffects;
+	TArray<FGameplayTag> CurrentEffects;
 	
 	// 기본 보상
 	UPROPERTY(BlueprintReadOnly, Category = "Lab|Result")
@@ -54,86 +46,34 @@ class CREATEPOTION_API ACPLabGameMode : public ACPGameModeBase
 public:
 	ACPLabGameMode();
 
-	// 현재 설정된 테스트 리퀘스트로 세션 시작
-	UFUNCTION(BlueprintCallable, Category = "Lab|Session")
-	bool TryStartLabSession();
-
-	// 외부에서 전달받은 리퀘스트 목록으로 세션 시작
-	UFUNCTION(BlueprintCallable, Category = "Lab|Session")
-	bool TryStartLabSessionWithRequests(const TArray<FCPLabPotionRequest>& PotionRequests);
-
-	// 진행 중인 포션 세션을 벨 대기 상태로 초기화
-	UFUNCTION(BlueprintCallable, Category = "Lab|Session")
-	void ResetLabSession();
-
-	// 여러 리퀘스트 중 플레이어가 진행할 리퀘스트 선택
+	// 선택한 QuestId로 리퀘스트를 시작하고, 제조 상태로 진입
 	UFUNCTION(BlueprintCallable, Category = "Lab|Request")
-	bool TrySelectRequest(FName RequestId);
-
-	// 활성 리퀘스트를 수락하고 재료 준비 상태로 전환
+	bool StartPotionRequest(FName QuestId);
+	
+	// 현재 리퀘스트를 다음 단계로 진행
 	UFUNCTION(BlueprintCallable, Category = "Lab|Request")
-	bool TryAcceptActiveRequest();
-
-	// 준비한 재료가 유효하면 가공 상태로 전환
-	UFUNCTION(BlueprintCallable, Category = "Lab|Request")
-	bool TryBeginActiveRequestProcessing();
-
-	// 가공 중인 리퀘스트를 포션 완성 상태로 전환
-	UFUNCTION(BlueprintCallable, Category = "Lab|Request")
-	bool TryFinishActivePotion();
+	bool AdvancePotionRequest();
 	
-	// 포션 Prop을 만들고 현재 결과값을 저장하여 포션 완성 상태로 전환
-	bool FinalizePotionAtActor(const AActor* SpawnActor);
-
-	// 완성된 포션을 납품 처리
-	UFUNCTION(BlueprintCallable, Category = "Lab|Request")
-	bool TryDeliverActivePotion();
+	// Tags 사전 순 정렬, (TODO)태그 조합 반영
+	UFUNCTION(BlueprintCallable, Category = "Lab|Potion")
+	bool RefinePotion(const TArray<FGameplayTag>& EffectTags, const FTransform& SpawnTransform);
 	
-	// 포션 납품 판정 결과 조회
-	UFUNCTION(BlueprintPure, Category = "Lab|Result")
-	FCPPotionDeliveryResult GetPotionDeliveryResult() const;
+	// 상호작용으로 전달된 Potion Prop의 결과를 납품 결과 구조로 변환
+	UFUNCTION(BlueprintCallable, Category = "Lab|Result")
+	FCPPotionDeliveryResult GetPotionDeliveryResult(FName QuestId, const ACPPotionActor* PotionActor);
 	
-	// 다음 리퀘스트 또는 세션 종료 처리
-	UFUNCTION(BlueprintCallable, Category = "Lab|Request")
-	bool ConfirmPotionDeliveryResult();
-
-	// 지정한 슬롯에 재료 배치 요청
-	UFUNCTION(BlueprintCallable, Category = "Lab|Request")
-	bool PlaceIngredient(int32 SlotIndex, ACPAlchemyProp* Ingredient);
+	UFUNCTION(BlueprintPure, Category = "Lab|Request")
+	bool HasActiveRequest() const;
 	
-	// 리퀘스트 종료 시 초기화할 가공기구 등록
-	void RegisterProcessor(UCPProcessorComponent* ProcessorComponent);
-	
-	// Prop을 되돌릴 때 등록된 processor들에게 해당 Prop의 사용 제한 복구 요구
-	bool RestoreUseLimit(const ACPAlchemyProp* ItemInstance);
-	
-	// 재료 생성 단계에서 Spawn 할 재료의 DA 지정
-	UFUNCTION(BlueprintCallable, Category = "Lab|Ingredients")
-	void SetIngredientsDataAsset(const TArray<UCPForageableItemData*>& IngredientsDataAsset);
-	
-protected:
-	virtual void BeginPlay() override;
-
-private:
-	ACPLabGameState* GetLabGameState() const;
-	UCPLabPotionSessionComponent* GetPotionSession() const;
 	FName GetActiveRequestId() const;
 	
-	// 퀘스트를 QuestOrder 순서대로 공방 리퀘스트로 변환
-	TArray<FCPLabPotionRequest> BuildQuestRequests() const;
-	
-	// 재료를 Spawn할 Actor 탐색
-	void CollectSlotActors(TArray<AActor*>& OutSlotActors) const;
-	
-	// 재료 Spawn
-	bool SpawnIngredients();
-	
+private:	
 	// Spawn된 재료 초기화
 	void ClearSpawnedIngredients();
 	
-	// 등록된 가공 기구 상태 초기화
-	void ResetProcessors();
-	
+	// Potion Spawn
+	bool SpawnPotion(const TArray<FGameplayTag>& EffectTags, const FTransform& SpawnTransform);
+
 private:	
 	// 초기 재료 배치에 사용할 DA
 	UPROPERTY(EditDefaultsOnly, Category = "Lab|Ingredients")
@@ -141,7 +81,7 @@ private:
 	
 	// 포션 Prop을 만들 때 사용할 DA
 	UPROPERTY(EditDefaultsOnly, Category = "Lab|Potion")
-	TObjectPtr<UCPForageableItemData> PotionItemData;
+	TObjectPtr<UCPPotionData> PotionItemData;
 		
 	// 재료를 놓을 SlotActor 탐색용 태그
 	UPROPERTY(EditDefaultsOnly, Category = "Lab|Session")
@@ -151,9 +91,9 @@ private:
 	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Ingredients")
 	TArray<TObjectPtr<ACPAlchemyProp>> SpawnedIngredients;
 	
-	// 초기화할 가공기구를 관리하는 배열
-	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Processor")
-	TArray<TObjectPtr<UCPProcessorComponent>> ProcessorPendings;
+	// 현재 공방 요청 QuestId
+	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Request")
+	FName ActiveRequestId = NAME_None;
 	
 	// 납품 판정 결과
 	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Result")

@@ -1,70 +1,64 @@
-#pragma once
+ #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "Lab/Actor/CPThrowablePropBase.h"
 #include "Lab/CPLabPotionRequestTypes.h"
 #include "CPAlchemyProp.generated.h"
 
-struct FAlchemyProperty;
-class UStaticMeshComponent;
 class UCPForageableItemData;
+class USceneComponent;
+class UStaticMeshComponent;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FCPOnAlchemyPropChanged);
-
-// 공방에서 들고 다니며 가공하는 물리 재료 Actor
 UCLASS()
-class CREATEPOTION_API ACPAlchemyProp : public AActor
+class CREATEPOTION_API ACPAlchemyProp
+	: public ACPThrowablePropBase
 {
 	GENERATED_BODY()
-	
-public:	
+
+public:
 	ACPAlchemyProp();
+
+	virtual void Tick(float DeltaSeconds) override;
 	
-	// Prop의 작업 재료값이 바뀌었음을 알림
-	UPROPERTY(BlueprintAssignable, Category = "Lab|Ingredient")
-	FCPOnAlchemyPropChanged OnAlchemyPropChanged;
-	
-	// ItemData의 원본 효과값을 복사해 새 작업 재료로 초기화
+	virtual FText GetInteractionPrompt_Implementation() override;
+	virtual FName GetInteractionName_Implementation() override;
+
 	UFUNCTION(BlueprintCallable, Category = "Lab|Ingredient")
 	void InitializeFromItemData(UCPForageableItemData* ItemData);
-	
-	UFUNCTION(BlueprintCallable, Category = "Lab|Ingredient")
-	void InitializeFromEffects(UCPForageableItemData* ItemData, const TArray<FAlchemyProperty>& Effects);
-	
+
+	void InitializeAlchemyProp(UCPForageableItemData* ItemData, const TArray<FGameplayTag>& EffectTags = TArray<FGameplayTag>());
+
 	UFUNCTION(BlueprintPure, Category = "Lab|Ingredient")
 	FCPLabIngredientInstance GetWorkingIngredient() const;
-	
-	UFUNCTION(BlueprintCallable, Category = "Lab|Ingredient")
-	bool SetWorkingIngredient(const FCPLabIngredientInstance& Ingredient);
 
-	UFUNCTION(BlueprintPure, Category = "Lab|Ingredient")
-	UCPForageableItemData* GetSourceItemData() const;
+protected:
+	virtual void BeginPlay() override;
 
-	UFUNCTION(BlueprintPure, Category = "Lab|Ingredient")
-	int32 GetEffectValue(const FGameplayTag& EffectTag) const;
-	
-	bool HasBeenProcessedBy(FName InProcessorId) const;
-	bool MarkProcessedBy(FName InProcessorId);
-	
-	bool ResetToItemData();
-	
-	float GetProcessMultiplier() const;
-	void SetProcessMultiplier(float InMultiplier);
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Lab|Ingredient|Presentation")
+	TObjectPtr<USceneComponent> IngredientUprightPivot;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Lab|Ingredient|Presentation")
+	TObjectPtr<USceneComponent> IngredientBobblePivot;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Lab|Ingredient|Presentation")
+	TObjectPtr<UStaticMeshComponent> IngredientMeshComponent;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lab|Ingredient|Presentation")
+	bool bEnableIngredientBobble = true;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lab|Ingredient|Presentation", meta = (ClampMin = "0.0", Units = "cm"))
+	float BobbleAmplitude = 2.5f;
+
+	// 초당 부유 왕복 횟수
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lab|Ingredient|Presentation", meta = (ClampMin = "0.0", Units = "Hz"))
+	float BobbleSpeed = 0.45f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lab|Ingredient|Presentation", meta = (ClampMin = "0.0"))
+	float UprightRecoverySpeed = 0.9f;
 
 private:
-	// 현재 작업 재료 정보를 비움
-	void ResetWorkingIngredient();
-
-private:
-	UPROPERTY(VisibleAnywhere, Category = "Lab|Ingredient")
-	TObjectPtr<UStaticMeshComponent> StaticMeshComponent;
-	
 	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Ingredient")
 	FCPLabIngredientInstance WorkingIngredient;
-	
-	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Processor")
-	TSet<FName> AppliedProcessorIds;
-	
-	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Processor")
-	float ProcessMultiplier;
+
+	FVector IngredientBobbleBaseLocation = FVector::ZeroVector;
 };

@@ -145,6 +145,38 @@ bool UCPItemContainerComponent::IsGridSpaceEnough(int32 TargetIndex, int32 ItemW
     return true;
 }
 
+int32 UCPItemContainerComponent::FindItemArrayIndexCoveringGridIndex(int32 QueryIndex) const
+{
+    if (QueryIndex < 0 || ContainerType != EContainerType::Grid2D)
+    {
+        // Slot1D는 애초에 칸 하나=아이템 하나라 기존 방식(정확히 일치)이면 충분
+        return ContainerItems.IndexOfByPredicate(
+            [QueryIndex](const FContainerItem& It) { return It.GridIndex == QueryIndex; });
+    }
+
+    int32 QueryCol = QueryIndex % Columns;
+    int32 QueryRow = QueryIndex / Columns;
+
+    for (int32 i = 0; i < ContainerItems.Num(); ++i)
+    {
+        const FContainerItem& Item = ContainerItems[i];
+        if (!Item.ItemDataAsset || Item.GridIndex < 0) continue;
+
+        int32 ItemCol = Item.GridIndex % Columns;
+        int32 ItemRow = Item.GridIndex / Columns;
+        int32 ItemW = Item.bIsRotated ? Item.ItemDataAsset->ContainerSizeY : Item.ItemDataAsset->ContainerSizeX;
+        int32 ItemH = Item.bIsRotated ? Item.ItemDataAsset->ContainerSizeX : Item.ItemDataAsset->ContainerSizeY;
+
+        // 클릭한 칸이 이 아이템의 바운딩 박스 안에 들어오는지
+        if (QueryCol >= ItemCol && QueryCol < ItemCol + ItemW &&
+            QueryRow >= ItemRow && QueryRow < ItemRow + ItemH)
+        {
+            return i;
+        }
+    }
+    return INDEX_NONE;
+}
+
 int32 UCPItemContainerComponent::FindGridSpace(UCPForageableItemData* ItemData, bool& bOutIsRotated)
 {
     if (!ItemData)
@@ -241,7 +273,23 @@ bool UCPItemContainerComponent::RemoveItemFromContainer(int32 TargetGridIndex, i
     return false;
 }
 
-bool UCPItemContainerComponent::MoveItemToTargetContainer(int32 SourceGridIndex, UCPItemContainerComponent* TargetContainer)
+bool UCPItemContainerComponent::PopItemFromContainer(int32 TargetGridIndex, FContainerItem& OutPoppedItem)
+{
+    int32 ArrayIdx = ContainerItems.IndexOfByPredicate(
+        [TargetGridIndex](const FContainerItem& It) { return It.GridIndex == TargetGridIndex; });
+
+    if (ArrayIdx == INDEX_NONE)
+    {
+        return false;
+    }
+
+    OutPoppedItem = ContainerItems[ArrayIdx];
+    ContainerItems.RemoveAt(ArrayIdx);
+    OnContainerUpdated.Broadcast(); // 집는 즉시 화면에서 빈 칸으로 보이도록 UI 업데이트를 위한 Broadcast
+    return true;
+}
+
+bool UCPItemContainerComponent::AutoInsertItemToTargetContainer(int32 SourceGridIndex, UCPItemContainerComponent* TargetContainer)
 {
     // 옮기려는 컨테이너가 유효하지 않거나 자기 자신에게 옮기는 시도라면 무시
     if (!TargetContainer || TargetContainer == this)
@@ -267,15 +315,15 @@ bool UCPItemContainerComponent::MoveItemToTargetContainer(int32 SourceGridIndex,
         return false;
     }
 
-    // 2. 안전하게 데이터 복사해두기 (배열이 수정될 수 있으므로)
+    // 안전하게 데이터 복사해두기 (배열이 수정될 수 있으므로)
     UCPForageableItemData* DataAsset = ItemToMove->ItemDataAsset;
     int32 OriginalCount = ItemToMove->Stacked;
 
-    // 3. 대상(Target) 컨테이너에 아이템 밀어 넣기
+    // 대상(Target) 컨테이너에 아이템 밀어 넣기
     int32 LeftoverCount = TargetContainer->TryGetItem(DataAsset, OriginalCount);
     int32 TransferredCount = OriginalCount - LeftoverCount;
 
-    // 4. 단 1개라도 성공적으로 넘어갔다면 내 인벤토리에서 차감
+    // 1개 이상이 성공적으로 넘어갔다면 갯수 차감
     if (TransferredCount > 0)
     {
         RemoveItemFromContainer(SourceGridIndex, TransferredCount);
@@ -287,4 +335,101 @@ bool UCPItemContainerComponent::MoveItemToTargetContainer(int32 SourceGridIndex,
     UE_LOG(LogContainer, Warning, TEXT("[%s] 대상 컨테이너 공간 부족"), 
         *DataAsset->DisplayName.ToString());
     return false;
+}
+
+bool UCPItemContainerComponent::TryPlaceHoldingItem(UCPItemContainerComponent* HandContainer, int32 TargetIndex)
+{
+    UE_LOG(LogContainer, Warning, TEXT("[Place] 시도: HandContainer 아이템 수=%d, TargetIndex=%d"),
+        HandContainer->ContainerItems.Num(), TargetIndex);
+    if (!HandContainer || HandContainer->ContainerItems.Num() == 0)
+    {
+        return false;
+    }
+
+    FContainerItem HeldItem = HandContainer->ContainerItems[0];
+    int32 ItemW = HeldItem.bIsRotated ? HeldItem.ItemDataAsset->ContainerSizeY : HeldItem.ItemDataAsset->ContainerSizeX;
+    int32 ItemH = HeldItem.bIsRotated ? HeldItem.ItemDataAsset->ContainerSizeX : HeldItem.ItemDataAsset->ContainerSizeY;
+
+    // 바운딩 박스 기준으로 "이 칸을 덮고 있는 아이템"을 찾음
+    int32 TargetArrayIdx = FindItemArrayIndexCoveringGridIndex(TargetIndex);
+    bool bTargetEmpty = (TargetArrayIdx == INDEX_NONE);
+
+    // Case A : 빈 칸
+    if (bTargetEmpty)
+    {
+        bool bCanPlace = (ContainerType == EContainerType::Grid2D)
+            ? IsGridSpaceEnough(TargetIndex, ItemW, ItemH)
+            : (TargetIndex < MaxSlots);
+
+        if (!bCanPlace)
+        {
+            return false;
+        }
+
+        FContainerItem NewItem = HeldItem;
+        NewItem.GridIndex = TargetIndex;
+        ContainerItems.Add(NewItem);
+        OnContainerUpdated.Broadcast();
+
+        HandContainer->ContainerItems.Empty();
+        HandContainer->OnContainerUpdated.Broadcast();
+        return true;
+    }
+
+    FContainerItem ExistingItem = ContainerItems[TargetArrayIdx];
+
+    // Case B : 같은 타입 -> 스택 합치기 (기존 로직 그대로, 위치 무관)
+    if (ExistingItem.ItemDataAsset == HeldItem.ItemDataAsset)
+    {
+        int32 SpaceLeft = MaxStack - ExistingItem.Stacked;
+        int32 AmountToMove = FMath::Min(HeldItem.Stacked, SpaceLeft);
+        if (AmountToMove <= 0) return false;
+
+        ContainerItems[TargetArrayIdx].Stacked += AmountToMove;
+        int32 Remaining = HeldItem.Stacked - AmountToMove;
+        OnContainerUpdated.Broadcast();
+
+        if (Remaining <= 0)
+        {
+            HandContainer->ContainerItems.Empty();
+            HandContainer->OnContainerUpdated.Broadcast();
+            return true;
+        }
+        else
+        {
+            HandContainer->ContainerItems[0].Stacked = Remaining;
+            HandContainer->OnContainerUpdated.Broadcast();
+            return false;
+        }
+    }
+    // Case C : Swap
+    else
+    {
+        // 기존 아이템을 먼저 배열에서 완전히 제거
+        ContainerItems.RemoveAt(TargetArrayIdx);
+
+        // 기존 아이템이 사라진 상태에서 클릭한 위치(TargetIndex)에 Holding 아이템이 들어갈 수 있는지 검사
+        bool bCanPlace = (ContainerType == EContainerType::Grid2D)
+            ? IsGridSpaceEnough(TargetIndex, ItemW, ItemH)
+            : (TargetIndex < MaxSlots);
+
+        if (!bCanPlace)
+        {
+            // 자리가 안 나오면 방금 지운 기존 아이템을 그대로 복구하고 실패 처리
+            ContainerItems.Add(ExistingItem);
+            return false;
+        }
+
+        // (bCanPlace == true)배치가 가능하다면 Holding 아이템을 클릭한 자리에 배치
+        FContainerItem NewItem = HeldItem;
+        NewItem.GridIndex = TargetIndex;
+        ContainerItems.Add(NewItem);
+        OnContainerUpdated.Broadcast();
+
+        // 이제 Hand로 기존 아이템을 Swap
+        ExistingItem.GridIndex = 0;
+        HandContainer->ContainerItems[0] = ExistingItem;
+        HandContainer->OnContainerUpdated.Broadcast();
+        return false; // 손은 안 비었음 - 대신 기존 아이템을 들게 됨
+    }
 }

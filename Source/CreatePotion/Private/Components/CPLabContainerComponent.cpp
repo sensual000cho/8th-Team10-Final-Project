@@ -1,6 +1,7 @@
 ﻿// CPLabContainerComponent.h
 
 #include "Components/CPLabContainerComponent.h"
+#include "Types/CPContainerTypes.h"
 
 UCPLabContainerComponent::UCPLabContainerComponent()
 {
@@ -11,6 +12,8 @@ UCPLabContainerComponent::UCPLabContainerComponent()
 	// 아이템 최대 사이즈에 맞게 
 	Columns = 3;
 	Rows = 3;
+
+	TargetContext = EUITargetContext::Lab;
 }
 
 TArray<UCPForageableItemData*> UCPLabContainerComponent::GetIngredientsData() const

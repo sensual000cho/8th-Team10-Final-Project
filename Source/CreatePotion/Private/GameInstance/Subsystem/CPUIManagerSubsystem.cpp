@@ -4,7 +4,31 @@
 #include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
 #include "GameFramework/PlayerController.h"
 #include "Blueprint/UserWidget.h"
+#include "Kismet/GameplayStatics.h"
 #include "UI/Widgets/Base/CPBasePopupWidget.h"
+
+UUserWidget* UCPUIManagerSubsystem::PushWidget(TSubclassOf<UUserWidget> WidgetClass)
+{
+	if (!WidgetClass) return nullptr;
+	
+	UUserWidget* Widget = CreateWidget<UUserWidget>(GetGameInstance(), WidgetClass);
+	
+	if (Widget)
+	{
+		Widget->AddToViewport(OpenWidgets.Num());
+		
+		ECPInputMode InputMode = ECPInputMode::GameOnly;
+		if (auto* PopupWidget = Cast<UCPBasePopupWidget>(Widget))
+		{
+			InputMode = PopupWidget->GetInputMode();
+			UE_LOG(LogTemp, Warning, TEXT("[UIManager] PushWidgetBP InputMode 읽음: %d"), (int32)InputMode);
+		}
+		
+		OpenWidgets.Add({Widget, InputMode});
+		UpdateInputMode();
+	}
+	return Widget;
+}
 
 void UCPUIManagerSubsystem::CloseWidget(UUserWidget* Widget)
 {
@@ -20,9 +44,41 @@ void UCPUIManagerSubsystem::CloseWidget(UUserWidget* Widget)
 	
 	if (Index != INDEX_NONE)
 	{
-		OpenWidgets[Index].Widget->RemoveFromParent();
+		if (OpenWidgets[Index].Widget.IsValid())
+		{
+			OpenWidgets[Index].Widget->RemoveFromParent();
+		}
 		OpenWidgets.RemoveAt(Index);
 		UpdateInputMode();
+	}
+}
+
+void UCPUIManagerSubsystem::CloseTopWidget()
+{
+	if (OpenWidgets.Num() == 0) return;
+	CloseWidget(OpenWidgets.Last().Widget.Get());
+}
+
+UUserWidget* UCPUIManagerSubsystem::ToggleWidget(TSubclassOf<UUserWidget> WidgetClass)
+{
+	if (!WidgetClass) return nullptr;
+	
+	int32 FoundIndex = OpenWidgets.IndexOfByPredicate([WidgetClass](const FPopupEntry& Entry)
+	{
+		return Entry.Widget.Get() && Entry.Widget->GetClass() == WidgetClass;
+	});
+	
+	if (FoundIndex != INDEX_NONE)
+	{
+		UUserWidget* TargetWidget = OpenWidgets[FoundIndex].Widget.Get();
+		CloseWidget(TargetWidget);
+		return nullptr;
+	}
+	else
+	{
+		{
+			return PushWidget(WidgetClass);
+		}
 	}
 }
 
@@ -45,29 +101,6 @@ void UCPUIManagerSubsystem::BringWidgetToFront(UUserWidget* Widget)
 	}
 }
 
-UUserWidget* UCPUIManagerSubsystem::ToggleWidget(TSubclassOf<UUserWidget> WidgetClass)
-{
-	if (!WidgetClass) return nullptr;
-	
-	int32 FoundIndex = OpenWidgets.IndexOfByPredicate([WidgetClass](const FPopupEntry& Entry)
-	{
-		return Entry.Widget && Entry.Widget->GetClass() == WidgetClass;
-	});
-	
-	if (FoundIndex != INDEX_NONE)
-	{
-		UUserWidget* TargetWidget = OpenWidgets[FoundIndex].Widget;
-		CloseWidget(TargetWidget);
-		return nullptr;
-	}
-	else
-	{
-		{
-			return PushWidget(WidgetClass);
-		}
-	}
-}
-
 UUserWidget* UCPUIManagerSubsystem::FindOpenWidget(TSubclassOf<UUserWidget> WidgetClass)
 {
 	if (!WidgetClass)
@@ -77,18 +110,20 @@ UUserWidget* UCPUIManagerSubsystem::FindOpenWidget(TSubclassOf<UUserWidget> Widg
 	
 	for (FPopupEntry PopupEntry : OpenWidgets)
 	{
-		if (PopupEntry.Widget && PopupEntry.Widget->IsA(WidgetClass))
+		if (PopupEntry.Widget.Get() && PopupEntry.Widget->IsA(WidgetClass))
 		{
-			return PopupEntry.Widget;
+			return PopupEntry.Widget.Get();
 		}
 	}
 	return nullptr;
 }
 
-void UCPUIManagerSubsystem::CloseTopWidget()
+void UCPUIManagerSubsystem::PlayWidgetSound(USoundBase* Sound)
 {
-	if (OpenWidgets.Num() == 0) return;
-	CloseWidget(OpenWidgets.Last().Widget);
+	if (IsValid(Sound))
+	{
+		UGameplayStatics::PlaySound2D(GetWorld(), Sound);
+	}
 }
 
 void UCPUIManagerSubsystem::UpdateInputMode()
@@ -106,7 +141,7 @@ void UCPUIManagerSubsystem::UpdateInputMode()
 	}
 	
 	const FPopupEntry& TopEntry = OpenWidgets.Last();
-	UUserWidget* TopWidget = TopEntry.Widget;
+	UUserWidget* TopWidget = TopEntry.Widget.Get();
 	ECPInputMode CurrentMode = TopEntry.InputMode;
 	
 	switch (CurrentMode)
@@ -136,29 +171,6 @@ void UCPUIManagerSubsystem::UpdateInputMode()
 			break;
 		}
 	}
-}
-
-UUserWidget* UCPUIManagerSubsystem::PushWidget(TSubclassOf<UUserWidget> WidgetClass)
-{
-	if (!WidgetClass) return nullptr;
-	
-	UUserWidget* Widget = CreateWidget<UUserWidget>(GetGameInstance(), WidgetClass);
-	
-	if (Widget)
-	{
-		Widget->AddToViewport(OpenWidgets.Num());
-		
-		ECPInputMode InputMode = ECPInputMode::GameOnly;
-		if (auto* PopupWidget = Cast<UCPBasePopupWidget>(Widget))
-		{
-			InputMode = PopupWidget->GetInputMode();
-			UE_LOG(LogTemp, Warning, TEXT("[UIManager] PushWidgetBP InputMode 읽음: %d"), (int32)InputMode);
-		}
-		
-		OpenWidgets.Add({Widget, InputMode});
-		UpdateInputMode();
-	}
-	return Widget;
 }
 
 void UCPUIManagerSubsystem::RegisterPushedWidget(UUserWidget* Widget)

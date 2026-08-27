@@ -4,10 +4,10 @@
 #include "UI/Widgets/Lab/CPLabIngredientInfoWidget.h"
 #include "CPLabCarriedIngredientWidget.generated.h"
 
+class UCPCarryComponent;
+class ACPThrowablePropBase;
 class ACPAlchemyProp;
 class UCPInteractionComponent;
-class UCPProcessorComponent;
-class UCPLabPotionSessionComponent;
 
 /**
  * 플레이어가 현재 운반 중인 재료를 보여주는 고정 HUD 카드다.
@@ -25,7 +25,7 @@ protected:
 
 private:
 	UFUNCTION()
-	void HandleSessionChanged();
+	void HandlePropChanged(ACPThrowablePropBase* HeldProp);
 
 	UFUNCTION()
 	void HandleInteractionFocusChanged(FText Prompt, FName TargetName);
@@ -33,20 +33,15 @@ private:
 	UFUNCTION()
 	void HandlePreviewIngredientChanged();
 
-	void RefreshHeldIngredient();
-	void RefreshProcessorPreview();
 	void BindPreviewIngredient(ACPAlchemyProp* IngredientProp);
 	void UnbindPreviewIngredient();
 
-	// 세션이 가진 HeldIngredientProp 변경 알림을 받기 위해 런타임 동안만 보관한다.
+	// 세션이 가진 HeldAlchemyProp 변경 알림을 받기 위해 런타임 동안만 보관한다.
 	UPROPERTY(Transient)
-	TObjectPtr<UCPLabPotionSessionComponent> BoundPotionSession;
+	TObjectPtr<UCPCarryComponent> BoundCarryComponent;
 
 	UPROPERTY(Transient)
 	TWeakObjectPtr<UCPInteractionComponent> BoundInteractionComponent;
-
-	UPROPERTY(Transient)
-	TWeakObjectPtr<UCPProcessorComponent> FocusedProcessor;
 
 	UPROPERTY(Transient)
 	TWeakObjectPtr<ACPAlchemyProp> PreviewIngredient;

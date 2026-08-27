@@ -5,11 +5,7 @@
 #include "Components/TextBlock.h"
 #include "Components/Widget.h"
 
-void UCPLabIngredientEffectRowWidget::SetEffectData(
-	const FText& InEffectName,
-	int32 InCurrentLevel,
-	bool bInHasPreview,
-	int32 InPreviewLevel)
+void UCPLabIngredientEffectRowWidget::SetEffectData(const FText& InEffectName)
 {
 	if (Text_EffectName)
 	{
@@ -18,50 +14,21 @@ void UCPLabIngredientEffectRowWidget::SetEffectData(
 
 	if (Text_CurrentLevel)
 	{
-		Text_CurrentLevel->SetText(FormatLevel(InCurrentLevel));
+		Text_CurrentLevel->SetText(FText::GetEmpty());
 	}
 
-	if (!bInHasPreview)
-	{
-		// 예상값이 없을 때는 0을 표시하지 않고 예상값 묶음 전체를 레이아웃에서 제거한다.
-		DeltaState = ECPLabIngredientEffectDeltaState::None;
-
-		if (PreviewGroup)
-		{
-			PreviewGroup->SetVisibility(ESlateVisibility::Collapsed);
-		}
-
-		BP_ApplyDeltaStyle(DeltaState);
-		return;
-	}
-
-	const int32 CurrentMagnitude = FMath::Abs(InCurrentLevel);
-	const int32 PreviewMagnitude = FMath::Abs(InPreviewLevel);
-
-	if (PreviewMagnitude > CurrentMagnitude)
-	{
-		DeltaState = ECPLabIngredientEffectDeltaState::Increased;
-	}
-	else if (PreviewMagnitude < CurrentMagnitude)
-	{
-		DeltaState = ECPLabIngredientEffectDeltaState::Decreased;
-	}
-	else
-	{
-		DeltaState = ECPLabIngredientEffectDeltaState::Unchanged;
-	}
+	DeltaState = ECPLabIngredientEffectDeltaState::None;
 
 	if (Text_PreviewLevel)
 	{
-		Text_PreviewLevel->SetText(FormatLevel(InPreviewLevel));
+		Text_PreviewLevel->SetText(FText::GetEmpty());
 	}
 
 	if (PreviewGroup)
 	{
-		PreviewGroup->SetVisibility(ESlateVisibility::HitTestInvisible);
+		PreviewGroup->SetVisibility(ESlateVisibility::Collapsed);
 	}
 
-	// C++은 변화 상태만 판정하고 실제 색상과 화살표 표현은 WBP에 위임한다.
 	BP_ApplyDeltaStyle(DeltaState);
 }
 

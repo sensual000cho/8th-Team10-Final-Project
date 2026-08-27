@@ -18,21 +18,12 @@ UCLASS()
 class CREATEPOTION_API UCPLabPotionResultWidget : public UCPBaseUserWidget
 {
 	GENERATED_BODY()
-	
-	
+
 protected:
 	virtual void NativeConstruct() override;
-	virtual void BindEvents() override;
-	virtual void UnbindEvents() override;
 	
 private:
-	UFUNCTION()
-	void HandlePotionResultChanged(const TArray<FAlchemyProperty>& EffectTotals);
-	
-	UFUNCTION()
-	void HandleSessionChanged();
-	
-	void ReBuildEffectRows(const TArray<FAlchemyProperty>& EffectTotals);
+	void ReBuildEffectRows(const TArray<FGameplayTag>& EffectTotals);
 	
 protected:
 	UPROPERTY(meta = (BindWidget))
@@ -43,8 +34,4 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lab|UI|Result")
 	TSubclassOf<UCPLabIngredientEffectRowWidget> EffectRowWidgetClass;
-	
-private:
-	UPROPERTY(Transient)
-	TObjectPtr<UCPLabPotionSessionComponent> BoundPotionSession;
 };

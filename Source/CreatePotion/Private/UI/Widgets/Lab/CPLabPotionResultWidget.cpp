@@ -5,9 +5,6 @@
 
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
-#include "Data/CPForageableItemData.h"
-#include "GameState/CPLabGameState.h"
-#include "Lab/Component/CPLabPotionSessionComponent.h"
 #include "UI/Widgets/Lab/CPLabIngredientEffectRowWidget.h"
 
 void UCPLabPotionResultWidget::NativeConstruct()
@@ -17,57 +14,7 @@ void UCPLabPotionResultWidget::NativeConstruct()
 	SetVisibility(ESlateVisibility::Collapsed);
 }
 
-void UCPLabPotionResultWidget::BindEvents()
-{
-	Super::BindEvents();
-	
-	UWorld* World = GetWorld();
-	if (!World) return;
-	
-	ACPLabGameState* LabGameState = World->GetGameState<ACPLabGameState>();
-	if (!LabGameState) return;
-	
-	BoundPotionSession = LabGameState->GetPotionSession();
-	if (!BoundPotionSession) return;
-	
-	BoundPotionSession->OnPotionResultChanged.AddUniqueDynamic(this, &UCPLabPotionResultWidget::HandlePotionResultChanged);
-	BoundPotionSession->OnSessionChanged.AddUniqueDynamic(this, &UCPLabPotionResultWidget::HandleSessionChanged);
-}
-
-void UCPLabPotionResultWidget::UnbindEvents()
-{
-	if (BoundPotionSession){
-		BoundPotionSession->OnPotionResultChanged.RemoveDynamic(this, &UCPLabPotionResultWidget::HandlePotionResultChanged);
-		BoundPotionSession->OnSessionChanged.RemoveDynamic(this, &UCPLabPotionResultWidget::HandleSessionChanged);
-		BoundPotionSession = nullptr;
-	}
-	
-	Super::UnbindEvents();
-}
-
-void UCPLabPotionResultWidget::HandlePotionResultChanged(const TArray<FAlchemyProperty>& EffectTotals)
-{
-	FCPLabPotionRequestState ActiveRequestState;
-	if (!BoundPotionSession || !BoundPotionSession->GetActiveRequestState(ActiveRequestState) || 
-		ActiveRequestState.Phase != ECPLabPotionRequestPhase::Processing) return;
-	
-	ReBuildEffectRows(EffectTotals);
-}
-
-void UCPLabPotionResultWidget::HandleSessionChanged()
-{
-	FCPLabPotionRequestState ActiveRequestState;
-	if (!BoundPotionSession || !BoundPotionSession->GetActiveRequestState(ActiveRequestState) || 
-		ActiveRequestState.Phase != ECPLabPotionRequestPhase::Processing){
-		SetVisibility(ESlateVisibility::Collapsed);
-		return;
-	}
-	
-	SetVisibility(ESlateVisibility::HitTestInvisible);
-	ReBuildEffectRows(BoundPotionSession->GetPotionResult());
-}
-
-void UCPLabPotionResultWidget::ReBuildEffectRows(const TArray<FAlchemyProperty>& EffectTotals)
+void UCPLabPotionResultWidget::ReBuildEffectRows(const TArray<FGameplayTag>& EffectTotals)
 {
 	if (!VB_EffectRows) return;
 	
@@ -84,21 +31,20 @@ void UCPLabPotionResultWidget::ReBuildEffectRows(const TArray<FAlchemyProperty>&
 		Txt_NoResult->SetVisibility(ESlateVisibility::Collapsed);
 	}
 	
-	for (const FAlchemyProperty& Effect : EffectTotals){
-		if (!Effect.Tag.IsValid()) continue;
+	for (const FGameplayTag& EffectTag : EffectTotals){
+		if (!EffectTag.IsValid()) continue;
 		
 		UCPLabIngredientEffectRowWidget* EffectRow = 
 			CreateWidget<UCPLabIngredientEffectRowWidget>(GetOwningPlayer(), EffectRowWidgetClass);
 		if (!EffectRow) continue;
 		
-		FString EffectName = Effect.Tag.ToString();
+		FString EffectName = EffectTag.ToString();
 		int32 LastSeparatorIndex = INDEX_NONE;
 		if (EffectName.FindLastChar(TEXT('.'), LastSeparatorIndex)){
 			EffectName.RightChopInline(LastSeparatorIndex + 1);
 		}
 		
-		EffectRow->SetEffectData(
-			FText::FromString(EffectName), Effect.Value, false, Effect.Value);
+		EffectRow->SetEffectData(FText::FromString(EffectName));
 		
 		VB_EffectRows->AddChildToVerticalBox(EffectRow);
 	}

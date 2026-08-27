@@ -11,14 +11,4 @@ UCLASS()
 class CREATEPOTION_API ACPLabGameState : public ACPGameStateBase
 {
 	GENERATED_BODY()
-
-public:
-	ACPLabGameState();
-
-	UFUNCTION(BlueprintPure, Category = "Lab|Session")
-	UCPLabPotionSessionComponent* GetPotionSession() const;
-
-private:
-	UPROPERTY(VisibleAnywhere, Category = "Lab|Session")
-	TObjectPtr<UCPLabPotionSessionComponent> PotionSession;
 };

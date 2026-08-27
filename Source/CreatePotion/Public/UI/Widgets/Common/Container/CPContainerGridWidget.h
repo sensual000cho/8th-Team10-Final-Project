@@ -7,6 +7,7 @@
 #include "CPContainerGridWidget.generated.h"
 
 class UUniformGridPanel;
+class UCPBlankGridSlotWidget;
 class UCPItemSlotWidget;
 class UCPItemContainerComponent;
 class UCanvasPanel;
@@ -28,16 +29,11 @@ public:
 protected:
 	// 한 칸(Slot)당 생성할 슬롯 위젯
 	UPROPERTY(EditDefaultsOnly, Category = "Container|UI")
-	TSubclassOf<UUserWidget> BackgroundSlotClass;
+	TSubclassOf<UCPBlankGridSlotWidget> BackgroundSlotClass;
 
 	// 캔버스 위에 올라갈 실제 아이템 위젯
 	UPROPERTY(EditDefaultsOnly, Category = "Container|UI")
 	TSubclassOf<UCPItemSlotWidget> ItemWidgetClass;
-
-	UPROPERTY(EditAnywhere, Category = "Container|UI")
-	float SlotSize = 80.0f;
-	UPROPERTY(EditAnywhere, Category = "Container|UI")
-	float SlotPadding = 5.0f;
 
 	// 추후 다른 클래스와의 상호작용을 위해 캐싱
 	UPROPERTY()

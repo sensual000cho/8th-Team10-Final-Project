@@ -7,7 +7,8 @@
 #include "CreatePotion.h"   // 로그용 헤더
 #include "Data/CPForageableItemData.h"
 #include "Components/CPItemContainerComponent.h"	// CPContainerItem 구조체
-#include "Character/CPPlayerController.h"		// 상호작용하는 대상의 컨테이너를 가지고 있음
+#include "Character/CPPlayerController.h"			// 상호작용하는 대상의 컨테이너를 가지고 있음
+#include "UI/Context/CPContainerContextBase.h"		// Context 분기를 처리할 클래스
 
 void UCPItemSlotWidget::NativeConstruct()
 {
@@ -29,9 +30,15 @@ void UCPItemSlotWidget::NativeConstruct()
 	ClearSlot();
 }
 
+void UCPItemSlotWidget::NativeDestruct()
+{
+	Super::NativeDestruct();
+}
+
 void UCPItemSlotWidget::UpdateSlot(const FContainerItem& ItemData)
 {
 	CachedItemData = ItemData; // FContainerItem 구조체를 전달받으면 캐싱
+	this->SlotGridIndex = ItemData.GridIndex;	// 아이템의 GridIndex로 업데이트
 
 	// 유효한 아이템 데이터가 있는지 확인
 	if (ItemData.ItemDataAsset)
@@ -67,6 +74,7 @@ void UCPItemSlotWidget::UpdateSlot(const FContainerItem& ItemData)
 void UCPItemSlotWidget::ClearSlot()
 {
 	CachedItemData = FContainerItem();	// 기본 생성자 호출을 통해 빈 구조체로 초기화
+	this->SlotGridIndex = -1;		// Slot의 index도 초기화
 
 	// 아이콘과 텍스트를 모두 Collapsed 처리
 	if (ItemIcon)
@@ -80,92 +88,58 @@ void UCPItemSlotWidget::ClearSlot()
 	}
 }
 
-FReply UCPItemSlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+FReply UCPItemSlotWidget::NativeOnMouseButtonDoubleClick(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	ACPPlayerController* PC = Cast<ACPPlayerController>(GetOwningPlayer());
-
-	// 빈 칸(유효한 데이터가 없음)이면 무시하고 부모 함수로 처리
-	if (!CachedItemData.ItemDataAsset || !OwnerContainer)
-	{
-		return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
-	}
-
-	// 좌클릭인 경우
 	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
-		if (InMouseEvent.IsLeftControlDown())
+		UWorld* World = GetWorld();
+		if (World)
 		{
-			// TODO: [Ctrl + 좌클릭] 아이템 빠른 이동 (Quick Transfer)
-			if (PC && PC->CurrentInteractingContainer)
+			// 더블 클릭이 들어왔으므로, 대기 중이던 일반(한 번) 좌클릭 타이머를 즉시 취소
+			CancelLeftClickCheckHandler();
+		}
+
+		if (CachedItemData.ItemDataAsset && OwnerContainer)
+		{
+			if (ACPPlayerController* PC = Cast<ACPPlayerController>(GetOwningPlayer()))
 			{
-				UE_LOG(LogContainer, Log, TEXT("[%s] 아이템 이동"), 
-					*CachedItemData.ItemDataAsset->DisplayName.ToString());
-				OwnerContainer->MoveItemToTargetContainer(CachedItemData.GridIndex, PC->CurrentInteractingContainer);
+				if (PC->CurrentContextHandler)
+				{
+					bool bHandled = PC->CurrentContextHandler->HandleLeftDoubleClick(this);
+					return bHandled ? FReply::Handled() : Super::NativeOnMouseButtonDoubleClick(InGeometry, InMouseEvent);
+				}
 			}
-			else
-			{
-				UE_LOG(LogContainer, Warning, TEXT("LCtrl : 아이템을 이동시킬 타겟 컨테이너가 없음"));
-			}
-			return FReply::Handled();	// 이벤트를 처리했음을 엔진에 알림, 
-			// 마우스 클릭 이벤트가 마무리 되며 뒤 UI는 클릭 이벤트가 실행되지 않음
-		}
-		else if (InMouseEvent.IsShiftDown())
-		{
-			// TODO: [Shift + 좌클릭] 아이템 나누기 (Split)
-			UE_LOG(LogContainer, Warning, TEXT("[%s] 아이템 나누기"), 
-				*CachedItemData.ItemDataAsset->DisplayName.ToString());
-			return FReply::Handled();
-		}
-		else if (InMouseEvent.IsAltDown())
-		{
-			// TODO: [Alt + 좌클릭] 아이템 버리기 (Drop)
-			UE_LOG(LogContainer, Warning, TEXT("[%s] 아이템 버리기"), 
-				*CachedItemData.ItemDataAsset->DisplayName.ToString());
-			return FReply::Handled();
-		}
-		else
-		{
-			// TODO: [일반 좌클릭] '드래그 앤 드롭(Drag & Drop)'
-			return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 		}
 	}
-	else if (InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton) // 우클릭인 경우
+
+	return Super::NativeOnMouseButtonDoubleClick(InGeometry, InMouseEvent);
+}
+
+int32 UCPItemSlotWidget::GetClickedSlotGridIndex(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) const
+{
+	if (!OwnerContainer || !CachedItemData.ItemDataAsset)
 	{
-		if (!CachedItemData.ItemDataAsset || !OwnerContainer)
-		{
-			return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
-		}
-
-		if (InMouseEvent.IsLeftControlDown())
-		{
-			// TODO: [Ctrl + 우클릭] 아이템 사용 (Use Item)
-			UE_LOG(LogContainer, Warning, TEXT("[%s] 아이템 사용"),
-				*CachedItemData.ItemDataAsset->DisplayName.ToString());
-			return FReply::Handled();
-		}
-		else if (InMouseEvent.IsShiftDown())
-		{
-			// TODO: [Shift + 우클릭] 아이템 세부 정보 표시 (Show Item Detail)
-			UE_LOG(LogContainer, Warning, TEXT("[%s] 아이템 세부 정보 표시"),
-				*CachedItemData.ItemDataAsset->DisplayName.ToString());
-			return FReply::Handled();
-		}
-		else if (InMouseEvent.IsAltDown())
-		{
-			// TODO: [Alt + 우클릭] 장비 아이템 장착 (Equip Item)
-			UE_LOG(LogContainer, Warning, TEXT("[%s] 장비 아이템 장착"),
-				*CachedItemData.ItemDataAsset->DisplayName.ToString());
-			return FReply::Handled();
-		}
-		else
-		{
-			// TODO: [일반 우클릭] [LCtrl, Shift, Alt, 일반] + [좌, 우 클릭] 으로 가능한 6가지 UI 통합 UI 처리
-			UE_LOG(LogContainer, Warning, TEXT("[%s] 아이템 통합 UI"),
-				*CachedItemData.ItemDataAsset->DisplayName.ToString());
-			return FReply::Handled();
-		}
+		return SlotGridIndex;
 	}
 
-	// 구현하고자 하는 기능 외의 경우, 마찬가지로 무시하고 부모 함수로 처리
-	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
+	// 이 위젯(아이템)이 실제로 차지하는 칸 수 (회전 반영)
+	int32 ItemW = CachedItemData.bIsRotated ? CachedItemData.ItemDataAsset->ContainerSizeY : CachedItemData.ItemDataAsset->ContainerSizeX;
+	int32 ItemH = CachedItemData.bIsRotated ? CachedItemData.ItemDataAsset->ContainerSizeX : CachedItemData.ItemDataAsset->ContainerSizeY;
+
+	// 위젯 내부에서 마우스가 클릭된 로컬 좌표 (위젯 전체 크기 대비 비율)
+	FVector2D LocalPos = InGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
+	FVector2D LocalSize = InGeometry.GetLocalSize();
+
+	// "그 칸들 중 몇 번째 칸을 클릭했는지" 역산
+	int32 SubCol = FMath::Clamp(FMath::FloorToInt(LocalPos.X / (LocalSize.X / ItemW)), 0, ItemW - 1);
+	int32 SubRow = FMath::Clamp(FMath::FloorToInt(LocalPos.Y / (LocalSize.Y / ItemH)), 0, ItemH - 1);
+
+	// 아이템 원점(SlotGridIndex) + 클릭한 하위 칸 오프셋을 더해서 실제 그리드 좌표 계산
+	int32 OriginCol = SlotGridIndex % OwnerContainer->Columns;
+	int32 OriginRow = SlotGridIndex / OwnerContainer->Columns;
+
+	int32 ActualCol = OriginCol + SubCol;
+	int32 ActualRow = OriginRow + SubRow;
+
+	return ActualRow * OwnerContainer->Columns + ActualCol;
 }

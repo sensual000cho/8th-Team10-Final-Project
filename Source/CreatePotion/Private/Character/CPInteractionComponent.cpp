@@ -2,10 +2,10 @@
 
 
 #include "Character/CPInteractionComponent.h"
+
 #include "GameCore/Interface/CPInteractable.h"
 #include "GameCore/Interface/CPTimedInteractable.h"
 #include "Camera/CameraComponent.h"
-#include "Character/CPCharacter.h"
 #include "GameCore/Interface/CPHighlightable.h"
 #include "HAL/IConsoleManager.h"
 
@@ -382,7 +382,6 @@ void UCPInteractionComponent::CompleteTimedInteraction()
 void UCPInteractionComponent::SetActorHighlight(AActor* Target, bool bHighlighted)
 {
 	UE_LOG(LogTemp, Warning, TEXT("[InteractionComponent] SetActorHighlight 호출됨"));
-	
 	
 	if (!Target) return;
 	

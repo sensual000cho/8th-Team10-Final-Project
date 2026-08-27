@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
@@ -23,18 +23,28 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Capsule")
 	float CapsuleRadiusRatio = 0.3f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
-	TMap<ECPNPCSituation, FCPNPCSituationData> SituationData;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Mesh")
+	FVector MeshScale = FVector(1.0f, 1.0f, 1.0f);
 
-	// ÇöÀç ¹Ù·Î »ç¿ëÇÒ ±âº» Idle ¾Ö´Ï¸ŞÀÌ¼Ç
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Mesh")
+	FRotator MeshRotationOffset;
+
+	// í˜„ì¬ ë°”ë¡œ ì‚¬ìš©í•  ê¸°ë³¸ Idle ì• ë‹ˆë©”ì´ì…˜
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Animation")
 	TSoftObjectPtr<UAnimSequence> IdleAnimation;
 
-	// [¸¶À» Àü¿ë] ºÎ¿©ÇÒ ¸¶À» Äù½ºÆ® ID ¸ñ·Ï (DT_QuestScriptÀÇ RowName ÂüÁ¶)
+	//ì„ì‹œ 2ì°¨ í”„ë¡œí† ìš© (ë‚ ì•„ê°€ëŠ” ì• ë‹ˆë©”ì´ì…˜)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Animation")
+	TSoftObjectPtr<UAnimSequence> LaunchAnimation;
+
+	// [ë§ˆì„ ì „ìš©] ë¶€ì—¬í•  ë§ˆì„ í€˜ìŠ¤íŠ¸ ID ëª©ë¡ (DT_QuestScriptì˜ RowName ì°¸ì¡°)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Quest")
 	TArray<FName> TownQuestIDs;
 
-	// [°ø¹æ Àü¿ë] ´ã´çÇÒ °ø¹æ Äù½ºÆ® ID ¸ñ·Ï (DT_QuestAnswerÀÇ RowName ÂüÁ¶)
+	// [ê³µë°© ì „ìš©] ë‹´ë‹¹í•  ê³µë°© í€˜ìŠ¤íŠ¸ ID ëª©ë¡ (DT_QuestAnswerì˜ RowName ì°¸ì¡°)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Quest")
 	TArray<FName> LabQuestIDs;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Sound")
+	USoundBase* FartSound;
 };
