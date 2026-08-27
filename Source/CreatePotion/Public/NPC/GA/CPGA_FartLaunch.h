@@ -16,11 +16,14 @@ public:
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 
 private:
-	// 공중에 떠있는 시간이 끝나면 추진력을 멈추고 바닥에 멈출 때까지 속도를 체크
+	// 래그돌 상태로 전환
+	UFUNCTION()
+	void StartRagdoll();
+
+	// 총 시간이 지나면 추진력을 끄고 바닥으로 추락시킴
 	UFUNCTION()
 	void EndFloatBehavior();
 
-	// 발사된 후 캡슐이 어딘가에 부딪히면 래그돌(물리) 상태로 전환
 	UFUNCTION()
 	void OnCapsuleHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
@@ -35,9 +38,19 @@ private:
 	UFUNCTION()
 	void ApplyRagdollThrust();
 
+	// 맵 밖으로 떨어지거나 너무 오래 안 멈출 때를 대비한 강제 종료
+	UFUNCTION()
+	void ForceEndAbility();
+
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Potion|FartLaunch")
+	float RagdollDelay = 2.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Potion|FartLaunch")
 	float FloatDuration = 5.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Potion|FartLaunch")
+	float MaxFailsafeTime = 3.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Potion|FartLaunch")
 	float LaunchForce = 3000.f; 
@@ -59,7 +72,9 @@ private:
 	float LastMeshHitTime = 0.f;
 	bool bIsRagdolling = false;
 
+	FTimerHandle RagdollTimerHandle;
 	FTimerHandle DurationTimerHandle;
 	FTimerHandle VelocityCheckTimerHandle;
 	FTimerHandle ThrustTimerHandle;
+	FTimerHandle FailsafeTimerHandle;
 };

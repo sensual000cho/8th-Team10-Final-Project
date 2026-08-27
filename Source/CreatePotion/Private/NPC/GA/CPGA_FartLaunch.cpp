@@ -18,8 +18,6 @@ void UCPGA_FartLaunch::ActivateAbility(const FGameplayAbilitySpecHandle Handle, 
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 
-	//PrintPotionEventLog(TriggerEventData);
-
 	ACPBaseNPC* TargetCharacter = GetOwningPotionNPC(ActorInfo);
 	if (!IsValid(TargetCharacter) || !HasAuthority(&ActivationInfo))
 	{
@@ -65,10 +63,15 @@ void UCPGA_FartLaunch::ActivateAbility(const FGameplayAbilitySpecHandle Handle, 
 			}
 		}
 	}
-	GetWorld()->GetTimerManager().SetTimer(DurationTimerHandle, this, &UCPGA_FartLaunch::EndFloatBehavior, FloatDuration, false);
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimer(RagdollTimerHandle, this, &UCPGA_FartLaunch::StartRagdoll, RagdollDelay, false);
+		World->GetTimerManager().SetTimer(DurationTimerHandle, this, &UCPGA_FartLaunch::EndFloatBehavior, FloatDuration, false);
+	}
 }
 
-void UCPGA_FartLaunch::OnCapsuleHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+void UCPGA_FartLaunch::StartRagdoll()
 {
 	ACPBaseNPC* TargetCharacter = GetOwningPotionNPC(CurrentActorInfo);
 	if (!IsValid(TargetCharacter)) { return; }
@@ -94,34 +97,15 @@ void UCPGA_FartLaunch::OnCapsuleHit(UPrimitiveComponent* HitComponent, AActor* O
 		Mesh->SetUseCCD(true);
 		Mesh->OnComponentHit.AddUniqueDynamic(this, &UCPGA_FartLaunch::OnMeshHit);
 
-		FVector IncomingDir = TargetCharacter->GetVelocity().GetSafeNormal();
-		if (IncomingDir.IsNearlyZero()) { IncomingDir = TargetCharacter->GetActorForwardVector(); }
-
-		const FVector BounceDir = (FMath::GetReflectionVector(IncomingDir, Hit.ImpactNormal) + Hit.ImpactNormal * 1.5f).GetSafeNormal();
-		Mesh->SetPhysicsLinearVelocity(BounceDir * LaunchForce);
+		FVector CurrentVel = TargetCharacter->GetVelocity();
+		if (CurrentVel.IsNearlyZero()) { CurrentVel = TargetCharacter->GetActorForwardVector() * LaunchForce; }
+		Mesh->SetPhysicsLinearVelocity(CurrentVel);
 		Mesh->SetPhysicsAngularVelocityInDegrees(FMath::VRand() * 360.f);
 
-		GetWorld()->GetTimerManager().SetTimer(ThrustTimerHandle, this, &UCPGA_FartLaunch::ApplyRagdollThrust, 0.1f, true);
-	}
-}
-
-void UCPGA_FartLaunch::OnMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
-{
-	const float CurrentTime = GetWorld()->GetTimeSeconds();
-	if (CurrentTime - LastMeshHitTime < 0.1f) { return; }
-	LastMeshHitTime = CurrentTime;
-
-	ACPBaseNPC* TargetCharacter = GetOwningPotionNPC(CurrentActorInfo);
-	if (!IsValid(TargetCharacter) || !bIsRagdolling) { return; }
-
-	if (USkeletalMeshComponent* Mesh = TargetCharacter->GetMesh())
-	{
-		FVector IncomingDir = Mesh->GetComponentVelocity().GetSafeNormal();
-		if (IncomingDir.IsNearlyZero()) IncomingDir = TargetCharacter->GetActorForwardVector();
-
-		const FVector BounceDir = (FMath::GetReflectionVector(IncomingDir, Hit.ImpactNormal) + Hit.ImpactNormal * 1.5f).GetSafeNormal();
-		Mesh->SetPhysicsLinearVelocity(BounceDir * FMath::Max(Mesh->GetComponentVelocity().Size(), LaunchForce * 1.5f));
-		Mesh->AddAngularImpulseInDegrees(FMath::VRand() * ErraticSpinForce, NAME_None, true);
+		if (UWorld* World = GetWorld())
+		{
+			World->GetTimerManager().SetTimer(ThrustTimerHandle, this, &UCPGA_FartLaunch::ApplyRagdollThrust, 0.1f, true);
+		}
 	}
 }
 
@@ -151,11 +135,45 @@ void UCPGA_FartLaunch::EndFloatBehavior()
 		if (World)
 		{
 			World->GetTimerManager().SetTimer(VelocityCheckTimerHandle, this, &UCPGA_FartLaunch::CheckRagdollVelocity, 0.2f, true);
+			World->GetTimerManager().SetTimer(FailsafeTimerHandle, this, &UCPGA_FartLaunch::ForceEndAbility, MaxFailsafeTime, false);
 		}
 	}
 	else
 	{
-		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
+		ForceEndAbility();
+	}
+}
+
+void UCPGA_FartLaunch::OnMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+{
+	const float CurrentTime = GetWorld()->GetTimeSeconds();
+	if (CurrentTime - LastMeshHitTime < 0.1f) { return; }
+	LastMeshHitTime = CurrentTime;
+
+	ACPBaseNPC* TargetCharacter = GetOwningPotionNPC(CurrentActorInfo);
+	if (!IsValid(TargetCharacter) || !bIsRagdolling) { return; }
+
+	if (USkeletalMeshComponent* Mesh = TargetCharacter->GetMesh())
+	{
+		FVector IncomingDir = Mesh->GetComponentVelocity().GetSafeNormal();
+		if (IncomingDir.IsNearlyZero()) IncomingDir = TargetCharacter->GetActorForwardVector();
+
+		const FVector BounceDir = (FMath::GetReflectionVector(IncomingDir, Hit.ImpactNormal) + Hit.ImpactNormal * 1.5f).GetSafeNormal();
+		Mesh->SetPhysicsLinearVelocity(BounceDir * FMath::Max(Mesh->GetComponentVelocity().Size(), LaunchForce * 1.5f));
+		Mesh->AddAngularImpulseInDegrees(FMath::VRand() * ErraticSpinForce, NAME_None, true);
+	}
+}
+
+void UCPGA_FartLaunch::OnCapsuleHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(RagdollTimerHandle);
+	}
+
+	if (!bIsRagdolling)
+	{
+		StartRagdoll();
 	}
 }
 
@@ -168,10 +186,14 @@ void UCPGA_FartLaunch::CheckRagdollVelocity()
 	{
 		if (Mesh->GetComponentVelocity().SizeSquared() <= FMath::Square(StopVelocityThreshold))
 		{
-			GetWorld()->GetTimerManager().ClearTimer(VelocityCheckTimerHandle);
-			EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
+			ForceEndAbility();
 		}
 	}
+}
+
+void UCPGA_FartLaunch::ForceEndAbility()
+{
+	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
 }
 
 void UCPGA_FartLaunch::ApplyRagdollThrust()
@@ -181,7 +203,7 @@ void UCPGA_FartLaunch::ApplyRagdollThrust()
 
 	if (USkeletalMeshComponent* Mesh = TargetCharacter->GetMesh())
 	{
-		FTransform PelvisTransform = Mesh->GetSocketTransform(FName("pelvis"));
+		FTransform PelvisTransform = Mesh->GetSocketTransform(FName("Fart_Socket"));
 		const FVector BaseThrustDir = PelvisTransform.TransformVectorNoScale(LaunchRotation.Vector());
 		const FVector ScatteredThrustDir = FMath::VRandCone(BaseThrustDir, FMath::DegreesToRadians(30.f));
 
@@ -192,6 +214,15 @@ void UCPGA_FartLaunch::ApplyRagdollThrust()
 
 void UCPGA_FartLaunch::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(DurationTimerHandle);
+		World->GetTimerManager().ClearTimer(RagdollTimerHandle);
+		World->GetTimerManager().ClearTimer(VelocityCheckTimerHandle);
+		World->GetTimerManager().ClearTimer(ThrustTimerHandle);
+		World->GetTimerManager().ClearTimer(FailsafeTimerHandle);
+	}
+
 	if (ActorInfo && ActorInfo->AvatarActor.IsValid())
 	{
 		if (ACPBaseNPC* TargetCharacter = Cast<ACPBaseNPC>(ActorInfo->AvatarActor.Get()))
@@ -210,9 +241,10 @@ void UCPGA_FartLaunch::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 			}
 			if (Mesh)
 			{
-				Mesh->OnComponentHit.RemoveDynamic(this, &UCPGA_FartLaunch::OnMeshHit);
 				Mesh->SetEnableGravity(true);
+				Mesh->OnComponentHit.RemoveDynamic(this, &UCPGA_FartLaunch::OnMeshHit);
 			}
+
 			if (bIsRagdolling && Mesh && Capsule)
 			{
 				Capsule->SetWorldLocation(Mesh->GetSocketLocation(FName("pelvis")) + FVector(0.f, 0.f, Capsule->GetScaledCapsuleHalfHeight()));
@@ -221,6 +253,7 @@ void UCPGA_FartLaunch::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 				Mesh->SetSimulatePhysics(false);
 				Mesh->SetUseCCD(false);
 				Mesh->SetCollisionProfileName(TEXT("CharacterMesh"));
+
 				Mesh->AttachToComponent(Capsule, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 				Mesh->SetRelativeLocation(FVector(0.f, 0.f, -Capsule->GetScaledCapsuleHalfHeight()));
 
@@ -261,13 +294,6 @@ void UCPGA_FartLaunch::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 	if (FartLaunchCueTag.IsValid() && ActorInfo && ActorInfo->AbilitySystemComponent.IsValid())
 	{
 		ActorInfo->AbilitySystemComponent->RemoveGameplayCue(FartLaunchCueTag);
-	}
-
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().ClearTimer(DurationTimerHandle);
-		World->GetTimerManager().ClearTimer(VelocityCheckTimerHandle);
-		World->GetTimerManager().ClearTimer(ThrustTimerHandle);
 	}
 
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
