@@ -83,7 +83,7 @@ void ACPTimeOfDayController::UpdateSunRotation(double GameMinutes)
 {
 	if (!SunLight) return;
 	
-	constexpr double MinutesPerDay = 144.0;
+	constexpr double MinutesPerDay = 1440.0;
 
 	const double MinutesOfDay = FMath::Fmod(GameMinutes, MinutesPerDay);
 	const double DayAlpha = MinutesOfDay / MinutesPerDay;
