@@ -4,16 +4,19 @@
 
 #include "CoreMinimal.h"
 #include "GameMode/CPLabGameMode.h"
-#include "NPC/CPBaseNPC.h"
+#include "NPC/CPQuestNPC.h"
 #include "CPLabNPC.generated.h"
 
 class UCPLabResultWidget;
+class UCPNPCDialogueWidget;
 
 UCLASS()
-class CREATEPOTION_API ACPLabNPC : public ACPBaseNPC
+class CREATEPOTION_API ACPLabNPC : public ACPQuestNPC
 {
 	GENERATED_BODY()
 public:
+	virtual void BeginPlay() override;
+
 	virtual void OnInteract_Implementation(AActor* Interactor) override;
 	virtual bool CanInteract_Implementation(AActor* Interactor) override;
 
@@ -23,6 +26,7 @@ public:
 	UFUNCTION()
 	void ShowResultDialogue();
 	void HandleThrownPotionImpact(const TArray<FGameplayTag>& PotionEffectTags);
+	void OnPotionReactionTagChanged(const FGameplayTag Tag, int32 NewCount);
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")

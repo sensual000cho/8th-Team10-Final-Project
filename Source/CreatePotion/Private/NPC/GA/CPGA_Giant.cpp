@@ -1,7 +1,6 @@
 ﻿#include "NPC/GA/CPGA_Giant.h"
 #include "NPC/CPBaseNPC.h"
 #include "AbilitySystemComponent.h"
-#include "GameplayEffect.h"
 
 UCPGA_Giant::UCPGA_Giant()
 {
@@ -15,12 +14,9 @@ UCPGA_Giant::UCPGA_Giant()
 void UCPGA_Giant::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
-
-	//PrintPotionEventLog(TriggerEventData);
-
 	UAbilitySystemComponent* ASC = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr;
 
-	if (!ASC || !IsValid(GiantEffectClass) || !ActorInfo->IsNetAuthority())
+	if (!ASC || !ActorInfo->IsNetAuthority())
 	{
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		return;
@@ -29,25 +25,6 @@ void UCPGA_Giant::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const
 	if (ASC->HasMatchingGameplayTag(GiantStateTag))
 	{
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
-		return;
-	}
-
-	FGameplayEffectContextHandle EffectContext = ASC->MakeEffectContext();
-	EffectContext.AddInstigator(ActorInfo->AvatarActor.Get(), ActorInfo->AvatarActor.Get());
-
-	const FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(GiantEffectClass, GetAbilityLevel(), EffectContext);
-
-	if (!SpecHandle.IsValid())
-	{
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
-		return;
-	}
-
-	const FActiveGameplayEffectHandle ActiveHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
-
-	if (!ActiveHandle.WasSuccessfullyApplied())
-	{
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		return;
 	}
 

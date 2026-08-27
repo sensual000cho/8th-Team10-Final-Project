@@ -2,10 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Data/CPNPCDataAsset.h"
 #include "CPNPCSpawner.generated.h"
 
 class ACPBaseNPC;
+class UCPQuestNPCDataAsset;
 
 USTRUCT(BlueprintType)
 struct FNPCSpawnConfig
@@ -13,7 +13,7 @@ struct FNPCSpawnConfig
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn")
-	TObjectPtr<UCPNPCDataAsset> NPCData = nullptr;
+	TObjectPtr<UCPQuestNPCDataAsset> NPCData = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn")
 	bool bUseCustomTransform = false;

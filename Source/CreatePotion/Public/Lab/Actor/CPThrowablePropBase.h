@@ -43,6 +43,9 @@ public:
     bool AttachAsHeld(USceneComponent* CarryAnchor);
     void DetachAsHeld(const FVector& DropLocation);
     
+    // Root 충돌 메시의 월드 Bounds를 반환
+    bool GetPropCollisionBounds(FVector& OutOrigin, FVector& OutExtent) const;
+    
     // 포션 Impact를 활성화하지 않고 Drop
     bool Drop(const FVector& DropLocation);
 
