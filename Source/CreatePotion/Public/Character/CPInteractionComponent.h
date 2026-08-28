@@ -117,6 +117,9 @@ private:
 	// --- 상호작용 대상 Highlight ---
 	void SetActorHighlight(AActor* Target, bool bHighlighted);
 	
+	// UI Refresh 함수
+	void RefreshCurrentTargetPresentation();
+	
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Highlight")
 	UMaterialInterface* HighlightMaterial;

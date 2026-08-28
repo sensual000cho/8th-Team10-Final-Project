@@ -295,6 +295,8 @@ void UCPInteractionComponent::TryInteract()
 
 	// 시간형 인터페이스가 없으면 일반 상호작용 실행
 	ICPInteractable::Execute_OnInteract(Target, Interactor);
+	
+	RefreshCurrentTargetPresentation();
 }
 
 void UCPInteractionComponent::StartTimedInteraction(AActor* Target, float Duration)
@@ -317,6 +319,8 @@ void UCPInteractionComponent::StartTimedInteraction(AActor* Target, float Durati
 	ICPTimedInteractable::Execute_OnInteractionStarted(Target, GetOwner());
 	
 	OnInteractionStarted.Broadcast();
+	
+	RefreshCurrentTargetPresentation();
 
 	World->GetTimerManager().SetTimer(
 		InteractionTimerHandle,
@@ -363,8 +367,6 @@ void UCPInteractionComponent::CompleteTimedInteraction()
 
 	InteractionDuration = 0.f;
 	InteractionElapsedTime = 0.f;
-	
-	OnInteractionCompleted.Broadcast();
 
 	if (!Target || !Target->Implements<UCPInteractable>())
 	{
@@ -373,6 +375,10 @@ void UCPInteractionComponent::CompleteTimedInteraction()
 
 	// 시간이 끝나면 기존 OnInteract 호출
 	ICPInteractable::Execute_OnInteract(Target, Interactor);
+	
+	OnInteractionCompleted.Broadcast();
+	
+	RefreshCurrentTargetPresentation();
 }
 
 void UCPInteractionComponent::SetActorHighlight(AActor* Target, bool bHighlighted)
@@ -399,6 +405,39 @@ void UCPInteractionComponent::SetActorHighlight(AActor* Target, bool bHighlighte
 	{
 		UE_LOG(LogTemp, Error, TEXT("[InteractionComponent] %s 에서 Mesh 발견되지 않음"), *Target->GetName());
 	}
+}
+
+void UCPInteractionComponent::RefreshCurrentTargetPresentation()
+{
+	AActor* Target = CurrentTarget.Get();
+	AActor* Interactor = GetOwner();
+
+	if (!IsValid(Target) || !IsValid(Interactor) || !Target->Implements<UCPInteractable>())
+	{
+		ClearCurrentTarget();
+		return;
+	}
+
+	const ECPInteractionDisplayState NewDisplayState = ResolveInteractionDisplayState(Target, Interactor);
+
+	if (NewDisplayState == ECPInteractionDisplayState::Hidden)
+	{
+		ClearCurrentTarget();
+		return;
+	}
+
+	// Enabled -> Disable 등으로 바뀌면 Update.
+	if (CurrentDisplayState != NewDisplayState)
+	{
+		UpdateCurrentTarget(Target, NewDisplayState);
+		return;
+	}
+
+	// 프롬프트 변경(ex.조사 -> 채집).
+	const FText Prompt = ICPInteractable::Execute_GetInteractionPrompt(Target);
+	const FName TargetName = ICPInteractable::Execute_GetInteractionName(Target);
+
+	OnPromptChanged.Broadcast(Prompt, TargetName, NewDisplayState);
 }
 
 AActor* UCPInteractionComponent::SelectBestInteractionTarget(const TArray<FHitResult>& InteractionHits, const FVector& CameraLocation, const FVector& CameraForward, ECPInteractionDisplayState& OutDisplayState) const
