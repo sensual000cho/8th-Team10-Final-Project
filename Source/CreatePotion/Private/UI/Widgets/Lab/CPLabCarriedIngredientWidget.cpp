@@ -72,7 +72,7 @@ void UCPLabCarriedIngredientWidget::HandlePropChanged(ACPThrowablePropBase* Held
 	ClearPreviewEffects();
 }
 
-void UCPLabCarriedIngredientWidget::HandleInteractionFocusChanged(FText Prompt, FName TargetName)
+void UCPLabCarriedIngredientWidget::HandleInteractionFocusChanged(FText Prompt, FName TargetName, ECPInteractionDisplayState DisplayState)
 {
 	(void)Prompt;
 	(void)TargetName;

@@ -14,6 +14,7 @@ UCPCauldronComponent::UCPCauldronComponent(): MaxSlotCount(3)
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	InteractionPrompt = FText::FromString(TEXT("포션 만들기"));
+	bShowWhenUnavailable = true;
 }
 
 void UCPCauldronComponent::BeginPlay()
