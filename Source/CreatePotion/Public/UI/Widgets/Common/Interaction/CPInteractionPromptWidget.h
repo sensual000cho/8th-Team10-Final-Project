@@ -8,6 +8,7 @@
 
 class UCPInteractionComponent;
 class UTextBlock;
+class UBorder;
 /**
  * 
  */
@@ -23,13 +24,30 @@ protected:
 	UFUNCTION()
 	void OnPromptChanged(FText Prompt, FName TargetName, ECPInteractionDisplayState DisplayState);
 
-protected:
+protected:	
 	UPROPERTY(meta = (BindWidget))
-	UTextBlock* TextBlock_InteractionPrompt;
+	TObjectPtr<UBorder> Border_InputKey;
 	
 	UPROPERTY(meta = (BindWidget))
-	UTextBlock* TextBlock_ActorName;
+	TObjectPtr<UTextBlock> TextBlock_InputKey;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> TextBlock_ActorName;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> TextBlock_InteractionPrompt;
 	
 	UPROPERTY()
 	UCPInteractionComponent* BoundInteractionComponent;
+	
+private:
+	FLinearColor DefaultInputKeyBackgroundColor;
+	FSlateColor DefaultInputKeyTextColor;
+	FSlateColor DefaultActorNameTextColor;
+	FSlateColor DefaultInteractionPromptTextColor;
+
+	bool bDefaultColorsCached = false;
+	
+	void CacheDefaultColors();
+	void ApplyDisplayStateColors(ECPInteractionDisplayState DisplayState);
 };
