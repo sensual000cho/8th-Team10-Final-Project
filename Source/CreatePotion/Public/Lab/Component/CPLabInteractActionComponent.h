@@ -21,6 +21,8 @@ public:
 	virtual FText GetInteractionPrompt() const;
 	virtual FName GetInteractionName() const;
 
+	virtual bool ShouldShowUnavailableInteraction(AActor* Interactor) const;
+	
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lab|Interaction")
 	FText InteractionPrompt;
@@ -31,4 +33,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lab|Interaction")
 	bool bEnabled;
 		
+	// 상호작용 불가능일때 회색 UI 표시를 결정하는 bool 변수
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lab|Interaction")
+	bool bShowWhenUnavailable;
 };

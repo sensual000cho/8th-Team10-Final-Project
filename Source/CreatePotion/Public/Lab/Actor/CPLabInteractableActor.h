@@ -27,6 +27,7 @@ public:
 	virtual bool CanInteract_Implementation(AActor* Interactor) override;
 	virtual FText GetInteractionPrompt_Implementation() override;
 	virtual FName GetInteractionName_Implementation() override;
+	virtual bool ShouldShowUnavailableInteraction_Implementation(AActor* Interactor) override;
 	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = "Lab|Interaction")
 	TObjectPtr<UStaticMeshComponent> Mesh;
 
