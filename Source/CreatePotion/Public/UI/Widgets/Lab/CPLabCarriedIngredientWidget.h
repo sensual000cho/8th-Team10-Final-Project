@@ -6,7 +6,6 @@
 
 class UCPCarryComponent;
 class ACPThrowablePropBase;
-class ACPAlchemyProp;
 class UCPInteractionComponent;
 
 /**
@@ -33,10 +32,9 @@ private:
 	UFUNCTION()
 	void HandlePreviewIngredientChanged();
 
-	void BindPreviewIngredient(ACPAlchemyProp* IngredientProp);
-	void UnbindPreviewIngredient();
+	void BindPreviewProp(ACPThrowablePropBase* Prop);
 
-	// 세션이 가진 HeldAlchemyProp 변경 알림을 받기 위해 런타임 동안만 보관한다.
+	// CarryComponent의 HeldProp 변경 알림을 받기 위해 런타임 동안만 보관한다.
 	UPROPERTY(Transient)
 	TObjectPtr<UCPCarryComponent> BoundCarryComponent;
 
@@ -44,5 +42,5 @@ private:
 	TWeakObjectPtr<UCPInteractionComponent> BoundInteractionComponent;
 
 	UPROPERTY(Transient)
-	TWeakObjectPtr<ACPAlchemyProp> PreviewIngredient;
+	TWeakObjectPtr<ACPThrowablePropBase> PreviewProp;
 };

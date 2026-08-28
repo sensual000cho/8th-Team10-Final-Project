@@ -48,7 +48,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Potion|Debug")
 	TObjectPtr<UCPForageableItemData> TestItemData;
 
-	// 비어 있으면 TestItemData의 TagAxes를 사용한다.
+	// 더미 포션에 직접 주입할 테스트용 효과 Tag.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Potion|Debug")
 	TArray<FGameplayTag> TestEffectTags;
 

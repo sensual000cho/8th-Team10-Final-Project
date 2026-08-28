@@ -7,7 +7,7 @@
 #include "Components/VerticalBox.h"
 #include "Data/CPForageableItemData.h"
 #include "Engine/Texture2D.h"
-#include "Lab/Actor/CPAlchemyProp.h"
+#include "Lab/Actor/CPThrowablePropBase.h"
 #include "UI/Widgets/Lab/CPLabIngredientEffectRowWidget.h"
 
 void UCPLabIngredientInfoWidget::NativeConstruct()
@@ -23,15 +23,15 @@ void UCPLabIngredientInfoWidget::SetIngredientInfo(const FCPLabIngredientInstanc
 	ApplyIngredientInfo(InIngredient);
 }
 
-void UCPLabIngredientInfoWidget::SetObservedIngredient(ACPAlchemyProp* InIngredientProp)
+void UCPLabIngredientInfoWidget::SetObservedIngredient(ACPThrowablePropBase* InProp)
 {
-	if (ObservedIngredientProp.Get() != InIngredientProp)
+	if (ObservedIngredientProp.Get() != InProp)
 	{
 		UnbindObservedIngredient();
 
-		if (IsValid(InIngredientProp))
+		if (IsValid(InProp))
 		{
-			ObservedIngredientProp = InIngredientProp;
+			ObservedIngredientProp = InProp;
 		}
 	}
 	RefreshObservedIngredient();
@@ -67,7 +67,7 @@ void UCPLabIngredientInfoWidget::ApplyIngredientInfo(const FCPLabIngredientInsta
 
 void UCPLabIngredientInfoWidget::RefreshObservedIngredient()
 {
-	ACPAlchemyProp* IngredientProp = ObservedIngredientProp.Get();
+	ACPThrowablePropBase* IngredientProp = ObservedIngredientProp.Get();
 	if (!IsValid(IngredientProp))
 	{
 		ObservedIngredientProp.Reset();
@@ -162,21 +162,18 @@ void UCPLabIngredientInfoWidget::RefreshEmptyState()
 
 void UCPLabIngredientInfoWidget::RebuildEffectRows()
 {
-	if (!VerticalBox_EffectRows)
-	{
-		return;
-	}
+	if (!VerticalBox_EffectRows) return;
 
 	VerticalBox_EffectRows->ClearChildren();
 
 	const UCPForageableItemData* ItemData = Ingredient.SourceItemData.Get();
-	if (!ItemData || !EffectRowWidgetClass)
-	{
-		return;
-	}
+	if (!ItemData || !EffectRowWidgetClass) return;
+	
+	const TArray<FGameplayTag>& DisplayEffectTags = 
+		Ingredient.CurrentEffects.IsEmpty() ? ItemData->TagAxes : Ingredient.CurrentEffects;
 	
 	// 재료의 현재 효과를 기반으로 Tag 구성
-	for (const FGameplayTag& EffectTag : Ingredient.CurrentEffects){
+	for (const FGameplayTag& EffectTag : DisplayEffectTags){
 		if (!EffectTag.IsValid()) continue;
 		
 		UCPLabIngredientEffectRowWidget* EffectRow = 

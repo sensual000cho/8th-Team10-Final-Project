@@ -1,7 +1,6 @@
 #include "GameMode/CPLabGameMode.h"
 
 #include "Data/CPForageableItemData.h"
-#include "Data/CPPotionData.h"
 #include "GameState/CPLabGameState.h"
 #include "Lab/Actor/CPAlchemyProp.h"
 #include "Lab/Actor/CPPotionActor.h"
@@ -67,7 +66,7 @@ FCPPotionDeliveryResult ACPLabGameMode::GetPotionDeliveryResult(FName QuestId, c
 	
 	if (QuestId.IsNone() || !IsValid(PotionActor)) return PotionDeliveryResult;
 	
-	PotionDeliveryResult.CurrentEffects = PotionActor->GetPotionEffectTags();
+	PotionDeliveryResult.CurrentEffects = PotionActor->GetWorkingIngredient().CurrentEffects;
 	
 	UQuestManager* QuestManager = GetGameInstance() ? GetGameInstance()->GetSubsystem<UQuestManager>() : nullptr;
 	if (!QuestManager) return PotionDeliveryResult;
@@ -105,7 +104,7 @@ bool ACPLabGameMode::SpawnPotion(const TArray<FGameplayTag>& EffectTags, const F
 	UWorld* World = GetWorld();
 	if (!World || !PotionItemData) return false;
 	
-	UClass* PotionActorClass = PotionItemData->PotionActorClass.LoadSynchronous();
+	UClass* PotionActorClass = PotionItemData->AlchemyPropClass.LoadSynchronous();
 	if (!PotionActorClass) return false;
 	
 	ACPPotionActor* Potion = World->SpawnActor<ACPPotionActor>(PotionActorClass, SpawnTransform);
@@ -120,7 +119,7 @@ bool ACPLabGameMode::SpawnPotion(const TArray<FGameplayTag>& EffectTags, const F
 	Potion->AddActorWorldOffset(FVector(0.f, 0.f, SpawnSurfaceZ - PotionBottomZ));
 	
 	// 정렬된 Tags로 초기화
-	Potion->InitializePotionEffects(EffectTags);
+	Potion->InitializeFromItemData(PotionItemData, EffectTags);
 	return true;
 	//return AdvancePotionRequest();
 }
