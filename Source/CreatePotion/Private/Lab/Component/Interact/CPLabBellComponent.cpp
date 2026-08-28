@@ -11,6 +11,7 @@ UCPLabBellComponent::UCPLabBellComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	InteractionPrompt = FText::FromString(TEXT("벨 울리기"));
+	bShowWhenUnavailable = true;
 }
 
 bool UCPLabBellComponent::ExecuteInteraction(AActor* Interactor)
