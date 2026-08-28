@@ -248,8 +248,7 @@ bool ACPThrowablePropBase::Throw(const FVector& Direction, float Speed)
     SetPropState(ECPThrowablePropState::Thrown);
     StartRestCheck();
 
-    // 물리 투척 준비가 끝난 후 이벤트를 전달.
-    OnPropThrown.Broadcast(LastThrower);
+    // 물리 투척 준비가 끝난 후 자식 Actor에 알림.
     HandleThrowStarted(LastThrower);
 
     return true;
@@ -267,29 +266,9 @@ bool ACPThrowablePropBase::CanBePickedUp() const
     return bWasPhysicallyReleased && bHasHitSinceThrow;
 }
 
-ECPThrowablePropState ACPThrowablePropBase::GetPropState() const
-{
-    return PropState;
-}
-
 bool ACPThrowablePropBase::IsHeld() const
 {
     return PropState == ECPThrowablePropState::Held;
-}
-
-bool ACPThrowablePropBase::IsThrown() const
-{
-    return PropState == ECPThrowablePropState::Thrown;
-}
-
-bool ACPThrowablePropBase::IsDropped() const
-{
-    return PropState == ECPThrowablePropState::Dropped;
-}
-
-bool ACPThrowablePropBase::IsResting() const
-{
-    return PropState == ECPThrowablePropState::Resting;
 }
 
 AActor* ACPThrowablePropBase::GetLastThrower() const
@@ -309,13 +288,8 @@ void ACPThrowablePropBase::HandleThrownImpact(AActor* OtherActor, const FHitResu
 
 void ACPThrowablePropBase::SetPropState(ECPThrowablePropState NewState)
 {
-    if (PropState == NewState)
-    {
-        return;
-    }
-
+    if (PropState == NewState) return;
     PropState = NewState;
-    OnPropStateChanged.Broadcast(PropState);
 }
 
 void ACPThrowablePropBase::StartRestCheck()
@@ -383,8 +357,6 @@ void ACPThrowablePropBase::CheckForRest()
     StaticMeshComponent->PutAllRigidBodiesToSleep();
     
     SetPropState(ECPThrowablePropState::Resting);
-
-    OnPropRested.Broadcast();
 }
 
 void ACPThrowablePropBase::HandleMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& HitResult)
@@ -428,10 +400,6 @@ void ACPThrowablePropBase::HandleMeshHit(UPrimitiveComponent* HitComponent, AAct
     {
         return;
     }
-
-    // Base에서는 Hit을 차단하지 않음.
-    // PotionImpactComponent 내부의 bImpactTriggered를 이용해 첫 Impact만 처리.
-    OnPropHit.Broadcast(OtherActor, HitResult);
 
     // 반드시 함수의 마지막에서 호출.
     // PotionActor가 이 함수 안에서 Destroy될 위험이 있음. 

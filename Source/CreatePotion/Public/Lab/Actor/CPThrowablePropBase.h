@@ -23,11 +23,6 @@ enum class ECPThrowablePropState : uint8
     Dropped
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FCPOnThrowablePropStateChanged, ECPThrowablePropState, NewState);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FCPOnThrowablePropThrown, AActor*, Thrower);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FCPOnThrowablePropHit, AActor*, OtherActor, const FHitResult&, HitResult);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FCPOnThrowablePropRested);
-
 UCLASS(Abstract)
 class CREATEPOTION_API ACPThrowablePropBase : public AActor, public ICPInteractable
 {
@@ -62,39 +57,10 @@ public:
     bool CanBePickedUp() const;
 
     UFUNCTION(BlueprintPure, Category = "Prop|State")
-    ECPThrowablePropState GetPropState() const;
-
-    UFUNCTION(BlueprintPure, Category = "Prop|State")
     bool IsHeld() const;
-
-    UFUNCTION(BlueprintPure, Category = "Prop|State")
-    bool IsThrown() const;
-    
-    UFUNCTION(BlueprintPure, Category = "Prop|State")
-    bool IsDropped() const;
-
-    UFUNCTION(BlueprintPure, Category = "Prop|State")
-    bool IsResting() const;
 
     UFUNCTION(BlueprintPure, Category = "Prop|Throw")
     AActor* GetLastThrower() const;
-
-public:
-    UPROPERTY(BlueprintAssignable, Category = "Prop|Event")
-    FCPOnThrowablePropStateChanged OnPropStateChanged;
-
-    UPROPERTY(BlueprintAssignable, Category = "Prop|Event")
-    FCPOnThrowablePropThrown OnPropThrown;
-
-    /*
-     * 물리 충돌이 발생할 때 알림.
-     * 포션의 첫 Impact 여부는 PotionImpactComponent가 판단.
-     */
-    UPROPERTY(BlueprintAssignable, Category = "Prop|Event")
-    FCPOnThrowablePropHit OnPropHit;
-
-    UPROPERTY(BlueprintAssignable, Category = "Prop|Event")
-    FCPOnThrowablePropRested OnPropRested;
 
 protected:
     /*
