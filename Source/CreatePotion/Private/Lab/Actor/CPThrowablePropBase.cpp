@@ -70,6 +70,18 @@ FName ACPThrowablePropBase::GetInteractionName_Implementation()
     return FName(TEXT("Prop"));
 }
 
+void ACPThrowablePropBase::InitializeFromItemData(UCPForageableItemData* ItemData, const TArray<FGameplayTag>& EffectTags)
+{
+    WorkingIngredient = FCPLabIngredientInstance{};
+    WorkingIngredient.SourceItemData = ItemData;
+    WorkingIngredient.CurrentEffects = EffectTags;
+}
+
+const FCPLabIngredientInstance& ACPThrowablePropBase::GetWorkingIngredient() const
+{
+    return WorkingIngredient;
+}
+
 bool ACPThrowablePropBase::AttachAsHeld(USceneComponent* CarryAnchor)
 {
     if (!IsValid(CarryAnchor) || !IsValid(StaticMeshComponent))

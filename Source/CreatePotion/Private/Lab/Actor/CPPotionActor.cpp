@@ -21,34 +21,6 @@ FName ACPPotionActor::GetInteractionName_Implementation()
     return FName(TEXT("수상한 포션"));
 }
 
-void ACPPotionActor::InitializePotionEffects(const TArray<FGameplayTag>& InEffectTags)
-{
-    if (bExplosionTriggered)
-    {
-        return;
-    }
-
-    PotionEffectTags.Reset();
-
-    for (const FGameplayTag& EffectTag : InEffectTags)
-    {
-        if (EffectTag.IsValid())
-        {
-            PotionEffectTags.Add(EffectTag);
-        }
-    }
-
-    if (IsValid(PotionImpactComponent))
-    {
-        PotionImpactComponent->SetPotionEffectTags(PotionEffectTags);
-    }
-}
-
-const TArray<FGameplayTag>& ACPPotionActor::GetPotionEffectTags() const
-{
-    return PotionEffectTags;
-}
-
 UCPPotionImpactComponent* ACPPotionActor::GetPotionImpactComponent() const
 {
     return PotionImpactComponent;
@@ -72,6 +44,7 @@ void ACPPotionActor::HandleThrowStarted(AActor* Thrower)
         return;
     }
 
+    PotionImpactComponent->SetPotionEffectTags(GetWorkingIngredient().CurrentEffects);
     if (!PotionImpactComponent->EnableImpactProcessing(ThrowingPawn))
     {
         UE_LOG(LogTemp, Warning, TEXT("[PotionActor] Impact 처리 활성화에 실패했습니다."));

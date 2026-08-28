@@ -30,7 +30,7 @@ bool ACPPotionImpactDummySource::PrepareDebugPotionImpact(APawn* InInstigator)
 		return false;
 	}
 
-	InitializeAlchemyProp(TestItemData, TestEffectTags);
+	InitializeFromItemData(TestItemData, TestEffectTags);
 	// 정식 Potion Actor에서는 제조 결과를 받은 초기화 함수가 같은 방식으로 효과 Tag를 전달한다.
 	PotionImpactComponent->SetPotionEffectTags(GetWorkingIngredient().CurrentEffects);
 	// 정식 Potion Actor에서는 손에서 분리되어 실제 투척이 시작된 뒤 Impact 처리를 활성화한다.

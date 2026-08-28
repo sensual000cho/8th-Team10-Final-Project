@@ -66,11 +66,11 @@ bool UCPCauldronComponent::CanExecuteInteraction(AActor* Interactor) const
 TArray<FGameplayTag> UCPCauldronComponent::GetEffectTags() const
 {
 	TArray<FGameplayTag> CombinedTags;
-	// 넣은 순서대로 효과를 추가
+	// 넣은 순서대로 원본 DA의 효과를 추가
 	for (const FCPLabIngredientInstance& Ingredient : IngredientInstances){
 		if (!Ingredient.IsValid()) continue;
 		
-		for (const FGameplayTag& EffectTag : Ingredient.CurrentEffects){
+		for (const FGameplayTag& EffectTag : Ingredient.SourceItemData->TagAxes){
 			if (EffectTag.IsValid()){
 				CombinedTags.Add(EffectTag);
 			}
@@ -89,7 +89,8 @@ bool UCPCauldronComponent::CanAcceptProp(const ACPAlchemyProp* Prop) const
 {
 	if (!IsValid(Prop) || MaxSlotCount <= 0 || IngredientInstances.Num() >= MaxSlotCount) return false;
 
-	return Prop->GetWorkingIngredient().IsValid();
+	const FCPLabIngredientInstance& Ingredient = Prop->GetWorkingIngredient();
+	return Ingredient.IsValid() && Ingredient.CurrentEffects.IsEmpty();
 }
 
 FTransform UCPCauldronComponent::MakePotionTransform() const
@@ -151,16 +152,18 @@ void UCPCauldronComponent::DebugPrintSlots() const
 			: TEXT("없음");
 
 		FString EffectText;
-		for (const FGameplayTag& EffectTag : Ingredient.CurrentEffects)
-		{
-			if (!EffectTag.IsValid()) continue;
-
-			if (!EffectText.IsEmpty())
+		if (Ingredient.SourceItemData){
+			for (const FGameplayTag& EffectTag : Ingredient.SourceItemData->TagAxes)
 			{
-				EffectText += TEXT(", ");
-			}
+				if (!EffectTag.IsValid()) continue;
 
-			EffectText += EffectTag.ToString();
+				if (!EffectText.IsEmpty())
+				{
+					EffectText += TEXT(", ");
+				}
+
+				EffectText += EffectTag.ToString();
+			}	
 		}
 
 		const FString Message = FString::Printf(

@@ -11,7 +11,6 @@ enum class EDeliveryGrade : uint8;
 class ACPAlchemyProp;
 class ACPLabGameState;
 class UCPForageableItemData;
-class UCPPotionData;
 
 USTRUCT(BlueprintType)
 struct FCPPotionDeliveryResult
@@ -81,7 +80,7 @@ private:
 	
 	// 포션 Prop을 만들 때 사용할 DA
 	UPROPERTY(EditDefaultsOnly, Category = "Lab|Potion")
-	TObjectPtr<UCPPotionData> PotionItemData;
+	TObjectPtr<UCPForageableItemData> PotionItemData;
 		
 	// 재료를 놓을 SlotActor 탐색용 태그
 	UPROPERTY(EditDefaultsOnly, Category = "Lab|Session")

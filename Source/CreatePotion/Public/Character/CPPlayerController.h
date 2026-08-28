@@ -19,7 +19,7 @@ class UCPContainerContextBase;
 class UCPHandHeldItemWidget;
 
 //디버깅용 포션생성 함수용
-class UCPPotionData;
+class UCPForageableItemData;
 
 UCLASS()
 class CREATEPOTION_API ACPPlayerController : public APlayerController
@@ -125,7 +125,7 @@ public:
 private:
 	// TEMP: Cauldron과 레벨 이동을 우회하는 포션 생성 기능.
 	UPROPERTY(EditDefaultsOnly, Category = "Debug|Potion Hotkeys")
-	TObjectPtr<UCPPotionData> DebugPotionData;
+	TObjectPtr<UCPForageableItemData> DebugPotionData;
 
 	void SpawnDebugPotion(const TArray<FGameplayTag>& EffectTags);
 #pragma endregion

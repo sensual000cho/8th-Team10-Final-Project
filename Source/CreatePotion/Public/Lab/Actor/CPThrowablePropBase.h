@@ -5,8 +5,11 @@
 #include "CoreMinimal.h"
 #include "GameCore/Interface/CPInteractable.h"
 #include "GameFramework/Actor.h"
+#include "Lab/CPLabTypes.h"
 #include "CPThrowablePropBase.generated.h"
 
+struct FCPLabIngredientInstance;
+class UCPForageableItemData;
 class USceneComponent;
 class UStaticMeshComponent;
 class UPrimitiveComponent;
@@ -39,7 +42,10 @@ public:
     virtual void OnInteract_Implementation(AActor* Interactor) override;
     virtual bool CanInteract_Implementation(AActor* Interactor) override;
     virtual FName GetInteractionName_Implementation() override;
-
+    
+    void InitializeFromItemData(UCPForageableItemData* ItemData, const TArray<FGameplayTag>& EffectTags = TArray<FGameplayTag>());
+    const FCPLabIngredientInstance& GetWorkingIngredient() const;
+    
     bool AttachAsHeld(USceneComponent* CarryAnchor);
     void DetachAsHeld(const FVector& DropLocation);
     
@@ -162,6 +168,9 @@ protected:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Physics", meta = (ClampMin = "0.0", Units = "deg/s"))
     float PushMaxAngularSpeed = 80.f;
 
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Prop|Data")
+    FCPLabIngredientInstance WorkingIngredient;
+    
 private:
     UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Prop|State", meta = (AllowPrivateAccess = "true"))
     ECPThrowablePropState PropState = ECPThrowablePropState::Resting;
