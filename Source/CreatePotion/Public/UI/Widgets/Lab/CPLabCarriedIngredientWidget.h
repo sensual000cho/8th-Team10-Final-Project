@@ -28,7 +28,7 @@ private:
 	void HandlePropChanged(ACPThrowablePropBase* HeldProp);
 
 	UFUNCTION()
-	void HandleInteractionFocusChanged(FText Prompt, FName TargetName);
+	void HandleInteractionFocusChanged(FText Prompt, FName TargetName, ECPInteractionDisplayState DisplayState);
 
 	UFUNCTION()
 	void HandlePreviewIngredientChanged();

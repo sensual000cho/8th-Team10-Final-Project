@@ -30,7 +30,7 @@ void UCPInteractionPromptWidget::UnbindEvents()
 	}
 }
 
-void UCPInteractionPromptWidget::OnPromptChanged(FText Prompt, FName TargetName)
+void UCPInteractionPromptWidget::OnPromptChanged(FText Prompt, FName TargetName, ECPInteractionDisplayState DisplayState)
 {
 	bool bHasTarget = !Prompt.IsEmpty();
 	

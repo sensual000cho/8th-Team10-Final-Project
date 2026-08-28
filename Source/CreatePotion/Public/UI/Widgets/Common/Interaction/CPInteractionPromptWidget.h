@@ -21,7 +21,7 @@ protected:
 	virtual void UnbindEvents() override;
 	
 	UFUNCTION()
-	void OnPromptChanged(FText Prompt, FName TargetName);
+	void OnPromptChanged(FText Prompt, FName TargetName, ECPInteractionDisplayState DisplayState);
 
 protected:
 	UPROPERTY(meta = (BindWidget))
