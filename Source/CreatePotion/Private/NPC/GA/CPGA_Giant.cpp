@@ -1,37 +1,30 @@
 ﻿#include "NPC/GA/CPGA_Giant.h"
 #include "NPC/CPBaseNPC.h"
-#include "AbilitySystemComponent.h"
+#include "Data/NPC/CPNPCDataAsset.h"
+#include "Components/SkeletalMeshComponent.h"
 
 UCPGA_Giant::UCPGA_Giant()
 {
-	DurationWorldMinutes = 1440;
-	GiantScaleMultiplier = 3.0f;
-	GiantStateTag = FGameplayTag::RequestGameplayTag(FName("State.Effect.Giant"));
-
-	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Immunity.Potion.Giant")));
+	EffectTag = FGameplayTag::RequestGameplayTag(FName("State.Effect.Giant"));
+	ImmunityTag = FGameplayTag::RequestGameplayTag(FName("Immunity.Potion.Giant"));
+	DurationWorldMinutes = 60;
+	Magnitude = 3.0f;
 }
 
-void UCPGA_Giant::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
+void UCPGA_Giant::ApplyVisual(ACPBaseNPC* NPC, bool bActive, float InMagnitude)
 {
-	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
-	UAbilitySystemComponent* ASC = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr;
+	if (!NPC || !NPC->GetMesh()) return;
 
-	if (!ASC || !ActorInfo->IsNetAuthority())
-	{
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
-		return;
-	}
+	UE_LOG(LogTemp, Warning, TEXT("[GA Execution] 1. Giant ApplyVisual START (Frame: %llu, Current Mesh Scale: %s)"),
+		GFrameCounter,
+		*NPC->GetMesh()->GetRelativeScale3D().ToString());
 
-	if (ASC->HasMatchingGameplayTag(GiantStateTag))
-	{
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
-		return;
-	}
+	const FVector BaseScale = NPC->GetBaseMeshScale();
+	const FVector TargetScale = bActive ? (BaseScale * InMagnitude) : BaseScale;
 
-	if (ACPBaseNPC* PotionNPC = GetOwningPotionNPC(ActorInfo))
-	{
-		PotionNPC->RegisterPersistentPotionEffect(GiantStateTag, DurationWorldMinutes, GiantScaleMultiplier);
-	}
+	NPC->GetMesh()->SetRelativeScale3D(TargetScale);
+	NPC->FitCapsuleToMesh(NPC->GetMesh()->GetSkeletalMeshAsset());
 
-	EndAbility(Handle, ActorInfo, ActivationInfo, false, false);
+	UE_LOG(LogTemp, Warning, TEXT("[GA Execution] 1. Giant ApplyVisual END (New Mesh Scale: %s)"),
+		*NPC->GetMesh()->GetRelativeScale3D().ToString());
 }
