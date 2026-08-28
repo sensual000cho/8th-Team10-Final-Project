@@ -2,10 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "Lab/Actor/CPThrowablePropBase.h"
-#include "Lab/CPLabPotionRequestTypes.h"
 #include "CPAlchemyProp.generated.h"
 
-class UCPForageableItemData;
 class USceneComponent;
 class UStaticMeshComponent;
 
@@ -20,7 +18,6 @@ public:
 
 	virtual void Tick(float DeltaSeconds) override;
 	
-	virtual FText GetInteractionPrompt_Implementation() override;
 	virtual FName GetInteractionName_Implementation() override;
 
 protected:

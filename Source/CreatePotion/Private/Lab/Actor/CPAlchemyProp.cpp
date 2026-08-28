@@ -1,6 +1,5 @@
 #include "Lab/Actor/CPAlchemyProp.h"
 
-#include "Character/CPCarryComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Data/CPForageableItemData.h"
@@ -49,11 +48,6 @@ void ACPAlchemyProp::Tick(float DeltaSeconds)
 
     const float BobbleOffset = FMath::Sin(GetGameTimeSinceCreation() * BobbleSpeed * 2.f * UE_PI) * BobbleAmplitude;
     IngredientBobblePivot->SetRelativeLocation(IngredientBobbleBaseLocation + FVector::UpVector * BobbleOffset);
-}
-
-FText ACPAlchemyProp::GetInteractionPrompt_Implementation()
-{
-    return FText::FromString(TEXT("들기"));
 }
 
 FName ACPAlchemyProp::GetInteractionName_Implementation()

@@ -65,6 +65,11 @@ bool ACPThrowablePropBase::CanInteract_Implementation(AActor* Interactor)
     return IsValid(Interactor) && CanBePickedUp();
 }
 
+FText ACPThrowablePropBase::GetInteractionPrompt_Implementation()
+{
+    return FText::FromString(TEXT("들기"));
+}
+
 FName ACPThrowablePropBase::GetInteractionName_Implementation()
 {
     return FName(TEXT("Prop"));
@@ -269,11 +274,6 @@ bool ACPThrowablePropBase::CanBePickedUp() const
 bool ACPThrowablePropBase::IsHeld() const
 {
     return PropState == ECPThrowablePropState::Held;
-}
-
-AActor* ACPThrowablePropBase::GetLastThrower() const
-{
-    return IsValid(LastThrower) ? LastThrower.Get() : nullptr;
 }
 
 void ACPThrowablePropBase::HandleThrowStarted(AActor* Thrower)

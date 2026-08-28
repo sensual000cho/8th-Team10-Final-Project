@@ -18,16 +18,6 @@ UCPPotionImpactComponent::UCPPotionImpactComponent()
 	EffectObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_PhysicsBody));
 }
 
-void UCPPotionImpactComponent::SetPotionEffectTags(const TArray<FGameplayTag>& InEffectTags)
-{
-	if (bImpactTriggered)
-	{
-		return;
-	}
-
-	PotionEffectTags = InEffectTags;
-}
-
 bool UCPPotionImpactComponent::EnableImpactProcessing(APawn* InInstigator)
 {
 	if (bImpactTriggered || !IsValid(InInstigator) || !IsValid(GetOwner()) || !GetOwner()->HasAuthority())
@@ -47,7 +37,7 @@ void UCPPotionImpactComponent::DisableImpactProcessing()
 	ImpactInstigator = nullptr;
 }
 
-bool UCPPotionImpactComponent::TryTriggerPotionImpact(const FHitResult& HitResult)
+bool UCPPotionImpactComponent::TryTriggerPotionImpact(const FHitResult& HitResult, const TArray<FGameplayTag>& PotionEffectTags)
 {
 	FHitResult NormalizedHitResult = HitResult;
 	NormalizedHitResult.ImpactNormal = HitResult.ImpactNormal.GetSafeNormal();
@@ -58,10 +48,10 @@ bool UCPPotionImpactComponent::TryTriggerPotionImpact(const FHitResult& HitResul
 	}
 
 	NormalizedHitResult.Normal = NormalizedHitResult.ImpactNormal;
-	return TryCommitPotionImpact(NormalizedHitResult);
+	return TryCommitPotionImpact(NormalizedHitResult, PotionEffectTags);
 }
 
-bool UCPPotionImpactComponent::TryCommitPotionImpact(const FHitResult& HitResult)
+bool UCPPotionImpactComponent::TryCommitPotionImpact(const FHitResult& HitResult, const TArray<FGameplayTag>& PotionEffectTags)
 {
 	if (!bImpactProcessingEnabled || bImpactTriggered || !IsValid(ImpactInstigator) || !IsValid(GetOwner()) || !GetOwner()->HasAuthority() || EffectRadius <= 0.0f)
 	{
@@ -71,13 +61,13 @@ bool UCPPotionImpactComponent::TryCommitPotionImpact(const FHitResult& HitResult
 	// 반복 Hit와 Gameplay Event 재진입보다 먼저 첫 Impact를 확정한다.
 	bImpactTriggered = true;
 	bImpactProcessingEnabled = false;
-	ResolvePotionEffectArea(HitResult);
+	ResolvePotionEffectArea(HitResult, PotionEffectTags);
 	ImpactInstigator = nullptr;
 
 	return true;
 }
 
-void UCPPotionImpactComponent::ResolvePotionEffectArea(const FHitResult& HitResult)
+void UCPPotionImpactComponent::ResolvePotionEffectArea(const FHitResult& HitResult, const TArray<FGameplayTag>& PotionEffectTags)
 {
 	TArray<AActor*> ActorsToIgnore;
 	ActorsToIgnore.Add(GetOwner());

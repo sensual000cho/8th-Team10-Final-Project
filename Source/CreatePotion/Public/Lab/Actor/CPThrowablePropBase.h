@@ -36,6 +36,7 @@ public:
 
     virtual void OnInteract_Implementation(AActor* Interactor) override;
     virtual bool CanInteract_Implementation(AActor* Interactor) override;
+    virtual FText GetInteractionPrompt_Implementation() override;
     virtual FName GetInteractionName_Implementation() override;
     
     void InitializeFromItemData(UCPForageableItemData* ItemData, const TArray<FGameplayTag>& EffectTags = TArray<FGameplayTag>());
@@ -47,7 +48,6 @@ public:
     // Root 충돌 메시의 월드 Bounds를 반환
     bool GetPropCollisionBounds(FVector& OutOrigin, FVector& OutExtent) const;
     
-    // 포션 Impact를 활성화하지 않고 Drop
     bool Drop(const FVector& DropLocation);
 
     // 머리 위에서 분리하고 물리 투척
@@ -58,9 +58,6 @@ public:
 
     UFUNCTION(BlueprintPure, Category = "Prop|State")
     bool IsHeld() const;
-
-    UFUNCTION(BlueprintPure, Category = "Prop|Throw")
-    AActor* GetLastThrower() const;
 
 protected:
     /*
@@ -137,12 +134,12 @@ protected:
     UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Prop|Data")
     FCPLabIngredientInstance WorkingIngredient;
     
+    UPROPERTY()
+    TObjectPtr<AActor> LastThrower;
+    
 private:
     UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Prop|State", meta = (AllowPrivateAccess = "true"))
     ECPThrowablePropState PropState = ECPThrowablePropState::Resting;
-
-    UPROPERTY()
-    TObjectPtr<AActor> LastThrower;
 
     bool bHasHitSinceThrow = false;
     float LowSpeedElapsedTime = 0.f;

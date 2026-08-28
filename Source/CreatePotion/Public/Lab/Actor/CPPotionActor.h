@@ -17,11 +17,7 @@ class CREATEPOTION_API ACPPotionActor : public ACPThrowablePropBase
 public:
 	ACPPotionActor();
 
-	virtual FText GetInteractionPrompt_Implementation() override;
 	virtual FName GetInteractionName_Implementation() override;
-
-	UFUNCTION(BlueprintPure, Category = "Potion|Impact")
-	UCPPotionImpactComponent* GetPotionImpactComponent() const;
 
 protected:
 	virtual void HandleThrowStarted(AActor* Thrower) override;

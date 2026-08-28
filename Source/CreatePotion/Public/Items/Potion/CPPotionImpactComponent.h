@@ -21,10 +21,6 @@ class CREATEPOTION_API UCPPotionImpactComponent : public UActorComponent
 public:
 	UCPPotionImpactComponent();
 
-	// 포션 Actor가 보유한 현재 효과 태그를 Impact 경계에 전달한다.
-	UFUNCTION(BlueprintCallable, Category = "Potion|Impact")
-	void SetPotionEffectTags(const TArray<FGameplayTag>& InEffectTags);
-
 	// 포션이 실제로 투척된 뒤 충돌 처리를 허용한다.
 	UFUNCTION(BlueprintCallable, Category = "Potion|Impact")
 	bool EnableImpactProcessing(APawn* InInstigator);
@@ -35,7 +31,7 @@ public:
 
 	// 포션 Actor의 첫 유효 Hit를 잠그고 충돌 지점에서 효과 범위를 한 번 검사한다.
 	UFUNCTION(BlueprintCallable, Category = "Potion|Impact")
-	bool TryTriggerPotionImpact(const FHitResult& HitResult);
+	bool TryTriggerPotionImpact(const FHitResult& HitResult, const TArray<FGameplayTag>& PotionEffectTags);
 
 	// 첫 충돌 위치에서 Target ASC를 찾을 효과 범위의 반지름이다.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Potion|Impact", meta = (ClampMin = "0.0", Units = "cm"))
@@ -55,10 +51,10 @@ public:
 
 private:
 	// 충돌 했을 때 해당 충돌을 "첫 충돌" 로 규정하고 실제 대상 검사 시행 시작
-	bool TryCommitPotionImpact(const FHitResult& HitResult);
+	bool TryCommitPotionImpact(const FHitResult& HitResult, const TArray<FGameplayTag>& PotionEffectTags);
 
 	// Impact 위치에서 Sphere Overlap을 한 번 실행하고 찾은 대상 ASC에 효과 Event를 전달한다.
-	void ResolvePotionEffectArea(const FHitResult& HitResult);
+	void ResolvePotionEffectArea(const FHitResult& HitResult, const TArray<FGameplayTag>& PotionEffectTags);
 
 	// Potion.Effect 태그를 그대로 Gameplay Event로 사용해 Target ASC로 전달한다
 	void TryDispatchPotionEffectToTarget(AActor* TargetActor, FGameplayTag EffectTag, const FHitResult& HitResult, UAbilitySystemComponent* SourceAbilitySystem, UAbilitySystemComponent* TargetAbilitySystem);
@@ -69,10 +65,6 @@ private:
 	// Gameplay Event와 Effect Context에 전달할 실제 투척 Pawn.
 	UPROPERTY()
 	TObjectPtr<APawn> ImpactInstigator = nullptr;
-
-	// 포션 내부 저장 구조와 분리해 Impact가 전달받아 사용하는 현재 효과 태그.
-	UPROPERTY(VisibleInstanceOnly, Category = "Potion|Impact")
-	TArray<FGameplayTag> PotionEffectTags;
 
 	// Impact 처리가 활성화된 뒤, 첫 Impact가 발생하거나 비활성화될 때까지 true.
 	UPROPERTY(VisibleInstanceOnly, Category = "Potion|Impact")
