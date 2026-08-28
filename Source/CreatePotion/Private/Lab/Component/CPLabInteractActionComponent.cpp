@@ -9,6 +9,7 @@ UCPLabInteractActionComponent::UCPLabInteractActionComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 
 	bEnabled = true;
+	bShowWhenUnavailable = false;
 }
 
 bool UCPLabInteractActionComponent::ExecuteInteraction(AActor* Interactor)
@@ -29,4 +30,9 @@ FText UCPLabInteractActionComponent::GetInteractionPrompt() const
 FName UCPLabInteractActionComponent::GetInteractionName() const
 {
 	return InteractionName;
+}
+
+bool UCPLabInteractActionComponent::ShouldShowUnavailableInteraction(AActor* Interactor) const
+{
+	return bShowWhenUnavailable;
 }
