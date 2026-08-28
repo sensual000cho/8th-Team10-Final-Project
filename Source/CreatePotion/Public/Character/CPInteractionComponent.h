@@ -6,7 +6,15 @@
 #include "Components/ActorComponent.h"
 #include "CPInteractionComponent.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPromptChanged, FText, Prompt, FName, TargetName);
+UENUM(BlueprintType)
+enum class ECPInteractionDisplayState : uint8
+{
+	Hidden,   // UI 없음, 하이라이트 없음
+	Disabled, // 회색 UI, 하이라이트 없음
+	Enabled   // 정상 UI, 노란 하이라이트
+};
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnPromptChanged, FText, Prompt, FName, TargetName, ECPInteractionDisplayState, DisplayState);
 
 // 상호작용 프로그레스 델리게이트
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInteractionStarted);
@@ -91,12 +99,14 @@ private:
 	void PerformTrace(); // 타이머로 주기 실행
 	
 	// 상호작용 보완 함수들
-	AActor* SelectBestInteractionTarget(const TArray<FHitResult>& InteractionHits, const FVector& CameraLocation, const FVector& CameraForward) const;
+	AActor* SelectBestInteractionTarget(const TArray<FHitResult>& InteractionHits, const FVector& CameraLocation, const FVector& CameraForward, ECPInteractionDisplayState& OutDisplayState) const;
+	ECPInteractionDisplayState ResolveInteractionDisplayState(AActor* Target, AActor* Interactor) const;
+	
 	FVector GetInteractionFocusLocation(const AActor* Target) const;
 	bool HasLineOfSightToTarget(const AActor* Target, const FVector& CameraLocation, const FVector& TargetLocation) const;
 	float CalculateInteractionScore(const FHitResult& HitResult, const FVector& TargetLocation, const FVector& CameraLocation, const FVector& CameraForward) const;
 	
-	void UpdateCurrentTarget(AActor* NewTarget);
+	void UpdateCurrentTarget(AActor* NewTarget, ECPInteractionDisplayState NewDisplayState);
 	void ClearCurrentTarget();
 	
 	// --- Timed Interaction ---
@@ -119,6 +129,11 @@ private:
 	// 현재 조준 중인 대상
 	UPROPERTY()
 	TWeakObjectPtr<AActor> CurrentTarget;
+	
+	// 현재 Display 상태
+	UPROPERTY(VisibleInstanceOnly, Category = "Interaction")
+	ECPInteractionDisplayState CurrentDisplayState = ECPInteractionDisplayState::Hidden;
+	
 	// 현재 시간형 상호작용 중인 대상
 	UPROPERTY()
 	TWeakObjectPtr<AActor> InteractingTarget;

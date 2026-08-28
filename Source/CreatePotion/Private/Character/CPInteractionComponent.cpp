@@ -163,9 +163,9 @@ void UCPInteractionComponent::PerformTrace()
         QueryParams
     );
 
-    AActor* BestTarget = bHasInteractionHits
-        ? SelectBestInteractionTarget(InteractionHits, CameraStart, CameraForward)
-        : nullptr;
+	ECPInteractionDisplayState BestDisplayState = ECPInteractionDisplayState::Hidden;
+
+	AActor* BestTarget = bHasInteractionHits ? SelectBestInteractionTarget(InteractionHits, CameraStart, CameraForward, BestDisplayState) : nullptr;
 
 #if ENABLE_DRAW_DEBUG
     if (CVarDebugInteraction.GetValueOnGameThread())
@@ -248,12 +248,12 @@ void UCPInteractionComponent::PerformTrace()
     }
 #endif
 
-    UpdateCurrentTarget(BestTarget);
+	UpdateCurrentTarget(BestTarget, BestDisplayState);
 }
 
 void UCPInteractionComponent::ClearCurrentTarget()
 {
-	UpdateCurrentTarget(nullptr);
+	UpdateCurrentTarget(nullptr, ECPInteractionDisplayState::Hidden);
 }
 
 void UCPInteractionComponent::TryInteract()
@@ -372,10 +372,7 @@ void UCPInteractionComponent::CompleteTimedInteraction()
 	}
 
 	// 시간이 끝나면 기존 OnInteract 호출
-	ICPInteractable::Execute_OnInteract(
-		Target,
-		Interactor
-	);
+	ICPInteractable::Execute_OnInteract(Target, Interactor);
 }
 
 void UCPInteractionComponent::SetActorHighlight(AActor* Target, bool bHighlighted)
@@ -404,81 +401,110 @@ void UCPInteractionComponent::SetActorHighlight(AActor* Target, bool bHighlighte
 	}
 }
 
-AActor* UCPInteractionComponent::SelectBestInteractionTarget(const TArray<FHitResult>& InteractionHits, const FVector& CameraLocation, const FVector& CameraForward) const
+AActor* UCPInteractionComponent::SelectBestInteractionTarget(const TArray<FHitResult>& InteractionHits, const FVector& CameraLocation, const FVector& CameraForward, ECPInteractionDisplayState& OutDisplayState) const
 {
-	AActor* OwnerActor = GetOwner();
+    OutDisplayState = ECPInteractionDisplayState::Hidden;
 
-	if (!IsValid(OwnerActor))
-	{
-		return nullptr;
-	}
+    AActor* OwnerActor = GetOwner();
 
-	AActor* BestTarget = nullptr;
-	float BestScore = -BIG_NUMBER;
+    if (!IsValid(OwnerActor))
+    {
+        return nullptr;
+    }
 
-	TSet<AActor*> ProcessedActors;
+    AActor* BestEnabledTarget = nullptr;
+    AActor* BestDisabledTarget = nullptr;
 
-	for (const FHitResult& InteractionHit : InteractionHits)
-	{
-		AActor* Candidate = InteractionHit.GetActor();
+    float BestEnabledScore = -BIG_NUMBER;
+    float BestDisabledScore = -BIG_NUMBER;
 
-		if (!IsValid(Candidate) || Candidate == OwnerActor || ProcessedActors.Contains(Candidate))
-		{
-			continue;
-		}
+    TSet<AActor*> ProcessedActors;
 
-		ProcessedActors.Add(Candidate);
+    for (const FHitResult& InteractionHit : InteractionHits)
+    {
+        AActor* Candidate = InteractionHit.GetActor();
 
-		if (!Candidate->Implements<UCPInteractable>())
-		{
-			continue;
-		}
+        if (!IsValid(Candidate) || Candidate == OwnerActor || ProcessedActors.Contains(Candidate))
+        {
+            continue;
+        }
 
-		if (!ICPInteractable::Execute_CanInteract(Candidate, OwnerActor))
-		{
-			continue;
-		}
+        ProcessedActors.Add(Candidate);
 
-		const FVector TargetLocation = GetInteractionFocusLocation(Candidate);
-		const FVector DirectionToTarget = (TargetLocation - CameraLocation).GetSafeNormal();
+        const ECPInteractionDisplayState CandidateDisplayState = ResolveInteractionDisplayState(Candidate, OwnerActor);
 
-		if (DirectionToTarget.IsNearlyZero())
-		{
-			continue;
-		}
+        if (CandidateDisplayState == ECPInteractionDisplayState::Hidden)
+        {
+            continue;
+        }
 
-		const float CameraAlignment = FVector::DotProduct(CameraForward, DirectionToTarget);
+        const FVector TargetLocation = GetInteractionFocusLocation(Candidate);
+        const FVector DirectionToTarget = (TargetLocation - CameraLocation).GetSafeNormal();
 
-		if (CameraAlignment < MinimumCameraAlignment)
-		{
-			continue;
-		}
+        if (DirectionToTarget.IsNearlyZero())
+        {
+            continue;
+        }
 
-		if (!HasLineOfSightToTarget(Candidate, CameraLocation, TargetLocation))
-		{
-			continue;
-		}
+        const float CameraAlignment = FVector::DotProduct(CameraForward, DirectionToTarget);
 
-		float CandidateScore = CalculateInteractionScore(
-			InteractionHit,
-			TargetLocation,
-			CameraLocation,
-			CameraForward
-		);
+        if (CameraAlignment < MinimumCameraAlignment)
+        {
+            continue;
+        }
 
-		if (CurrentTarget.Get() == Candidate)
-		{
-			CandidateScore += CurrentTargetScoreBonus;
-		}
+        if (!HasLineOfSightToTarget(Candidate, CameraLocation, TargetLocation))
+        {
+            continue;
+        }
 
-		if (CandidateScore > BestScore)
-		{
-			BestScore = CandidateScore;
-			BestTarget = Candidate;
-		}
-	}
+        float CandidateScore = CalculateInteractionScore(
+            InteractionHit,
+            TargetLocation,
+            CameraLocation,
+            CameraForward
+        );
 
-	return BestTarget;
+        if (CurrentTarget.Get() == Candidate)
+        {
+            CandidateScore += CurrentTargetScoreBonus;
+        }
+
+        if (CandidateDisplayState == ECPInteractionDisplayState::Enabled)
+        {
+            if (CandidateScore > BestEnabledScore)
+            {
+                BestEnabledScore = CandidateScore;
+                BestEnabledTarget = Candidate;
+            }
+
+            continue;
+        }
+
+        if (CandidateDisplayState == ECPInteractionDisplayState::Disabled)
+        {
+            if (CandidateScore > BestDisabledScore)
+            {
+                BestDisabledScore = CandidateScore;
+                BestDisabledTarget = Candidate;
+            }
+        }
+    }
+
+    // 상호작용 가능한 대상이 항상 Disabled 대상보다 우선.
+    if (IsValid(BestEnabledTarget))
+    {
+        OutDisplayState = ECPInteractionDisplayState::Enabled;
+        return BestEnabledTarget;
+    }
+
+    if (IsValid(BestDisabledTarget))
+    {
+        OutDisplayState = ECPInteractionDisplayState::Disabled;
+        return BestDisabledTarget;
+    }
+
+    return nullptr;
 }
 
 FVector UCPInteractionComponent::GetInteractionFocusLocation(const AActor* Target) const
@@ -553,14 +579,18 @@ float UCPInteractionComponent::CalculateInteractionScore(const FHitResult& HitRe
 	return AlignmentScore * AlignmentScoreWeight + DistanceScore * DistanceScoreWeight;
 }
 
-void UCPInteractionComponent::UpdateCurrentTarget(AActor* NewTarget)
+void UCPInteractionComponent::UpdateCurrentTarget(AActor* NewTarget, ECPInteractionDisplayState NewDisplayState)
 {
-	if (!IsValid(NewTarget))
+	if (!IsValid(NewTarget) || NewDisplayState == ECPInteractionDisplayState::Hidden)
 	{
 		NewTarget = nullptr;
+		NewDisplayState = ECPInteractionDisplayState::Hidden;
 	}
 
-	if (CurrentTarget.Get() == NewTarget)
+	const bool bSameTarget = CurrentTarget.Get() == NewTarget;
+	const bool bSameDisplayState = CurrentDisplayState == NewDisplayState;
+
+	if (bSameTarget && bSameDisplayState)
 	{
 		return;
 	}
@@ -571,21 +601,50 @@ void UCPInteractionComponent::UpdateCurrentTarget(AActor* NewTarget)
 	}
 
 	CurrentTarget = NewTarget;
+	CurrentDisplayState = NewDisplayState;
 
 	if (!IsValid(NewTarget))
 	{
-		OnPromptChanged.Broadcast(FText::GetEmpty(), NAME_None);
+		OnPromptChanged.Broadcast(FText::GetEmpty(), NAME_None, ECPInteractionDisplayState::Hidden);
 		return;
 	}
 
-	SetActorHighlight(NewTarget, true);
+	// 노란 하이라이트는 실제 상호작용이 가능할 때만 표시
+	if (CurrentDisplayState == ECPInteractionDisplayState::Enabled)
+	{
+		SetActorHighlight(NewTarget, true);
+	}
 
 	const FText Prompt = ICPInteractable::Execute_GetInteractionPrompt(NewTarget);
 	const FName TargetName = ICPInteractable::Execute_GetInteractionName(NewTarget);
 
-	OnPromptChanged.Broadcast(Prompt, TargetName);
+	OnPromptChanged.Broadcast(Prompt, TargetName, CurrentDisplayState);
 }
 
+ECPInteractionDisplayState UCPInteractionComponent::ResolveInteractionDisplayState(AActor* Target, AActor* Interactor) const
+{
+	if (!IsValid(Target) || !IsValid(Interactor))
+	{
+		return ECPInteractionDisplayState::Hidden;
+	}
+
+	if (!Target->Implements<UCPInteractable>())
+	{
+		return ECPInteractionDisplayState::Hidden;
+	}
+
+	if (ICPInteractable::Execute_CanInteract(Target, Interactor))
+	{
+		return ECPInteractionDisplayState::Enabled;
+	}
+
+	if (ICPInteractable::Execute_ShouldShowUnavailableInteraction(Target, Interactor))
+	{
+		return ECPInteractionDisplayState::Disabled;
+	}
+
+	return ECPInteractionDisplayState::Hidden;
+}
 
 #pragma region IMC
 void UCPInteractionComponent::TryBindInputMappingContext()
