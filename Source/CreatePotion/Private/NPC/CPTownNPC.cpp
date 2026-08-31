@@ -34,6 +34,12 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 		// DA에 등록된 퀘스트 중 NotAccepted 첫번째 퀘스트 발견 시
 		if (CurrentState == EQuestState::NotAccepted)
 		{
+
+			if (!QuestManager->IsQuestStoryUnlocked(QuestID))  
+			{
+				continue;
+			}
+
 			TArray<FText> ScriptLines = QuestManager->GetQuestScriptLines(QuestID);
 
 			// TODO: InitDialogue가 배열을 받도록 논의 후 교체 예정
@@ -75,7 +81,8 @@ bool ACPTownNPC::CanInteract_Implementation(AActor* Interactor)
 			continue;
 		}
 
-		if (QuestManager->GetQuestState(QuestID) == EQuestState::NotAccepted)
+		if (QuestManager->GetQuestState(QuestID) == EQuestState::NotAccepted
+			&& QuestManager->IsQuestStoryUnlocked(QuestID))
 		{
 			return true;
 		}
