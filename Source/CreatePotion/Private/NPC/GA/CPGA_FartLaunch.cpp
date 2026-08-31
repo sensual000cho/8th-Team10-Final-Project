@@ -260,26 +260,10 @@ void UCPGA_FartLaunch::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 				if (TargetCharacter->NPCData)
 				{
 					Mesh->SetRelativeRotation(TargetCharacter->NPCData->MeshRotationOffset);
-					FVector FinalScale = TargetCharacter->NPCData->MeshScale;
-
-					if (UGameInstance* GI = GetWorld()->GetGameInstance())
-					{
-						if (UCPNPCSubsystem* NPCSubsystem = GI->GetSubsystem<UCPNPCSubsystem>())
-						{
-							FCPNPCEffectSaveData SaveData;
-							if (NPCSubsystem->GetNPCEffectData(TargetCharacter->GetPotionNPCId(), SaveData))
-							{
-								FGameplayTag GiantTag = FGameplayTag::RequestGameplayTag(FName("State.Effect.Giant"));
-								if (const FCPActiveEffectInfo* EffectInfo = SaveData.ActiveEffects.Find(GiantTag))
-								{
-									FinalScale *= EffectInfo->Magnitude;
-								}
-							}
-						}
-					}
-					Mesh->SetRelativeScale3D(FinalScale);
 				}
+				TargetCharacter->ReapplyActivePotionVisuals();
 			}
+
 
 			if (TargetCharacter->NPCData && Mesh)
 			{

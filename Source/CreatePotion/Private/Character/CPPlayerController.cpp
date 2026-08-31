@@ -18,7 +18,6 @@
 
 //디버그용 포션 Spawn 용 include
 #include "Character/CPCarryComponent.h"
-#include "Data/CPPotionData.h"
 #include "Lab/Actor/CPPotionActor.h"
 
 
@@ -241,7 +240,7 @@ void ACPPlayerController::SpawnDebugPotion(const TArray<FGameplayTag>& EffectTag
 		return;
 	}
 
-	UClass* PotionActorClass = DebugPotionData->PotionActorClass.LoadSynchronous();
+	UClass* PotionActorClass = DebugPotionData->AlchemyPropClass.LoadSynchronous();
 
 	if (!PotionActorClass)
 	{
@@ -256,7 +255,7 @@ void ACPPlayerController::SpawnDebugPotion(const TArray<FGameplayTag>& EffectTag
 	{
 		return;
 	}
-	Potion->InitializePotionEffects(EffectTags);
+	Potion->InitializeFromItemData(DebugPotionData, EffectTags);
 	if (!CarryComponent->AttachProp(Potion))
 	{
 		Potion->Destroy();

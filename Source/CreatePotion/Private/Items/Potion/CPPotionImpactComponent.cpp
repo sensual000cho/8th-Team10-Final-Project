@@ -18,16 +18,6 @@ UCPPotionImpactComponent::UCPPotionImpactComponent()
 	EffectObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_PhysicsBody));
 }
 
-void UCPPotionImpactComponent::SetPotionEffectTags(const TArray<FGameplayTag>& InEffectTags)
-{
-	if (bImpactTriggered)
-	{
-		return;
-	}
-
-	PotionEffectTags = InEffectTags;
-}
-
 bool UCPPotionImpactComponent::EnableImpactProcessing(APawn* InInstigator)
 {
 	if (bImpactTriggered || !IsValid(InInstigator) || !IsValid(GetOwner()) || !GetOwner()->HasAuthority())
@@ -47,7 +37,7 @@ void UCPPotionImpactComponent::DisableImpactProcessing()
 	ImpactInstigator = nullptr;
 }
 
-bool UCPPotionImpactComponent::TryTriggerPotionImpact(const FHitResult& HitResult)
+bool UCPPotionImpactComponent::TryTriggerPotionImpact(const FHitResult& HitResult, const TArray<FGameplayTag>& PotionEffectTags)
 {
 	FHitResult NormalizedHitResult = HitResult;
 	NormalizedHitResult.ImpactNormal = HitResult.ImpactNormal.GetSafeNormal();
@@ -58,10 +48,10 @@ bool UCPPotionImpactComponent::TryTriggerPotionImpact(const FHitResult& HitResul
 	}
 
 	NormalizedHitResult.Normal = NormalizedHitResult.ImpactNormal;
-	return TryCommitPotionImpact(NormalizedHitResult);
+	return TryCommitPotionImpact(NormalizedHitResult, PotionEffectTags);
 }
 
-bool UCPPotionImpactComponent::TryCommitPotionImpact(const FHitResult& HitResult)
+bool UCPPotionImpactComponent::TryCommitPotionImpact(const FHitResult& HitResult, const TArray<FGameplayTag>& PotionEffectTags)
 {
 	if (!bImpactProcessingEnabled || bImpactTriggered || !IsValid(ImpactInstigator) || !IsValid(GetOwner()) || !GetOwner()->HasAuthority() || EffectRadius <= 0.0f)
 	{
@@ -71,14 +61,13 @@ bool UCPPotionImpactComponent::TryCommitPotionImpact(const FHitResult& HitResult
 	// 반복 Hit와 Gameplay Event 재진입보다 먼저 첫 Impact를 확정한다.
 	bImpactTriggered = true;
 	bImpactProcessingEnabled = false;
-	LastDispatchResults.Reset();
-	bAnyEffectAbilityActivated = ResolvePotionEffectArea(HitResult);
+	ResolvePotionEffectArea(HitResult, PotionEffectTags);
 	ImpactInstigator = nullptr;
 
 	return true;
 }
 
-bool UCPPotionImpactComponent::ResolvePotionEffectArea(const FHitResult& HitResult)
+void UCPPotionImpactComponent::ResolvePotionEffectArea(const FHitResult& HitResult, const TArray<FGameplayTag>& PotionEffectTags)
 {
 	TArray<AActor*> ActorsToIgnore;
 	ActorsToIgnore.Add(GetOwner());
@@ -88,15 +77,11 @@ bool UCPPotionImpactComponent::ResolvePotionEffectArea(const FHitResult& HitResu
 
 	TSet<AActor*> ProcessedActors;
 	TSet<UAbilitySystemComponent*> ProcessedAbilitySystems;
-	bool bActivatedAnyAbility = false;
 	UAbilitySystemComponent* SourceAbilitySystem = ResolveSourceAbilitySystem();
 
 	for (AActor* TargetActor : OverlappedActors)
 	{
-		if (!IsValid(TargetActor) || ProcessedActors.Contains(TargetActor))
-		{
-			continue;
-		}
+		if (!IsValid(TargetActor) || ProcessedActors.Contains(TargetActor)) continue;
 
 		ProcessedActors.Add(TargetActor);
 		
@@ -105,53 +90,20 @@ bool UCPPotionImpactComponent::ResolvePotionEffectArea(const FHitResult& HitResu
 		}
 		
 		UAbilitySystemComponent* TargetAbilitySystem = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
-
-		if (!IsValid(TargetAbilitySystem))
-		{
-			for (const FGameplayTag& EffectTag : PotionEffectTags)
-			{
-				AddDispatchResult(TargetActor, EffectTag, ECPPotionEffectDispatchResult::MissingTargetAbilitySystem);
-			}
-
-			continue;
-		}
-
-		if (ProcessedAbilitySystems.Contains(TargetAbilitySystem))
-		{
-			continue;
-		}
+		if (!IsValid(SourceAbilitySystem)) continue;
+		if (!IsValid(TargetAbilitySystem) || ProcessedAbilitySystems.Contains(TargetAbilitySystem)) continue;
 
 		ProcessedAbilitySystems.Add(TargetAbilitySystem);
 
-		if (!IsValid(SourceAbilitySystem))
-		{
-			for (const FGameplayTag& EffectTag : PotionEffectTags)
-			{
-				AddDispatchResult(TargetActor, EffectTag, ECPPotionEffectDispatchResult::MissingSourceAbilitySystem);
-			}
-
-			continue;
-		}
-
-		for (const FGameplayTag& EffectTag : PotionEffectTags)
-		{
-			if (TryDispatchPotionEffectToTarget(TargetActor, EffectTag, HitResult, SourceAbilitySystem, TargetAbilitySystem))
-			{
-				bActivatedAnyAbility = true;
-			}
+		for (const FGameplayTag& EffectTag : PotionEffectTags){
+			TryDispatchPotionEffectToTarget(TargetActor, EffectTag, HitResult, SourceAbilitySystem, TargetAbilitySystem);
 		}
 	}
-
-	return bActivatedAnyAbility;
 }
 
-bool UCPPotionImpactComponent::TryDispatchPotionEffectToTarget(AActor* TargetActor, FGameplayTag EffectTag, const FHitResult& HitResult, UAbilitySystemComponent* SourceAbilitySystem, UAbilitySystemComponent* TargetAbilitySystem)
+void UCPPotionImpactComponent::TryDispatchPotionEffectToTarget(AActor* TargetActor, FGameplayTag EffectTag, const FHitResult& HitResult, UAbilitySystemComponent* SourceAbilitySystem, UAbilitySystemComponent* TargetAbilitySystem)
 {
-	if (!EffectTag.IsValid())
-	{
-		AddDispatchResult(TargetActor, EffectTag, ECPPotionEffectDispatchResult::InvalidEffectTag);
-		return false;
-	}
+	if (!EffectTag.IsValid()) return;
 
 	FGameplayEffectContextHandle EffectContext = SourceAbilitySystem->MakeEffectContext();
 	EffectContext.AddInstigator(ImpactInstigator, GetOwner());
@@ -169,11 +121,7 @@ bool UCPPotionImpactComponent::TryDispatchPotionEffectToTarget(AActor* TargetAct
 	EventData.TargetTags = TargetAbilitySystem->GetOwnedGameplayTags();
 	EventData.EventMagnitude = 1.0f;
 
-	const int32 ActivatedAbilityCount = TargetAbilitySystem->HandleGameplayEvent(EffectTag, &EventData);
-	const ECPPotionEffectDispatchResult DispatchResult = ActivatedAbilityCount > 0 ? ECPPotionEffectDispatchResult::AbilityActivated : ECPPotionEffectDispatchResult::NoAbilityActivated;
-	AddDispatchResult(TargetActor, EffectTag, DispatchResult);
-
-	return ActivatedAbilityCount > 0;
+	TargetAbilitySystem->HandleGameplayEvent(EffectTag, &EventData);
 }
 
 UAbilitySystemComponent* UCPPotionImpactComponent::ResolveSourceAbilitySystem() const
@@ -188,16 +136,6 @@ UAbilitySystemComponent* UCPPotionImpactComponent::ResolveSourceAbilitySystem() 
 	return SourceAbilitySystem;
 }
 
-void UCPPotionImpactComponent::AddDispatchResult(AActor* TargetActor, FGameplayTag EffectTag, ECPPotionEffectDispatchResult Result)
-{
-	FCPPotionEffectDispatchResult DispatchResult;
-	DispatchResult.TargetActor = TargetActor;
-	DispatchResult.EffectTag = EffectTag;
-	DispatchResult.Result = Result;
-
-	LastDispatchResults.Add(DispatchResult);
-}
-
 bool UCPPotionImpactComponent::IsImpactProcessingEnabled() const
 {
 	return bImpactProcessingEnabled;
@@ -206,9 +144,4 @@ bool UCPPotionImpactComponent::IsImpactProcessingEnabled() const
 bool UCPPotionImpactComponent::HasPotionImpactTriggered() const
 {
 	return bImpactTriggered;
-}
-
-bool UCPPotionImpactComponent::HasActivatedAnyPotionEffectAbility() const
-{
-	return bAnyEffectAbilityActivated;
 }

@@ -5,6 +5,8 @@
 #include "GameplayTagContainer.h"
 #include "CPNPCSubsystem.generated.h"
 
+class ACPBaseNPC;
+
 USTRUCT(BlueprintType)
 struct FCPActiveEffectInfo
 {
@@ -19,12 +21,10 @@ struct FCPActiveEffectInfo
 	UPROPERTY(BlueprintReadOnly)
 	int64 ExpiresAtWorldMinute = 0;
 
-	// GA가 넘긴 효과 세기(예: Giant 스케일 배율).
 	UPROPERTY(BlueprintReadOnly)
 	float Magnitude = 1.0f;
 };
 
-// 하나의 NPCId(=NPCData DA)가 현재 갖고 있는 모든 지속 효과 목록.
 USTRUCT(BlueprintType)
 struct FCPNPCEffectSaveData
 {
@@ -34,10 +34,7 @@ struct FCPNPCEffectSaveData
 	TMap<FGameplayTag, FCPActiveEffectInfo> ActiveEffects;
 };
 
-//  NPC에게 새로운 효과가 적용될 때
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnNPCEffectApplied, FName, NPCId, FGameplayTag, EffectTag, int64, ExpiresAtWorldMinute, float, Magnitude);
-
-// NPC의 효과 지속시간이 만료되거나 해제될 때
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnNPCEffectExpired, FName, NPCId, FGameplayTag, EffectTag);
 
 UCLASS()
@@ -58,9 +55,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "NPC|Potion")
 	void ClearNPCEffect(FName NPCId, FGameplayTag EffectTag);
 
-	// 디버그용
-	UFUNCTION(BlueprintCallable, Category = "NPC|Potion|Debug")
-	void DebugAddNPCEffect(FName NPCId, FGameplayTag EffectTag, int64 DurationWorldMinutes);
+	void RegisterActiveNPC(FName NPCId, ACPBaseNPC* NPC);
+	void UnregisterActiveNPC(FName NPCId, ACPBaseNPC* NPC);
 
 	UPROPERTY(BlueprintAssignable, Category = "NPC|Potion")
 	FOnNPCEffectApplied OnNPCEffectApplied;
@@ -73,8 +69,11 @@ protected:
 	void OnWorldClockMinuteTick(int64 CurrentWorldMinute);
 
 private:
+	void NotifyEffectApplied(FName NPCId, FGameplayTag EffectTag, int64 ExpiresAtWorldMinute, float Magnitude);
+	void NotifyEffectExpired(FName NPCId, FGameplayTag EffectTag);
+
 	UPROPERTY()
 	TMap<FName, FCPNPCEffectSaveData> NPCStateRepository;
-
+	TMap<FName, TWeakObjectPtr<ACPBaseNPC>> ActiveNPCRegistry;
 	int64 CachedCurrentWorldMinute = 0;
 };

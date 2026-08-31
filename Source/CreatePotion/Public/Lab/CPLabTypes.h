@@ -46,6 +46,8 @@ struct FCPLabIngredientInstance
 	// 원본에서 복사한 뒤 가공에 따라 변경되는 현재 효과 태그
 	UPROPERTY(BlueprintReadOnly, Category = "Lab|Ingredient")
 	TArray<FGameplayTag> CurrentEffects;
+	
+	bool bIsSeed = false;
 
 	// 사용할 수 있는 원본 재료가 연결되어 있는지 확인
 	bool IsValid() const

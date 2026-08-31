@@ -30,9 +30,7 @@ bool ACPPotionImpactDummySource::PrepareDebugPotionImpact(APawn* InInstigator)
 		return false;
 	}
 
-	InitializeAlchemyProp(TestItemData, TestEffectTags);
-	// 정식 Potion Actor에서는 제조 결과를 받은 초기화 함수가 같은 방식으로 효과 Tag를 전달한다.
-	PotionImpactComponent->SetPotionEffectTags(GetWorkingIngredient().CurrentEffects);
+	InitializeFromItemData(TestItemData, TestEffectTags);
 	// 정식 Potion Actor에서는 손에서 분리되어 실제 투척이 시작된 뒤 Impact 처리를 활성화한다.
 	return PotionImpactComponent->EnableImpactProcessing(InInstigator);
 }
@@ -44,7 +42,7 @@ bool ACPPotionImpactDummySource::TryTriggerDebugPotionImpactAtLocation(FVector I
 	SyntheticHitResult.Location = ImpactPoint;
 	SyntheticHitResult.ImpactNormal = ImpactNormal;
 	SyntheticHitResult.Normal = ImpactNormal;
-	const bool bTriggered = PotionImpactComponent->TryTriggerPotionImpact(SyntheticHitResult);
+	const bool bTriggered = PotionImpactComponent->TryTriggerPotionImpact(SyntheticHitResult, GetWorkingIngredient().CurrentEffects);
 
 	if (bTriggered)
 	{
@@ -63,7 +61,7 @@ void ACPPotionImpactDummySource::NotifyHit(UPrimitiveComponent* MyComp, AActor* 
 
 bool ACPPotionImpactDummySource::TriggerDebugPotionImpact(const FHitResult& HitResult)
 {
-	const bool bTriggered = PotionImpactComponent->TryTriggerPotionImpact(HitResult);
+	const bool bTriggered = PotionImpactComponent->TryTriggerPotionImpact(HitResult, GetWorkingIngredient().CurrentEffects);
 
 	if (bTriggered)
 	{
