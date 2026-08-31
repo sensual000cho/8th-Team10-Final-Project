@@ -3,6 +3,7 @@
 #include "Lab/Actor/CPPotionActor.h"
 
 #include "Components/StaticMeshComponent.h"
+#include "Data/CPForageableItemData.h"
 #include "GameFramework/Pawn.h"
 #include "Items/Potion/CPPotionImpactComponent.h"
 
@@ -11,47 +12,10 @@ ACPPotionActor::ACPPotionActor()
     PotionImpactComponent = CreateDefaultSubobject<UCPPotionImpactComponent>(TEXT("PotionImpact"));
 }
 
-FText ACPPotionActor::GetInteractionPrompt_Implementation()
-{
-    return FText::FromString(TEXT("들기"));
-}
-
 FName ACPPotionActor::GetInteractionName_Implementation()
 {
-    return FName(TEXT("수상한 포션"));
-}
-
-void ACPPotionActor::InitializePotionEffects(const TArray<FGameplayTag>& InEffectTags)
-{
-    if (bExplosionTriggered)
-    {
-        return;
-    }
-
-    PotionEffectTags.Reset();
-
-    for (const FGameplayTag& EffectTag : InEffectTags)
-    {
-        if (EffectTag.IsValid())
-        {
-            PotionEffectTags.Add(EffectTag);
-        }
-    }
-
-    if (IsValid(PotionImpactComponent))
-    {
-        PotionImpactComponent->SetPotionEffectTags(PotionEffectTags);
-    }
-}
-
-const TArray<FGameplayTag>& ACPPotionActor::GetPotionEffectTags() const
-{
-    return PotionEffectTags;
-}
-
-UCPPotionImpactComponent* ACPPotionActor::GetPotionImpactComponent() const
-{
-    return PotionImpactComponent;
+    return WorkingIngredient.SourceItemData ? 
+        FName(*WorkingIngredient.SourceItemData->DisplayName.ToString()) : Super::GetInteractionName_Implementation();   
 }
 
 void ACPPotionActor::HandleThrowStarted(AActor* Thrower)
@@ -91,13 +55,13 @@ void ACPPotionActor::HandleThrownImpact(AActor* OtherActor, const FHitResult& Hi
     }
     
     // 플레이어 제외
-    if (IsValid(OtherActor) && OtherActor == GetLastThrower())
+    if (IsValid(OtherActor) && OtherActor == LastThrower.Get())
     {
         return;
     }
 
     // 포션 컴포넌트에서 첫 Impact시 폭발로 넘어감
-    if (!PotionImpactComponent->TryTriggerPotionImpact(HitResult))
+    if (!PotionImpactComponent->TryTriggerPotionImpact(HitResult, GetWorkingIngredient().CurrentEffects))
     {
         return;
     }
@@ -147,5 +111,3 @@ void ACPPotionActor::TriggerPotionExplosion(const FHitResult& HitResult)
 
     Destroy();
 }
-
-
