@@ -100,6 +100,32 @@ TArray<FName> UQuestManager::GetTrackedRandomQuestIDs() const
 	return Result;
 }
 
+// ===================================================================
+// [스토리 진행 - NPC별 독립 진행도 관리]
+// ===================================================================
+
+// 특정 NPC 스토리가 지금 몇 단계까지 진행됐는지 조회 (기록 없으면 0단계로 취급)
+int32 UQuestManager::GetNPCStoryStage(FName NPCId) const
+{
+	if (const int32* Stage = NPCStoryStages.Find(NPCId))
+	{
+		return *Stage;
+	}
+	return 0;
+}
+
+// 이 퀘스트가 소속된 NPC의 현재 스토리 단계가, 이 퀘스트의 요구 단계 이상인지 확인
+bool UQuestManager::IsQuestStoryUnlocked(FName QuestID) const
+{
+	if (!QuestScriptTable) return true;
+
+	FQuestData* Quest = QuestScriptTable->FindRow<FQuestData>(QuestID, TEXT(""));
+	if (!Quest) return true;
+
+	int32 CurrentStage = GetNPCStoryStage(Quest->OwningNPCId);
+	return Quest->RequiredStoryStage <= CurrentStage;
+}
+
 // 팀원 요청으로 분리된 완료 처리 함수 (TryDeliver 등 여러 곳에서 재사용 가능)
 void UQuestManager::CompleteQuest(FName QuestID)
 {
@@ -112,6 +138,24 @@ void UQuestManager::CompleteQuest(FName QuestID)
 
 	QuestStates.Add(QuestID, EQuestState::Completed);
 	OnQuestUpdated.Broadcast(QuestID, EQuestState::Completed);
+
+	// 완료된 퀘스트가 소속 NPC의 스토리를 진행시키는지 확인 후 반영
+	if (QuestScriptTable)
+	{
+		if (FQuestData* Quest = QuestScriptTable->FindRow<FQuestData>(QuestID, TEXT("")))
+		{
+			if (Quest->AdvanceToStage >= 0)
+			{
+				int32 CurrentStage = GetNPCStoryStage(Quest->OwningNPCId);
+				if (Quest->AdvanceToStage > CurrentStage)
+				{
+					NPCStoryStages.Add(Quest->OwningNPCId, Quest->AdvanceToStage);
+					UE_LOG(LogTemp, Warning, TEXT("NPC [%s] 스토리 단계 %d(으)로 진행"),
+						*Quest->OwningNPCId.ToString(), Quest->AdvanceToStage);
+				}
+			}
+		}
+	}
 	UE_LOG(LogTemp, Warning, TEXT("퀘스트 [%s] 완료 처리"), *QuestID.ToString());
 }
 
@@ -414,6 +458,18 @@ void UQuestManager::ValidateQuestTablesMatch()
 		if (!ScriptIDs.Contains(ID))
 		{
 			UE_LOG(LogTemp, Error, TEXT("퀘스트 %s 의 텍스트 데이터(QuestScriptTable)가 없습니다!"), *ID.ToString());
+		}
+	}
+
+	// 스토리 단계 데이터 정합성 확인 - OwningNPCId 없이 단계 값만 설정된 경우 경고
+	for (const FName& ID : ScriptIDs)
+	{
+		FQuestData* Quest = QuestScriptTable->FindRow<FQuestData>(ID, TEXT(""));
+		if (!Quest) continue;
+
+		if (Quest->OwningNPCId.IsNone() && (Quest->RequiredStoryStage > 0 || Quest->AdvanceToStage >= 0))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("퀘스트 %s 는 OwningNPCId가 비어있는데 스토리 단계 값이 설정되어 있습니다. 확인이 필요합니다."), *ID.ToString());
 		}
 	}
 }
