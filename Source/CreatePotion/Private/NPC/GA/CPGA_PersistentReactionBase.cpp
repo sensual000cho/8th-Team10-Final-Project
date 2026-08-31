@@ -28,37 +28,17 @@ void UCPGA_PersistentReactionBase::HandleApplyVisual(bool bActive, float InMagni
 	ApplyVisual(CachedNPC.Get(), bActive, InMagnitude);
 }
 
-bool UCPGA_PersistentReactionBase::CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
-	const FGameplayTagContainer* SourceTags, const FGameplayTagContainer* TargetTags, FGameplayTagContainer* OptionalRelevantTags) const
-{
-	if (!Super::CanActivateAbility(Handle, ActorInfo, SourceTags, TargetTags, OptionalRelevantTags))
-	{
-		return false;
-	}
-
-	if (ImmunityTag.IsValid())
-	{
-		if (UAbilitySystemComponent* ASC = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr)
-		{
-			if (ASC->HasMatchingGameplayTag(ImmunityTag))
-			{
-				return false;
-			}
-		}
-	}
-
-	return true;
-}
-
 void UCPGA_PersistentReactionBase::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 	const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 
-	ACPBaseNPC* PotionNPC = GetOwningPotionNPC(ActorInfo);
+	ACPBaseNPC* PotionNPC = GetValidatedOwningPotionNPC(Handle, ActorInfo, ActivationInfo);
+	if (!PotionNPC) return;
+
 	UAbilitySystemComponent* ASC = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr;
 
-	if (!PotionNPC || !ASC || !ActorInfo->IsNetAuthority() || !EffectTag.IsValid())
+	if (!ASC || !EffectTag.IsValid())
 	{
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		return;
