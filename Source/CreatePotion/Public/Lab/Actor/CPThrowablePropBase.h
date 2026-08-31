@@ -8,7 +8,7 @@
 #include "Lab/CPLabTypes.h"
 #include "CPThrowablePropBase.generated.h"
 
-struct FCPLabIngredientInstance;
+struct FCPItemInstance;
 class UCPForageableItemData;
 class USceneComponent;
 class UStaticMeshComponent;
@@ -132,7 +132,7 @@ protected:
     float PushMaxAngularSpeed = 80.f;
 
     UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Prop|Data")
-    FCPLabIngredientInstance WorkingIngredient;
+    FCPItemInstance WorkingIngredient;
     
     UPROPERTY()
     TObjectPtr<AActor> LastThrower;

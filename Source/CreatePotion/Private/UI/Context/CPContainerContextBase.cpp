@@ -27,7 +27,7 @@ bool UCPContainerContextBase::HandleLeftClickOnly(UCPGridSlotWidgetBase* Clicked
         UCPItemSlotWidget* ItemSlot = Cast<UCPItemSlotWidget>(ClickedSlot);
         
         // (다운캐스팅 실패 or 다운캐스팅 이후에 ItemDA가 없으면) = 빈 슬롯이면
-        if (!ItemSlot || !ItemSlot->CachedItemData.ItemDataAsset)
+        if (!ItemSlot || !ItemSlot->CachedItemData.Instance.SourceItemData)
         {
             return false; // 빈 슬롯이면 false를 리턴하며 아무 것도 하지 않음
         }
@@ -36,7 +36,7 @@ bool UCPContainerContextBase::HandleLeftClickOnly(UCPGridSlotWidgetBase* Clicked
         if (ClickedSlot->OwnerContainer->PopItemFromContainer(ClickedSlot->SlotGridIndex, PoppedItem))
         {
             UE_LOG(LogContainer, Warning, TEXT("[Pick] 집기 성공: %s, Hand 컨테이너 개수: %d"),
-                *PoppedItem.ItemDataAsset->DisplayName.ToString(), PC->LeftClickPickedContainer->ContainerItems.Num());
+                *PoppedItem.Instance.SourceItemData->DisplayName.ToString(), PC->LeftClickPickedContainer->ContainerItems.Num());
 
             PoppedItem.GridIndex = 0; // Hand 컨테이너는 1칸만 존재
             PC->LeftClickPickedContainer->ContainerItems.Add(PoppedItem);
@@ -84,13 +84,13 @@ bool UCPContainerContextBase::HandleAltLeftClick(UCPGridSlotWidgetBase* ClickedS
     }
 
     UCPItemSlotWidget* ItemSlot = Cast<UCPItemSlotWidget>(ClickedSlot);
-    if (!ItemSlot || !ItemSlot->CachedItemData.ItemDataAsset)
+    if (!ItemSlot || !ItemSlot->CachedItemData.Instance.SourceItemData)
     {
         return false; // 빈 슬롯
     }
 
     // 삭제되기 전에 미리 값으로 떠둠 (RemoveItemFromContainer가 배열 항목을 지울 수 있으므로)
-    UCPForageableItemData* ItemData = ItemSlot->CachedItemData.ItemDataAsset;
+    UCPForageableItemData* ItemData = ItemSlot->CachedItemData.Instance.SourceItemData;
 
     // 스택 전체가 아니라 딱 1개만 차감
     if (!ClickedSlot->OwnerContainer->RemoveItemFromContainer(ClickedSlot->SlotGridIndex, 1))

@@ -26,7 +26,7 @@ class CREATEPOTION_API UCPLabIngredientInfoWidget : public UCPBaseUserWidget
 public:
 	// Actor를 계속 추적하지 않고 전달받은 순간의 재료 정보만 표시한다.
 	UFUNCTION(BlueprintCallable, Category = "Lab|UI|Ingredient")
-	void SetIngredientInfo(const FCPLabIngredientInstance& InIngredient);
+	void SetIngredientInfo(const FCPItemInstance& InIngredient);
 
 	// 월드의 Prop를 관찰하며 작업 데이터가 바뀔 때마다 자동으로 다시 표시한다.
 	UFUNCTION(BlueprintCallable, Category = "Lab|UI|Ingredient")
@@ -90,7 +90,7 @@ private:
 	FText GetEffectDisplayName(const FGameplayTag& EffectTag) const;
 
 	UPROPERTY(Transient)
-	FCPLabIngredientInstance Ingredient;
+	FCPItemInstance Ingredient;
 
 	// Actor의 생명주기를 UI가 연장하지 않도록 약한 참조로 관찰한다.
 	UPROPERTY(Transient)

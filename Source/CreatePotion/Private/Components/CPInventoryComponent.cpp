@@ -156,7 +156,7 @@ int32 UCPInventoryComponent::TryGetItem(UCPForageableItemData* InItemData, int32
 	if (LeftoverCount > 0)
 	{
 		FContainerItem TempItem;
-		TempItem.ItemDataAsset = InItemData;
+		TempItem.Instance.SourceItemData = InItemData;
 		TempItem.Stacked = LeftoverCount;
 		TempItem.GridIndex = -1; // 임시 인벤토리임을 나타내는 인덱스
 
