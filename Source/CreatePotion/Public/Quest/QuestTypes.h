@@ -26,6 +26,23 @@ struct FQuestData : public FTableRowBase
 	// 퀘스트 요약 (수락 후 저널에서 다시 확인할 때 표시)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerFacing")
 	FText QuestSummaryText;
+
+	// ===================================================================
+	// [스토리 진행 - NPC별 독립 스토리 관리용]
+	// ===================================================================
+
+	// 이 퀘스트가 소속된 NPC 식별자 (UCPNPCDataAsset::NPCName과 일치해야 함)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Story")
+	FName OwningNPCId;
+
+	// 이 퀘스트가 노출되려면 해당 NPC 스토리가 최소 몇 단계여야 하는지
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Story")
+	int32 RequiredStoryStage = 0;
+
+	// 이 퀘스트를 완료하면 해당 NPC 스토리를 이 단계로 진행시킴 (-1이면 스토리 진행에 영향 없음)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Story")
+	int32 AdvanceToStage = -1;
+
 };
 
 // ===================================================================
