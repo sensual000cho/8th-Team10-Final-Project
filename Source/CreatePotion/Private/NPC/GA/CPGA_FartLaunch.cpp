@@ -11,19 +11,15 @@
 UCPGA_FartLaunch::UCPGA_FartLaunch()
 {
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
-	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Immunity.Potion.FartLaunch")));
+	ImmunityTag = FGameplayTag::RequestGameplayTag(FName("Immunity.Potion.FartLaunch"));
 }
 
 void UCPGA_FartLaunch::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 
-	ACPBaseNPC* TargetCharacter = GetOwningPotionNPC(ActorInfo);
-	if (!IsValid(TargetCharacter) || !HasAuthority(&ActivationInfo))
-	{
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
-		return;
-	}
+	ACPBaseNPC* TargetCharacter = GetValidatedOwningPotionNPC(Handle, ActorInfo, ActivationInfo);
+	if (!TargetCharacter) return;
 
 	bIsRagdolling = false;
 	LastMeshHitTime = 0.f;
