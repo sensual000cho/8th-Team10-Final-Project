@@ -55,7 +55,7 @@ public:
 	
 	// Tags 사전 순 정렬, (TODO)태그 조합 반영
 	UFUNCTION(BlueprintCallable, Category = "Lab|Potion")
-	bool RefinePotion(const TArray<FGameplayTag>& EffectTags, const FTransform& SpawnTransform);
+	bool RefinePotion(const TArray<FGameplayTag>& EffectTags, const FTransform& SpawnTransform, const FVector& SpawnImpulse);
 	
 	// 상호작용으로 전달된 Potion Prop의 결과를 납품 결과 구조로 변환
 	UFUNCTION(BlueprintCallable, Category = "Lab|Result")
@@ -71,7 +71,7 @@ private:
 	void ClearSpawnedIngredients();
 	
 	// Potion Spawn
-	bool SpawnPotion(const TArray<FGameplayTag>& EffectTags, const FTransform& SpawnTransform);
+	bool SpawnPotion(const TArray<FGameplayTag>& EffectTags, const FTransform& SpawnTransform, const FVector& SpawnImpulse);
 
 private:	
 	// 초기 재료 배치에 사용할 DA

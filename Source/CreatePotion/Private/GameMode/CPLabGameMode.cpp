@@ -43,7 +43,7 @@ bool ACPLabGameMode::AdvancePotionRequest()
 	return true;
 }
 
-bool ACPLabGameMode::RefinePotion(const TArray<FGameplayTag>& EffectTags, const FTransform& SpawnTransform)
+bool ACPLabGameMode::RefinePotion(const TArray<FGameplayTag>& EffectTags, const FTransform& SpawnTransform, const FVector& SpawnImpulse)
 {
 	TArray<FGameplayTag> SortedEffectTags = EffectTags;
 	// 사전 순 정렬
@@ -52,7 +52,7 @@ bool ACPLabGameMode::RefinePotion(const TArray<FGameplayTag>& EffectTags, const 
 		return A.ToString() < B.ToString();
 	});
 	
-	if (!SpawnPotion(SortedEffectTags, SpawnTransform)) return false;
+	if (!SpawnPotion(SortedEffectTags, SpawnTransform, SpawnImpulse)) return false;
 	
 	return true;
 }
@@ -99,7 +99,7 @@ void ACPLabGameMode::ClearSpawnedIngredients()
 	SpawnedIngredients.Reset();
 }
 
-bool ACPLabGameMode::SpawnPotion(const TArray<FGameplayTag>& EffectTags, const FTransform& SpawnTransform)
+bool ACPLabGameMode::SpawnPotion(const TArray<FGameplayTag>& EffectTags, const FTransform& SpawnTransform, const FVector& SpawnImpulse)
 {
 	UWorld* World = GetWorld();
 	if (!World || !PotionItemData) return false;
@@ -120,6 +120,7 @@ bool ACPLabGameMode::SpawnPotion(const TArray<FGameplayTag>& EffectTags, const F
 	
 	// 정렬된 Tags로 초기화
 	Potion->InitializeFromItemData(PotionItemData, EffectTags);
+	// Impuse 적용
+	Potion->ApplySpawnImpulse(SpawnImpulse);
 	return true;
-	//return AdvancePotionRequest();
 }
