@@ -104,6 +104,11 @@ bool UCPContainerContextBase::HandleAltLeftClick(UCPGridSlotWidgetBase* ClickedS
     return true;
 }
 
+bool UCPContainerContextBase::TryEquipItemAt(UCPItemContainerComponent* Container, int32 GridIndex)
+{
+    return false;
+}
+
 bool UCPContainerContextBase::IsUsingInventoryOnly(ACPPlayerController* PC) const
 {
 	return PC && PC->CurrentInteractingContainer == nullptr;
