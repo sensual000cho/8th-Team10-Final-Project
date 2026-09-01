@@ -24,13 +24,9 @@ class CREATEPOTION_API UCPLabIngredientInfoWidget : public UCPBaseUserWidget
 	GENERATED_BODY()
 
 public:
-	// Actor를 계속 추적하지 않고 전달받은 순간의 재료 정보만 표시한다.
-	UFUNCTION(BlueprintCallable, Category = "Lab|UI|Ingredient")
-	void SetIngredientInfo(const FCPLabIngredientInstance& InIngredient);
-
 	// 월드의 Prop를 관찰하며 작업 데이터가 바뀔 때마다 자동으로 다시 표시한다.
 	UFUNCTION(BlueprintCallable, Category = "Lab|UI|Ingredient")
-	void SetObservedIngredient(ACPThrowablePropBase* InProp);
+	void SetIngredientProp(ACPThrowablePropBase* InProp);
 
 	UFUNCTION(BlueprintCallable, Category = "Lab|UI|Ingredient")
 	void ClearObservedIngredient();
@@ -80,9 +76,6 @@ private:
 
 	// 다른 Prop으로 갈아타거나 위젯이 파괴될 때 이전 Prop의 델리게이트를 반드시 해제한다.
 	void UnbindObservedIngredient();
-
-	UFUNCTION()
-	void HandleObservedIngredientChanged();
 
 	void RefreshWidget();
 	void RefreshEmptyState();

@@ -52,7 +52,7 @@ bool UCPCauldronComponent::ExecuteInteraction(AActor* Interactor)
 	if (!BoundIngredientTrigger) return false;
 	
 	ACPLabGameMode* LabGameMode = Cast<ACPLabGameMode>(UGameplayStatics::GetGameMode(this));
-	if (!LabGameMode || !LabGameMode->RefinePotion(GetEffectTags(), MakePotionTransform(), MakeSpawnImpulse())) return false;
+	if (!LabGameMode || !LabGameMode->CreatePotion(GetEffectTags(), MakePotionTransform(), MakeSpawnImpulse())) return false;
 	
 	IngredientInstances.Reset();
 	return true;

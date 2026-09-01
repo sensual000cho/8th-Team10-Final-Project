@@ -16,14 +16,7 @@ void UCPLabIngredientInfoWidget::NativeConstruct()
 	RefreshWidget();
 }
 
-void UCPLabIngredientInfoWidget::SetIngredientInfo(const FCPLabIngredientInstance& InIngredient)
-{
-	// 스냅샷 표시로 전환할 때 이전 Actor의 변경 이벤트가 섞이지 않도록 관찰을 먼저 끝낸다.
-	UnbindObservedIngredient();
-	ApplyIngredientInfo(InIngredient);
-}
-
-void UCPLabIngredientInfoWidget::SetObservedIngredient(ACPThrowablePropBase* InProp)
+void UCPLabIngredientInfoWidget::SetIngredientProp(ACPThrowablePropBase* InProp)
 {
 	if (ObservedIngredientProp.Get() != InProp)
 	{
@@ -81,11 +74,6 @@ void UCPLabIngredientInfoWidget::RefreshObservedIngredient()
 void UCPLabIngredientInfoWidget::UnbindObservedIngredient()
 {
 	ObservedIngredientProp.Reset();
-}
-
-void UCPLabIngredientInfoWidget::HandleObservedIngredientChanged()
-{
-	RefreshObservedIngredient();
 }
 
 void UCPLabIngredientInfoWidget::UnbindEvents()

@@ -24,7 +24,7 @@ protected:
 
 private:
 	UFUNCTION()
-	void HandlePropChanged(ACPThrowablePropBase* HeldProp);
+	void HandlePropChanged(ACPThrowablePropBase* Prop);
 
 	UFUNCTION()
 	void HandleInteractionFocusChanged(FText Prompt, FName TargetName, ECPInteractionDisplayState DisplayState);
@@ -42,5 +42,5 @@ private:
 	TWeakObjectPtr<UCPInteractionComponent> BoundInteractionComponent;
 
 	UPROPERTY(Transient)
-	TWeakObjectPtr<ACPThrowablePropBase> PreviewProp;
+	TWeakObjectPtr<ACPThrowablePropBase> HeldProp;
 };
