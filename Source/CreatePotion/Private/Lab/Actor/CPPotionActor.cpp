@@ -18,64 +18,52 @@ FName ACPPotionActor::GetInteractionName_Implementation()
         FName(*WorkingIngredient.SourceItemData->DisplayName.ToString()) : Super::GetInteractionName_Implementation();   
 }
 
+void ACPPotionActor::ApplySpawnImpulse(const FVector& SpawnImpulse)
+{
+    if (!IsValid(StaticMeshComponent)) return;
+    
+    StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+    StaticMeshComponent->SetGenerateOverlapEvents(true);
+    StaticMeshComponent->SetLinearDamping(PostImpactLinearDamping);
+    StaticMeshComponent->SetAngularDamping(PostImpactAngularDamping);
+    StaticMeshComponent->SetSimulatePhysics(true);
+    StaticMeshComponent->WakeAllRigidBodies();
+    StaticMeshComponent->AddImpulse(SpawnImpulse);
+    
+    SetPropState(ECPThrowablePropState::Dropped);
+    StartRestCheck();
+}
+
 void ACPPotionActor::HandleThrowStarted(AActor* Thrower)
 {
     Super::HandleThrowStarted(Thrower);
-
-    if (!IsValid(PotionImpactComponent))
-    {
-        UE_LOG(LogTemp, Warning, TEXT("[PotionActor] PotionImpactComponent가 없습니다."));
-        return;
-    }
+    if (!IsValid(PotionImpactComponent)) return;
 
     APawn* ThrowingPawn = Cast<APawn>(Thrower);
-
-    if (!IsValid(ThrowingPawn))
-    {
-        UE_LOG(LogTemp, Warning, TEXT("[PotionActor] 투척자를 Pawn으로 변환할 수 없습니다."));
-        return;
-    }
-
-    if (!PotionImpactComponent->EnableImpactProcessing(ThrowingPawn))
-    {
-        UE_LOG(LogTemp, Warning, TEXT("[PotionActor] Impact 처리 활성화에 실패했습니다."));
-        return;
-    }
-
-    UE_LOG(LogTemp, Log, TEXT("[PotionActor] Impact 처리 활성화: %s"), *GetName());
+    if (!IsValid(ThrowingPawn)) return;
+    
+    // Impact 처리
+    PotionImpactComponent->EnableImpactProcessing(ThrowingPawn);
 }
 
 void ACPPotionActor::HandleThrownImpact(AActor* OtherActor, const FHitResult& HitResult)
 {
     Super::HandleThrownImpact(OtherActor, HitResult);
 
-    if (bExplosionTriggered || !IsValid(PotionImpactComponent))
-    {
-        return;
-    }
+    if (bExplosionTriggered || !IsValid(PotionImpactComponent)) return;
     
     // 플레이어 제외
-    if (IsValid(OtherActor) && OtherActor == LastThrower.Get())
-    {
-        return;
-    }
+    if (IsValid(OtherActor) && OtherActor == LastThrower.Get()) return;
 
     // 포션 컴포넌트에서 첫 Impact시 폭발로 넘어감
-    if (!PotionImpactComponent->TryTriggerPotionImpact(HitResult, GetWorkingIngredient().CurrentEffects))
-    {
-        return;
-    }
+    if (!PotionImpactComponent->TryTriggerPotionImpact(HitResult, GetWorkingIngredient().CurrentEffects)) return;
 
     TriggerPotionExplosion(HitResult);
 }
 
 void ACPPotionActor::TriggerPotionExplosion(const FHitResult& HitResult)
 {
-    if (bExplosionTriggered)
-    {
-        return;
-    }
-
+    if (bExplosionTriggered) return;
     bExplosionTriggered = true;
 
     // Base의 정지 확인 타이머 중단
@@ -100,14 +88,5 @@ void ACPPotionActor::TriggerPotionExplosion(const FHitResult& HitResult)
 
     // 이펙트 생성 지점(나이아가라, 사운드)
     K2_OnPotionExploded(HitResult);
-
-    UE_LOG(
-        LogTemp,
-        Log,
-        TEXT("[PotionActor] 포션 폭발: %s / 충돌 대상: %s"),
-        *GetName(),
-        IsValid(HitResult.GetActor()) ? *HitResult.GetActor()->GetName() : TEXT("없음")
-    );
-
     Destroy();
 }
