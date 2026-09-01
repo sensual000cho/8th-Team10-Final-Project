@@ -25,7 +25,7 @@ class CREATEPOTION_API UCPInventoryComponent : public UCPItemContainerComponent
 public:
 	UCPInventoryComponent();
 
-	virtual int32 TryGetItem(UCPForageableItemData* InItemData, int32 Count) override;
+	virtual int32 TryGetItemFromData(UCPForageableItemData* InItemData, int32 Count) override;
 
 protected:
 	virtual void BeginPlay() override;

@@ -148,9 +148,9 @@ void UCPInventoryComponent::CloseInventoryUI()
 	}
 }
 
-int32 UCPInventoryComponent::TryGetItem(UCPForageableItemData* InItemData, int32 Count)
+int32 UCPInventoryComponent::TryGetItemFromData(UCPForageableItemData* InItemData, int32 Count)
 {
-	int32 LeftoverCount = Super::TryGetItem(InItemData, Count);
+	int32 LeftoverCount = Super::TryGetItemFromData(InItemData, Count);
 
 	// 가방이 꽉 차서 남은 아이템이 반환되었을 때 임시 인벤토리에 저장
 	if (LeftoverCount > 0)
