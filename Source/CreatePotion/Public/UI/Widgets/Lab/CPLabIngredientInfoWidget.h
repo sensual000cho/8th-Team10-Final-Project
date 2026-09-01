@@ -62,10 +62,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lab|UI|Ingredient")
 	TSubclassOf<UCPLabIngredientEffectRowWidget> EffectRowWidgetClass;
 
-	// 화면에 표시할 이름만 덮어쓴다. 효과의 실제 식별자는 계속 GameplayTag를 사용한다.
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lab|UI|Ingredient")
-	TMap<FGameplayTag, FText> EffectDisplayNames;
-
 	// 운반 카드처럼 위젯은 남아 있지만 재료가 없는 상태에서 표시할 문구다.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lab|UI|Ingredient")
 	FText EmptyIngredientText = FText::FromString(TEXT("비어 있음"));

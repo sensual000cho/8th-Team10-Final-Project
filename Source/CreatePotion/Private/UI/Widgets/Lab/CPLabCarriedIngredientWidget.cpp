@@ -11,7 +11,7 @@ void UCPLabCarriedIngredientWidget::NativeConstruct()
 	Super::NativeConstruct();
 
 	SetHeaderText(FText::FromString(TEXT("현재 운반중인 물체")));
-	SetVisibility(ESlateVisibility::HitTestInvisible);
+	SetVisibility(ESlateVisibility::Collapsed);
 	HandlePropChanged(IsValid(BoundCarryComponent) ? BoundCarryComponent->GetHeldProp() : nullptr);
 }
 
@@ -56,11 +56,9 @@ void UCPLabCarriedIngredientWidget::UnbindEvents()
 
 void UCPLabCarriedIngredientWidget::HandlePropChanged(ACPThrowablePropBase* Prop)
 {
-	// 슬롯 호버 카드와 달리 운반 카드는 빈손이어도 "비어 있음" 상태로 계속 표시한다.
-	SetVisibility(ESlateVisibility::HitTestInvisible);
-
 	if (IsValid(Prop))
 	{
+		SetVisibility(ESlateVisibility::HitTestInvisible);
 		SetIngredientProp(Prop);
 		BindPreviewProp(Prop);
 		ClearPreviewEffects();
@@ -70,6 +68,7 @@ void UCPLabCarriedIngredientWidget::HandlePropChanged(ACPThrowablePropBase* Prop
 	HeldProp.Reset();
 	ClearObservedIngredient();
 	ClearPreviewEffects();
+	SetVisibility(ESlateVisibility::Collapsed);
 }
 
 void UCPLabCarriedIngredientWidget::HandleInteractionFocusChanged(FText Prompt, FName TargetName, ECPInteractionDisplayState DisplayState)

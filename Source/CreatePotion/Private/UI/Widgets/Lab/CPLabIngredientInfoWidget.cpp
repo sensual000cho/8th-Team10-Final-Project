@@ -6,8 +6,10 @@
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Data/CPForageableItemData.h"
+#include "Data/CPTagDefinitionTypes.h"
 #include "Engine/Texture2D.h"
 #include "Lab/Actor/CPThrowablePropBase.h"
+#include "Settings/CPDTSettings.h"
 #include "UI/Widgets/Lab/CPLabIngredientEffectRowWidget.h"
 
 void UCPLabIngredientInfoWidget::NativeConstruct()
@@ -176,22 +178,20 @@ void UCPLabIngredientInfoWidget::RebuildEffectRows()
 
 FText UCPLabIngredientInfoWidget::GetEffectDisplayName(const FGameplayTag& EffectTag) const
 {
-	// WBP별 한글 표시 이름이 지정돼 있으면 GameplayTag 문자열보다 우선한다.
-	if (const FText* DisplayName = EffectDisplayNames.Find(EffectTag))
-	{
-		if (!DisplayName->IsEmpty())
-		{
-			return *DisplayName;
+	if (!EffectTag.IsValid()) return FText::GetEmpty();
+	
+	const UCPDTSettings* DTSettings = GetDefault<UCPDTSettings>();
+	UDataTable* TagDefinitionTable = DTSettings ? DTSettings->TagDefinitionTable.LoadSynchronous() : nullptr;
+	if (!TagDefinitionTable) return FText::GetEmpty();
+	
+	TArray<FCPTagDefinitionRow*> Rows;
+	TagDefinitionTable->GetAllRows<FCPTagDefinitionRow>(TEXT("EffectTagDefinition"), Rows);
+	
+	for (const FCPTagDefinitionRow* Row : Rows){
+		if (Row && Row->Tag == EffectTag) {
+			return Row->DisplayName;
 		}
 	}
-
-	FString FallbackName = EffectTag.ToString();
-	int32 LastSeparatorIndex = INDEX_NONE;
-	// 별도 표시 이름이 없으면 "Alchemy.BodyHeat"에서 마지막 조각인 "BodyHeat"만 보여준다.
-	if (FallbackName.FindLastChar(TEXT('.'), LastSeparatorIndex))
-	{
-		FallbackName.RightChopInline(LastSeparatorIndex + 1);
-	}
-
-	return FText::FromString(FallbackName);
+	
+	return FText::GetEmpty();
 }
