@@ -22,9 +22,9 @@ TArray<UCPForageableItemData*> UCPLabContainerComponent::GetIngredientsData() co
 
 	for (const FContainerItem& Item : ContainerItems)
 	{
-		if (Item.ItemDataAsset)
+		if (Item.Instance.SourceItemData)
 		{
-			SelectedIngredients.Add(Item.ItemDataAsset);
+			SelectedIngredients.Add(Item.Instance.SourceItemData);
 		}
 	}
 

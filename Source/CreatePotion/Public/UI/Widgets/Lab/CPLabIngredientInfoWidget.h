@@ -79,7 +79,7 @@ private:
 	FText GetEffectDisplayName(const FGameplayTag& EffectTag) const;
 
 	UPROPERTY(Transient)
-	FCPLabIngredientInstance Ingredient;
+	FCPItemInstance Ingredient;
 
 	// Actor의 생명주기를 UI가 연장하지 않도록 약한 참조로 관찰한다.
 	UPROPERTY(Transient)

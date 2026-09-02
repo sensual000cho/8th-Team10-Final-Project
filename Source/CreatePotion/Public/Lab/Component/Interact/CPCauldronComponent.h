@@ -31,7 +31,7 @@ public:
 	TArray<FGameplayTag> GetEffectTags() const;
 	
 	UFUNCTION(BlueprintPure, Category = "Lab|Interaction")
-	TArray<FCPLabIngredientInstance> GetIngredientInstance() const;
+	TArray<FCPItemInstance> GetIngredientInstance() const;
 	
 private:
 	// 현재 가마솥이 해당 재료를 받을 수 있는지 검사
@@ -59,7 +59,7 @@ private:
 	
 private:
 	UPROPERTY(VisibleAnywhere, Category = "Lab|Interaction")
-	TArray<FCPLabIngredientInstance> IngredientInstances;
+	TArray<FCPItemInstance> IngredientInstances;
 
 	UPROPERTY(EditAnywhere, Category = "Lab|Interaction")
 	int32 MaxSlotCount;

@@ -92,7 +92,7 @@ void UCPContainerGridWidget::UpdateGrid(const TArray<FContainerItem>& ContainerI
 	for (const FContainerItem& Item : ContainerItems)
 	{
 		// 데이터가 없는 빈 Grid는 무시, 반복문 바로 종료 후 다음 Grid로 이동
-		if (!Item.ItemDataAsset || Item.GridIndex < 0)
+		if (!Item.Instance.SourceItemData || Item.GridIndex < 0)
 		{
 			continue;
 		}
@@ -112,8 +112,8 @@ void UCPContainerGridWidget::UpdateGrid(const TArray<FContainerItem>& ContainerI
 			float PosY = 0.0f;
 
 			// 아이템의 실제 크기 (패딩 포함)
-			int32 ItemW = Item.bIsRotated ? Item.ItemDataAsset->ContainerSizeY : Item.ItemDataAsset->ContainerSizeX;
-			int32 ItemH = Item.bIsRotated ? Item.ItemDataAsset->ContainerSizeX : Item.ItemDataAsset->ContainerSizeY;
+			int32 ItemW = Item.bIsRotated ? Item.Instance.SourceItemData->ContainerSizeY : Item.Instance.SourceItemData->ContainerSizeX;
+			int32 ItemH = Item.bIsRotated ? Item.Instance.SourceItemData->ContainerSizeX : Item.Instance.SourceItemData->ContainerSizeY;
 
 			const UCPContainerUISettings* Settings = GetDefault<UCPContainerUISettings>();
 			float SlotSize = Settings->SlotSize;

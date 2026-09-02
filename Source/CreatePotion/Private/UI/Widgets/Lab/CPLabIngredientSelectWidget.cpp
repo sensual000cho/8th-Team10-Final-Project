@@ -76,7 +76,7 @@ void UCPLabIngredientSelectWidget::AddTestItems()
 		{
 			if (ItemData)
 			{
-				InventoryComp->TryGetItem(ItemData, 1);
+				InventoryComp->TryGetItemFromData(ItemData, 1);
 			}
 		}
 	}
