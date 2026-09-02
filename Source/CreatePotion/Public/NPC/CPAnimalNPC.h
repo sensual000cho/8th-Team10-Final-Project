@@ -15,6 +15,6 @@ public:
 	virtual FName GetPotionNPCId() const override;
 
 protected:
-	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "NPC|Identity")
-	FName UniqueAnimalID = NAME_None;
+	UPROPERTY(Transient)
+	mutable FName CachedPotionNPCId = NAME_None;
 };

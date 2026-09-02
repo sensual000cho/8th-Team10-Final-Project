@@ -7,9 +7,13 @@ ACPAnimalNPC::ACPAnimalNPC()
 
 FName ACPAnimalNPC::GetPotionNPCId() const
 {
-	if (UniqueAnimalID != NAME_None)
+	if (!CachedPotionNPCId.IsNone())
 	{
-		return UniqueAnimalID;
+		return CachedPotionNPCId;
 	}
-	return GetFName();
+
+	const FString UniquePathName = GetPathName();
+	CachedPotionNPCId = FName(*UniquePathName);
+
+	return CachedPotionNPCId;
 }
