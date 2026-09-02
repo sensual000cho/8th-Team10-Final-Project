@@ -212,47 +212,7 @@ void UCPInteractionComponent::PerformTrace()
 	
 	AActor* FoundActor = bInteractionHit ? InteractionHit.GetActor() : nullptr;
 
-	if (FoundActor && FoundActor->Implements<UCPInteractable>())
-	{
-		// 같은 대상을 계속 보고 있다면 매번 호출 X
-		if (CurrentTarget.Get() == FoundActor)
-		{
-			return;
-		}
-		
-		// 이전 대상 하이라이트 끄기
-		if (AActor* PrevTarget = CurrentTarget.Get())
-		{
-			SetActorHighlight(PrevTarget, false);
-		}
-		
-		CurrentTarget = FoundActor;
-		
-		// 새 대상 하이라이트 켜기
-		SetActorHighlight(FoundActor, true);
-		
-		if (UCPInteractableComponent* InteractableComp = FoundActor->FindComponentByClass<UCPInteractableComponent>())
-		{
-			if (InteractableComp->CanInteract())
-			{
-				const FText Prompt = InteractableComp->GetInteractionPrompt();
-				const FName TargetName = InteractableComp->GetInteractionName();
-				OnPromptChanged.Broadcast(Prompt, TargetName);
-			}
-		}
-		else
-		{
-			UE_LOG(LogTemp, Error, TEXT("[InteractionComponent] 대상 액터에 InteractableComponent가 없습니다."));
-		}
-		
-		const FText Prompt = ICPInteractable::Execute_GetInteractionPrompt(FoundActor);
-		const FName TargetName = ICPInteractable::Execute_GetInteractionName(FoundActor);
-		OnPromptChanged.Broadcast(Prompt, TargetName);
-	}
-	else
-	{
-		ClearCurrentTarget();
-	}
+	UpdateCurrentTarget(FoundActor);
 }
 
 void UCPInteractionComponent::ClearCurrentTarget()
@@ -272,6 +232,45 @@ void UCPInteractionComponent::ClearCurrentTarget()
 	OnPromptChanged.Broadcast(FText::GetEmpty(), NAME_None);
 }
 
+void UCPInteractionComponent::UpdateCurrentTarget(AActor* NewTarget)
+{
+	// 같은 대상을 계속 보고 있다면 매번 호출 X
+	if (CurrentTarget.Get() == NewTarget)
+	{
+		return;
+	}
+		
+	// 이전 대상 UI, 하이라이트 끄기
+	if (CurrentTarget != NewTarget && CurrentTarget != nullptr)
+	{
+		// UI 끄기
+		if (UCPInteractableComponent* OldComp = CurrentTarget->FindComponentByClass<UCPInteractableComponent>())
+		{
+			OldComp->EndFocus(GetOwner());
+		}
+		
+		// 하이라이트 끄기
+		SetActorHighlight(CurrentTarget.Get(), false);
+	}
+	
+		
+	CurrentTarget = NewTarget;
+	if (!CurrentTarget.IsValid()) return;
+	if (UCPInteractableComponent* InteractableComp = CurrentTarget->FindComponentByClass<UCPInteractableComponent>())
+	{
+		if (InteractableComp->CanInteract())
+		{
+			InteractableComp->BeginFocus(GetOwner());
+			// 새 타겟 하이라이트 켜기
+			SetActorHighlight(CurrentTarget.Get(), true);
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("[InteractionComponent] 대상 액터에 InteractableComponent가 없습니다."));
+	}
+}
+
 void UCPInteractionComponent::TryInteract()
 {
 	// 시간형 상호작용 실행중엔 상호작용 Try 하지 않음
@@ -288,16 +287,18 @@ void UCPInteractionComponent::TryInteract()
 	AActor* Target = CurrentTarget.Get();
 	AActor* Interactor = GetOwner();
 	
-	if (!Target || !Target->Implements<UCPInteractable>())
+	if (!Target || !Target->FindComponentByClass<UCPInteractableComponent>())
 	{
 		return;
 	}
 	
-	if (!ICPInteractable::Execute_CanInteract(Target, Interactor))
+	UCPInteractableComponent* InteractableComp = Target->GetComponentByClass<UCPInteractableComponent>();
+	if (!InteractableComp->CanInteract())
 	{
 		return;
 	}
 	
+	// TODO: Timedinteractable 인터페이스도 상호작용 액터 컴포넌트로 리팩토링할 것.
 	if (Target->Implements<UCPTimedInteractable>())
 	{
 		const float Duration = ICPTimedInteractable::Execute_GetInteractionDuration(Target, Interactor);
@@ -310,7 +311,8 @@ void UCPInteractionComponent::TryInteract()
 	}
 
 	// 시간형 인터페이스가 없으면 일반 상호작용 실행
-	ICPInteractable::Execute_OnInteract(Target, Interactor);
+	//ICPInteractable::Execute_OnInteract(Target, Interactor);
+	InteractableComp->Interact(Interactor);
 }
 
 void UCPInteractionComponent::StartTimedInteraction(AActor* Target, float Duration)
@@ -382,20 +384,25 @@ void UCPInteractionComponent::CompleteTimedInteraction()
 	
 	OnInteractionCompleted.Broadcast();
 
-	if (!Target || !Target->Implements<UCPInteractable>())
+	UCPInteractableComponent* InteractableComp = Target->GetComponentByClass<UCPInteractableComponent>();
+	if (!Target || !InteractableComp)
 	{
 		return;
 	}
 
 	// 시간이 끝나면 기존 OnInteract 호출
-	ICPInteractable::Execute_OnInteract(
-		Target,
-		Interactor
-	);
+	// ICPInteractable::Execute_OnInteract(
+	// 	Target,
+	// 	Interactor
+	// );
+	
+	InteractableComp->Interact(Interactor);
+	
 }
 
 void UCPInteractionComponent::SetActorHighlight(AActor* Target, bool bHighlighted)
 {
+	// TODO: 하이라이트 로직 InteractableActorComponent로 옮기기
 	UE_LOG(LogTemp, Warning, TEXT("[InteractionComponent] SetActorHighlight 호출됨"));
 	
 	if (!Target) return;

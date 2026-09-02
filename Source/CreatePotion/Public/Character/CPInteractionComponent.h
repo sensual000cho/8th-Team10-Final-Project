@@ -49,6 +49,7 @@ public:
 private:
 	void PerformTrace(); // 타이머로 주기 실행
 	void ClearCurrentTarget();
+	void UpdateCurrentTarget(AActor* NewTarget);
 	
 	// --- Timed Interaction ---
 	void StartTimedInteraction(AActor* Target, float Duration);

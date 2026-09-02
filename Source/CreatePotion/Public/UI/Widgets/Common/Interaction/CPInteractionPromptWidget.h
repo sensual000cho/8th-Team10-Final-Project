@@ -16,12 +16,17 @@ class CREATEPOTION_API UCPInteractionPromptWidget : public UCPBaseFixedWidget
 {
 	GENERATED_BODY()
 	
-protected:
-	virtual void BindEvents() override;
-	virtual void UnbindEvents() override;
+public:
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void UpdateUI(const FText& Prompt, const FName& TargetName);
 	
-	UFUNCTION()
-	void OnPromptChanged(FText Prompt, FName TargetName);
+protected:
+	
+	// virtual void BindEvents() override;
+	// virtual void UnbindEvents() override;
+	
+	// UFUNCTION()
+	// void OnPromptChanged(FText Prompt, FName TargetName);
 
 protected:
 	UPROPERTY(meta = (BindWidget))
