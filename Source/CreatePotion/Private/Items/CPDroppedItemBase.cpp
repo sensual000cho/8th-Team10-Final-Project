@@ -48,7 +48,7 @@ void ACPDroppedItemBase::OnInteract_Implementation(AActor* Interactor)
 	UCPInventoryComponent* Inventory = Interactor->FindComponentByClass<UCPInventoryComponent>();
 	if (!Inventory) return;
 	
-	Inventory->TryGetItem(ItemData, Amount);
+	Inventory->TryGetItemFromData(ItemData, Amount);
 	
 	UCPObjectPoolSubsystem* Pool = GetWorld()->GetSubsystem<UCPObjectPoolSubsystem>();
 	if (Pool)

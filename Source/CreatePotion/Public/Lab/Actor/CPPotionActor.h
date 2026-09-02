@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameplayTagContainer.h"
 #include "Lab/Actor/CPThrowablePropBase.h"
 #include "CPPotionActor.generated.h"
 
@@ -18,6 +17,9 @@ public:
 	ACPPotionActor();
 
 	virtual FName GetInteractionName_Implementation() override;
+	
+	// Spawn Impulse 적용
+	void ApplySpawnImpulse(const FVector& SpawnImpulse);
 
 protected:
 	virtual void HandleThrowStarted(AActor* Thrower) override;
