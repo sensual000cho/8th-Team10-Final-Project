@@ -52,6 +52,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "NPC")
 	FVector GetBaseMeshScale() const { return BaseMeshScale; }
 
+	UFUNCTION(BlueprintPure, Category = "NPC|Data")
+	const UCPNPCDataAsset* GetNPCData() const { return NPCData; }
+
 	// NPC 캡슐 컴포넌트 반경과 높이 적용
 	UFUNCTION(BlueprintCallable, Category = "NPC")
 	void FitCapsuleToMesh(USkeletalMesh* NPCMesh);

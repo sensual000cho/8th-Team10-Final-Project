@@ -37,4 +37,10 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Sound")
 	USoundBase* FartSound;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Potion|Bouncy")
+	FLinearColor SlimeInnerColor = FLinearColor(0.02f, 0.25f, 0.05f, 1.0f);
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Potion|Bouncy")
+	FLinearColor SlimeOuterColor = FLinearColor(0.2f, 1.0f, 0.4f, 1.0f);
 };
