@@ -144,7 +144,11 @@ void UCPContainerContextBase::SpawnDroppedProp(UCPForageableItemData* ItemData, 
 
     FVector BaseLocation = NearActor->GetActorLocation() + NearActor->GetActorForwardVector() * 100.f;
 
-    // TODO[Container] : 현재는 Count 개수만큼 반복해서 버리도록 설정되어 있음
+    // TODO[Container] : 현재는 Count 개수만큼 반복해서 버리도록 설정되어 있고, Count는 1개만 버리도록 하드코딩하고 있음
+    // 
+    // TODO[Container] : 포션까지 Prop화 되기 위해서는 ACPAlchemyProp 대신 ACPThrowablePropBase를 이용하고
+    // InitializeFromItemData의 인자에 EffectTags를 추가로 전달하도록 리팩토링 해야함
+    // 
     // Prop에 Count 개수가 반영되면 추후 일괄 버리기 기능으로 Count 개수가 합쳐진 1개의 Prop만 드롭되도록 
     for (int32 i = 0; i < Count; ++i)
     {
