@@ -37,8 +37,11 @@ private:
 	// 현재 가마솥이 해당 재료를 받을 수 있는지 검사
 	bool CanAcceptProp(const ACPAlchemyProp* Prop) const;
 	
-	// SpawnMesh의 상단 Spawn 위치 계산
+	// IngredientTrigger의 Bounds 상단 Spawn 위치 계산
 	FTransform MakePotionTransform() const;
+	
+	// 포션 생성 직후 적용할 Impulse 계산
+	FVector MakeSpawnImpulse() const;
 	
 	// 가마솥 내부 Trigger 진입 처리
 	UFUNCTION()
@@ -64,9 +67,16 @@ private:
 	// 가마솥 내부에 배치한 Box/Sphere Collision 지정
 	UPROPERTY(EditAnywhere, Category = "Lab|Interaction")
 	FComponentReference IngredientTrigger;
-
+	
+	// Impulse 값
 	UPROPERTY(EditAnywhere, Category = "Lab|Potion")
-	FComponentReference PotionSpawnMesh;
+	float UpImpulse;
+	
+	UPROPERTY(EditAnywhere, Category = "Lab|Potion")
+	float RandomImpulseMin;
+	
+	UPROPERTY(EditAnywhere, Category = "Lab|Potion")
+	float RandomImpulseMax;
 
 	UPROPERTY()
 	TObjectPtr<UPrimitiveComponent> BoundIngredientTrigger;

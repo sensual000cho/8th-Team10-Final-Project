@@ -34,9 +34,6 @@ public:
 	
 private:
 	UPROPERTY(Transient)
-	FCPPotionDeliveryResult PendingThrownPotionDeliveryResult;
-
-	UPROPERTY(Transient)
 	TObjectPtr<UCPLabResultWidget> ActiveResultWidget;
 
 	UPROPERTY()

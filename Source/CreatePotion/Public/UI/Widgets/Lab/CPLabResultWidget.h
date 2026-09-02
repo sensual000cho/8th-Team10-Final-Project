@@ -38,7 +38,7 @@ public:
 	void AddTipRow(const FText& InReasonText, const FText& InAmountText);
 	
 	//UI 내용 채우는 함수
-	bool InitializeResult(const FCPPotionDeliveryResult& DeliveryResult);
+	bool InitializeResult();
 
 protected:
 	// WBP가 제거될 때 버튼 이벤트 연결을 해제해 중복 호출과 남은 참조를 방지한다.
