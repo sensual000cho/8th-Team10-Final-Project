@@ -7,6 +7,7 @@
 #include "CPContainerSubsystem.generated.h"
 
 struct FContainerItem;
+class UCPInventoryComponent;
 
 UCLASS()
 class CREATEPOTION_API UCPContainerSubsystem : public UGameInstanceSubsystem
