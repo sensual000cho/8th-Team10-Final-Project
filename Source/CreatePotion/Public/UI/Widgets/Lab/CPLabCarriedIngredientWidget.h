@@ -8,10 +8,7 @@ class UCPCarryComponent;
 class ACPThrowablePropBase;
 class UCPInteractionComponent;
 
-/**
- * 플레이어가 현재 운반 중인 재료를 보여주는 고정 HUD 카드다.
- * 운반 재료의 데이터 출처와 빈손이어도 항상 보이게 해 준다.
- */
+// 플레이어가 현재 운반 중인 재료를 보여주는 고정 HUD 카드다.
 UCLASS()
 class CREATEPOTION_API UCPLabCarriedIngredientWidget : public UCPLabIngredientInfoWidget
 {
@@ -24,7 +21,7 @@ protected:
 
 private:
 	UFUNCTION()
-	void HandlePropChanged(ACPThrowablePropBase* HeldProp);
+	void HandlePropChanged(ACPThrowablePropBase* Prop);
 
 	UFUNCTION()
 	void HandleInteractionFocusChanged(FText Prompt, FName TargetName, ECPInteractionDisplayState DisplayState);
@@ -42,5 +39,5 @@ private:
 	TWeakObjectPtr<UCPInteractionComponent> BoundInteractionComponent;
 
 	UPROPERTY(Transient)
-	TWeakObjectPtr<ACPThrowablePropBase> PreviewProp;
+	TWeakObjectPtr<ACPThrowablePropBase> HeldProp;
 };

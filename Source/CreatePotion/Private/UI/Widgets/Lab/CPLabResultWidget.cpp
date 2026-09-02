@@ -2,8 +2,8 @@
 
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
+#include "GameMode/CPLabGameMode.h"
 #include "UI/Widgets/Lab/CPLabResultLabelValueRowWidget.h"
-#include "Quest/QuestManager.h"
 #include "UI/Widgets/Lab/Helper/CPLabResultUICalc.h"
 
 void UCPLabResultWidget::ResetResultView()
@@ -42,13 +42,15 @@ void UCPLabResultWidget::UnbindEvents()
 	Super::UnbindEvents();
 }
 
-bool UCPLabResultWidget::InitializeResult(const FCPPotionDeliveryResult& DeliveryResult)
+bool UCPLabResultWidget::InitializeResult()
 {
-	if  (! FCPLabResultUICalc::ApplyDeliveryResult(DeliveryResult, this)) return false;
-	
 	UWorld* World = GetWorld();
-	if (!World) return false;
+	ACPLabGameMode* LabGameMode = World ? World->GetAuthGameMode<ACPLabGameMode>() : nullptr;
+	if (!LabGameMode) return false;
 		
+	const FCPPotionDeliveryResult DeliveryResult = LabGameMode->GetPotionDeliveryResult();
+	if (!FCPLabResultUICalc::ApplyDeliveryResult(DeliveryResult, this)) return false;
+	
 	World->GetTimerManager().ClearTimer(AutoCloseTimerHandle);
 	World->GetTimerManager().SetTimer(
 		AutoCloseTimerHandle, this, &UCPLabResultWidget::RequestClose,	AutoCloseDelay,false);
