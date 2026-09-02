@@ -2,7 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "Types/CPItemInstanceTypes.h"
 #include "CPLabTypes.generated.h"
+
+using FCPLabIngredientInstance = FCPItemInstance;
 
 class UCPForageableItemData;
 
@@ -33,6 +36,11 @@ struct FCPLabPotionRequest
 	}
 };
 
+
+/*
+* FCPLabIngredientInstance는 FCPItemInstance으로 이름 변경,
+* FCPItemInstance는 "Types/CPItemInstanceTypes.h" 에서 새롭게 정의
+* 
 // 원본 재료 정보와 현재 효과 태그를 함께 보관하는 작업용 데이터
 USTRUCT(BlueprintType)
 struct FCPLabIngredientInstance
@@ -56,3 +64,4 @@ struct FCPLabIngredientInstance
 	}
 
 };
+*/

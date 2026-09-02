@@ -21,10 +21,13 @@ class CREATEPOTION_API UCPItemContainerComponent : public UActorComponent
 public:	
 	UCPItemContainerComponent();
 
-    // TODO : 인벤토리 내에서 같은 재료지만 Tag가 다른 재료를 저장할 일이 있을지?
-    // 있다면 Tag를 추가 인자로 받아야할 가능성이 높음
+    // DA만으로 비교 가능한 일반적인 재료
     UFUNCTION(BlueprintCallable, Category = "Container")
-    virtual int32 TryGetItem(UCPForageableItemData* InItemData, int32 Count);
+    virtual int32 TryGetItemFromData(UCPForageableItemData* InItemData, int32 Count);
+
+    // Effects 등 추가 정보가 필요한 경우 (Potion 등)
+    UFUNCTION(BlueprintCallable, Category = "Container")
+    virtual int32 TryGetItemFromInstance(const FCPItemInstance& InInstance, int32 Count);
 
     // 특정 인덱스에 특정 크기(Width, Height)의 아이템을 넣을 수 있는지 2D 충돌 검사
     bool IsGridSpaceEnough(int32 TargetIndex, int32 ItemWidth, int32 ItemHeight) const;
@@ -48,6 +51,7 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Container|Action")
     bool TryPlaceHoldingItem(UCPItemContainerComponent* HandContainer, int32 TargetIndex);
 
+    static bool AreInstancesStackable(const FCPItemInstance& A, const FCPItemInstance& B);
 protected:
 	virtual void BeginPlay() override;
 
