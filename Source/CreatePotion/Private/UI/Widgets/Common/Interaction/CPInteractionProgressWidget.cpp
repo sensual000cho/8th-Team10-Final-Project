@@ -39,7 +39,8 @@ void UCPInteractionProgressWidget::BindEvents()
 	
 	InteractionComponent->OnInteractionProgressChanged.AddDynamic(this, &ThisClass::SetProgress);
 	InteractionComponent->OnInteractionStarted.AddDynamic(this, &ThisClass::ShowWidget);
-	InteractionComponent->OnInteractionCompleted.AddDynamic(this, &ThisClass::HideWidget);
+	InteractionComponent->OnInteractionCompleted.AddDynamic(this, &ThisClass::HandleInteractionEnded);
+	InteractionComponent->OnInteractionCancelled.AddDynamic(this, &ThisClass::HandleInteractionEnded);
 }
 
 void UCPInteractionProgressWidget::UnbindEvents()
@@ -49,5 +50,14 @@ void UCPInteractionProgressWidget::UnbindEvents()
 	if (!InteractionComponent) return;
 	
 	InteractionComponent->OnInteractionProgressChanged.RemoveAll(this);
+	InteractionComponent->OnInteractionStarted.RemoveAll(this);
+	InteractionComponent->OnInteractionCompleted.RemoveAll(this);
+	InteractionComponent->OnInteractionCancelled.RemoveAll(this);
 	InteractionComponent = nullptr;
+}
+
+void UCPInteractionProgressWidget::HandleInteractionEnded()
+{
+	ResetProgress();
+	HideWidget();
 }
