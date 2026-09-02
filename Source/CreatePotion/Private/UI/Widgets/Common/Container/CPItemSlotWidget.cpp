@@ -41,10 +41,10 @@ void UCPItemSlotWidget::UpdateSlot(const FContainerItem& ItemData)
 	this->SlotGridIndex = ItemData.GridIndex;	// 아이템의 GridIndex로 업데이트
 
 	// 유효한 아이템 데이터가 있는지 확인
-	if (ItemData.ItemDataAsset)
+	if (ItemData.Instance.SourceItemData)
 	{
 		// 아이콘 텍스쳐
-		UTexture2D* LoadedTexture = ItemData.ItemDataAsset->Icon.LoadSynchronous();
+		UTexture2D* LoadedTexture = ItemData.Instance.SourceItemData->Icon.LoadSynchronous();
 		if (LoadedTexture)
 		{
 			ItemIcon->SetBrushFromTexture(LoadedTexture);
@@ -99,7 +99,7 @@ FReply UCPItemSlotWidget::NativeOnMouseButtonDoubleClick(const FGeometry& InGeom
 			CancelLeftClickCheckHandler();
 		}
 
-		if (CachedItemData.ItemDataAsset && OwnerContainer)
+		if (CachedItemData.Instance.SourceItemData && OwnerContainer)
 		{
 			if (ACPPlayerController* PC = Cast<ACPPlayerController>(GetOwningPlayer()))
 			{
@@ -117,14 +117,14 @@ FReply UCPItemSlotWidget::NativeOnMouseButtonDoubleClick(const FGeometry& InGeom
 
 int32 UCPItemSlotWidget::GetClickedSlotGridIndex(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) const
 {
-	if (!OwnerContainer || !CachedItemData.ItemDataAsset)
+	if (!OwnerContainer || !CachedItemData.Instance.SourceItemData)
 	{
 		return SlotGridIndex;
 	}
 
 	// 이 위젯(아이템)이 실제로 차지하는 칸 수 (회전 반영)
-	int32 ItemW = CachedItemData.bIsRotated ? CachedItemData.ItemDataAsset->ContainerSizeY : CachedItemData.ItemDataAsset->ContainerSizeX;
-	int32 ItemH = CachedItemData.bIsRotated ? CachedItemData.ItemDataAsset->ContainerSizeX : CachedItemData.ItemDataAsset->ContainerSizeY;
+	int32 ItemW = CachedItemData.bIsRotated ? CachedItemData.Instance.SourceItemData->ContainerSizeY : CachedItemData.Instance.SourceItemData->ContainerSizeX;
+	int32 ItemH = CachedItemData.bIsRotated ? CachedItemData.Instance.SourceItemData->ContainerSizeX : CachedItemData.Instance.SourceItemData->ContainerSizeY;
 
 	// 위젯 내부에서 마우스가 클릭된 로컬 좌표 (위젯 전체 크기 대비 비율)
 	FVector2D LocalPos = InGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
