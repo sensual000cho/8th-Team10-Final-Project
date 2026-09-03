@@ -33,4 +33,13 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Tag")
 	TArray<FCPTagCombinationEntry> Combinations;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual")
+	FLinearColor LiquidColor01;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual")
+	FLinearColor LiquidColor02;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual")
+	FLinearColor SurfaceColor01;
 };

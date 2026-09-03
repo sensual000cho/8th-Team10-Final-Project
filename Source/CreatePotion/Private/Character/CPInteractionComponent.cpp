@@ -76,20 +76,28 @@ void UCPInteractionComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (GetWorld())
 	{
-		GetWorld()->GetTimerManager().ClearTimer(
-			TraceTimerHandle
-		);
-
-		GetWorld()->GetTimerManager().ClearTimer(
-			InteractionTimerHandle
-		);
-
-		GetWorld()->GetTimerManager().ClearTimer(
-			IMCBindingTimerHandle
-		);
+		GetWorld()->GetTimerManager().ClearTimer(TraceTimerHandle);
+		GetWorld()->GetTimerManager().ClearTimer(InteractionAlignmentTimerHandle);
+		GetWorld()->GetTimerManager().ClearTimer(InteractionTimerHandle);
+		GetWorld()->GetTimerManager().ClearTimer(IMCBindingTimerHandle);
 	}
 	
 	Super::EndPlay(EndPlayReason);
+}
+
+bool UCPInteractionComponent::IsTimedInteractionAligning() const
+{
+	return InteractingTarget.IsValid() && bTimedInteractionAligning;
+}
+
+FRotator UCPInteractionComponent::GetTimedInteractionFacingRotation() const
+{
+	return MakeInteractionFacingRotation(InteractingTarget.Get());
+}
+
+float UCPInteractionComponent::GetInteractionFacingRotationSpeed() const
+{
+	return InteractionFacingRotationSpeed;
 }
 
 void UCPInteractionComponent::PerformTrace()
@@ -301,13 +309,15 @@ void UCPInteractionComponent::TryInteract()
 
 void UCPInteractionComponent::StartTimedInteraction(AActor* Target, float Duration)
 {
-	if (!Target || Duration <= 0.f || InteractingTarget.IsValid())
+	if (!IsValid(Target) || Duration <= 0.f || InteractingTarget.IsValid())
 	{
 		return;
 	}
 
 	UWorld* World = GetWorld();
-	if (!World)
+	AActor* Interactor = GetOwner();
+
+	if (!IsValid(World) || !IsValid(Interactor))
 	{
 		return;
 	}
@@ -315,18 +325,23 @@ void UCPInteractionComponent::StartTimedInteraction(AActor* Target, float Durati
 	InteractingTarget = Target;
 	InteractionDuration = Duration;
 	InteractionElapsedTime = 0.f;
+	InteractionStartLocation = Interactor->GetActorLocation();
 
-	ICPTimedInteractable::Execute_OnInteractionStarted(Target, GetOwner());
-	
-	OnInteractionStarted.Broadcast();
-	
+	bTimedInteractionAligning = true;
+	InteractionAlignmentElapsedTime = 0.f;
+
+	// AnimBP를 Release 상태로 변경
+	OnInteractionAlignmentStarted.Broadcast();
+
+	OnInteractionProgressChanged.Broadcast(0.f);
 	RefreshCurrentTargetPresentation();
 
+	// 이 타이머는 회전하지 않고 유효성만 검사
 	World->GetTimerManager().SetTimer(
-		InteractionTimerHandle,
+		InteractionAlignmentTimerHandle,
 		this,
-		&UCPInteractionComponent::UpdateTimedInteraction,
-		InteractionUpdateInterval,
+		&UCPInteractionComponent::ValidateTimedInteractionAlignment,
+		InteractionAlignmentValidationInterval,
 		true
 	);
 }
@@ -335,13 +350,21 @@ void UCPInteractionComponent::UpdateTimedInteraction()
 {
 	if (!InteractingTarget.IsValid())
 	{
-		GetWorld()->GetTimerManager().ClearTimer(InteractionTimerHandle);
+		CancelTimedInteraction();
+		return;
+	}
+
+	if (HasInteractorMoved())
+	{
+		CancelTimedInteraction();
 		return;
 	}
 
 	InteractionElapsedTime += InteractionUpdateInterval;
-	
-	OnInteractionProgressChanged.Broadcast(InteractionElapsedTime / InteractionDuration);
+
+	const float Progress = InteractionDuration > 0.f ? FMath::Clamp(InteractionElapsedTime / InteractionDuration, 0.f, 1.f) : 0.f;
+
+	OnInteractionProgressChanged.Broadcast(Progress);
 
 	if (InteractionElapsedTime >= InteractionDuration)
 	{
@@ -357,6 +380,7 @@ void UCPInteractionComponent::CompleteTimedInteraction()
 		return;
 	}
 
+	World->GetTimerManager().ClearTimer(InteractionAlignmentTimerHandle);
 	World->GetTimerManager().ClearTimer(InteractionTimerHandle);
 
 	AActor* Target = InteractingTarget.Get();
@@ -367,9 +391,16 @@ void UCPInteractionComponent::CompleteTimedInteraction()
 
 	InteractionDuration = 0.f;
 	InteractionElapsedTime = 0.f;
+	InteractionStartLocation = FVector::ZeroVector;
 
-	if (!Target || !Target->Implements<UCPInteractable>())
+	bTimedInteractionAligning = false;
+	InteractionAlignmentElapsedTime = 0.f;
+
+	if (!IsValid(Target) || !Target->Implements<UCPInteractable>())
 	{
+		OnInteractionProgressChanged.Broadcast(0.f);
+		OnInteractionCancelled.Broadcast();
+		RefreshCurrentTargetPresentation();
 		return;
 	}
 
@@ -379,6 +410,48 @@ void UCPInteractionComponent::CompleteTimedInteraction()
 	OnInteractionCompleted.Broadcast();
 	
 	RefreshCurrentTargetPresentation();
+}
+
+void UCPInteractionComponent::BeginTimedInteraction()
+{
+	if (!bTimedInteractionAligning)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	AActor* Target = InteractingTarget.Get();
+	AActor* Interactor = GetOwner();
+
+	if (!IsValid(World) ||
+		!IsValid(Target) ||
+		!IsValid(Interactor) ||
+		!Target->Implements<UCPTimedInteractable>())
+	{
+		CancelTimedInteraction();
+		return;
+	}
+
+	World->GetTimerManager().ClearTimer(InteractionAlignmentTimerHandle);
+
+	bTimedInteractionAligning = false;
+	InteractionAlignmentElapsedTime = 0.f;
+
+	OnInteractionStarted.Broadcast();
+	OnInteractionProgressChanged.Broadcast(0.f);
+
+	// 여기에서 처음으로 조사/채집 몽타주 실행
+	ICPTimedInteractable::Execute_OnInteractionStarted(Target, Interactor);
+
+	RefreshCurrentTargetPresentation();
+
+	World->GetTimerManager().SetTimer(
+		InteractionTimerHandle,
+		this,
+		&UCPInteractionComponent::UpdateTimedInteraction,
+		InteractionUpdateInterval,
+		true
+	);
 }
 
 void UCPInteractionComponent::SetActorHighlight(AActor* Target, bool bHighlighted)
@@ -683,6 +756,163 @@ ECPInteractionDisplayState UCPInteractionComponent::ResolveInteractionDisplaySta
 	}
 
 	return ECPInteractionDisplayState::Hidden;
+}
+
+bool UCPInteractionComponent::HasInteractorMoved() const
+{
+	const AActor* Interactor = GetOwner();
+
+	if (!IsValid(Interactor))
+	{
+		return true;
+	}
+
+	const float MovedDistanceSquared = FVector::DistSquared(InteractionStartLocation, Interactor->GetActorLocation());
+
+	return MovedDistanceSquared > FMath::Square(InteractionCancelDistance);
+}
+
+void UCPInteractionComponent::CancelTimedInteraction()
+{
+	UWorld* World = GetWorld();
+
+	if (IsValid(World))
+	{
+		World->GetTimerManager().ClearTimer(InteractionAlignmentTimerHandle);
+		World->GetTimerManager().ClearTimer(InteractionTimerHandle);
+	}
+
+	const bool bHadTimedInteraction = InteractingTarget.IsValid() || bTimedInteractionAligning || InteractionDuration > 0.f;
+
+	InteractingTarget.Reset();
+
+	InteractionDuration = 0.f;
+	InteractionElapsedTime = 0.f;
+	InteractionStartLocation = FVector::ZeroVector;
+
+	bTimedInteractionAligning = false;
+	InteractionAlignmentElapsedTime = 0.f;
+
+	if (!bHadTimedInteraction)
+	{
+		return;
+	}
+
+	OnInteractionProgressChanged.Broadcast(0.f);
+	OnInteractionCancelled.Broadcast();
+
+	RefreshCurrentTargetPresentation();
+}
+
+FRotator UCPInteractionComponent::MakeInteractionFacingRotation(const AActor* Target) const
+{
+	const AActor* Interactor = GetOwner();
+
+	if (!IsValid(Interactor))
+	{
+		return FRotator::ZeroRotator;
+	}
+
+	if (!IsValid(Target))
+	{
+		return FRotator(0.f, Interactor->GetActorRotation().Yaw, 0.f);
+	}
+
+	const FVector TargetLocation = GetInteractionFocusLocation(Target);
+	FVector DirectionToTarget = TargetLocation - Interactor->GetActorLocation();
+
+	DirectionToTarget.Z = 0.f;
+
+	if (DirectionToTarget.IsNearlyZero())
+	{
+		return FRotator(0.f, Interactor->GetActorRotation().Yaw, 0.f);
+	}
+
+	return FRotator(0.f, DirectionToTarget.Rotation().Yaw, 0.f);
+}
+
+void UCPInteractionComponent::ValidateTimedInteractionAlignment()
+{
+	if (!bTimedInteractionAligning)
+	{
+		if (GetWorld())
+		{
+			GetWorld()->GetTimerManager().ClearTimer(InteractionAlignmentTimerHandle);
+		}
+
+		return;
+	}
+
+	if (!IsValid(GetOwner()) || !InteractingTarget.IsValid())
+	{
+		CancelTimedInteraction();
+		return;
+	}
+
+	if (HasInteractorMoved())
+	{
+		CancelTimedInteraction();
+		return;
+	}
+
+	InteractionAlignmentElapsedTime += InteractionAlignmentValidationInterval;
+	
+	if (InteractionAlignmentElapsedTime >= InteractionFacingReleaseDuration)
+	{
+		if (FinishTimedInteractionAlignment())
+		{
+			return;
+		}
+	}
+
+	if (InteractionAlignmentElapsedTime >= InteractionAlignmentTimeout)
+	{
+		CancelTimedInteraction();
+	}
+}
+
+bool UCPInteractionComponent::FinishTimedInteractionAlignment()
+{
+	if (!bTimedInteractionAligning)
+	{
+		return false;
+	}
+
+	AActor* Interactor = GetOwner();
+	AActor* Target = InteractingTarget.Get();
+
+	if (!IsValid(Interactor) || !IsValid(Target))
+	{
+		CancelTimedInteraction();
+		return false;
+	}
+
+	if (HasInteractorMoved())
+	{
+		CancelTimedInteraction();
+		return false;
+	}
+
+	const FRotator TargetRotation = MakeInteractionFacingRotation(Target);
+	const float CurrentYaw = Interactor->GetActorRotation().Yaw;
+
+	const float RemainingYaw = FMath::Abs(
+		FMath::FindDeltaAngleDegrees(
+			CurrentYaw,
+			TargetRotation.Yaw
+		)
+	);
+
+	if (RemainingYaw > InteractionFacingTolerance)
+	{
+		return false;
+	}
+
+	// 마지막 미세 오차 정리
+	Interactor->SetActorRotation(TargetRotation);
+
+	BeginTimedInteraction();
+	return true;
 }
 
 #pragma region IMC
