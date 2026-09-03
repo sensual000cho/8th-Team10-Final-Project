@@ -29,6 +29,9 @@ public:
 	virtual bool HandleShiftRightClick(UCPGridSlotWidgetBase* ClickedSlot) { return false; }
 	virtual bool HandleAltRightClick(UCPGridSlotWidgetBase* ClickedSlot) { return false; }
 
+	UFUNCTION(BlueprintCallable, Category = "Container")
+	virtual bool TryEquipItemAt(UCPItemContainerComponent* Container, int32 GridIndex);
+
 protected:
 	bool IsUsingInventoryOnly(ACPPlayerController* PC) const;
 	bool IsSlotFromInventory(UCPGridSlotWidgetBase* ClickedSlot, ACPPlayerController* PC) const;

@@ -149,6 +149,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	TArray<FName> GetTrackedRandomQuestIDs() const;
 
+	// ===================================================================
+	// [스토리 진행 - NPC별 독립 진행도 관리]
+	// ===================================================================
+
+	// 특정 NPC 스토리의 현재 진행 단계 조회 (기록 없으면 0)
+	UFUNCTION(BlueprintCallable, Category = "Quest|Story")
+	int32 GetNPCStoryStage(FName NPCId) const;
+
+	// 이 퀘스트가 지금 시점에 노출 가능한지 (해당 NPC 스토리 단계 기준)
+	UFUNCTION(BlueprintCallable, Category = "Quest|Story")
+	bool IsQuestStoryUnlocked(FName QuestID) const;
+
 	// 조건 판정 결과에 맞는 NPC 반응 대사를 랜덤으로 하나 반환
 // (EvaluateConditions()가 반환한 FConditionEvaluation을 그대로 넘기면 됨)
 	UFUNCTION(BlueprintCallable, Category = "Quest")
@@ -176,6 +188,11 @@ private:
 	// 수락한 순서를 기록하는 배열
 	UPROPERTY()
 	TArray<FName> QuestOrder;
+
+	// NPC별 스토리 진행 단계 저장소 (NPCId → 현재 단계, 기록 없으면 0)
+	UPROPERTY()
+	TMap<FName, int32> NPCStoryStages;
+
 
 	//퀘스트 정답 일치하는지 확인
 	// bOutIsRandom이 주어지면, 어느 테이블에서 찾았는지(랜덤 여부)를 같이 알려줌

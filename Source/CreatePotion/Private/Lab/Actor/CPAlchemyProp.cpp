@@ -1,6 +1,5 @@
 #include "Lab/Actor/CPAlchemyProp.h"
 
-#include "Character/CPCarryComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Data/CPForageableItemData.h"
@@ -51,44 +50,8 @@ void ACPAlchemyProp::Tick(float DeltaSeconds)
     IngredientBobblePivot->SetRelativeLocation(IngredientBobbleBaseLocation + FVector::UpVector * BobbleOffset);
 }
 
-FText ACPAlchemyProp::GetInteractionPrompt_Implementation()
-{
-    return FText::FromString(TEXT("들기"));
-}
-
 FName ACPAlchemyProp::GetInteractionName_Implementation()
 {
     return WorkingIngredient.SourceItemData ? 
         FName(*WorkingIngredient.SourceItemData->DisplayName.ToString()) : Super::GetInteractionName_Implementation();
-}
-
-void ACPAlchemyProp::InitializeFromItemData(UCPForageableItemData* ItemData)
-{
-    InitializeAlchemyProp(ItemData);
-}
-
-void ACPAlchemyProp::InitializeAlchemyProp(UCPForageableItemData* ItemData, const TArray<FGameplayTag>& EffectTags)
-{
-    WorkingIngredient = FCPLabIngredientInstance{};
-
-    if (!ItemData)
-    {
-        return;
-    }
-
-    WorkingIngredient.SourceItemData = ItemData;
-
-    if (EffectTags.Num() > 0)
-    {
-        WorkingIngredient.CurrentEffects = EffectTags;
-    }
-    else
-    {
-        WorkingIngredient.CurrentEffects = ItemData->TagAxes;
-    }
-}
-
-FCPLabIngredientInstance ACPAlchemyProp::GetWorkingIngredient() const
-{
-    return WorkingIngredient;
 }

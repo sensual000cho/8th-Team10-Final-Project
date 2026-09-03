@@ -65,9 +65,26 @@ bool ACPThrowablePropBase::CanInteract_Implementation(AActor* Interactor)
     return IsValid(Interactor) && CanBePickedUp();
 }
 
+FText ACPThrowablePropBase::GetInteractionPrompt_Implementation()
+{
+    return FText::FromString(TEXT("들기"));
+}
+
 FName ACPThrowablePropBase::GetInteractionName_Implementation()
 {
     return FName(TEXT("Prop"));
+}
+
+void ACPThrowablePropBase::InitializeFromItemData(UCPForageableItemData* ItemData, const TArray<FGameplayTag>& EffectTags)
+{
+    WorkingIngredient = FCPLabIngredientInstance{};
+    WorkingIngredient.SourceItemData = ItemData;
+    WorkingIngredient.CurrentEffects = EffectTags;
+}
+
+const FCPLabIngredientInstance& ACPThrowablePropBase::GetWorkingIngredient() const
+{
+    return WorkingIngredient;
 }
 
 bool ACPThrowablePropBase::AttachAsHeld(USceneComponent* CarryAnchor)
@@ -143,6 +160,21 @@ void ACPThrowablePropBase::DetachAsHeld(const FVector& DropLocation)
 
     StopRestCheck();
     SetPropState(ECPThrowablePropState::Resting);
+}
+
+bool ACPThrowablePropBase::GetPropCollisionBounds(FVector& OutOrigin, FVector& OutExtent) const
+{
+    if (!IsValid(StaticMeshComponent))
+    {
+        OutOrigin = FVector::ZeroVector;
+        OutExtent = FVector::ZeroVector;
+        return false;
+    }
+
+    OutOrigin = StaticMeshComponent->Bounds.Origin;
+    OutExtent = StaticMeshComponent->Bounds.BoxExtent;
+
+    return true;
 }
 
 bool ACPThrowablePropBase::Drop(const FVector& DropLocation)
@@ -221,8 +253,7 @@ bool ACPThrowablePropBase::Throw(const FVector& Direction, float Speed)
     SetPropState(ECPThrowablePropState::Thrown);
     StartRestCheck();
 
-    // 물리 투척 준비가 끝난 후 이벤트를 전달.
-    OnPropThrown.Broadcast(LastThrower);
+    // 물리 투척 준비가 끝난 후 자식 Actor에 알림.
     HandleThrowStarted(LastThrower);
 
     return true;
@@ -240,34 +271,9 @@ bool ACPThrowablePropBase::CanBePickedUp() const
     return bWasPhysicallyReleased && bHasHitSinceThrow;
 }
 
-ECPThrowablePropState ACPThrowablePropBase::GetPropState() const
-{
-    return PropState;
-}
-
 bool ACPThrowablePropBase::IsHeld() const
 {
     return PropState == ECPThrowablePropState::Held;
-}
-
-bool ACPThrowablePropBase::IsThrown() const
-{
-    return PropState == ECPThrowablePropState::Thrown;
-}
-
-bool ACPThrowablePropBase::IsDropped() const
-{
-    return PropState == ECPThrowablePropState::Dropped;
-}
-
-bool ACPThrowablePropBase::IsResting() const
-{
-    return PropState == ECPThrowablePropState::Resting;
-}
-
-AActor* ACPThrowablePropBase::GetLastThrower() const
-{
-    return IsValid(LastThrower) ? LastThrower.Get() : nullptr;
 }
 
 void ACPThrowablePropBase::HandleThrowStarted(AActor* Thrower)
@@ -282,13 +288,8 @@ void ACPThrowablePropBase::HandleThrownImpact(AActor* OtherActor, const FHitResu
 
 void ACPThrowablePropBase::SetPropState(ECPThrowablePropState NewState)
 {
-    if (PropState == NewState)
-    {
-        return;
-    }
-
+    if (PropState == NewState) return;
     PropState = NewState;
-    OnPropStateChanged.Broadcast(PropState);
 }
 
 void ACPThrowablePropBase::StartRestCheck()
@@ -356,8 +357,6 @@ void ACPThrowablePropBase::CheckForRest()
     StaticMeshComponent->PutAllRigidBodiesToSleep();
     
     SetPropState(ECPThrowablePropState::Resting);
-
-    OnPropRested.Broadcast();
 }
 
 void ACPThrowablePropBase::HandleMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& HitResult)
@@ -401,10 +400,6 @@ void ACPThrowablePropBase::HandleMeshHit(UPrimitiveComponent* HitComponent, AAct
     {
         return;
     }
-
-    // Base에서는 Hit을 차단하지 않음.
-    // PotionImpactComponent 내부의 bImpactTriggered를 이용해 첫 Impact만 처리.
-    OnPropHit.Broadcast(OtherActor, HitResult);
 
     // 반드시 함수의 마지막에서 호출.
     // PotionActor가 이 함수 안에서 Destroy될 위험이 있음. 

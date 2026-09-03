@@ -5,25 +5,21 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "AbilitySystemComponent.h"
 #include "TimerManager.h"
-#include "Data/CPNPCDataAsset.h"
+#include "Data/NPC/CPNPCDataAsset.h"
 #include "GameInstance/Subsystem/CPNPCSubsystem.h"
 
 UCPGA_FartLaunch::UCPGA_FartLaunch()
 {
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
-	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Immunity.Potion.FartLaunch")));
+	ImmunityTag = FGameplayTag::RequestGameplayTag(FName("Immunity.Potion.FartLaunch"));
 }
 
 void UCPGA_FartLaunch::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 
-	ACPBaseNPC* TargetCharacter = GetOwningPotionNPC(ActorInfo);
-	if (!IsValid(TargetCharacter) || !HasAuthority(&ActivationInfo))
-	{
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
-		return;
-	}
+	ACPBaseNPC* TargetCharacter = GetValidatedOwningPotionNPC(Handle, ActorInfo, ActivationInfo);
+	if (!TargetCharacter) return;
 
 	bIsRagdolling = false;
 	LastMeshHitTime = 0.f;
@@ -260,26 +256,10 @@ void UCPGA_FartLaunch::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 				if (TargetCharacter->NPCData)
 				{
 					Mesh->SetRelativeRotation(TargetCharacter->NPCData->MeshRotationOffset);
-					FVector FinalScale = TargetCharacter->NPCData->MeshScale;
-
-					if (UGameInstance* GI = GetWorld()->GetGameInstance())
-					{
-						if (UCPNPCSubsystem* NPCSubsystem = GI->GetSubsystem<UCPNPCSubsystem>())
-						{
-							FCPNPCEffectSaveData SaveData;
-							if (NPCSubsystem->GetNPCEffectData(TargetCharacter->GetPotionNPCId(), SaveData))
-							{
-								FGameplayTag GiantTag = FGameplayTag::RequestGameplayTag(FName("State.Effect.Giant"));
-								if (const FCPActiveEffectInfo* EffectInfo = SaveData.ActiveEffects.Find(GiantTag))
-								{
-									FinalScale *= EffectInfo->Magnitude;
-								}
-							}
-						}
-					}
-					Mesh->SetRelativeScale3D(FinalScale);
 				}
+				TargetCharacter->ReapplyActivePotionVisuals();
 			}
+
 
 			if (TargetCharacter->NPCData && Mesh)
 			{

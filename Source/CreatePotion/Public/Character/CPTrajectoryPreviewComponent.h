@@ -88,6 +88,10 @@ private:
 	// Held Prop의 Collision 크기를 읽지 못했을 때 사용할 기본 반지름.
 	UPROPERTY(EditDefaultsOnly, Category = "Trajectory Preview|Path")
 	float DefaultPredictionRadius = 4.f;
+	
+	// Held Prop 위치부터 이 거리만큼은 궤적을 표시하지 않음.
+	UPROPERTY(EditDefaultsOnly, Category = "Trajectory Preview|Path", meta = (ClampMin = "0.0", Units = "cm"))
+	float PreviewStartDistance = 50.f;
 
 	float CachedPredictionRadius = 4.f;
 	

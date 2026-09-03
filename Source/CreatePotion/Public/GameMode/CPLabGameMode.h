@@ -2,16 +2,12 @@
 
 #include "CoreMinimal.h"
 #include "GameMode/CPGameModeBase.h"
-#include "Lab/CPLabPotionRequestTypes.h"
 #include "Quest/QuestManager.h"
 #include "CPLabGameMode.generated.h"
 
 class ACPPotionActor;
 enum class EDeliveryGrade : uint8;
-class ACPAlchemyProp;
-class ACPLabGameState;
 class UCPForageableItemData;
-class UCPPotionData;
 
 USTRUCT(BlueprintType)
 struct FCPPotionDeliveryResult
@@ -50,46 +46,27 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Lab|Request")
 	bool StartPotionRequest(FName QuestId);
 	
-	// 현재 리퀘스트를 다음 단계로 진행
+	// 리퀘스트를 초기화
 	UFUNCTION(BlueprintCallable, Category = "Lab|Request")
-	bool AdvancePotionRequest();
+	bool ClearPotionRequest();
 	
 	// Tags 사전 순 정렬, (TODO)태그 조합 반영
 	UFUNCTION(BlueprintCallable, Category = "Lab|Potion")
-	bool RefinePotion(const TArray<FGameplayTag>& EffectTags, const FTransform& SpawnTransform);
+	bool CreatePotion(const TArray<FGameplayTag>& EffectTags, const FTransform& SpawnTransform, const FVector& SpawnImpulse);
 	
-	// 상호작용으로 전달된 Potion Prop의 결과를 납품 결과 구조로 변환
-	UFUNCTION(BlueprintCallable, Category = "Lab|Result")
-	FCPPotionDeliveryResult GetPotionDeliveryResult(FName QuestId, const ACPPotionActor* PotionActor);
-	
-	UFUNCTION(BlueprintPure, Category = "Lab|Request")
-	bool HasActiveRequest() const;
+	// 포션 효과 태그로 납품 결과를 생성하고, 이미 생성된 결과가 있으면 저장된 결과를 반환
+	FCPPotionDeliveryResult GetPotionDeliveryResult(const TArray<FGameplayTag>& PotionEffectTags = TArray<FGameplayTag>());
 	
 	FName GetActiveRequestId() const;
 	
 private:	
-	// Spawn된 재료 초기화
-	void ClearSpawnedIngredients();
-	
 	// Potion Spawn
-	bool SpawnPotion(const TArray<FGameplayTag>& EffectTags, const FTransform& SpawnTransform);
+	bool SpawnPotion(const TArray<FGameplayTag>& EffectTags, const FTransform& SpawnTransform, const FVector& SpawnImpulse);
 
-private:	
-	// 초기 재료 배치에 사용할 DA
-	UPROPERTY(EditDefaultsOnly, Category = "Lab|Ingredients")
-	TArray<TObjectPtr<UCPForageableItemData>> Ingredients;
-	
+private:
 	// 포션 Prop을 만들 때 사용할 DA
 	UPROPERTY(EditDefaultsOnly, Category = "Lab|Potion")
-	TObjectPtr<UCPPotionData> PotionItemData;
-		
-	// 재료를 놓을 SlotActor 탐색용 태그
-	UPROPERTY(EditDefaultsOnly, Category = "Lab|Session")
-	FName SlotActorTag;
-	
-	// 생성된 재료를 관리하는 배열
-	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Ingredients")
-	TArray<TObjectPtr<ACPAlchemyProp>> SpawnedIngredients;
+	TObjectPtr<UCPForageableItemData> PotionItemData;
 	
 	// 현재 공방 요청 QuestId
 	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Request")

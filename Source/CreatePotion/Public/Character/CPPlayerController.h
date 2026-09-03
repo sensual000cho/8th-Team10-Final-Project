@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "GameFramework/PlayerController.h"
+#include "InputActionValue.h"
 #include "Types/CPContainerTypes.h"
 #include "CPPlayerController.generated.h"
 
@@ -17,9 +18,18 @@ class UCPHandItemContainerComponent;
 class UCPContainerMainWidget;
 class UCPContainerContextBase;
 class UCPHandHeldItemWidget;
+class UCPItemWheelWidget;
 
 //디버깅용 포션생성 함수용
-class UCPPotionData;
+class UCPForageableItemData;
+
+UENUM(BlueprintType)
+enum class EWheelInputMode : uint8
+{
+	CameraZoom,
+	PotionSelect,
+	IngredientSelect
+};
 
 UCLASS()
 class CREATEPOTION_API ACPPlayerController : public APlayerController
@@ -28,6 +38,38 @@ class CREATEPOTION_API ACPPlayerController : public APlayerController
 
 public:
 	friend class UCPContainerContextBase;	// private 멤버 변수에 접근할 수 있도록
+
+#pragma region MouseWheel
+	UFUNCTION(BlueprintCallable, Category = "Input|Mode")
+	void SetWheelInputMode(EWheelInputMode NewMode);
+
+	UFUNCTION(BlueprintCallable, Category = "Input|Mode")
+	void CycleWheelInputMode();
+
+private:
+	void OnItemWheelScroll(const FInputActionValue& Value);
+	void OnEquipFocusedItem(const FInputActionValue& Value);
+
+public:
+	UPROPERTY(EditAnywhere, Category = "Input|Wheel")
+	UInputAction* IA_ScrollItem; // Axis1D 휠 값
+
+	UPROPERTY(EditAnywhere, Category = "Input|Wheel")
+	UInputAction* IA_EquipFocusedItem; // 휠 클릭
+
+	UPROPERTY(EditAnywhere, Category = "Input|Wheel")
+	UInputAction* IA_CycleWheelMode;
+
+protected:
+	UPROPERTY(EditAnywhere, Category = "Input|Wheel")
+	UInputMappingContext* IMC_PotionWheel;
+
+	UPROPERTY(EditAnywhere, Category = "Input|Wheel")
+	UInputMappingContext* IMC_IngredientWheel;
+
+private:
+	EWheelInputMode CurrentWheelMode = EWheelInputMode::CameraZoom;
+#pragma endregion
 
 protected:
 
@@ -72,6 +114,8 @@ public:
 private:
 	void SetContextHandlerForTargetContext(EUITargetContext InTargetContext);
 
+
+
 public:
 	// 현재 상호작용 중인 컨테이너
 	// TODO[Container] : F키 또는 컨테이너 이용 시 이 값을 해당 ItemContainerComponent로 설정해주어야 합니다.
@@ -93,12 +137,18 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Container|UI")
 	TSubclassOf<UCPHandHeldItemWidget> HandHeldItemWidgetClass;
 
+	UPROPERTY(EditAnywhere, Category = "Container|UI")
+	TSubclassOf<UCPItemWheelWidget> ItemWheelWidgetClass;
+
 protected:
 	// 현재 화면에 떠 있는 외부 컨테이너 UI 인스턴스 (Lab, Storage, Shop 공용)
 	UPROPERTY()
 	UCPContainerMainWidget* CurrentContainerUIInstance;
 
 private:
+	UPROPERTY()
+	UCPItemWheelWidget* ItemWheelWidgetInstance;
+
 	UPROPERTY()
 	UCPHandHeldItemWidget* HandHeldItemWidgetInstance;
 
@@ -122,10 +172,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Debug|Potion Hotkeys")
 	void DebugSpawnCombinedPotion();
 
+	UFUNCTION(BlueprintCallable, Category = "Debug|Potion Hotkeys")
+	void DebugAddFartLaunchPotionToInventory();
+
+	UFUNCTION(BlueprintCallable, Category = "Debug|Potion Hotkeys")
+	void DebugAddGiantPotionToInventory();
+
+	UFUNCTION(BlueprintCallable, Category = "Debug|Potion Hotkeys")
+	void DebugAddCombinedPotionToInventory();
 private:
 	// TEMP: Cauldron과 레벨 이동을 우회하는 포션 생성 기능.
 	UPROPERTY(EditDefaultsOnly, Category = "Debug|Potion Hotkeys")
-	TObjectPtr<UCPPotionData> DebugPotionData;
+	TObjectPtr<UCPForageableItemData> DebugPotionData;
 
 	void SpawnDebugPotion(const TArray<FGameplayTag>& EffectTags);
 #pragma endregion

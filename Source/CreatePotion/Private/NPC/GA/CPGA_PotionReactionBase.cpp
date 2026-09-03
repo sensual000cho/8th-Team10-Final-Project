@@ -15,6 +15,16 @@ UCPGA_PotionReactionBase::UCPGA_PotionReactionBase()
 	ActivationOwnedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Reaction.Potion")));
 }
 
+void UCPGA_PotionReactionBase::OnGiveAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec)
+{
+	Super::OnGiveAbility(ActorInfo, Spec);
+
+	if (ImmunityTag.IsValid())
+	{
+		ActivationBlockedTags.AddTag(ImmunityTag);
+	}
+}
+
 bool UCPGA_PotionReactionBase::ExtractImpactHitResult(const FGameplayEventData* TriggerEventData, FHitResult& OutHitResult)
 {
 	if (!TriggerEventData)
@@ -36,24 +46,16 @@ ACPBaseNPC* UCPGA_PotionReactionBase::GetOwningPotionNPC(const FGameplayAbilityA
 	return ActorInfo ? Cast<ACPBaseNPC>(ActorInfo->AvatarActor.Get()) : nullptr;
 }
 
-FGameplayEffectContextHandle UCPGA_PotionReactionBase::BuildPotionEffectContext(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayEventData* TriggerEventData) const
+ACPBaseNPC* UCPGA_PotionReactionBase::GetValidatedOwningPotionNPC(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+	const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	UAbilitySystemComponent* ASC = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr;
-	if (!ASC)
+	ACPBaseNPC* NPC = GetOwningPotionNPC(ActorInfo);
+	if (!IsValid(NPC) || !HasAuthority(&ActivationInfo))
 	{
-		return FGameplayEffectContextHandle();
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return nullptr;
 	}
-
-	FGameplayEffectContextHandle Context = ASC->MakeEffectContext();
-	Context.AddInstigator(ActorInfo->AvatarActor.Get(), ActorInfo->AvatarActor.Get());
-
-	FHitResult ImpactHit;
-	if (ExtractImpactHitResult(TriggerEventData, ImpactHit))
-	{
-		Context.AddHitResult(ImpactHit, true);
-	}
-
-	return Context;
+	return NPC;
 }
 
 void UCPGA_PotionReactionBase::PrintPotionEventLog(const FGameplayEventData* TriggerEventData) const

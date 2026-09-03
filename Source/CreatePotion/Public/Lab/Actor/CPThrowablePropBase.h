@@ -5,8 +5,11 @@
 #include "CoreMinimal.h"
 #include "GameCore/Interface/CPInteractable.h"
 #include "GameFramework/Actor.h"
+#include "Lab/CPLabTypes.h"
 #include "CPThrowablePropBase.generated.h"
 
+struct FCPItemInstance;
+class UCPForageableItemData;
 class USceneComponent;
 class UStaticMeshComponent;
 class UPrimitiveComponent;
@@ -19,11 +22,6 @@ enum class ECPThrowablePropState : uint8
     Thrown,
     Dropped
 };
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FCPOnThrowablePropStateChanged, ECPThrowablePropState, NewState);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FCPOnThrowablePropThrown, AActor*, Thrower);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FCPOnThrowablePropHit, AActor*, OtherActor, const FHitResult&, HitResult);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FCPOnThrowablePropRested);
 
 UCLASS(Abstract)
 class CREATEPOTION_API ACPThrowablePropBase : public AActor, public ICPInteractable
@@ -38,12 +36,18 @@ public:
 
     virtual void OnInteract_Implementation(AActor* Interactor) override;
     virtual bool CanInteract_Implementation(AActor* Interactor) override;
+    virtual FText GetInteractionPrompt_Implementation() override;
     virtual FName GetInteractionName_Implementation() override;
-
+    
+    void InitializeFromItemData(UCPForageableItemData* ItemData, const TArray<FGameplayTag>& EffectTags = TArray<FGameplayTag>());
+    const FCPLabIngredientInstance& GetWorkingIngredient() const;
+    
     bool AttachAsHeld(USceneComponent* CarryAnchor);
     void DetachAsHeld(const FVector& DropLocation);
     
-    // 포션 Impact를 활성화하지 않고 Drop
+    // Root 충돌 메시의 월드 Bounds를 반환
+    bool GetPropCollisionBounds(FVector& OutOrigin, FVector& OutExtent) const;
+    
     bool Drop(const FVector& DropLocation);
 
     // 머리 위에서 분리하고 물리 투척
@@ -53,39 +57,7 @@ public:
     bool CanBePickedUp() const;
 
     UFUNCTION(BlueprintPure, Category = "Prop|State")
-    ECPThrowablePropState GetPropState() const;
-
-    UFUNCTION(BlueprintPure, Category = "Prop|State")
     bool IsHeld() const;
-
-    UFUNCTION(BlueprintPure, Category = "Prop|State")
-    bool IsThrown() const;
-    
-    UFUNCTION(BlueprintPure, Category = "Prop|State")
-    bool IsDropped() const;
-
-    UFUNCTION(BlueprintPure, Category = "Prop|State")
-    bool IsResting() const;
-
-    UFUNCTION(BlueprintPure, Category = "Prop|Throw")
-    AActor* GetLastThrower() const;
-
-public:
-    UPROPERTY(BlueprintAssignable, Category = "Prop|Event")
-    FCPOnThrowablePropStateChanged OnPropStateChanged;
-
-    UPROPERTY(BlueprintAssignable, Category = "Prop|Event")
-    FCPOnThrowablePropThrown OnPropThrown;
-
-    /*
-     * 물리 충돌이 발생할 때 알림.
-     * 포션의 첫 Impact 여부는 PotionImpactComponent가 판단.
-     */
-    UPROPERTY(BlueprintAssignable, Category = "Prop|Event")
-    FCPOnThrowablePropHit OnPropHit;
-
-    UPROPERTY(BlueprintAssignable, Category = "Prop|Event")
-    FCPOnThrowablePropRested OnPropRested;
 
 protected:
     /*
@@ -159,12 +131,15 @@ protected:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Physics", meta = (ClampMin = "0.0", Units = "deg/s"))
     float PushMaxAngularSpeed = 80.f;
 
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Prop|Data")
+    FCPItemInstance WorkingIngredient;
+    
+    UPROPERTY()
+    TObjectPtr<AActor> LastThrower;
+    
 private:
     UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Prop|State", meta = (AllowPrivateAccess = "true"))
     ECPThrowablePropState PropState = ECPThrowablePropState::Resting;
-
-    UPROPERTY()
-    TObjectPtr<AActor> LastThrower;
 
     bool bHasHitSinceThrow = false;
     float LowSpeedElapsedTime = 0.f;

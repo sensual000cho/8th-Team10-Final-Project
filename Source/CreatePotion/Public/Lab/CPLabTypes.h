@@ -2,7 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "Types/CPItemInstanceTypes.h"
 #include "CPLabTypes.generated.h"
+
+using FCPLabIngredientInstance = FCPItemInstance;
 
 class UCPForageableItemData;
 
@@ -33,6 +36,11 @@ struct FCPLabPotionRequest
 	}
 };
 
+
+/*
+* FCPLabIngredientInstance는 FCPItemInstance으로 이름 변경,
+* FCPItemInstance는 "Types/CPItemInstanceTypes.h" 에서 새롭게 정의
+* 
 // 원본 재료 정보와 현재 효과 태그를 함께 보관하는 작업용 데이터
 USTRUCT(BlueprintType)
 struct FCPLabIngredientInstance
@@ -46,6 +54,8 @@ struct FCPLabIngredientInstance
 	// 원본에서 복사한 뒤 가공에 따라 변경되는 현재 효과 태그
 	UPROPERTY(BlueprintReadOnly, Category = "Lab|Ingredient")
 	TArray<FGameplayTag> CurrentEffects;
+	
+	bool bIsSeed = false;
 
 	// 사용할 수 있는 원본 재료가 연결되어 있는지 확인
 	bool IsValid() const
@@ -54,3 +64,4 @@ struct FCPLabIngredientInstance
 	}
 
 };
+*/

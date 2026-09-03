@@ -6,8 +6,10 @@
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Data/CPForageableItemData.h"
+#include "Data/CPTagDefinitionTypes.h"
 #include "Engine/Texture2D.h"
-#include "Lab/Actor/CPAlchemyProp.h"
+#include "Lab/Actor/CPThrowablePropBase.h"
+#include "Settings/CPDTSettings.h"
 #include "UI/Widgets/Lab/CPLabIngredientEffectRowWidget.h"
 
 void UCPLabIngredientInfoWidget::NativeConstruct()
@@ -16,22 +18,15 @@ void UCPLabIngredientInfoWidget::NativeConstruct()
 	RefreshWidget();
 }
 
-void UCPLabIngredientInfoWidget::SetIngredientInfo(const FCPLabIngredientInstance& InIngredient)
+void UCPLabIngredientInfoWidget::SetIngredientProp(ACPThrowablePropBase* InProp)
 {
-	// 스냅샷 표시로 전환할 때 이전 Actor의 변경 이벤트가 섞이지 않도록 관찰을 먼저 끝낸다.
-	UnbindObservedIngredient();
-	ApplyIngredientInfo(InIngredient);
-}
-
-void UCPLabIngredientInfoWidget::SetObservedIngredient(ACPAlchemyProp* InIngredientProp)
-{
-	if (ObservedIngredientProp.Get() != InIngredientProp)
+	if (ObservedIngredientProp.Get() != InProp)
 	{
 		UnbindObservedIngredient();
 
-		if (IsValid(InIngredientProp))
+		if (IsValid(InProp))
 		{
-			ObservedIngredientProp = InIngredientProp;
+			ObservedIngredientProp = InProp;
 		}
 	}
 	RefreshObservedIngredient();
@@ -67,7 +62,7 @@ void UCPLabIngredientInfoWidget::ApplyIngredientInfo(const FCPLabIngredientInsta
 
 void UCPLabIngredientInfoWidget::RefreshObservedIngredient()
 {
-	ACPAlchemyProp* IngredientProp = ObservedIngredientProp.Get();
+	ACPThrowablePropBase* IngredientProp = ObservedIngredientProp.Get();
 	if (!IsValid(IngredientProp))
 	{
 		ObservedIngredientProp.Reset();
@@ -81,11 +76,6 @@ void UCPLabIngredientInfoWidget::RefreshObservedIngredient()
 void UCPLabIngredientInfoWidget::UnbindObservedIngredient()
 {
 	ObservedIngredientProp.Reset();
-}
-
-void UCPLabIngredientInfoWidget::HandleObservedIngredientChanged()
-{
-	RefreshObservedIngredient();
 }
 
 void UCPLabIngredientInfoWidget::UnbindEvents()
@@ -162,21 +152,18 @@ void UCPLabIngredientInfoWidget::RefreshEmptyState()
 
 void UCPLabIngredientInfoWidget::RebuildEffectRows()
 {
-	if (!VerticalBox_EffectRows)
-	{
-		return;
-	}
+	if (!VerticalBox_EffectRows) return;
 
 	VerticalBox_EffectRows->ClearChildren();
 
 	const UCPForageableItemData* ItemData = Ingredient.SourceItemData.Get();
-	if (!ItemData || !EffectRowWidgetClass)
-	{
-		return;
-	}
+	if (!ItemData || !EffectRowWidgetClass) return;
+	
+	const TArray<FGameplayTag>& DisplayEffectTags = 
+		Ingredient.CurrentEffects.IsEmpty() ? ItemData->TagAxes : Ingredient.CurrentEffects;
 	
 	// 재료의 현재 효과를 기반으로 Tag 구성
-	for (const FGameplayTag& EffectTag : Ingredient.CurrentEffects){
+	for (const FGameplayTag& EffectTag : DisplayEffectTags){
 		if (!EffectTag.IsValid()) continue;
 		
 		UCPLabIngredientEffectRowWidget* EffectRow = 
@@ -191,22 +178,20 @@ void UCPLabIngredientInfoWidget::RebuildEffectRows()
 
 FText UCPLabIngredientInfoWidget::GetEffectDisplayName(const FGameplayTag& EffectTag) const
 {
-	// WBP별 한글 표시 이름이 지정돼 있으면 GameplayTag 문자열보다 우선한다.
-	if (const FText* DisplayName = EffectDisplayNames.Find(EffectTag))
-	{
-		if (!DisplayName->IsEmpty())
-		{
-			return *DisplayName;
+	if (!EffectTag.IsValid()) return FText::GetEmpty();
+	
+	const UCPDTSettings* DTSettings = GetDefault<UCPDTSettings>();
+	UDataTable* TagDefinitionTable = DTSettings ? DTSettings->TagDefinitionTable.LoadSynchronous() : nullptr;
+	if (!TagDefinitionTable) return FText::GetEmpty();
+	
+	TArray<FCPTagDefinitionRow*> Rows;
+	TagDefinitionTable->GetAllRows<FCPTagDefinitionRow>(TEXT("EffectTagDefinition"), Rows);
+	
+	for (const FCPTagDefinitionRow* Row : Rows){
+		if (Row && Row->Tag == EffectTag) {
+			return Row->DisplayName;
 		}
 	}
-
-	FString FallbackName = EffectTag.ToString();
-	int32 LastSeparatorIndex = INDEX_NONE;
-	// 별도 표시 이름이 없으면 "Alchemy.BodyHeat"에서 마지막 조각인 "BodyHeat"만 보여준다.
-	if (FallbackName.FindLastChar(TEXT('.'), LastSeparatorIndex))
-	{
-		FallbackName.RightChopInline(LastSeparatorIndex + 1);
-	}
-
-	return FText::FromString(FallbackName);
+	
+	return FText::GetEmpty();
 }

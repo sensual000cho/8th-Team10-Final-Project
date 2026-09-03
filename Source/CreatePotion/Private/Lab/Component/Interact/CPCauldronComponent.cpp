@@ -10,10 +10,15 @@
 #include "Kismet/GameplayStatics.h"
 #include "Lab/Actor/CPAlchemyProp.h"
 
-UCPCauldronComponent::UCPCauldronComponent(): MaxSlotCount(3)
+UCPCauldronComponent::UCPCauldronComponent(): 
+	MaxSlotCount(3), 
+	UpImpulse(5000.f), 
+	RandomImpulseMin(2000.f),
+	RandomImpulseMax(4000.f)
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	InteractionPrompt = FText::FromString(TEXT("포션 만들기"));
+	bShowWhenUnavailable = true;
 }
 
 void UCPCauldronComponent::BeginPlay()
@@ -44,13 +49,10 @@ void UCPCauldronComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 bool UCPCauldronComponent::ExecuteInteraction(AActor* Interactor)
 {
 	if (!CanExecuteInteraction(Interactor)) return false;
-
-	const UStaticMeshComponent* SpawnMesh = 
-		Cast<UStaticMeshComponent>(PotionSpawnMesh.GetComponent(GetOwner()));
-	if (!SpawnMesh) return false;
+	if (!BoundIngredientTrigger) return false;
 	
 	ACPLabGameMode* LabGameMode = Cast<ACPLabGameMode>(UGameplayStatics::GetGameMode(this));
-	if (!LabGameMode || !LabGameMode->RefinePotion(GetEffectTags(), MakePotionTransform())) return false;
+	if (!LabGameMode || !LabGameMode->CreatePotion(GetEffectTags(), MakePotionTransform(), MakeSpawnImpulse())) return false;
 	
 	IngredientInstances.Reset();
 	return true;
@@ -66,11 +68,11 @@ bool UCPCauldronComponent::CanExecuteInteraction(AActor* Interactor) const
 TArray<FGameplayTag> UCPCauldronComponent::GetEffectTags() const
 {
 	TArray<FGameplayTag> CombinedTags;
-	// 넣은 순서대로 효과를 추가
+	// 넣은 순서대로 원본 DA의 효과를 추가
 	for (const FCPLabIngredientInstance& Ingredient : IngredientInstances){
 		if (!Ingredient.IsValid()) continue;
 		
-		for (const FGameplayTag& EffectTag : Ingredient.CurrentEffects){
+		for (const FGameplayTag& EffectTag : Ingredient.SourceItemData->TagAxes){
 			if (EffectTag.IsValid()){
 				CombinedTags.Add(EffectTag);
 			}
@@ -89,22 +91,35 @@ bool UCPCauldronComponent::CanAcceptProp(const ACPAlchemyProp* Prop) const
 {
 	if (!IsValid(Prop) || MaxSlotCount <= 0 || IngredientInstances.Num() >= MaxSlotCount) return false;
 
-	return Prop->GetWorkingIngredient().IsValid();
+	const FCPLabIngredientInstance& Ingredient = Prop->GetWorkingIngredient();
+	return Ingredient.IsValid() && Ingredient.CurrentEffects.IsEmpty();
 }
 
 FTransform UCPCauldronComponent::MakePotionTransform() const
 {
-	const UStaticMeshComponent* SpawnMesh =
-		Cast<UStaticMeshComponent>(PotionSpawnMesh.GetComponent(GetOwner()));
-	if (!SpawnMesh) return FTransform::Identity;
+	if (!BoundIngredientTrigger) return FTransform::Identity;
 	
-	FTransform SpawnTransform = SpawnMesh->GetComponentTransform();
-	
-	FVector SpawnLocation = SpawnMesh->Bounds.Origin;
-	SpawnLocation.Z += SpawnMesh->Bounds.BoxExtent.Z;
+	FTransform SpawnTransform = BoundIngredientTrigger->GetComponentTransform();
+	FVector SpawnLocation = BoundIngredientTrigger->Bounds.Origin;
+	SpawnLocation.Z += BoundIngredientTrigger->Bounds.BoxExtent.Z;
 	
 	SpawnTransform.SetLocation(SpawnLocation);
+	SpawnTransform.SetScale3D(FVector::OneVector);
 	return SpawnTransform;
+}
+
+FVector UCPCauldronComponent::MakeSpawnImpulse() const
+{
+	const float RandomAngle = FMath::RandRange(0.f, 2.f * PI);
+	const float RandomStrength = FMath::RandRange(RandomImpulseMin, RandomImpulseMax);
+	
+	const FVector RandomHorizontalImpulse(
+		FMath::Cos(RandomAngle) * RandomStrength, 
+		FMath::Sin(RandomAngle) * RandomStrength, 
+		0.f
+	);
+	
+	return FVector::UpVector * UpImpulse + RandomHorizontalImpulse;
 }
 
 void UCPCauldronComponent::HandleIngredientOverlap(
@@ -151,16 +166,18 @@ void UCPCauldronComponent::DebugPrintSlots() const
 			: TEXT("없음");
 
 		FString EffectText;
-		for (const FGameplayTag& EffectTag : Ingredient.CurrentEffects)
-		{
-			if (!EffectTag.IsValid()) continue;
-
-			if (!EffectText.IsEmpty())
+		if (Ingredient.SourceItemData){
+			for (const FGameplayTag& EffectTag : Ingredient.SourceItemData->TagAxes)
 			{
-				EffectText += TEXT(", ");
-			}
+				if (!EffectTag.IsValid()) continue;
 
-			EffectText += EffectTag.ToString();
+				if (!EffectText.IsEmpty())
+				{
+					EffectText += TEXT(", ");
+				}
+
+				EffectText += EffectTag.ToString();
+			}	
 		}
 
 		const FString Message = FString::Printf(
