@@ -39,7 +39,7 @@ public:
     virtual FText GetInteractionPrompt_Implementation() override;
     virtual FName GetInteractionName_Implementation() override;
     
-    void InitializeFromItemData(UCPForageableItemData* ItemData, const TArray<FGameplayTag>& EffectTags = TArray<FGameplayTag>());
+    virtual void InitializeFromItemData(UCPForageableItemData* ItemData, const TArray<FGameplayTag>& EffectTags = TArray<FGameplayTag>());
     const FCPLabIngredientInstance& GetWorkingIngredient() const;
     
     bool AttachAsHeld(USceneComponent* CarryAnchor);
