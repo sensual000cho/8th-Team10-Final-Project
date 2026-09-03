@@ -6,6 +6,7 @@
 #include "Lab/Actor/CPThrowablePropBase.h"
 #include "CPPotionActor.generated.h"
 
+class UNiagaraSystem;
 struct FCPTagDefinitionRow;
 class UCPPotionImpactComponent;
 class UMaterialInterface;
@@ -63,6 +64,9 @@ private:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Potion|visual", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UMaterialInterface> LiquidMaterial;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Potion|visual", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UNiagaraSystem> ExplosionSystem;
 	
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInstanceDynamic> DynamicLiquidMaterial;

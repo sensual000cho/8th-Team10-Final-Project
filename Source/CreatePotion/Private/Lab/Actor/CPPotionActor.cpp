@@ -3,6 +3,7 @@
 #include "Lab/Actor/CPPotionActor.h"
 
 #include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 #include "Components/StaticMeshComponent.h"
 #include "Data/CPForageableItemData.h"
 #include "Data/CPTagDefinitionTypes.h"
@@ -112,8 +113,16 @@ void ACPPotionActor::TriggerPotionExplosion(const FHitResult& HitResult)
     }
 
     SetActorEnableCollision(false);
-
-    // 이펙트 생성 지점(나이아가라, 사운드)
+    
+    if (IsValid(ExplosionSystem)){
+        UNiagaraComponent* ExplosionComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+            GetWorld(), ExplosionSystem, HitResult.ImpactPoint, HitResult.ImpactNormal.Rotation(), FVector(0.5f));
+        
+        if (IsValid(ExplosionComponent)){
+            ExplosionComponent->SetVariableLinearColor(TEXT("User.CurrentColor"), CurrentVisualColors.LiquidColor01);
+        }
+    }    
+    
     K2_OnPotionExploded(HitResult);
     Destroy();
 }
