@@ -31,6 +31,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void Interact(AActor* Interactor); 
 	
+	void BeginInteractionProgress(AActor* Interactor);
+	
+	
 	// UI 갱신
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void RefreshUI();
