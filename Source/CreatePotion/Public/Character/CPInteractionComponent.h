@@ -43,22 +43,27 @@ public:
 	
 	void TryInteract();
 	
+	// PromptWidget
 	UPROPERTY(BlueprintAssignable)
 	FOnPromptChanged OnPromptChanged;
 	
+	// ProgressBar, PlayerBP
 	UPROPERTY(BlueprintAssignable)
 	FOnInteractionStarted OnInteractionStarted;
 	
+	// ProgressBar
 	UPROPERTY(BlueprintAssignable)
 	FOnInteractionProgressChanged OnInteractionProgressChanged;
 	
+	// ProgressBar, PlayerBP
 	UPROPERTY(BlueprintAssignable)
 	FOnInteractionCompleted OnInteractionCompleted;
-
+	
+	// ProgressBar, PlayerBP
 	UPROPERTY(BlueprintAssignable)
 	FOnInteractionCancelled OnInteractionCancelled;
 	
-	// 시간형 상호작용 시작 전 대상 방향으로 회전 시작
+	// 시간형 상호작용 시작 전 대상 방향으로 회전 시작, PlayerBP
 	UPROPERTY(BlueprintAssignable)
 	FOnInteractionAlignmentStarted OnInteractionAlignmentStarted;
 	
@@ -104,10 +109,6 @@ public:
 	
 	UFUNCTION(BlueprintPure, Category = "Interaction")
 	AActor* GetCurrentTarget() const { return CurrentTarget.Get();}
-
-	// 실제 몽타주와 프로그레스가 진행 중인지 확인
-	UFUNCTION(BlueprintPure, Category = "Interaction|Timed")
-	bool IsTimedInteractionActive() const;
 	
 	// 시간형 상호작용 전에 대상을 향해 회전 중인지 확인
 	UFUNCTION(BlueprintPure, Category = "Interaction|Timed")
