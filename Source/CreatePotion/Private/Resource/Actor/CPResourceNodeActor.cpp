@@ -120,6 +120,41 @@ float ACPResourceNodeActor::GetInteractionDuration_Implementation(AActor* Intera
 	return 0.f;
 }
 
+void ACPResourceNodeActor::OnInteractionStarted_Implementation(AActor* Interactor)
+{
+	if (!IsValid(Interactor) || !ResourceDefinition)
+	{
+		return;
+	}
+
+	UGameInstance* GameInstance = GetGameInstance();
+	UCPCodexSubsystem* CodexSubsystem = GameInstance ? GameInstance->GetSubsystem<UCPCodexSubsystem>() : nullptr;
+
+	if (!CodexSubsystem)
+	{
+		return;
+	}
+	
+	USkeletalMeshComponent* CharacterMesh = Interactor->FindComponentByClass<USkeletalMeshComponent>();
+	UAnimInstance* AnimInstance = IsValid(CharacterMesh) ? CharacterMesh->GetAnimInstance() : nullptr;
+
+	// 조사일 경우 조사 몽타주 재생
+	if (!CodexSubsystem->GetForageableEntry(ResourceDefinition->HarvestData.HarvestedItem))
+	{
+		if (IsValid(AnimInstance) && IsValid(InspectMontage))
+		{
+			AnimInstance->Montage_Play(InspectMontage);
+		}
+		return;
+	}
+	
+	// 조사가 아닐 경우 채집 몽타주 재생
+	if (IsValid(AnimInstance) && IsValid(HarvestMontage))
+	{
+		AnimInstance->Montage_Play(HarvestMontage);
+	}
+}
+
 void ACPResourceNodeActor::OnAcquireFromPool_Implementation()
 {
 	SetActorHiddenInGame(false);

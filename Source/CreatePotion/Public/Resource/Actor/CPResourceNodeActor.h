@@ -11,6 +11,7 @@
 class UCPHarvestComponent;
 class UCPResourceDefinition;
 class ACPDroppedItemBase;
+class UAnimMontage;
 
 UCLASS()
 class CREATEPOTION_API ACPResourceNodeActor : public AActor, public ICPInteractable, public ICPTimedInteractable,
@@ -34,6 +35,8 @@ public:
 	virtual bool CanInteract_Implementation(AActor* Interactor) override;
 	
 	virtual float GetInteractionDuration_Implementation(AActor* Interactor) override;
+	
+	virtual void OnInteractionStarted_Implementation(AActor* Interactor) override;
 	
 	// 오브젝트 풀링 관련
 	virtual void OnAcquireFromPool_Implementation() override;
@@ -67,4 +70,13 @@ private:
 	TObjectPtr<UCPResourceDefinition> ResourceDefinition;
 	
 	float InspectDuration = 1.f;
+	
+public:
+	// 채집 몽타주
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Resource|Animation")
+	TObjectPtr<UAnimMontage> HarvestMontage;
+	
+	// 조사 몽타주
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Resource|Animation")
+	TObjectPtr<UAnimMontage> InspectMontage;
 };
