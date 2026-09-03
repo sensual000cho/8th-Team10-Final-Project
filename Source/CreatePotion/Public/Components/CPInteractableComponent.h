@@ -8,6 +8,7 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInteracted, AActor*, Interactor);
 
+enum class ECPInteractionDisplayState : uint8;
 class UWidgetComponent;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -30,16 +31,31 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void Interact(AActor* Interactor); 
 	
-	// --- Getter 함수 ---
+	// UI 갱신
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void RefreshUI();
+	
+	// --- Setter ---
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void SetDisplayState(ECPInteractionDisplayState NewDisplayState);
+	
+	
+	// --- Getter---
 	UFUNCTION(BlueprintPure, Category = "Interaction")
 	bool CanInteract() const { return bCanInteract; }
 	
-	// UFUNCTION(BlueprintPure, Category = "Interaction")
-	// FName GetInteractionName() const { return InteractionName; }
-	//
-	// UFUNCTION(BlueprintPure, Category = "Interaction")
-	// FText GetInteractionPrompt() const { return InteractionPrompt; }
-	//
+	UFUNCTION(BlueprintPure, Category = "Interaction")
+	bool ShouldShowUnavailableInteraction() const { return bShouldShowUnavailableInteraction; }
+	
+	UFUNCTION(BlueprintPure, Category = "Interaction")
+	FName GetTargetName() const { return TargetName; }
+
+	UFUNCTION(BlueprintPure, Category = "Interaction")
+	FText GetInteractionPrompt() const { return InteractionPrompt; }
+
+	UFUNCTION(BlueprintPure, Category = "Interaction")
+	float GetInteractionDuration() const { return InteractionDuration; }
+
 public:
 	UPROPERTY(BlueprintAssignable, Category = "Interaction")
 	FOnInteracted OnInteracted;
@@ -52,10 +68,16 @@ protected:
 	bool bCanInteract = true;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
-	FName InteractionName; // 예: "약초", "주민", "보물상자"
+	bool bShouldShowUnavailableInteraction = false;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
+	FName TargetName; // 예: "약초", "주민", "보물상자"
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
 	FText InteractionPrompt; // 예: "채집하기", "대화하기", "열기"
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+	ECPInteractionDisplayState CachedDisplayState; // 활성화/비활성화/숨기기 상태 캐싱
 	
 private:
 	UPROPERTY()

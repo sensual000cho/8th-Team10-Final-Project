@@ -3,6 +3,7 @@
 
 #include "Components/CPInteractableComponent.h"
 
+#include "Character/CPInteractionComponent.h"
 #include "Components/WidgetComponent.h"
 #include "UI/Widgets/Common/Interaction/CPInteractionPromptWidget.h"
 
@@ -25,7 +26,6 @@ void UCPInteractableComponent::BeginPlay()
 			InteractWidgetComp->SetVisibility(false);
 		}
 	}
-	
 }
 
 void UCPInteractableComponent::BeginFocus(AActor* Interactor)
@@ -37,28 +37,18 @@ void UCPInteractableComponent::BeginFocus(AActor* Interactor)
 		
 		if (UCPInteractionPromptWidget* InteractionUI = Cast<UCPInteractionPromptWidget>(InteractWidgetComp->GetUserWidgetObject()))
 		{
-			InteractionUI->UpdateUI(InteractionPrompt, InteractionName);
+			InteractionUI->UpdateUI(InteractionPrompt, TargetName, CachedDisplayState);
 		}
 		
 		UE_LOG(LogTemp, Warning, TEXT("[Success] 위젯 켬! 위젯 이름: %s, 현재 보임 상태: %d"), 
 			   *InteractWidgetComp->GetName(), InteractWidgetComp->IsVisible());
+	
+		if (InteractWidgetComp->GetUserWidgetObject() == nullptr)
+		{
+			UE_LOG(LogTemp, Error, TEXT("컴포넌트는 있지만, 내부 위젯 객체(UserWidget)가 생성되지 않았습니다!"));
+		}
+		
 	}
-	
-	if (InteractWidgetComp->GetUserWidgetObject() == nullptr)
-	{
-		UE_LOG(LogTemp, Error, TEXT("컴포넌트는 있지만, 내부 위젯 객체(UserWidget)가 생성되지 않았습니다!"));
-	}
-	
-	
-	
-	// TODO: 여기서 위젯 내부에 텍스트(InteractionName, InteractionPrompt)를 전달하여 세팅
-	/*
-	if (UCPInteractWidget* UI = Cast<UCPInteractWidget>(InteractWidgetComp->GetUserWidgetObject()))
-	{
-		UI->UpdateUI(InteractionName, InteractionPrompt, bCanInteract);
-	}
-	*/
-	
 	
 }
 
@@ -76,6 +66,33 @@ void UCPInteractableComponent::Interact(AActor* Interactor)
 	if (!bCanInteract) return;
 	
 	OnInteracted.Broadcast(Interactor);
+	
+}
+
+void UCPInteractableComponent::RefreshUI()
+{
+	if (IsValid(InteractWidgetComp))
+	{
+		if (UCPInteractionPromptWidget* InteractionUI = Cast<UCPInteractionPromptWidget>(InteractWidgetComp->GetUserWidgetObject()))
+		{
+			InteractionUI->UpdateUI(InteractionPrompt, TargetName, CachedDisplayState);
+		}
+	}
+}
+
+void UCPInteractableComponent::SetDisplayState(ECPInteractionDisplayState NewDisplayState)
+{
+	if (CachedDisplayState == NewDisplayState) return;
+	CachedDisplayState = NewDisplayState;
+	
+	// 상태가 바뀌었을 때 스스로 갱신
+	if (IsValid(InteractWidgetComp))
+	{
+		if (UCPInteractionPromptWidget* InteractionUI = Cast<UCPInteractionPromptWidget>(InteractWidgetComp->GetUserWidgetObject()))
+		{
+			InteractionUI->UpdateUI(InteractionPrompt, TargetName, CachedDisplayState);
+		}
+	}
 }
 
 

@@ -6,6 +6,7 @@
 #include "UI/Widgets/Base/CPBaseFixedWidget.h"
 #include "CPInteractionPromptWidget.generated.h"
 
+enum class ECPInteractionDisplayState : uint8;
 class UCPInteractionComponent;
 class UTextBlock;
 class UBorder;
@@ -18,15 +19,12 @@ class CREATEPOTION_API UCPInteractionPromptWidget : public UCPBaseFixedWidget
 	GENERATED_BODY()
 	
 public:
+	// UI 텍스트 설정
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
-	void UpdateUI(const FText& Prompt, const FName& TargetName);
-	
+	void UpdateUI(const FText& Prompt, const FName& TargetName, ECPInteractionDisplayState DisplayState);
+
 protected:
-	virtual void BindEvents() override;
-	virtual void UnbindEvents() override;
-	
-	UFUNCTION()
-	void OnPromptChanged(FText Prompt, FName TargetName, ECPInteractionDisplayState DisplayState);
+	void NativeConstruct() override;
 
 protected:	
 	UPROPERTY(meta = (BindWidget))

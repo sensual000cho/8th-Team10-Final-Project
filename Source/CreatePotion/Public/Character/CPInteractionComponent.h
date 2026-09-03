@@ -139,7 +139,6 @@ private:
 	
 	void UpdateCurrentTarget(AActor* NewTarget, ECPInteractionDisplayState NewDisplayState);
 	void ClearCurrentTarget();
-	void UpdateCurrentTarget(AActor* NewTarget);
 	
 	// --- Timed Interaction ---
 	void StartTimedInteraction(AActor* Target, float Duration);
