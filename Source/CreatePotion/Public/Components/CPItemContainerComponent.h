@@ -68,6 +68,12 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container|Settings", meta = (EditCondition = "ContainerType == EContainerType::Slot1D"))
     int32 MaxSlots = 3;
 
+    // Slot 모드일 때 하나의 Slot이 사용할 Grid모드의 칸 단위의 width, height
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container|Settings", meta = (EditCondition = "ContainerType == EContainerType::Slot1D"))
+    int32 SlotFitWidth = 2;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container|Settings", meta = (EditCondition = "ContainerType == EContainerType::Slot1D"))
+    int32 SlotFitHeight = 2;
+
     // Grid 모드일 때 사용할 가로/세로 크기
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Container|Settings", meta = (EditCondition = "ContainerType == EContainerType::Grid2D"))
     int32 Columns = 8;
