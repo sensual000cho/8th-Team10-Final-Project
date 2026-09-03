@@ -8,6 +8,7 @@
 #include "Lab/Component/CPLabInteractActionComponent.h"
 #include "CPCauldronComponent.generated.h"
 
+struct FCPTagDefinitionRow;
 class ACPAlchemyProp;
 class UPrimitiveComponent;
 
@@ -37,6 +38,12 @@ private:
 	// 현재 가마솥이 해당 재료를 받을 수 있는지 검사
 	bool CanAcceptProp(const ACPAlchemyProp* Prop) const;
 	
+	// 태그 조합
+	void ResolveTagCombinations(int32 NewTagIndex);
+	
+	// 새로 들어온 태그에 해당하는 DT Row 탐색
+	bool FindTagDefinitionRow(const FGameplayTag& Tag, const FCPTagDefinitionRow*& OutRow) const;
+	
 	// IngredientTrigger의 Bounds 상단 Spawn 위치 계산
 	FTransform MakePotionTransform() const;
 	
@@ -60,6 +67,9 @@ private:
 private:
 	UPROPERTY(VisibleAnywhere, Category = "Lab|Interaction")
 	TArray<FCPItemInstance> IngredientInstances;
+	
+	UPROPERTY(VisibleAnywhere, Category = "Lab|Interaction")
+	TArray<FGameplayTag> IngredientTags;
 
 	UPROPERTY(EditAnywhere, Category = "Lab|Interaction")
 	int32 MaxSlotCount;
