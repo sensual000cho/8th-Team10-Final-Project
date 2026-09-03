@@ -31,4 +31,8 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UCPInteractionComponent> InteractionComponent;
+	
+private:
+	UFUNCTION()
+	void HandleInteractionEnded();
 };
