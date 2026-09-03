@@ -85,11 +85,6 @@ void UCPInteractionComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-bool UCPInteractionComponent::IsTimedInteractionActive() const
-{
-	return InteractingTarget.IsValid() && !bTimedInteractionAligning;
-}
-
 bool UCPInteractionComponent::IsTimedInteractionAligning() const
 {
 	return InteractingTarget.IsValid() && bTimedInteractionAligning;
