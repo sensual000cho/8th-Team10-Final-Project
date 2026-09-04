@@ -1,7 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Public/Quest/QuestManager.h"
-#include "Quest/QuestSettings.h"
+#include "Settings/CPDTSettings.h"
 
 // ===================================================================
 // [초기화 - GameInstanceSubsystem 생성 시 자동 호출]
@@ -11,7 +11,7 @@ void UQuestManager::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 
-	if (const UQuestSettings* Settings = GetDefault<UQuestSettings>())
+	if (const UCPDTSettings* Settings = GetDefault<UCPDTSettings>())
 	{
 		QuestScriptTable = Settings->QuestScriptTable.LoadSynchronous();
 		QuestAnswerTable = Settings->QuestAnswerTable.LoadSynchronous();
@@ -23,7 +23,7 @@ void UQuestManager::Initialize(FSubsystemCollectionBase& Collection)
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("UQuestSettings를 찾을 수 없습니다."));
+		UE_LOG(LogTemp, Error, TEXT("UCPDTSettings를 찾을 수 없습니다."));
 	}
 }
 
@@ -430,6 +430,85 @@ FText UQuestManager::GetReactionText(FName QuestID, const FConditionEvaluation& 
 	}
 }
 
+EQuestCompletionType UQuestManager::GetQuestCompletionType(FName QuestID) const
+{
+	FQuestAnswerData* Answer = FindAnswerData(QuestID);
+	return Answer ? Answer->CompletionType : EQuestCompletionType::Potion;
+}
+
+FName UQuestManager::GetTargetIdentifier(FName QuestID) const
+{
+	FQuestAnswerData* Answer = FindAnswerData(QuestID);
+	return Answer ? Answer->TargetIdentifier : NAME_None;
+}
+
+void UQuestManager::GetRequiredItemInfo(FName QuestID, TArray<FName>& OutItemIDs, int32& OutRequiredCount) const
+{
+	OutItemIDs.Empty();
+	OutRequiredCount = 0;
+
+	FQuestAnswerData* Answer = FindAnswerData(QuestID);
+	if (!Answer) return;
+
+	OutItemIDs = Answer->RequiredItemIDs;
+	OutRequiredCount = Answer->RequiredItemCount;
+}
+
+bool UQuestManager::CompleteQuestByDialogue(FName QuestID)
+{
+	if (GetQuestCompletionType(QuestID) != EQuestCompletionType::Dialogue)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("퀘스트 %s 는 대화 완료 방식이 아닙니다."), *QuestID.ToString());
+		return false;
+	}
+
+	CompleteQuest(QuestID);
+	return true;
+}
+
+bool UQuestManager::TryCompleteQuestByFindTarget(FName QuestID, FName FoundTargetId)
+{
+	if (GetQuestCompletionType(QuestID) != EQuestCompletionType::FindTarget)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("퀘스트 %s 는 대상 찾기 완료 방식이 아닙니다."), *QuestID.ToString());
+		return false;
+	}
+
+	FQuestAnswerData* Answer = FindAnswerData(QuestID);
+	if (!Answer || Answer->TargetIdentifier != FoundTargetId)
+	{
+		return false;
+	}
+
+	CompleteQuest(QuestID);
+	return true;
+}
+
+bool UQuestManager::TryCompleteQuestByItem(FName QuestID, const TMap<FName, int32>& HeldItemCounts)
+{
+	if (GetQuestCompletionType(QuestID) != EQuestCompletionType::ItemCollection)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("퀘스트 %s 는 아이템 수집 완료 방식이 아닙니다."), *QuestID.ToString());
+		return false;
+	}
+
+	FQuestAnswerData* Answer = FindAnswerData(QuestID);
+	if (!Answer) return false;
+
+	for (const FName& RequiredItemID : Answer->RequiredItemIDs)
+	{
+		const int32* HeldCount = HeldItemCounts.Find(RequiredItemID);
+		if (!HeldCount || *HeldCount < Answer->RequiredItemCount)
+		{
+			return false;
+		}
+	}
+
+	CompleteQuest(QuestID);
+	return true;
+}
+
+
 // ===================================================================
 // [무결성 검증 - 개발 중 확인용]
 // ===================================================================
@@ -472,4 +551,27 @@ void UQuestManager::ValidateQuestTablesMatch()
 			UE_LOG(LogTemp, Warning, TEXT("퀘스트 %s 는 OwningNPCId가 비어있는데 스토리 단계 값이 설정되어 있습니다. 확인이 필요합니다."), *ID.ToString());
 		}
 	}
+}
+
+EQuestMarkerState UQuestManager::GetMarkerStateForQuests(const TArray<FName>& QuestIDs) const
+{
+	bool bHasInProgress = false;
+
+	for (const FName& QuestID : QuestIDs)
+	{
+		if (QuestID.IsNone()) continue;
+
+		EQuestState State = GetQuestState(QuestID);
+
+		if (State == EQuestState::NotAccepted && IsQuestStoryUnlocked(QuestID))
+		{
+			return EQuestMarkerState::Available;   // 새 퀘스트 발견 시 최우선으로 바로 반환
+		}
+		if (State == EQuestState::Accepted)
+		{
+			bHasInProgress = true;
+		}
+	}
+
+	return bHasInProgress ? EQuestMarkerState::InProgress : EQuestMarkerState::None;
 }
