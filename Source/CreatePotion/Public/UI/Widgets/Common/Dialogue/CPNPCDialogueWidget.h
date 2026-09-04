@@ -102,4 +102,6 @@ private:
     
     UPROPERTY()
     TObjectPtr<AActor> ResultInteractor;
+
+    void CheckDialogueCompletionQuest();
 };
