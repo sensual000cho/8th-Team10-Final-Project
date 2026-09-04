@@ -11,6 +11,7 @@ UCPLabBellComponent::UCPLabBellComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	InteractionPrompt = FText::FromString(TEXT("벨 울리기"));
+	bShowWhenUnavailable = true;
 }
 
 bool UCPLabBellComponent::ExecuteInteraction(AActor* Interactor)
@@ -33,5 +34,5 @@ bool UCPLabBellComponent::CanExecuteInteraction(AActor* Interactor) const
 	const UWorld* World = GetWorld();
 	const ACPLabGameMode* LabGameMode = World ? World->GetAuthGameMode<ACPLabGameMode>() : nullptr;
 
-	return LabGameMode && !LabGameMode->HasActiveRequest();
+	return LabGameMode && LabGameMode->GetActiveRequestId().IsNone();
 }

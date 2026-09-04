@@ -2,11 +2,25 @@
 
 #include "UI/Widgets/Common/Container/CPContainerMainWidget.h"
 #include "Components/Border.h"		// 위젯 Border 헤더
+#include "Components/Button.h"		// 위젯 Button 헤더
 #include "Blueprint/WidgetLayoutLibrary.h" // DPI 스케일 계산용 헤더
 
 #include "CreatePotion.h"   // 로그용 헤더
-#include "UI/Widgets/Common/Container/CPContainerGridWidget.h"
+#include "Character/CPPlayerController.h"
 #include "Components/CPItemContainerComponent.h"
+#include "UI/Widgets/Common/Container/CPContainerGridWidget.h"
+#include "UI/Widgets/Common/Container/CPMoneyWidget.h"
+
+
+void UCPContainerMainWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	if (CloseButton)
+	{
+		CloseButton->OnClicked.AddDynamic(this, &UCPContainerMainWidget::OnCloseButtonClicked);
+	}
+}
 
 void UCPContainerMainWidget::BindContainer(UCPItemContainerComponent* InContainer)
 {
@@ -22,6 +36,14 @@ void UCPContainerMainWidget::BindContainer(UCPItemContainerComponent* InContaine
 
 	// 아이템 Container내부 배열이 변경되면 델리게이트 Broadcast 예정, 수신시 UI 업데이트
 	TargetContainer->OnContainerUpdated.AddDynamic(this, &UCPContainerMainWidget::UpdateUI);
+
+	if (MoneyWidget)
+	{
+		if (ACPPlayerController* PC = Cast<ACPPlayerController>(GetOwningPlayer()))
+		{
+			MoneyWidget->BindInventory(PC->CachedInventoryComponent);
+		}
+	}
 
 	// 세팅이 끝났으면 UI 업데이트
 	UpdateUI();
@@ -86,4 +108,17 @@ FReply UCPContainerMainWidget::NativeOnMouseButtonUp(const FGeometry& InGeometry
 	}
 
 	return Super::NativeOnMouseButtonUp(InGeometry, InMouseEvent);
+}
+
+void UCPContainerMainWidget::OnCloseButtonClicked()
+{
+	HandleCloseRequested();
+}
+
+void UCPContainerMainWidget::HandleCloseRequested()
+{
+	if (ACPPlayerController* PC = Cast<ACPPlayerController>(GetOwningPlayer()))
+	{
+		PC->CloseExternalContainerUI();
+	}
 }

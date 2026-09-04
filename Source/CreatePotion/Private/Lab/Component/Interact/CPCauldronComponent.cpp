@@ -6,14 +6,22 @@
 #include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Data/CPForageableItemData.h"
+#include "Data/CPTagDefinitionTypes.h"
+#include "Engine/DataTable.h"
 #include "GameMode/CPLabGameMode.h"
 #include "Kismet/GameplayStatics.h"
 #include "Lab/Actor/CPAlchemyProp.h"
+#include "Settings/CPDTSettings.h"
 
-UCPCauldronComponent::UCPCauldronComponent(): MaxSlotCount(3)
+UCPCauldronComponent::UCPCauldronComponent(): 
+	MaxSlotCount(3), 
+	UpImpulse(5000.f), 
+	RandomImpulseMin(2000.f),
+	RandomImpulseMax(4000.f)
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	InteractionPrompt = FText::FromString(TEXT("포션 만들기"));
+	bShowWhenUnavailable = true;
 }
 
 void UCPCauldronComponent::BeginPlay()
@@ -44,15 +52,13 @@ void UCPCauldronComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 bool UCPCauldronComponent::ExecuteInteraction(AActor* Interactor)
 {
 	if (!CanExecuteInteraction(Interactor)) return false;
-
-	const UStaticMeshComponent* SpawnMesh = 
-		Cast<UStaticMeshComponent>(PotionSpawnMesh.GetComponent(GetOwner()));
-	if (!SpawnMesh) return false;
+	if (!BoundIngredientTrigger) return false;
 	
 	ACPLabGameMode* LabGameMode = Cast<ACPLabGameMode>(UGameplayStatics::GetGameMode(this));
-	if (!LabGameMode || !LabGameMode->RefinePotion(GetEffectTags(), MakePotionTransform())) return false;
+	if (!LabGameMode || !LabGameMode->CreatePotion(GetEffectTags(), MakePotionTransform(), MakeSpawnImpulse())) return false;
 	
 	IngredientInstances.Reset();
+	IngredientTags.Reset();
 	return true;
 }
 
@@ -65,19 +71,7 @@ bool UCPCauldronComponent::CanExecuteInteraction(AActor* Interactor) const
 
 TArray<FGameplayTag> UCPCauldronComponent::GetEffectTags() const
 {
-	TArray<FGameplayTag> CombinedTags;
-	// 넣은 순서대로 효과를 추가
-	for (const FCPLabIngredientInstance& Ingredient : IngredientInstances){
-		if (!Ingredient.IsValid()) continue;
-		
-		for (const FGameplayTag& EffectTag : Ingredient.CurrentEffects){
-			if (EffectTag.IsValid()){
-				CombinedTags.Add(EffectTag);
-			}
-		}
-	}
-	
-	return CombinedTags;
+	return IngredientTags;
 }
 
 TArray<FCPLabIngredientInstance> UCPCauldronComponent::GetIngredientInstance() const
@@ -89,22 +83,97 @@ bool UCPCauldronComponent::CanAcceptProp(const ACPAlchemyProp* Prop) const
 {
 	if (!IsValid(Prop) || MaxSlotCount <= 0 || IngredientInstances.Num() >= MaxSlotCount) return false;
 
-	return Prop->GetWorkingIngredient().IsValid();
+	const FCPLabIngredientInstance& Ingredient = Prop->GetWorkingIngredient();
+	return Ingredient.IsValid() && Ingredient.CurrentEffects.IsEmpty();
+}
+
+void UCPCauldronComponent::ResolveTagCombinations(int32 NewTagIndex)
+{
+	// 새로운 태그 or 조합 태그로 첫번째 Tag 까지 탐색
+	while (IngredientTags.IsValidIndex(NewTagIndex)){
+		const FGameplayTag NewTag = IngredientTags[NewTagIndex];
+		const FCPTagDefinitionRow* NewTagRow = nullptr;
+		if (!FindTagDefinitionRow(NewTag, NewTagRow) || !NewTagRow) break;
+		
+		bool bCombined = false;
+		
+		// 뒤부터 첫번째 Tag 까지 순회
+		for (int32 CandidateIndex = NewTagIndex - 1; CandidateIndex >= 0; --CandidateIndex){
+			const FGameplayTag CandidateTag = IngredientTags[CandidateIndex];
+			
+			// 새로운 태그와 CandidateIndex의 태그가 조합 가능한 조합이 있는지 확인
+			for (const FCPTagCombinationEntry& Combination : NewTagRow->Combinations){
+				if (Combination.OtherTag != CandidateTag || !Combination.ResultTag.IsValid()) continue;
+				
+				const FGameplayTag ResultTag = Combination.ResultTag;
+				
+				// 조합 태그 제거
+				IngredientTags.RemoveAt(NewTagIndex);
+				IngredientTags.RemoveAt(CandidateIndex);
+			
+				// 동일한 태그가 있을 경우 제외
+				if (!IngredientTags.Contains(ResultTag)){
+					IngredientTags.Add(ResultTag);
+					NewTagIndex = IngredientTags.Num() - 1;
+					bCombined = true;
+				}
+				break;
+			}
+			if (bCombined) break;
+		}
+		if (!bCombined) break;
+	}
+}
+
+bool UCPCauldronComponent::FindTagDefinitionRow(const FGameplayTag& Tag, const FCPTagDefinitionRow*& OutRow) const
+{
+	OutRow = nullptr;
+	if (!Tag.IsValid()) return false;
+	
+	const UCPDTSettings* DTSettings = GetDefault<UCPDTSettings>();
+	if (!DTSettings) return false;
+	
+	UDataTable* TagDefinitionTable = DTSettings->TagDefinitionTable.LoadSynchronous();
+	if (!TagDefinitionTable) return false;
+	
+	TArray<FCPTagDefinitionRow*> Rows;
+	TagDefinitionTable->GetAllRows<FCPTagDefinitionRow>(TEXT("CauldronTagDefinition"), Rows);
+	
+	for (const FCPTagDefinitionRow* Row : Rows){
+		if (Row && Row->Tag == Tag){
+			OutRow = Row;
+			return true;
+		}
+	}
+	
+	return false;
 }
 
 FTransform UCPCauldronComponent::MakePotionTransform() const
 {
-	const UStaticMeshComponent* SpawnMesh =
-		Cast<UStaticMeshComponent>(PotionSpawnMesh.GetComponent(GetOwner()));
-	if (!SpawnMesh) return FTransform::Identity;
+	if (!BoundIngredientTrigger) return FTransform::Identity;
 	
-	FTransform SpawnTransform = SpawnMesh->GetComponentTransform();
-	
-	FVector SpawnLocation = SpawnMesh->Bounds.Origin;
-	SpawnLocation.Z += SpawnMesh->Bounds.BoxExtent.Z;
+	FTransform SpawnTransform = BoundIngredientTrigger->GetComponentTransform();
+	FVector SpawnLocation = BoundIngredientTrigger->Bounds.Origin;
+	SpawnLocation.Z += BoundIngredientTrigger->Bounds.BoxExtent.Z;
 	
 	SpawnTransform.SetLocation(SpawnLocation);
+	SpawnTransform.SetScale3D(FVector::OneVector);
 	return SpawnTransform;
+}
+
+FVector UCPCauldronComponent::MakeSpawnImpulse() const
+{
+	const float RandomAngle = FMath::RandRange(0.f, 2.f * PI);
+	const float RandomStrength = FMath::RandRange(RandomImpulseMin, RandomImpulseMax);
+	
+	const FVector RandomHorizontalImpulse(
+		FMath::Cos(RandomAngle) * RandomStrength, 
+		FMath::Sin(RandomAngle) * RandomStrength, 
+		0.f
+	);
+	
+	return FVector::UpVector * UpImpulse + RandomHorizontalImpulse;
 }
 
 void UCPCauldronComponent::HandleIngredientOverlap(
@@ -122,6 +191,14 @@ void UCPCauldronComponent::HandleIngredientOverlap(
 	
 	// Slot에 넣고, Destroy
 	IngredientInstances.Add(Ingredient);
+	if (Ingredient.SourceItemData && !Ingredient.SourceItemData->TagAxes.IsEmpty()){
+		const FGameplayTag IngredientTag = Ingredient.SourceItemData->TagAxes[0];
+		
+		if (IngredientTag.IsValid() && !IngredientTags.Contains(IngredientTag)){
+			IngredientTags.Add(IngredientTag);
+			ResolveTagCombinations(IngredientTags.Num() - 1);
+		}
+	}
 	IngredientProp->SetActorEnableCollision(false);
 	IngredientProp->Destroy();
 	
@@ -151,16 +228,18 @@ void UCPCauldronComponent::DebugPrintSlots() const
 			: TEXT("없음");
 
 		FString EffectText;
-		for (const FGameplayTag& EffectTag : Ingredient.CurrentEffects)
-		{
-			if (!EffectTag.IsValid()) continue;
-
-			if (!EffectText.IsEmpty())
+		if (Ingredient.SourceItemData){
+			for (const FGameplayTag& EffectTag : Ingredient.SourceItemData->TagAxes)
 			{
-				EffectText += TEXT(", ");
-			}
+				if (!EffectTag.IsValid()) continue;
 
-			EffectText += EffectTag.ToString();
+				if (!EffectText.IsEmpty())
+				{
+					EffectText += TEXT(", ");
+				}
+
+				EffectText += EffectTag.ToString();
+			}	
 		}
 
 		const FString Message = FString::Printf(

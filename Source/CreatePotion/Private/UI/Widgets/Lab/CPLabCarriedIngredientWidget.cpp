@@ -3,15 +3,15 @@
 #include "Character/CPCarryComponent.h"
 #include "Character/CPInteractionComponent.h"
 #include "GameFramework/Pawn.h"
-#include "Lab/Actor/CPAlchemyProp.h"
+#include "Lab/Actor/CPThrowablePropBase.h"
 
 void UCPLabCarriedIngredientWidget::NativeConstruct()
 {
 	// Super 호출 중 UCPBaseUserWidget이 가상 BindEvents를 호출하므로 세션 바인딩은 이미 끝난 상태다.
 	Super::NativeConstruct();
 
-	SetHeaderText(FText::FromString(TEXT("현재 운반중인 재료")));
-	SetVisibility(ESlateVisibility::HitTestInvisible);
+	SetHeaderText(FText::FromString(TEXT("현재 운반중인 물체")));
+	SetVisibility(ESlateVisibility::Collapsed);
 	HandlePropChanged(IsValid(BoundCarryComponent) ? BoundCarryComponent->GetHeldProp() : nullptr);
 }
 
@@ -40,7 +40,7 @@ void UCPLabCarriedIngredientWidget::UnbindEvents()
 	}
 
 	BoundInteractionComponent.Reset();
-	UnbindPreviewIngredient();
+	HeldProp.Reset();
 
 	if (IsValid(BoundCarryComponent))
 	{
@@ -54,26 +54,24 @@ void UCPLabCarriedIngredientWidget::UnbindEvents()
 	Super::UnbindEvents();
 }
 
-void UCPLabCarriedIngredientWidget::HandlePropChanged(ACPThrowablePropBase* HeldProp)
+void UCPLabCarriedIngredientWidget::HandlePropChanged(ACPThrowablePropBase* Prop)
 {
-	// 슬롯 호버 카드와 달리 운반 카드는 빈손이어도 "비어 있음" 상태로 계속 표시한다.
-	SetVisibility(ESlateVisibility::HitTestInvisible);
-
-	ACPAlchemyProp* HeldIngredientProp = Cast<ACPAlchemyProp>(HeldProp);
-	if (IsValid(HeldIngredientProp))
+	if (IsValid(Prop))
 	{
-		SetObservedIngredient(HeldIngredientProp);
-		BindPreviewIngredient(HeldIngredientProp);
+		SetVisibility(ESlateVisibility::HitTestInvisible);
+		SetIngredientProp(Prop);
+		BindPreviewProp(Prop);
 		ClearPreviewEffects();
 		return;
 	}
 
-	UnbindPreviewIngredient();
+	HeldProp.Reset();
 	ClearObservedIngredient();
 	ClearPreviewEffects();
+	SetVisibility(ESlateVisibility::Collapsed);
 }
 
-void UCPLabCarriedIngredientWidget::HandleInteractionFocusChanged(FText Prompt, FName TargetName)
+void UCPLabCarriedIngredientWidget::HandleInteractionFocusChanged(FText Prompt, FName TargetName, ECPInteractionDisplayState DisplayState)
 {
 	(void)Prompt;
 	(void)TargetName;
@@ -93,17 +91,12 @@ void UCPLabCarriedIngredientWidget::HandlePreviewIngredientChanged()
 	ClearPreviewEffects();
 }
 
-void UCPLabCarriedIngredientWidget::BindPreviewIngredient(ACPAlchemyProp* IngredientProp)
+void UCPLabCarriedIngredientWidget::BindPreviewProp(ACPThrowablePropBase* Prop)
 {
-	if (PreviewIngredient.Get() == IngredientProp) return;
+	if (HeldProp.Get() == Prop) return;
 
-	UnbindPreviewIngredient();
-	if (!IsValid(IngredientProp)) return;
+	HeldProp.Reset();
+	if (!IsValid(Prop)) return;
 
-	PreviewIngredient = IngredientProp;
-}
-
-void UCPLabCarriedIngredientWidget::UnbindPreviewIngredient()
-{
-	PreviewIngredient.Reset();
+	HeldProp = Prop;
 }

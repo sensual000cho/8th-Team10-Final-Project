@@ -49,3 +49,8 @@ FName ACPLabInteractableActor::GetInteractionName_Implementation()
 {
 	return CachedActionComponent ? CachedActionComponent->GetInteractionName() : NAME_None;
 }
+
+bool ACPLabInteractableActor::ShouldShowUnavailableInteraction_Implementation(AActor* Interactor)
+{
+	return CachedActionComponent && CachedActionComponent->ShouldShowUnavailableInteraction(Interactor);
+}

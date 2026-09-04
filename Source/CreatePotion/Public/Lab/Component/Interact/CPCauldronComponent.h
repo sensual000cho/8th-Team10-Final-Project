@@ -8,6 +8,7 @@
 #include "Lab/Component/CPLabInteractActionComponent.h"
 #include "CPCauldronComponent.generated.h"
 
+struct FCPTagDefinitionRow;
 class ACPAlchemyProp;
 class UPrimitiveComponent;
 
@@ -31,14 +32,23 @@ public:
 	TArray<FGameplayTag> GetEffectTags() const;
 	
 	UFUNCTION(BlueprintPure, Category = "Lab|Interaction")
-	TArray<FCPLabIngredientInstance> GetIngredientInstance() const;
+	TArray<FCPItemInstance> GetIngredientInstance() const;
 	
 private:
 	// 현재 가마솥이 해당 재료를 받을 수 있는지 검사
 	bool CanAcceptProp(const ACPAlchemyProp* Prop) const;
 	
-	// SpawnMesh의 상단 Spawn 위치 계산
+	// 태그 조합
+	void ResolveTagCombinations(int32 NewTagIndex);
+	
+	// 새로 들어온 태그에 해당하는 DT Row 탐색
+	bool FindTagDefinitionRow(const FGameplayTag& Tag, const FCPTagDefinitionRow*& OutRow) const;
+	
+	// IngredientTrigger의 Bounds 상단 Spawn 위치 계산
 	FTransform MakePotionTransform() const;
+	
+	// 포션 생성 직후 적용할 Impulse 계산
+	FVector MakeSpawnImpulse() const;
 	
 	// 가마솥 내부 Trigger 진입 처리
 	UFUNCTION()
@@ -56,7 +66,10 @@ private:
 	
 private:
 	UPROPERTY(VisibleAnywhere, Category = "Lab|Interaction")
-	TArray<FCPLabIngredientInstance> IngredientInstances;
+	TArray<FCPItemInstance> IngredientInstances;
+	
+	UPROPERTY(VisibleAnywhere, Category = "Lab|Interaction")
+	TArray<FGameplayTag> IngredientTags;
 
 	UPROPERTY(EditAnywhere, Category = "Lab|Interaction")
 	int32 MaxSlotCount;
@@ -64,9 +77,16 @@ private:
 	// 가마솥 내부에 배치한 Box/Sphere Collision 지정
 	UPROPERTY(EditAnywhere, Category = "Lab|Interaction")
 	FComponentReference IngredientTrigger;
-
+	
+	// Impulse 값
 	UPROPERTY(EditAnywhere, Category = "Lab|Potion")
-	FComponentReference PotionSpawnMesh;
+	float UpImpulse;
+	
+	UPROPERTY(EditAnywhere, Category = "Lab|Potion")
+	float RandomImpulseMin;
+	
+	UPROPERTY(EditAnywhere, Category = "Lab|Potion")
+	float RandomImpulseMax;
 
 	UPROPERTY()
 	TObjectPtr<UPrimitiveComponent> BoundIngredientTrigger;
