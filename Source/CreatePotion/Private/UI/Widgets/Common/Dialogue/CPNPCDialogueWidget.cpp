@@ -221,7 +221,6 @@ void UCPNPCDialogueWidget::OnTypewriterTick()
     {
         CurrentDialogueText.AppendChar(FullDialogueText[CurrentCharIndex]);
         CurrentCharIndex++;
-
         if (Text_Dialogue) {
             Text_Dialogue->SetText(FText::FromString(CurrentDialogueText));
         }
@@ -229,7 +228,6 @@ void UCPNPCDialogueWidget::OnTypewriterTick()
     else
     {
         GetWorld()->GetTimerManager().ClearTimer(TypewriterTimerHandle);
-
         // [신규] 대사 중 다음 줄이 남아있으면 "다음" 버튼만 표시.
         // 마지막 줄이거나 단일 텍스트 대화(DialogueLines 비어있음)면 기존 선택지 버튼 표시.
         if (DialogueLines.Num() > 0 && CurrentLineIndex < DialogueLines.Num() - 1)
@@ -238,7 +236,64 @@ void UCPNPCDialogueWidget::OnTypewriterTick()
         }
         else
         {
+            // 신규 추가
+            // 마지막 줄까지 도달한 시점. 대화형 퀘스트의 완료 확정 대사(NPCStoryLines)라면
+            // 여기서 완료 처리. bCurrentIsWorkshopQuest가 false인 마을 NPC 흐름에서만 해당.
+            UE_LOG(LogTemp, Warning, TEXT("[완료체크] bWorkshop=%d, bResult=%d, QuestID=%s"),
+                bCurrentIsWorkshopQuest, bIsPotionResultDialogue, *CurrentQuestID.ToString());
+
+            if (!bCurrentIsWorkshopQuest && !bIsPotionResultDialogue)
+            {
+                if (UGameInstance* GI = GetGameInstance())
+                {
+                    if (UQuestManager* QuestManager = GI->GetSubsystem<UQuestManager>())
+                    {
+                        EQuestState State = QuestManager->GetQuestState(CurrentQuestID);
+                        EQuestCompletionType Type = QuestManager->GetQuestCompletionType(CurrentQuestID);
+
+                        UE_LOG(LogTemp, Warning, TEXT("[완료체크] State=%d, CompletionType=%d"),
+                            (int32)State, (int32)Type);
+
+                        if (State == EQuestState::Accepted
+                            && Type == EQuestCompletionType::Dialogue)
+                        {
+                            bool bSuccess = QuestManager->CompleteQuestByDialogue(CurrentQuestID);
+                            UE_LOG(LogTemp, Warning, TEXT("[완료체크] CompleteQuestByDialogue 결과: %d"), bSuccess);
+                        }
+                        else
+                        {
+                            UE_LOG(LogTemp, Error, TEXT("[완료체크] 조건 불일치로 완료 처리 안 됨!"));
+                        }
+                    }
+                    else
+                    {
+                        UE_LOG(LogTemp, Error, TEXT("[완료체크] QuestManager를 찾을 수 없음!"));
+                    }
+                }
+            }
+            else
+            {
+                UE_LOG(LogTemp, Error, TEXT("[완료체크] bWorkshop 또는 bResult가 true라서 건너뜀"));
+            }
+            CheckDialogueCompletionQuest();
             CreateChoiceButtons();
+        }
+    }
+}
+
+void UCPNPCDialogueWidget::CheckDialogueCompletionQuest()
+{
+    if (bCurrentIsWorkshopQuest || bIsPotionResultDialogue) return;
+
+    if (UGameInstance* GI = GetGameInstance())
+    {
+        if (UQuestManager* QuestManager = GI->GetSubsystem<UQuestManager>())
+        {
+            if (QuestManager->GetQuestState(CurrentQuestID) == EQuestState::Accepted
+                && QuestManager->GetQuestCompletionType(CurrentQuestID) == EQuestCompletionType::Dialogue)
+            {
+                QuestManager->CompleteQuestByDialogue(CurrentQuestID);
+            }
         }
     }
 }
@@ -299,6 +354,7 @@ void UCPNPCDialogueWidget::OnSkipAllClicked()
     if (Text_Dialogue) {
         Text_Dialogue->SetText(FText::FromString(FullDialogueText));
     }
+    CheckDialogueCompletionQuest();
     CreateChoiceButtons();
 
     if (Button_SkipAll) {
@@ -325,6 +381,7 @@ void UCPNPCDialogueWidget::SkipTypewriterEffect()
     }
     else
     {
+        CheckDialogueCompletionQuest();
         CreateChoiceButtons();
     }
 }

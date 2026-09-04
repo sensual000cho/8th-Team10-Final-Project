@@ -167,6 +167,35 @@ public:
 	FText GetReactionText(FName QuestID, const FConditionEvaluation& Evaluation) const;
 
 	// ===================================================================
+	// [완료 방식별 트리거 - 포션 제작 외의 완료 경로]
+	// ===================================================================
+
+	// 이 퀘스트가 어떤 방식으로 완료되는지 조회
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	EQuestCompletionType GetQuestCompletionType(FName QuestID) const;
+
+	// [Dialogue] 대화 진행/선택으로 완료
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	bool CompleteQuestByDialogue(FName QuestID);
+
+	// [FindTarget] 필드에서 대상을 찾았을 때 완료
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	bool TryCompleteQuestByFindTarget(FName QuestID, FName FoundTargetId);
+
+	// [ItemCollection] 소지 아이템을 확인해 필요 수량을 만족하면 완료
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	bool TryCompleteQuestByItem(FName QuestID, const TMap<FName, int32>& HeldItemCounts);
+
+	// 퀘스트가 요구하는 아이템 정보 조회 (인벤토리 UI 등에서 참고용)
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	void GetRequiredItemInfo(FName QuestID, TArray<FName>& OutItemIDs, int32& OutRequiredCount) const;
+
+	// 퀘스트가 찾아야 하는 대상 식별자 조회
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	FName GetTargetIdentifier(FName QuestID) const;
+
+
+	// ===================================================================
 	// [검증 - 개발 중 확인용]
 	// ===================================================================
 
@@ -174,6 +203,9 @@ public:
 	// 데이터 입력 실수(한쪽에만 등록)를 개발 중 로그로 잡아내기 위한 함수
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	void ValidateQuestTablesMatch();
+
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	EQuestMarkerState GetMarkerStateForQuests(const TArray<FName>& QuestIDs) const;
 
 
 private:
