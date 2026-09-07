@@ -49,9 +49,9 @@ void UCPGA_FartLaunch::ActivateAbility(const FGameplayAbilitySpecHandle Handle, 
 	const FVector WorldStartDir = TargetCharacter->GetActorTransform().TransformVectorNoScale(LaunchRotation.Vector());
 	TargetCharacter->LaunchCharacter(WorldStartDir * LaunchForce, true, true);
 
-	if (TargetCharacter->NPCData)
+	if (const UCPNPCDataAsset* NPCData = TargetCharacter->GetNPCData())
 	{
-		if (UAnimSequence* LaunchAnim = TargetCharacter->NPCData->LaunchAnimation.LoadSynchronous())
+		if (UAnimSequence* LaunchAnim = NPCData->LaunchAnimation.LoadSynchronous())
 		{
 			if (USkeletalMeshComponent* Mesh = TargetCharacter->GetMesh())
 			{
