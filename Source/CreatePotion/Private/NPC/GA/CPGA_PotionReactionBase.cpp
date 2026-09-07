@@ -1,7 +1,5 @@
 ﻿#include "NPC/GA/CPGA_PotionReactionBase.h"
 #include "NPC/CPBaseNPC.h"
-#include "NPC/CPLabNPC.h"
-#include "AbilitySystemComponent.h"
 
 UCPGA_PotionReactionBase::UCPGA_PotionReactionBase()
 {
