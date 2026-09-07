@@ -77,12 +77,12 @@ FName ACPThrowablePropBase::GetInteractionName_Implementation()
 
 void ACPThrowablePropBase::InitializeFromItemData(UCPForageableItemData* ItemData, const TArray<FGameplayTag>& EffectTags)
 {
-    WorkingIngredient = FCPLabIngredientInstance{};
+    WorkingIngredient = FCPItemInstance{};
     WorkingIngredient.SourceItemData = ItemData;
     WorkingIngredient.CurrentEffects = EffectTags;
 }
 
-const FCPLabIngredientInstance& ACPThrowablePropBase::GetWorkingIngredient() const
+const FCPItemInstance& ACPThrowablePropBase::GetWorkingIngredient() const
 {
     return WorkingIngredient;
 }

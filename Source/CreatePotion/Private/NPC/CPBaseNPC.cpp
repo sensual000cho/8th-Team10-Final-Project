@@ -161,6 +161,11 @@ void ACPBaseNPC::HandlePotionEffectExpired(FGameplayTag EffectTag)
 	ApplyPotionEffectVisual(EffectTag, false, 1.0f);
 }
 
+void ACPBaseNPC::SetNPCData(UCPNPCDataAsset* InNPCData)
+{
+	NPCData = InNPCData;
+}
+
 void ACPBaseNPC::CatchUpPersistentPotionEffects()
 {
 	UCPNPCSubsystem* Subsystem = GetNPCSubsystem();

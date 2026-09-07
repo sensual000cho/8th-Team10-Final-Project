@@ -332,6 +332,37 @@ EDeliveryGrade UQuestManager::TryDeliver(FName QuestID, const TArray<FGameplayTa
 	return Grade;
 }
 
+FCPQuestResult UQuestManager::CreatePotionResult(FName QuestID, const TArray<FGameplayTag>& PotionResult)
+{
+	if (QuestID.IsNone()) return FCPQuestResult{};
+	if (!QuestResult.QuestId.IsNone()){
+		ClearResult();
+	}
+	
+	QuestResult.QuestId = QuestID;
+	QuestResult.CurrentEffects = PotionResult;
+	QuestResult.DeliveryGrade = TryDeliver(QuestID, PotionResult);
+	QuestResult.RewardAmount = GetRewardGold(QuestID);
+	QuestResult.TipAmount = 0;
+	
+	return QuestResult;
+}
+
+FCPQuestResult UQuestManager::GetResult(FName QuestID) const
+{
+	if (QuestResult.QuestId == QuestID) return QuestResult;
+	
+	return FCPQuestResult{};
+}
+
+bool UQuestManager::ClearResult()
+{
+	if (QuestResult.QuestId.IsNone()) return false;
+	
+	QuestResult = FCPQuestResult{};
+	return true;
+}
+
 // 조건 하나하나에 대한 세부 판정 (태그정답/태그오답)
 // - 1단계: 정답이 요구하는 조건들을 기준으로, 포션이 각각 만족했는지 확인
 // - 2단계: 포션에 들어있는 태그 중, 정답이 요구하지 않은 "쓸데없는 태그"가 섞였는지 확인

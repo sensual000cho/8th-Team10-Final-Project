@@ -15,10 +15,13 @@ class CREATEPOTION_API ACPQuestNPC : public ACPBaseNPC
 
 public:
 	ACPQuestNPC();
-
 	virtual FText GetInteractionPrompt_Implementation() override;
 
-	UFUNCTION(BlueprintPure, Category = "NPC|Data")
-	const UCPQuestNPCDataAsset* GetQuestNPCData() const;
+protected:
+	virtual void BeginPlay() override;
+	
+protected:
+	UPROPERTY(Transient)
+	TObjectPtr<const UCPQuestNPCDataAsset> QuestData;
 
 };

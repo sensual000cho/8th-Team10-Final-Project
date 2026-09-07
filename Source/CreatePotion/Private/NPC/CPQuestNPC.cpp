@@ -16,7 +16,9 @@ FText ACPQuestNPC::GetInteractionPrompt_Implementation()
 	return FText::FromString(TEXT("대화하기"));
 }
 
-const UCPQuestNPCDataAsset* ACPQuestNPC::GetQuestNPCData() const
+void ACPQuestNPC::BeginPlay()
 {
-	return Cast<UCPQuestNPCDataAsset>(NPCData);
+	Super::BeginPlay();
+	
+	QuestData = Cast<UCPQuestNPCDataAsset>(NPCData);
 }

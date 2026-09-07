@@ -20,6 +20,27 @@ enum class EDeliveryGrade : uint8
 	Perfect   // 요구 태그 모두 존재
 };
 
+USTRUCT(BlueprintType)
+struct FCPQuestResult
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(BlueprintReadOnly, Category ="Quest|Result")
+	FName QuestId = NAME_None;
+	
+	UPROPERTY(BlueprintReadOnly, Category ="Quest|Result")
+	EDeliveryGrade DeliveryGrade = EDeliveryGrade::Fail;
+	
+	UPROPERTY(BlueprintReadOnly, Category ="Quest|Result")
+	TArray<FGameplayTag> CurrentEffects;
+	
+	UPROPERTY(BlueprintReadOnly, Category ="Quest|Result")
+	int32 RewardAmount = 0;
+	
+	UPROPERTY(BlueprintReadOnly, Category ="Quest|Result")
+	int32 TipAmount = 0;
+};
+
 UCLASS()
 class CREATEPOTION_API UQuestManager : public UGameInstanceSubsystem
 {
@@ -120,7 +141,19 @@ public:
 	// 퀘스트가 요구하는 조건과 비교, 등급을 매김
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	EDeliveryGrade TryDeliver(FName QuestID, const TArray<FGameplayTag>& PotionResult);
+	
+	// 퀘스트 결과 생성
+	UFUNCTION(BlueprintCallable, Category = "Quest|Potion")
+	FCPQuestResult CreatePotionResult(FName QuestID, const TArray<FGameplayTag>& PotionResult);
 
+	// 퀘스트 결과 반환
+	UFUNCTION(BlueprintCallable, Category = "Quest|Result")
+	FCPQuestResult GetResult(FName QuestID) const;
+	
+	// 퀘스트 결과 초기화
+	UFUNCTION(BlueprintCallable, Category = "Quest|Result")
+	bool ClearResult();
+	
 	// 조건 하나하나에 대한 세부 판정 (태그정답/태그오답)
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	TArray<FConditionEvaluation> EvaluateConditions(FName QuestID, const TArray<FGameplayTag>& PotionResult) const;
@@ -224,6 +257,10 @@ private:
 	// NPC별 스토리 진행 단계 저장소 (NPCId → 현재 단계, 기록 없으면 0)
 	UPROPERTY()
 	TMap<FName, int32> NPCStoryStages;
+	
+	// 마지막 퀘스트 결과
+	UPROPERTY()
+	FCPQuestResult QuestResult;
 
 
 	//퀘스트 정답 일치하는지 확인

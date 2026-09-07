@@ -11,7 +11,6 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 	{
 		return;
 	}
-	const UCPQuestNPCDataAsset* QuestData = GetQuestNPCData();
 	if (!QuestData || QuestData->TownQuestIDs.Num() == 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[%s] DA에 지정된 마을 퀘스트가 없습니다."), *GetName());
@@ -132,7 +131,6 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 
 bool ACPTownNPC::CanInteract_Implementation(AActor* Interactor)
 {
-	const UCPQuestNPCDataAsset* QuestData = GetQuestNPCData();
 	if (!QuestData || !GetGameInstance()) { return false; }
 
 	UQuestManager* QuestManager = GetGameInstance()->GetSubsystem<UQuestManager>();

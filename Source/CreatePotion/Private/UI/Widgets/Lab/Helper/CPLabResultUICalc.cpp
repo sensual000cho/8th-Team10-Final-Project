@@ -4,7 +4,7 @@
 #include "Quest/QuestManager.h"
 #include "UI/Widgets/Lab/CPLabResultWidget.h"
 
-bool FCPLabResultUICalc::ApplyDeliveryResult(const FCPPotionDeliveryResult& DeliveryResult, UCPLabResultWidget* ResultWidget)
+bool FCPLabResultUICalc::ApplyDeliveryResult(const FCPQuestResult& DeliveryResult, UCPLabResultWidget* ResultWidget)
 {
 	if (!ResultWidget || DeliveryResult.QuestId.IsNone()) return false;
 
