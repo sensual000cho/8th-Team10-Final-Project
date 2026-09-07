@@ -279,17 +279,6 @@ void UCPInteractionComponent::TryInteract()
 	AActor* Target = CurrentTarget.Get();
 	AActor* Interactor = GetOwner();
 	
-	// if (Target->Implements<UCPTimedInteractable>())
-	// {
-	// 	const float Duration = ICPTimedInteractable::Execute_GetInteractionDuration(Target, Interactor);
-	//
-	// 	if (Duration > 0.f)
-	// 	{
-	// 		StartTimedInteraction(Target, Duration);
-	// 		return;
-	// 	}
-	// }
-	
 	UCPInteractableComponent* InteractableComp = Target->FindComponentByClass<UCPInteractableComponent>();
 	if (!InteractableComp || !InteractableComp->CanInteract()) return;
 	
@@ -297,7 +286,8 @@ void UCPInteractionComponent::TryInteract()
 	const float Duration = InteractableComp->GetInteractionDuration();
 	if (Duration > 0.f)
 	{
-		StartTimedInteraction(Target, Duration);
+		InteractingTarget = Target;
+		StartTimedInteraction(InteractingTarget.Get(), Duration);
 		return;
 	}
 	
@@ -309,6 +299,8 @@ void UCPInteractionComponent::TryInteract()
 
 void UCPInteractionComponent::StartTimedInteraction(AActor* Target, float Duration)
 {
+	UE_LOG(LogTemp, Warning, TEXT("[InteractionComp] 시간형 상호작용 시작"));
+	
 	if (!IsValid(Target) || Duration <= 0.f || InteractingTarget.IsValid())
 	{
 		return;
