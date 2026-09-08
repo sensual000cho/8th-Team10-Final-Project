@@ -59,8 +59,8 @@ enum class EQuestCompletionType : uint8
 	Dialogue,
 	FindTarget,
 	ItemCollection,
-	Potion
-
+	Potion,
+	FieldGimmick
 };
 // 퀘스트가 요구하는 효능 조건 하나 (틀 - 실제로는 배열로 여러 개 담김)
 USTRUCT(BlueprintType)
