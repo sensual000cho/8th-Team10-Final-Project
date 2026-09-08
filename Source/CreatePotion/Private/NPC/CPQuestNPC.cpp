@@ -1,13 +1,11 @@
 ﻿#include "NPC/CPQuestNPC.h"
 
-#include "AbilitySystemComponent.h"
 #include "Data/NPC/CPNPCDataAsset.h"       
 #include "Data/NPC/CPQuestNPCDataAsset.h"
 #include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
 #include "Quest/QuestManager.h"
 #include "Settings/CPUISettings.h"
 #include "UI/Widgets/Common/Dialogue/CPNPCDialogueWidget.h"
-#include "UI/Widgets/Lab/CPLabResultWidget.h"
 
 ACPQuestNPC::ACPQuestNPC() : CurrentQuestId(NAME_None)
 {
@@ -34,33 +32,10 @@ void ACPQuestNPC::HandleThrownPotionImpact(const TArray<FGameplayTag>& PotionEff
 	const FName QuestID = FindAcceptedQuestId();
 	if (QuestID.IsNone()) return;
 	
-	const FCPQuestResult Result = QuestManager->CreatePotionResult(QuestID, PotionEffectTags);
+	const FCPQuestResult Result = QuestManager->CreateResult(QuestID, PotionEffectTags);
 	CurrentQuestId = Result.QuestId;
-}
-
-void ACPQuestNPC::OpenResultWidget(AActor* Interactor)
-{
-	if (CurrentQuestId.IsNone()) return;
 	
-	UGameInstance* GameInstance = GetGameInstance();
-	UWorld* World = GetWorld();
-	if (!GameInstance || !World) return;
-	
-	UCPUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UCPUIManagerSubsystem>();
-	const UCPUISettings* UISettings = GetDefault<UCPUISettings>();
-	UClass* ResultWidgetClass = UISettings ? UISettings->ResultWidgetClass.LoadSynchronous() : nullptr;
-	if (!UIManager || !ResultWidgetClass) return;
-	
-	UCPLabResultWidget* ResultWidget = Cast<UCPLabResultWidget>(UIManager->PushWidget(ResultWidgetClass));
-	if (!ResultWidget) return;
-	
-	if (!ResultWidget->InitializeResult(CurrentQuestId)){
-		ResultWidget->RequestClose();
-		return;
-	}
-	
-	ActiveResultWidget = ResultWidget;
-	CurrentQuestId = NAME_None;
+	ShowResultDialogue();
 }
 
 void ACPQuestNPC::ShowResultDialogue()
@@ -90,21 +65,16 @@ void ACPQuestNPC::ShowResultDialogue()
 	const TArray<FConditionEvaluation> Evaluations = QuestManager->EvaluateConditions(DeliveryResult.QuestId, DeliveryResult.CurrentEffects);
 	
 	for (const FConditionEvaluation& Eval : Evaluations){
+		if (DeliveryResult.DeliveryGrade == EDeliveryGrade::Fail 
+			&&(!Eval.bWasRequested || Eval.Result != EConditionMatchResult::WrongTag)) continue;
+		
 		FText Reaction = QuestManager->GetReactionText(DeliveryResult.QuestId, Eval);
 		if (!Reaction.IsEmpty()){
 			ReactionTexts.Add(Reaction);
 		}
 	}
 	
-	const FText ReactionText = FText::Join(FText::FromString(TEXT("\n")), ReactionTexts);
-	
-	ActiveDialogueWidget->InitResultDialogue(
-		false, 
-		QuestID, 
-		FText::FromName(QuestData->NPCName), 
-		ReactionText, 
-		this, 
-		nullptr);
+	ActiveDialogueWidget->InitDialogueLines(QuestID, FText::FromName(QuestData->NPCName), ReactionTexts);
 }
 
 void ACPQuestNPC::BeginPlay()
@@ -112,11 +82,6 @@ void ACPQuestNPC::BeginPlay()
 	Super::BeginPlay();
 	
 	QuestData = Cast<UCPQuestNPCDataAsset>(NPCData);
-	
-	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent()){
-		FGameplayTag ReactionTag = FGameplayTag::RequestGameplayTag(FName("State.Reaction.Potion"));
-		ASC->RegisterGameplayTagEvent(ReactionTag, EGameplayTagEventType::NewOrRemoved).AddUObject(this, &ACPQuestNPC::OnPotionReactionChanged);
-	}
 }
 
 const TArray<FName>& ACPQuestNPC::GetPotionQuestIDs() const
@@ -140,12 +105,4 @@ FName ACPQuestNPC::FindAcceptedQuestId() const
 		return QuestID;
 	}
 	return NAME_None;
-}
-
-void ACPQuestNPC::OnPotionReactionChanged(const FGameplayTag Tag, int32 NewCount)
-{
-	if (NewCount != 0) return;
-	
-	ShowResultDialogue();
-	
 }

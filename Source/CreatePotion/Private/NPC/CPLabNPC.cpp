@@ -7,11 +7,6 @@
 #include "UI/Widgets/Lab/CPLabResultWidget.h"
 #include "Settings/CPUISettings.h"
 
-void ACPLabNPC::BeginPlay()
-{
-	Super::BeginPlay();
-}
-
 void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 {
 	if (ActiveDialogueWidget && ActiveDialogueWidget->IsInViewport())
@@ -62,7 +57,7 @@ void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 			TArray<FText> DialogueLines;
 			DialogueLines.Add(FirstHint);
 
-			ActiveDialogueWidget->InitDialogueLines(true, QuestID, NPCNameText, DialogueLines, this);
+			ActiveDialogueWidget->InitDialogueLines(QuestID, NPCNameText, DialogueLines);
 		}
 
 		break;
@@ -84,24 +79,28 @@ bool ACPLabNPC::CanInteract_Implementation(AActor* Interactor)
 	return false; 
 }
 
-void ACPLabNPC::OpenResultWidget(AActor* Interactor)
+void ACPLabNPC::ShowResultDialogue()
 {
-	UCPLabResultWidget* PreviousResultWidget = ActiveResultWidget.Get();
+	Super::ShowResultDialogue();
 	
-	Super::OpenResultWidget(Interactor);
-	if (!ActiveResultWidget || ActiveResultWidget.Get() == PreviousResultWidget) return;
-	
-	if (UWorld* World = GetWorld()){
-		if (ACPLabGameMode* LabGameMode = Cast<ACPLabGameMode>(World->GetAuthGameMode())){
-			LabGameMode->ClearPotionRequest();
-		}
+	if (ActiveDialogueWidget){
+		ActiveDialogueWidget->OnClosed.AddUObject(this, &ACPLabNPC::OnResultDialogueClosed);
 	}
-
-	Destroy();
 }
 
 const TArray<FName>& ACPLabNPC::GetPotionQuestIDs() const
 {
 	static const TArray<FName> QuestIDs;
 	return QuestData ? QuestData->LabQuestIDs : QuestIDs;
+}
+
+void ACPLabNPC::OnResultDialogueClosed()
+{
+	if (UWorld* World = GetWorld()){
+		if (ACPLabGameMode* LabGameMode = Cast<ACPLabGameMode>(World->GetAuthGameMode())){
+			LabGameMode->ClearPotionRequest();
+		}
+	}
+	
+	Destroy();
 }

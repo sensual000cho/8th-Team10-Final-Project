@@ -332,7 +332,7 @@ EDeliveryGrade UQuestManager::TryDeliver(FName QuestID, const TArray<FGameplayTa
 	return Grade;
 }
 
-FCPQuestResult UQuestManager::CreatePotionResult(FName QuestID, const TArray<FGameplayTag>& PotionResult)
+FCPQuestResult UQuestManager::CreateResult(FName QuestID, const TArray<FGameplayTag>& PotionResult)
 {
 	if (QuestID.IsNone()) return FCPQuestResult{};
 	if (!QuestResult.QuestId.IsNone()){
@@ -340,10 +340,17 @@ FCPQuestResult UQuestManager::CreatePotionResult(FName QuestID, const TArray<FGa
 	}
 	
 	QuestResult.QuestId = QuestID;
-	QuestResult.CurrentEffects = PotionResult;
-	QuestResult.DeliveryGrade = TryDeliver(QuestID, PotionResult);
 	QuestResult.RewardAmount = GetRewardGold(QuestID);
 	QuestResult.TipAmount = 0;
+	
+	if (GetQuestCompletionType(QuestID) == EQuestCompletionType::Potion){
+		QuestResult.CurrentEffects = PotionResult;
+		QuestResult.DeliveryGrade = TryDeliver(QuestID, PotionResult);
+	}
+	else{
+		QuestResult.CurrentEffects.Empty();
+		QuestResult.DeliveryGrade = EDeliveryGrade::Perfect;
+	}
 	
 	return QuestResult;
 }
@@ -494,6 +501,7 @@ bool UQuestManager::CompleteQuestByDialogue(FName QuestID)
 	}
 
 	CompleteQuest(QuestID);
+	CreateResult(QuestID);
 	return true;
 }
 
@@ -512,6 +520,7 @@ bool UQuestManager::TryCompleteQuestByFindTarget(FName QuestID, FName FoundTarge
 	}
 
 	CompleteQuest(QuestID);
+	CreateResult(QuestID);
 	return true;
 }
 
@@ -536,6 +545,7 @@ bool UQuestManager::TryCompleteQuestByItem(FName QuestID, const TMap<FName, int3
 	}
 
 	CompleteQuest(QuestID);
+	CreateResult(QuestID);
 	return true;
 }
 

@@ -13,12 +13,13 @@ class CREATEPOTION_API ACPLabNPC : public ACPQuestNPC
 {
 	GENERATED_BODY()
 public:
-	virtual void BeginPlay() override;
-
 	virtual void OnInteract_Implementation(AActor* Interactor) override;
 	virtual bool CanInteract_Implementation(AActor* Interactor) override;
-	virtual void OpenResultWidget(AActor* Interactor) override;
+	virtual void ShowResultDialogue() override;
 
 protected:
 	virtual const TArray<FName>& GetPotionQuestIDs() const override;
+	
+private:
+	void OnResultDialogueClosed();
 };

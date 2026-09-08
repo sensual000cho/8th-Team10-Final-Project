@@ -10,7 +10,7 @@ bool FCPLabResultUICalc::ApplyDeliveryResult(const FCPQuestResult& DeliveryResul
 
 	ResultWidget->ResetResultView();
 	ResultWidget->SetHeaderText(
-		FText::FromString(TEXT("포션 제조 결과")), GetGradeText(DeliveryResult.DeliveryGrade));
+		FText::FromString(TEXT("퀘스트 완료")), GetGradeText(DeliveryResult.DeliveryGrade));
 
 	// 현재 계약에서 TipAmount는 세부 사유 없이 합산된 추가 보상이다.
 	if (DeliveryResult.TipAmount != 0)

@@ -143,9 +143,8 @@ public:
 	EDeliveryGrade TryDeliver(FName QuestID, const TArray<FGameplayTag>& PotionResult);
 	
 	// 퀘스트 결과 생성
-	UFUNCTION(BlueprintCallable, Category = "Quest|Potion")
-	FCPQuestResult CreatePotionResult(FName QuestID, const TArray<FGameplayTag>& PotionResult);
-
+	FCPQuestResult CreateResult(FName QuestID, const TArray<FGameplayTag>& PotionResult = TArray<FGameplayTag>());
+	
 	// 퀘스트 결과 반환
 	UFUNCTION(BlueprintCallable, Category = "Quest|Result")
 	FCPQuestResult GetResult(FName QuestID) const;
