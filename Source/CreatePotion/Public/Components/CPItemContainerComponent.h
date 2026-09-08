@@ -41,6 +41,16 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Container|Action")
     bool RemoveItemFromContainer(int32 TargetGridIndex, int32 AmountToRemove);
 
+    // 신규 추가 - 퀘스트 시스템 연동용
+    // 아이템 애셋 이름(FName) 기준으로 현재 보유 수량을 집계해서 반환
+    UFUNCTION(BlueprintCallable, Category = "Container|Quest")
+    TMap<FName, int32> GetItemCountsByID() const;
+
+    // 신규 추가 - 퀘스트 시스템 연동용
+    // 아이템 애셋 이름(FName) 기준으로 지정 수량만큼 차감 (여러 칸에 나뉘어 있어도 합산해서 처리)
+    UFUNCTION(BlueprintCallable, Category = "Container|Action")
+    bool RemoveItemByID(FName ItemID, int32 AmountToRemove);
+
     // 컨테이너에서 아이템을 모두 꺼내는(집어드는) 함수
     UFUNCTION(BlueprintCallable, Category = "Container|Action")
     bool PopItemFromContainer(int32 TargetGridIndex, FContainerItem& OutPoppedItem);
