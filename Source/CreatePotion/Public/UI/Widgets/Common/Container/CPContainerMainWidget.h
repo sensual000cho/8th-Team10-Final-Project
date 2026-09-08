@@ -45,7 +45,7 @@ protected:
 	UCPItemContainerComponent* TargetContainer;
 
 	// 실제 아이템을 가지고 있을 Grid
-	UPROPERTY(meta = (BindWidget))
+	UPROPERTY(meta = (BindWidgetOptional))
 	UCPContainerGridWidget* ContainerGrid;
 
 	// 컨테이너를 드래그 할 수 있는 Bar
