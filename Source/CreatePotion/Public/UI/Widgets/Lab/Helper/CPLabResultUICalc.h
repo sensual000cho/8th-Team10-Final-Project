@@ -5,7 +5,7 @@
 
 class UCPLabResultWidget;
 enum class EDeliveryGrade : uint8;
-struct FCPPotionDeliveryResult;
+struct FCPQuestResult;
 
 /**
  * 납품 판정 결과를 Result Widget의 표시 형식으로 변환한다.
@@ -15,7 +15,7 @@ class CREATEPOTION_API FCPLabResultUICalc
 {
 public:
 	// 계산이 끝난 납품 결과를 지정한 Result Widget에 표시한다.
-	static bool ApplyDeliveryResult(const FCPPotionDeliveryResult& DeliveryResult, UCPLabResultWidget* ResultWidget);
+	static bool ApplyDeliveryResult(const FCPQuestResult& DeliveryResult, UCPLabResultWidget* ResultWidget);
 
 private:
 	// 보상 수치를 100 G 또는 +20 G 형태로 변환
