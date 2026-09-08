@@ -271,6 +271,52 @@ bool UCPItemContainerComponent::RemoveItemFromContainer(int32 TargetGridIndex, i
     return false;
 }
 
+// 신규 추가
+TMap<FName, int32> UCPItemContainerComponent::GetItemCountsByID() const
+{
+    TMap<FName, int32> Result;
+    for (const FContainerItem& Item : ContainerItems)
+    {
+        if (Item.Instance.SourceItemData)
+        {
+            FName ItemID = Item.Instance.SourceItemData->GetFName(); 
+            Result.FindOrAdd(ItemID) += Item.Stacked;
+        }
+    }
+    return Result;
+}
+
+// 신규 추가
+bool UCPItemContainerComponent::RemoveItemByID(FName ItemID, int32 AmountToRemove)
+{
+    int32 Remaining = AmountToRemove;
+
+    // 뒤에서부터 순회 (RemoveAt으로 배열이 줄어들 수 있으므로 안전하게)
+    for (int32 i = ContainerItems.Num() - 1; i >= 0 && Remaining > 0; --i)
+    {
+        if (ContainerItems[i].Instance.SourceItemData && 
+            ContainerItems[i].Instance.SourceItemData->GetFName() == ItemID)
+        {
+            int32 ToRemove = FMath::Min(Remaining, ContainerItems[i].Stacked);
+            ContainerItems[i].Stacked -= ToRemove;
+            Remaining -= ToRemove;
+
+            if (ContainerItems[i].Stacked <= 0)
+            {
+                ContainerItems.RemoveAt(i);
+            }
+        }
+    }
+
+    if (Remaining < AmountToRemove)
+    {
+        // 하나라도 뺐으면 UI 갱신 필요
+        OnContainerUpdated.Broadcast();
+    }
+
+    return Remaining <= 0;   // 요구한 수량을 전부 뺐으면 성공
+}
+
 bool UCPItemContainerComponent::PopItemFromContainer(int32 TargetGridIndex, FContainerItem& OutPoppedItem)
 {
     int32 ArrayIdx = ContainerItems.IndexOfByPredicate(

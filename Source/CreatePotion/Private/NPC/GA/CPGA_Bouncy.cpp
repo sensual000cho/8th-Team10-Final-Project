@@ -1,7 +1,7 @@
 ﻿#include "NPC/GA/CPGA_Bouncy.h"
 #include "NPC/CPBaseNPC.h"
+#include "NPC/CPNPCVisualComponent.h"
 #include "Data/NPC/CPNPCDataAsset.h"
-#include "Components/SkeletalMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 
 UCPGA_Bouncy::UCPGA_Bouncy()
@@ -14,24 +14,14 @@ UCPGA_Bouncy::UCPGA_Bouncy()
 
 void UCPGA_Bouncy::ApplyVisual(ACPBaseNPC* NPC, bool bActive, float InMagnitude)
 {
-	if (!NPC || !NPC->GetMesh())
-	{
-		return;
-	}
-
-	USkeletalMeshComponent* MeshComp = NPC->GetMesh();
+	if (!NPC) { return; }
+	UCPNPCVisualComponent* VisualComp = NPC->GetVisualComponent();
+	if (!VisualComp) { return; }
 
 	if (bActive)
 	{
-		if (!bHasCachedOriginalMaterial)
-		{
-			CachedOriginalMaterial = MeshComp->GetMaterial(0);
-			bHasCachedOriginalMaterial = true;
-		}
-
 		if (!BouncyOverlayMaterial)
 		{
-			UE_LOG(LogTemp, Error, TEXT("[UCPGA_Bouncy] BouncyOverlayMaterial is NULL!"));
 			return;
 		}
 
@@ -47,11 +37,12 @@ void UCPGA_Bouncy::ApplyVisual(ACPBaseNPC* NPC, bool bActive, float InMagnitude)
 				CachedBouncyMID->SetVectorParameterValue(InnerColorParamName, Data->SlimeInnerColor);
 				CachedBouncyMID->SetVectorParameterValue(OuterColorParamName, Data->SlimeOuterColor);
 			}
-			MeshComp->SetMaterial(0, CachedBouncyMID);
+
+			VisualComp->PushMaterialOverride(0, EffectTag, CachedBouncyMID);
 		}
 	}
 	else
 	{
-		MeshComp->SetMaterial(0, bHasCachedOriginalMaterial ? CachedOriginalMaterial : nullptr);
+		VisualComp->PopMaterialOverride(0, EffectTag);
 	}
 }
