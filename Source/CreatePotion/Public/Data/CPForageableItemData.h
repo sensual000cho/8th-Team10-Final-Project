@@ -22,7 +22,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tag")
 	TArray<FGameplayTag> TagAxes;
 	
-	// 인벤토리
+#pragma region Container
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory", meta = (ClampMin = "1"))
 	int32 MaxStack;	
 	
@@ -37,7 +37,22 @@ public:
 	int32 ContainerSizeX = 1;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
 	int32 ContainerSizeY = 1;
-	
+#pragma endregion
+
+#pragma region Shop
+public:
+	UFUNCTION(BlueprintPure, Category = "Shop")
+	int32 GetSellPrice() const { return FMath::RoundToInt(BuyPrice * SellPriceRatio); }
+
+public:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Shop", meta = (ClampMin = "0"))
+	int32 BuyPrice = 0;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Shop", meta = (ClampMin = "0"))
+	float SellPriceRatio = 0.25f;
+#pragma endregion
+
+public:
 	// Prop	
 	// AActor -> 관련 액터 구현 시 변경
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Forageable")
