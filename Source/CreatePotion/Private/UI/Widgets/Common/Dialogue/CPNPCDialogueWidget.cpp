@@ -6,15 +6,16 @@
 #include "Quest/QuestManager.h"
 #include "TimerManager.h"
 #include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
-#include "NPC/CPLabNPC.h"
+#include "NPC/CPQuestNPC.h"
 
 // [신규] 여러 줄 대사(TArray<FText>)를 받는 오버로드.
 // DialogueLines에 배열을 저장하고, 0번째 줄부터 재생 시작.
-void UCPNPCDialogueWidget::InitDialogueLines(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const TArray<FText>& InDialogueLines, ACPLabNPC* InSourceLabNPC)
+void UCPNPCDialogueWidget::InitDialogueLines(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, 
+    const TArray<FText>& InDialogueLines, class ACPQuestNPC* InSourceQuestNPC)
 {
     CurrentQuestID = InQuestID;
     bCurrentIsWorkshopQuest = bIsWorkshopQuest;
-    SourceLabNPC = InSourceLabNPC;
+    SourceQuestNPC = InSourceQuestNPC;
     bIsPotionResultDialogue = false;
 
     DialogueLines = InDialogueLines;
@@ -58,7 +59,7 @@ void UCPNPCDialogueWidget::InitDialogueLines(bool bIsWorkshopQuest, FName InQues
 }
 
 void UCPNPCDialogueWidget::InitResultDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName,
-    const FText& InDialogueText, class ACPLabNPC* InSourceLabNPC, AActor* InInteractor)
+    const FText& InDialogueText, class ACPQuestNPC* InSourceQuestNPC, AActor* InInteractor)
 {
     // [신규] 이전 대화의 여러 줄 상태가 남아있지 않도록 초기화
     DialogueLines.Empty();
@@ -66,7 +67,7 @@ void UCPNPCDialogueWidget::InitResultDialogue(bool bIsWorkshopQuest, FName InQue
 
     CurrentQuestID = InQuestID;
     bCurrentIsWorkshopQuest = bIsWorkshopQuest;
-    SourceLabNPC = InSourceLabNPC;
+    SourceQuestNPC = InSourceQuestNPC;
     ResultInteractor = InInteractor;
     bIsPotionResultDialogue = true;
 
@@ -127,10 +128,10 @@ void UCPNPCDialogueWidget::OnChoiceSelected(const FString& ButtonText) {
 
     if (ButtonText == TEXT("결과 보기"))
     {
-        if (ACPLabNPC* LabNPC = SourceLabNPC.Get())
+        if (ACPQuestNPC* QuestNPC = SourceQuestNPC.Get())
         {
             // NPC에게 명령해서 ResultWidget을 열도록 함
-            LabNPC->OpenResultWidget(ResultInteractor.Get());
+            QuestNPC->OpenResultWidget(ResultInteractor.Get());
         }
         RequestClose(); // 대화창 닫기
         return;

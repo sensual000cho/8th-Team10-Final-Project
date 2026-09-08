@@ -20,10 +20,12 @@ public:
     // [신규] 여러 줄 대사(TArray<FText>)를 순서대로 타이핑해서 보여주기 위한 함수
     // UFUNCTION 오버로드가 블루프린트에서 지원되지 않아 이름을 다르게 지정
     UFUNCTION(BlueprintCallable, Category = "Dialogue")
-    void InitDialogueLines(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const TArray<FText>& InDialogueLines, class ACPLabNPC* InSourceLabNPC = nullptr);
+    void InitDialogueLines(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, 
+        const TArray<FText>& InDialogueLines, class ACPQuestNPC* InSourceQuestNPC = nullptr);
 
     UFUNCTION(BlueprintCallable, Category = "Dialogue")
-    void InitResultDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const FText& InDialogueText, class ACPLabNPC* InSourceLabNPC, AActor* InInteractor);
+    void InitResultDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, 
+        const FText& InDialogueText, class ACPQuestNPC* InSourceQuestNPC, AActor* InInteractor);
 protected:
     virtual void BindEvents() override;
     virtual void UnbindEvents() override;
@@ -89,7 +91,7 @@ private:
 
     bool bCurrentIsWorkshopQuest = false;
 
-    TWeakObjectPtr<class ACPLabNPC> SourceLabNPC;
+    TWeakObjectPtr<class ACPQuestNPC> SourceQuestNPC;
 
     bool bIsPotionResultDialogue = false; // 납품 결과 대사인지 여부
 

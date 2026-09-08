@@ -166,3 +166,9 @@ bool ACPTownNPC::CanInteract_Implementation(AActor* Interactor)
 	// 모든 퀘스트를 수락했다면 상호작용 불가 상태 (false)로 만듦
 	return false;
 }
+
+const TArray<FName>& ACPTownNPC::GetPotionQuestIDs() const
+{
+	static const TArray<FName> EmptyQuestIDs;
+	return QuestData ? QuestData->TownQuestIDs : EmptyQuestIDs;
+}
