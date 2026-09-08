@@ -20,11 +20,11 @@ class CREATEPOTION_API UCPContainerMainWidget : public UCPBaseFixedWidget
 public:
 	// 창이 처음 초기화될 때 컴포넌트와 연결해주는 함수
 	UFUNCTION(BlueprintCallable, Category = "Container|UI")
-	void BindContainer(UCPItemContainerComponent* InContainer);
+	virtual void BindContainer(UCPItemContainerComponent* InContainer);
 
 	// 아이템 획득/사용 시 UI를 새로고침하는 함수
 	UFUNCTION(BlueprintCallable, Category = "Container|UI")
-	void UpdateUI();
+	virtual void UpdateUI();
 
 protected:
 	virtual void NativeConstruct() override;
