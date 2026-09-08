@@ -6,7 +6,6 @@
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/SizeBox.h"		// 사이즈 조절
-#include "Components/Border.h"		// Padding
 
 #include "CreatePotion.h"   // 로그용 헤더
 #include "UI/Widgets/Common/Container/CPItemSlotWidget.h"
@@ -26,7 +25,14 @@ void UCPContainerGridWidget::InitializeGrid(UCPItemContainerComponent* TargetCon
 
 	ItemGrid->ClearChildren();
 
+	const UCPContainerUISettings* Settings = GetDefault<UCPContainerUISettings>();
+	float SlotSize = Settings->SlotSize;
+	float SlotPadding = Settings->SlotPadding;
+
+	ItemGrid->SetSlotPadding(FMargin(0.f, 0.f, Settings->SlotPadding, 0.f));
+
 	int32 TotalSlots = 0;
+
 
 	if (TargetContainer->ContainerType == EContainerType::Grid2D)
 	{
@@ -60,28 +66,16 @@ void UCPContainerGridWidget::InitializeGrid(UCPItemContainerComponent* TargetCon
 			else if (TargetContainer->ContainerType == EContainerType::Slot1D)
 			{
 				// Slot1D의 경우 1칸짜리 배경을 (Columns x Rows) 크기로 거대하게 그리기
-				const UCPContainerUISettings* Settings = GetDefault<UCPContainerUISettings>();
-				float SlotSize = Settings->SlotSize;
-				float SlotPadding = Settings->SlotPadding;
-
 				float BigSlotSizeX = (TargetContainer->SlotFitWidth * SlotSize) + FMath::Max(0, (TargetContainer->SlotFitWidth - 1)) * SlotPadding;
 				float BigSlotSizeY = (TargetContainer->SlotFitHeight * SlotSize) + FMath::Max(0, (TargetContainer->SlotFitHeight - 1)) * SlotPadding;
 
 				// SizeBox를 동적으로 생성해서 배경 위젯을 감싼 뒤 강제로 크기를 늘림
-				USizeBox* InnerSizeBox = NewObject<USizeBox>(this);
-				InnerSizeBox->SetWidthOverride(BigSlotSizeX);
-				InnerSizeBox->SetHeightOverride(BigSlotSizeY);
-				InnerSizeBox->AddChild(BgSlot);
+				USizeBox* SizeBox = NewObject<USizeBox>(this);
+				SizeBox->SetWidthOverride(BigSlotSizeX);
+				SizeBox->SetHeightOverride(BigSlotSizeY);
+				SizeBox->AddChild(BgSlot);
 
-				// Border로 한 번 더 감싸서 오른쪽에만 Padding을 추가
-				UBorder* PaddingWrapper = NewObject<UBorder>(this);
-				PaddingWrapper->SetBrushColor(FLinearColor::Transparent); // 보이지는 않게
-				PaddingWrapper->SetPadding(FMargin(0.f, 0.f, SlotPadding, 0.f)); // 오른쪽에만 Padding
-				PaddingWrapper->SetHorizontalAlignment(HAlign_Left);   // 가로 Fit
-				PaddingWrapper->SetVerticalAlignment(VAlign_Top);       // 세로 Fit
-				PaddingWrapper->SetContent(InnerSizeBox);
-
-				ItemGrid->AddChildToUniformGrid(PaddingWrapper, Row, Col);
+				ItemGrid->AddChildToUniformGrid(SizeBox, Row, Col);
 			}
 		}
 	}
