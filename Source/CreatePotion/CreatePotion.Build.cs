@@ -20,6 +20,9 @@ public class CreatePotion : ModuleRules
             "GameplayTasks",
             "DeveloperSettings",
             "Niagara",
+            "AIModule",
+            "StateTreeModule",
+            "GameplayStateTreeModule",
         });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
