@@ -34,5 +34,5 @@ bool UCPLabBellComponent::CanExecuteInteraction(AActor* Interactor) const
 	const UWorld* World = GetWorld();
 	const ACPLabGameMode* LabGameMode = World ? World->GetAuthGameMode<ACPLabGameMode>() : nullptr;
 
-	return LabGameMode && LabGameMode->GetActiveRequestId().IsNone();
+	return LabGameMode && !LabGameMode->IsActiveRequest();
 }
