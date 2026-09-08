@@ -13,6 +13,7 @@
 #include "UI/Widgets/Common/Container/CPContainerGridWidget.h"
 #include "UI/Widgets/Common/Container/CPHandHeldItemWidget.h"
 #include "UI/Widgets/Common/Container/CPItemWheelWidget.h"
+#include "UI/Widgets/Common/Container/CPWheelModeIndicatorWidget.h"
 #include "Components/CPItemContainerComponent.h"
 #include "Components/CPInventoryComponent.h"
 #include "Components/CPHandItemContainerComponent.h"
@@ -65,15 +66,10 @@ void ACPPlayerController::CycleWheelInputMode()
 	uint8 NextModeValue = (static_cast<uint8>(CurrentWheelMode) + 1) % 3;
 	SetWheelInputMode(static_cast<EWheelInputMode>(NextModeValue));
 
-	FString ModeName;
-	switch (CurrentWheelMode)
+	if (WheelModeIndicatorInstance)
 	{
-	case EWheelInputMode::CameraZoom:        ModeName = TEXT("카메라 줌"); break;
-	case EWheelInputMode::PotionSelect:      ModeName = TEXT("포션 선택"); break;
-	case EWheelInputMode::IngredientSelect:  ModeName = TEXT("재료 선택"); break;
+		WheelModeIndicatorInstance->ShowMode(CurrentWheelMode);
 	}
-
-	// TODO[Container] : 현재 Mode UI 표시
 }
 
 void ACPPlayerController::BeginPlay()
@@ -239,6 +235,20 @@ void ACPPlayerController::SetPawn(APawn* InPawn)
 
 			UE_LOG(LogContainer, Log, TEXT("아이템 집기 컴포넌트 캐싱 및 UI 바인딩 완료"));
 		}
+
+		if (WheelModeIndicatorWidgetClass && !WheelModeIndicatorInstance)
+		{
+			WheelModeIndicatorInstance = CreateWidget<UCPWheelModeIndicatorWidget>(this, WheelModeIndicatorWidgetClass);
+			if (WheelModeIndicatorInstance)
+			{
+				WheelModeIndicatorInstance->AddToViewport();
+			}
+		}
+		else
+		{
+			UE_LOG(LogContainer, Log, TEXT("아이템 선택 모드 UI 바인딩 실패"));
+		}
+
 	}
 	else
 	{
