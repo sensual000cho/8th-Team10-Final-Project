@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
-#include "Lab/CPLabTypes.h"
+#include "Types/CPItemInstanceTypes.h"
 #include "Lab/Component/CPLabInteractActionComponent.h"
 #include "CPCauldronComponent.generated.h"
 

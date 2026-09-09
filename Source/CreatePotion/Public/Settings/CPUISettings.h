@@ -46,6 +46,10 @@ public:
 	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Dialogue")
 	TSoftClassPtr<UUserWidget> NPCDialogueWidgetClass;
 	
+	//Result
+	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Result")
+	TSoftClassPtr<UUserWidget> ResultWidgetClass;
+	
 	// Inventory
 	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Container")
 	TSoftClassPtr<UUserWidget> InventoryMainWidgetClass;

@@ -50,7 +50,7 @@ bool ACPNPCSpawner::SpawnNPC(FName QuestID)
 	ACPBaseNPC* SpawnedNPC = GetWorld()->SpawnActorDeferred<ACPBaseNPC>(NPCClass, FinalTransform);
 	if (SpawnedNPC)
 	{
-		SpawnedNPC->NPCData = FoundConfig->NPCData;
+		SpawnedNPC->SetNPCData(FoundConfig->NPCData);
 		UGameplayStatics::FinishSpawningActor(SpawnedNPC, FinalTransform);
 		ActiveQuestNPCs.Add(QuestID, SpawnedNPC);
 	}

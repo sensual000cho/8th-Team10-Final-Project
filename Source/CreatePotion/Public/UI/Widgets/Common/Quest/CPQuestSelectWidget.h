@@ -27,7 +27,7 @@ protected:
 	void HandleCancelButtonClicked();
 
 public:
-	// NPC 호출 시 사용할 QuestId;
+	// 호출할 공방 퀘스트 ID
 	UPROPERTY(BlueprintReadWrite, Category = "Quest")
 	FName SelectedQuestId;
 	

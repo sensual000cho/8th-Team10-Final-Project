@@ -35,7 +35,7 @@ void UCPLabIngredientInfoWidget::SetIngredientProp(ACPThrowablePropBase* InProp)
 void UCPLabIngredientInfoWidget::ClearObservedIngredient()
 {
 	UnbindObservedIngredient();
-	ApplyIngredientInfo(FCPLabIngredientInstance{});
+	ApplyIngredientInfo(FCPItemInstance{});
 }
 
 void UCPLabIngredientInfoWidget::SetHeaderText(const FText& InHeaderText)
@@ -46,11 +46,11 @@ void UCPLabIngredientInfoWidget::SetHeaderText(const FText& InHeaderText)
 	}
 }
 
-void UCPLabIngredientInfoWidget::ApplyIngredientInfo(const FCPLabIngredientInstance& InIngredient)
+void UCPLabIngredientInfoWidget::ApplyIngredientInfo(const FCPItemInstance& InIngredient)
 {
 	if (!InIngredient.IsValid())
 	{
-		Ingredient = FCPLabIngredientInstance{};
+		Ingredient = FCPItemInstance{};
 		RefreshEmptyState();
 		return;
 	}
@@ -66,7 +66,7 @@ void UCPLabIngredientInfoWidget::RefreshObservedIngredient()
 	if (!IsValid(IngredientProp))
 	{
 		ObservedIngredientProp.Reset();
-		ApplyIngredientInfo(FCPLabIngredientInstance{});
+		ApplyIngredientInfo(FCPItemInstance{});
 		return;
 	}
 
