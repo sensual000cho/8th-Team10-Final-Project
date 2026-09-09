@@ -81,10 +81,10 @@ private:
 	float DroppedScale = 0.8f;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Drop")
-	float DropHorizontalSpeed = 100.f;
+	float DropHorizontalSpeed = 300.f;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Drop")
-	float DropVerticalSpeed = 100.f;
+	float DropVerticalSpeed = 300.f;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Hover")
 	float HoverHeight = 20.f;

@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
-#include "Lab/CPLabTypes.h"
+#include "Types/CPItemInstanceTypes.h"
 #include "UI/Widgets/Base/CPBaseUserWidget.h"
 #include "CPLabIngredientInfoWidget.generated.h"
 
@@ -67,7 +67,7 @@ protected:
 	FText EmptyIngredientText = FText::FromString(TEXT("비어 있음"));
 private:
 	// 스냅샷과 Actor 관찰 경로가 최종적으로 공유하는 표시 진입점이다.
-	void ApplyIngredientInfo(const FCPLabIngredientInstance& InIngredient);
+	void ApplyIngredientInfo(const FCPItemInstance& InIngredient);
 	void RefreshObservedIngredient();
 
 	// 다른 Prop으로 갈아타거나 위젯이 파괴될 때 이전 Prop의 델리게이트를 반드시 해제한다.

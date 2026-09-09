@@ -11,6 +11,7 @@ class UCPNPCDataAsset;
 class UAbilitySystemComponent;
 class UCPNPCSubsystem;
 class UCPGADataAsset;
+class UCPNPCVisualComponent;
 
 // (bActive: 적용/해제 여부, Magnitude: 배율/강도)
 DECLARE_DELEGATE_TwoParams(FOnPotionVisualUpdateDelegate, bool /*bActive*/, float /*Magnitude*/);
@@ -45,19 +46,17 @@ public:
 	// CPNPCSubsystem이 효과 만료 시 직접 호출
 	virtual void HandlePotionEffectExpired(FGameplayTag EffectTag);
 
-	// 서브시스템에 저장된 현재 활성 효과들을 다시 조회해 비주얼에 재적용 (래그돌 복구 등)
-	UFUNCTION(BlueprintCallable, Category = "NPC|Potion")
-	void ReapplyActivePotionVisuals();
-
 	UFUNCTION(BlueprintPure, Category = "NPC")
 	FVector GetBaseMeshScale() const { return BaseMeshScale; }
 
+	UFUNCTION(BlueprintCallable, Category = "NPC")
+	void SetNPCData(UCPNPCDataAsset* InNPCData);
+	
 	UFUNCTION(BlueprintPure, Category = "NPC|Data")
 	const UCPNPCDataAsset* GetNPCData() const { return NPCData; }
 
-	// NPC 캡슐 컴포넌트 반경과 높이 적용
-	UFUNCTION(BlueprintCallable, Category = "NPC")
-	void FitCapsuleToMesh(USkeletalMesh* NPCMesh);
+	UFUNCTION(BlueprintPure, Category = "NPC")
+	FORCEINLINE UCPNPCVisualComponent* GetVisualComponent() const { return VisualComponent; }
 
 	// GA가 비주얼 갱신 콜백을 등록/해제
 	void RegisterVisualDelegate(FGameplayTag EffectTag, const FOnPotionVisualUpdateDelegate& Delegate);
@@ -82,13 +81,16 @@ protected:
 	void GrantPotionReactionAbilities();
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC")
-	TObjectPtr<UCPNPCDataAsset> NPCData;
-
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Potion")
 	TObjectPtr<UCPGADataAsset> CommonAbilitySet;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UCPNPCVisualComponent> VisualComponent;
+
 protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC")
+	TObjectPtr<UCPNPCDataAsset> NPCData;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
 	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
 

@@ -14,7 +14,7 @@ ACPDroppedItemBase::ACPDroppedItemBase()
 	
 	SphereCollision = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionRoot"));
 	SetRootComponent(SphereCollision);
-	SphereCollision->SetSphereRadius(30.f);
+	SphereCollision->SetSphereRadius(20.f);
 	
 	// 일단 채널 지정전까지는 BlockAll
 	SphereCollision->SetCollisionProfileName(TEXT("BlockAll"));

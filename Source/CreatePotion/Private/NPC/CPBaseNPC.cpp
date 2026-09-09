@@ -7,6 +7,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimSequence.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "NPC/CPNPCVisualComponent.h"
 
 ACPBaseNPC::ACPBaseNPC()
 {
@@ -30,6 +31,8 @@ ACPBaseNPC::ACPBaseNPC()
 
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	AbilitySystemComponent->SetIsReplicated(true);
+
+	VisualComponent = CreateDefaultSubobject<UCPNPCVisualComponent>(TEXT("VisualComponent"));
 }
 
 UAbilitySystemComponent* ACPBaseNPC::GetAbilitySystemComponent() const
@@ -91,49 +94,21 @@ void ACPBaseNPC::InitializeFromDataAsset()
 	}
 
 	USkeletalMesh* LoadedMesh = NPCData->NPCMesh.LoadSynchronous();
-	if (LoadedMesh)
+	UAnimSequence* LoadedAnim = NPCData->IdleAnimation.LoadSynchronous();
+
+	if (GetMesh())
 	{
-		GetMesh()->SetSkeletalMesh(LoadedMesh);
 		GetMesh()->SetRelativeRotation(NPCData->MeshRotationOffset);
-		GetMesh()->SetRelativeScale3D(NPCData->MeshScale);
-		BaseMeshScale = NPCData->MeshScale;
-		FitCapsuleToMesh(LoadedMesh);
 	}
 
-	UAnimSequence* LoadedAnim = NPCData->IdleAnimation.LoadSynchronous();
-	if (LoadedAnim)
+	if (VisualComponent)
 	{
-		GetMesh()->SetAnimationMode(EAnimationMode::AnimationSingleNode);
-		GetMesh()->PlayAnimation(LoadedAnim, true);
+		VisualComponent->InitializeVisual(GetMesh(), GetCapsuleComponent(), LoadedMesh, LoadedAnim, NPCData->MeshScale, NPCData->CapsuleRadiusRatio);
 	}
 
 	if (NPCData->NPCName != NAME_None)
 	{
 		Tags.AddUnique(NPCData->NPCName);
-	}
-}
-
-void ACPBaseNPC::FitCapsuleToMesh(USkeletalMesh* InMesh)
-{
-	if (!InMesh || !GetMesh() || !GetCapsuleComponent())
-	{
-		return;
-	}
-
-	const float CurrentScaleZ = GetMesh()->GetRelativeScale3D().Z;
-	const FBoxSphereBounds MeshBounds = InMesh->GetBounds();
-	const float MeshHalfHeight = MeshBounds.BoxExtent.Z * CurrentScaleZ;
-	const float MeshRadius = MeshHalfHeight * (NPCData ? NPCData->CapsuleRadiusRatio : 0.3f);
-
-	const float OldHalfHeight = GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
-	const float ZOffset = MeshHalfHeight - OldHalfHeight;
-
-	GetCapsuleComponent()->SetCapsuleSize(MeshRadius, MeshHalfHeight);
-	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -MeshHalfHeight));
-
-	if (FMath::Abs(ZOffset) > KINDA_SMALL_NUMBER)
-	{
-		AddActorWorldOffset(FVector(0.f, 0.f, ZOffset), false);
 	}
 }
 
@@ -186,25 +161,12 @@ void ACPBaseNPC::HandlePotionEffectExpired(FGameplayTag EffectTag)
 	ApplyPotionEffectVisual(EffectTag, false, 1.0f);
 }
 
-void ACPBaseNPC::CatchUpPersistentPotionEffects()
+void ACPBaseNPC::SetNPCData(UCPNPCDataAsset* InNPCData)
 {
-	UCPNPCSubsystem* Subsystem = GetNPCSubsystem();
-	const FName NPCId = GetPotionNPCId();
-	if (!Subsystem || NPCId.IsNone()) return;
-
-	FCPNPCEffectSaveData SaveData;
-	if (Subsystem->GetNPCEffectData(NPCId, SaveData) && AbilitySystemComponent)
-	{
-		for (const auto& EffectPair : SaveData.ActiveEffects)
-		{
-			AbilitySystemComponent->AddLooseGameplayTag(EffectPair.Key);
-		}
-	}
-
-	ReapplyActivePotionVisuals();
+	NPCData = InNPCData;
 }
 
-void ACPBaseNPC::ReapplyActivePotionVisuals()
+void ACPBaseNPC::CatchUpPersistentPotionEffects()
 {
 	UCPNPCSubsystem* Subsystem = GetNPCSubsystem();
 	const FName NPCId = GetPotionNPCId();
@@ -215,6 +177,10 @@ void ACPBaseNPC::ReapplyActivePotionVisuals()
 	{
 		for (const auto& EffectPair : SaveData.ActiveEffects)
 		{
+			if (AbilitySystemComponent)
+			{
+				AbilitySystemComponent->AddLooseGameplayTag(EffectPair.Key);
+			}
 			ApplyPotionEffectVisual(EffectPair.Key, true, EffectPair.Value.Magnitude);
 		}
 	}

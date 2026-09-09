@@ -5,10 +5,9 @@
 #include "CoreMinimal.h"
 #include "GameCore/Interface/CPInteractable.h"
 #include "GameFramework/Actor.h"
-#include "Lab/CPLabTypes.h"
+#include "Types/CPItemInstanceTypes.h"
 #include "CPThrowablePropBase.generated.h"
 
-struct FCPItemInstance;
 class UCPForageableItemData;
 class USceneComponent;
 class UStaticMeshComponent;
@@ -40,7 +39,7 @@ public:
     virtual FName GetInteractionName_Implementation() override;
     
     virtual void InitializeFromItemData(UCPForageableItemData* ItemData, const TArray<FGameplayTag>& EffectTags = TArray<FGameplayTag>());
-    const FCPLabIngredientInstance& GetWorkingIngredient() const;
+    const FCPItemInstance& GetWorkingIngredient() const;
     
     bool AttachAsHeld(USceneComponent* CarryAnchor);
     void DetachAsHeld(const FVector& DropLocation);
