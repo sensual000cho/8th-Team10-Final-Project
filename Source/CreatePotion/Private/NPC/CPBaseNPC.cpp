@@ -8,10 +8,12 @@
 #include "Animation/AnimSequence.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "NPC/CPNPCVisualComponent.h"
+#include "NPC/CPNPCMoveComponent.h"
+#include "NPC/CPNPCAIController.h"
 
 ACPBaseNPC::ACPBaseNPC()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 	if (GetCapsuleComponent())
 	{
 		GetCapsuleComponent()->SetCollisionObjectType(ECC_Pawn);
@@ -33,6 +35,10 @@ ACPBaseNPC::ACPBaseNPC()
 	AbilitySystemComponent->SetIsReplicated(true);
 
 	VisualComponent = CreateDefaultSubobject<UCPNPCVisualComponent>(TEXT("VisualComponent"));
+	MoveComponent = CreateDefaultSubobject<UCPNPCMoveComponent>(TEXT("MoveComponent"));
+
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+	AIControllerClass = ACPNPCAIController::StaticClass();
 }
 
 UAbilitySystemComponent* ACPBaseNPC::GetAbilitySystemComponent() const

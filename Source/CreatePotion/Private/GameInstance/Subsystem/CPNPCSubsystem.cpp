@@ -130,6 +130,22 @@ void UCPNPCSubsystem::UnregisterActiveNPC(FName NPCId, ACPBaseNPC* NPC)
 	}
 }
 
+void UCPNPCSubsystem::SaveNPCMovementData(FName NPCId, const FCPNPCMovementSaveData& MovementData)
+{
+	if (NPCId.IsNone()) return;
+	NPCMovementRepository.Add(NPCId, MovementData);
+}
+
+bool UCPNPCSubsystem::GetNPCMovementData(FName NPCId, FCPNPCMovementSaveData& OutMovementData) const
+{
+	if (const FCPNPCMovementSaveData* Found = NPCMovementRepository.Find(NPCId))
+	{
+		OutMovementData = *Found;
+		return true;
+	}
+	return false;
+}
+
 void UCPNPCSubsystem::NotifyEffectApplied(FName NPCId, FGameplayTag EffectTag, int64 ExpiresAtWorldMinute, float Magnitude)
 {
 	if (TWeakObjectPtr<ACPBaseNPC>* Found = ActiveNPCRegistry.Find(NPCId))

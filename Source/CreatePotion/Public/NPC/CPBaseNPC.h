@@ -12,6 +12,7 @@ class UAbilitySystemComponent;
 class UCPNPCSubsystem;
 class UCPGADataAsset;
 class UCPNPCVisualComponent;
+class UCPNPCMoveComponent;
 
 // (bActive: 적용/해제 여부, Magnitude: 배율/강도)
 DECLARE_DELEGATE_TwoParams(FOnPotionVisualUpdateDelegate, bool /*bActive*/, float /*Magnitude*/);
@@ -80,8 +81,8 @@ protected:
 	UCPNPCSubsystem* GetNPCSubsystem() const;
 	void GrantPotionReactionAbilities();
 
-public:
-	UPROPERTY(EditDefaultsOnly, Category = "GAS|Potion")
+protected:
+	UPROPERTY(EditDefaultsOnly, Category = "GAS")
 	TObjectPtr<UCPGADataAsset> CommonAbilitySet;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
@@ -90,7 +91,10 @@ public:
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC")
 	TObjectPtr<UCPNPCDataAsset> NPCData;
-	
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UCPNPCMoveComponent> MoveComponent;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
 	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
 
