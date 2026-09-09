@@ -48,7 +48,7 @@ void UCPInteractableComponent::BeginFocus(AActor* Interactor)
 	
 		if (InteractWidgetComp->GetUserWidgetObject() == nullptr)
 		{
-			UE_LOG(LogTemp, Error, TEXT("컴포넌트는 있지만, 내부 위젯 객체(UserWidget)가 생성되지 않았습니다!"));
+			UE_LOG(LogTemp, Error, TEXT("[%s]컴포넌트는 있지만, 내부 위젯 객체(UserWidget)가 생성되지 않았습니다!"), *GetName());
 		}
 		
 	}

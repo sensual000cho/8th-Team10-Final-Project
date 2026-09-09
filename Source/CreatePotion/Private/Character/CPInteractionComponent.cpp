@@ -8,6 +8,7 @@
 #include "DrawDebugHelpers.h"
 #include "Engine/World.h"
 #include "Components/MeshComponent.h"
+#include "Components/WidgetComponent.h"
 
 #include "EnhancedInputSubsystems.h"	// IMC 바인딩
 #include "EnhancedInputComponent.h"		// IA 바인딩
@@ -450,7 +451,7 @@ void UCPInteractionComponent::BeginTimedInteraction()
 void UCPInteractionComponent::SetActorHighlight(AActor* Target, bool bHighlighted)
 {
 	// TODO: 하이라이트 로직 InteractableActorComponent로 옮기기
-	// UE_LOG(LogTemp, Warning, TEXT("[InteractionComponent] SetActorHighlight 호출됨"));
+	UE_LOG(LogTemp, Warning, TEXT("[InteractionComponent] SetActorHighlight 호출됨"));
 	
 	if (!Target) return;
 	
@@ -461,18 +462,34 @@ void UCPInteractionComponent::SetActorHighlight(AActor* Target, bool bHighlighte
 		return;
 	}
 	
-	if (UMeshComponent* Mesh = Target->FindComponentByClass<UMeshComponent>())
+	// 하이라이트할 메쉬 찾기
+	TArray<UMeshComponent*> MeshComponents;
+	Target->GetComponents<UMeshComponent>(MeshComponents);
+	
+	bool bMeshFound = false;
+	for (UMeshComponent* Comp : MeshComponents)
 	{
-		const TCHAR* Message = HighlightMaterial ? TEXT("Valid") : TEXT("NULL");
-		Mesh->SetOverlayMaterial(bHighlighted ? HighlightMaterial : nullptr);
+		if (!Comp && !Comp->IsA<UWidgetComponent>())
+		{
+			continue;
+		}
 		
+		
+		Comp->SetOverlayMaterial(bHighlighted ? HighlightMaterial : nullptr);
+		bMeshFound = true;
+		
+		// Debug Log: 어떤 메쉬를 찾아서 하이라이트 하고 있는지 출력
+		// const TCHAR* Message = HighlightMaterial ? TEXT("Valid") : TEXT("NULL");
 		// UE_LOG(LogTemp, Warning, TEXT("[InteractionComponent] Found Mesh: %s, HighlightMaterial: %s"),
-		// 	*Mesh->GetName(), Message);
+		// *Comp->GetName(), Message);
 	}
-	else
+	
+	// Debug Log: Mesh 발견되지 않으면 출력
+	if (!bMeshFound)
 	{
-		// UE_LOG(LogTemp, Error, TEXT("[InteractionComponent] %s 에서 Mesh 발견되지 않음"), *Target->GetName());
+		UE_LOG(LogTemp, Error, TEXT("[InteractionComponent] %s 에서 Mesh 발견되지 않음"), *Target->GetName());
 	}
+	
 }
 
 void UCPInteractionComponent::RefreshCurrentTargetPresentation()
