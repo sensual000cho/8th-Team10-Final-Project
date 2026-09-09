@@ -9,21 +9,18 @@ class UHorizontalBox;
 class UCPNPCDialogueButtonWidget;
 class UButton;
 
+DECLARE_MULTICAST_DELEGATE(FOnNPCDialogueClosed);
+
 UCLASS()
 class CREATEPOTION_API UCPNPCDialogueWidget : public UCPBasePopupWidget {
     GENERATED_BODY()
 
 public:
-    //UFUNCTION(BlueprintCallable, Category = "Dialogue")
-   // void InitDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const FText& InDialogueText, class ACPLabNPC* InSourceLabNPC = nullptr);
-
     // [신규] 여러 줄 대사(TArray<FText>)를 순서대로 타이핑해서 보여주기 위한 함수
     // UFUNCTION 오버로드가 블루프린트에서 지원되지 않아 이름을 다르게 지정
     UFUNCTION(BlueprintCallable, Category = "Dialogue")
-    void InitDialogueLines(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const TArray<FText>& InDialogueLines, class ACPLabNPC* InSourceLabNPC = nullptr);
-
-    UFUNCTION(BlueprintCallable, Category = "Dialogue")
-    void InitResultDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const FText& InDialogueText, class ACPLabNPC* InSourceLabNPC, AActor* InInteractor);
+    void InitDialogueLines(FName InQuestID, const FText& InNPCName, const TArray<FText>& InDialogueLines);
+    
 protected:
     virtual void BindEvents() override;
     virtual void UnbindEvents() override;
@@ -57,6 +54,9 @@ private:
     // 진행 중인 타이핑을 즉시 끝내고 전체 텍스트를 보여주는 함수
     void SkipTypewriterEffect();
 
+public:
+    FOnNPCDialogueClosed OnClosed;
+    
 protected:
     UPROPERTY(meta = (BindWidget))
     TObjectPtr<UTextBlock> Text_NPCName;
@@ -85,23 +85,10 @@ private:
     FString CurrentDialogueText;
     int32 CurrentCharIndex;
 
-    int32 CurrentHintLevel = 0;
-
-    bool bCurrentIsWorkshopQuest = false;
-
-    TWeakObjectPtr<class ACPLabNPC> SourceLabNPC;
-
-    bool bIsPotionResultDialogue = false; // 납품 결과 대사인지 여부
-
     // [신규] 여러 줄 대사 원본 배열. InitDialogue(배열 버전) 호출 시 저장됨.
     // 단일 텍스트 InitDialogue()로 호출된 경우엔 빈 배열로 초기화되어 이 기능과 무관하게 동작.
     TArray<FText> DialogueLines;
 
     // [신규] DialogueLines 중 현재 몇 번째 줄을 보여주고 있는지 추적하는 인덱스.
     int32 CurrentLineIndex = 0;
-    
-    UPROPERTY()
-    TObjectPtr<AActor> ResultInteractor;
-
-    void CheckDialogueCompletionQuest();
 };

@@ -49,6 +49,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "NPC")
 	FVector GetBaseMeshScale() const { return BaseMeshScale; }
 
+	UFUNCTION(BlueprintCallable, Category = "NPC")
+	void SetNPCData(UCPNPCDataAsset* InNPCData);
+	
 	UFUNCTION(BlueprintPure, Category = "NPC|Data")
 	const UCPNPCDataAsset* GetNPCData() const { return NPCData; }
 
@@ -78,9 +81,6 @@ protected:
 	void GrantPotionReactionAbilities();
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC")
-	TObjectPtr<UCPNPCDataAsset> NPCData;
-
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Potion")
 	TObjectPtr<UCPGADataAsset> CommonAbilitySet;
 
@@ -88,6 +88,9 @@ public:
 	TObjectPtr<UCPNPCVisualComponent> VisualComponent;
 
 protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC")
+	TObjectPtr<UCPNPCDataAsset> NPCData;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
 	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
 

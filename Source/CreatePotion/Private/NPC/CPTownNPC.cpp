@@ -11,7 +11,6 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 	{
 		return;
 	}
-	const UCPQuestNPCDataAsset* QuestData = GetQuestNPCData();
 	if (!QuestData || QuestData->TownQuestIDs.Num() == 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[%s] DA에 지정된 마을 퀘스트가 없습니다."), *GetName());
@@ -59,26 +58,24 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 					FText NPCNameText = FText::FromName(QuestData->NPCName);
 					// [변경] InitDialogue(FText 버전) → InitDialogueLines(TArray<FText> 버전)
 					// 여러 줄 대사를 순서대로 타이핑해서 보여주기 위해 배열을 그대로 전달
-					ActiveDialogueWidget->InitDialogueLines(false, QuestID, NPCNameText, ScriptLines);
+					ActiveDialogueWidget->InitDialogueLines(QuestID, NPCNameText, ScriptLines);
 				}
 			}
 			break;
 		}
 
-		else if (CurrentState == EQuestState::Accepted
+		else if (CurrentState == EQuestState::Accepted 
 			&& QuestManager->GetQuestCompletionType(QuestID) == EQuestCompletionType::Dialogue)
 		{
 			TArray<FText> StoryLines = QuestManager->GetNPCStoryLines(QuestID);
-			if (StoryLines.Num() > 0 && DialogueWidgetClass)
+			if (StoryLines.Num() > 0 && DialogueWidgetClass && QuestManager->CompleteQuestByDialogue(QuestID))
 			{
+				CurrentQuestId = QuestID;
 				ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
 				if (ActiveDialogueWidget)
 				{
 					FText NPCNameText = FText::FromName(QuestData->NPCName);
-					// bIsWorkshopQuest를 false로 넘겨서, InitDialogueLines 내부의
-					// bCurrentIsWorkshopQuest 분기(힌트+스토리 자동조합)를 타지 않고
-					// StoryLines 배열을 있는 그대로 재생하도록 함
-					ActiveDialogueWidget->InitDialogueLines(false, QuestID, NPCNameText, StoryLines);
+					ActiveDialogueWidget->InitDialogueLines(QuestID, NPCNameText, StoryLines);
 				}
 			}
 			break;
@@ -110,11 +107,12 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 					TArray<FText> StoryLines = QuestManager->GetNPCStoryLines(QuestID);
 					if (StoryLines.Num() > 0 && DialogueWidgetClass)
 					{
+						CurrentQuestId = QuestID;
 						ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
 						if (ActiveDialogueWidget)
 						{
 							FText NPCNameText = FText::FromName(QuestData->NPCName);
-							ActiveDialogueWidget->InitDialogueLines(false, QuestID, NPCNameText, StoryLines);
+							ActiveDialogueWidget->InitDialogueLines(QuestID, NPCNameText, StoryLines);
 						}
 					}
 				}
@@ -132,7 +130,6 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 
 bool ACPTownNPC::CanInteract_Implementation(AActor* Interactor)
 {
-	const UCPQuestNPCDataAsset* QuestData = GetQuestNPCData();
 	if (!QuestData || !GetGameInstance()) { return false; }
 
 	UQuestManager* QuestManager = GetGameInstance()->GetSubsystem<UQuestManager>();
@@ -167,4 +164,10 @@ bool ACPTownNPC::CanInteract_Implementation(AActor* Interactor)
 
 	// 모든 퀘스트를 수락했다면 상호작용 불가 상태 (false)로 만듦
 	return false;
+}
+
+const TArray<FName>& ACPTownNPC::GetPotionQuestIDs() const
+{
+	static const TArray<FName> EmptyQuestIDs;
+	return QuestData ? QuestData->TownQuestIDs : EmptyQuestIDs;
 }

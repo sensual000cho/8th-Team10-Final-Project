@@ -2,7 +2,7 @@
 
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
-#include "GameMode/CPLabGameMode.h"
+#include "Quest/QuestManager.h"
 #include "UI/Widgets/Lab/CPLabResultLabelValueRowWidget.h"
 #include "UI/Widgets/Lab/Helper/CPLabResultUICalc.h"
 
@@ -33,6 +33,28 @@ void UCPLabResultWidget::AddTipRow(const FText& InReasonText, const FText& InAmo
 	AddLabelValueRow(VBox_Tips, InReasonText, InAmountText);
 }
 
+bool UCPLabResultWidget::InitializeResult(FName QuestId)
+{
+	if (QuestId.IsNone()) return false;
+	
+	UWorld* World = GetWorld();
+	if (!World) return false;
+	
+	UGameInstance* GameInstance = GetGameInstance();
+	UQuestManager* QuestManager = GameInstance ? GameInstance->GetSubsystem<UQuestManager>() : nullptr;
+	if (!QuestManager) return false;
+	
+	const FCPQuestResult Result = QuestManager->GetResult(QuestId);
+	if (!FCPLabResultUICalc::ApplyDeliveryResult(Result, this)) return false;
+	
+	QuestManager->ClearResult();
+	
+	World->GetTimerManager().ClearTimer(AutoCloseTimerHandle);
+	World->GetTimerManager().SetTimer(
+		AutoCloseTimerHandle, this, &UCPLabResultWidget::RequestClose,	AutoCloseDelay,false);
+	return true;
+}
+
 void UCPLabResultWidget::UnbindEvents()
 {
 	if (UWorld* World = GetWorld()){
@@ -40,21 +62,6 @@ void UCPLabResultWidget::UnbindEvents()
 	}
 	
 	Super::UnbindEvents();
-}
-
-bool UCPLabResultWidget::InitializeResult()
-{
-	UWorld* World = GetWorld();
-	ACPLabGameMode* LabGameMode = World ? World->GetAuthGameMode<ACPLabGameMode>() : nullptr;
-	if (!LabGameMode) return false;
-		
-	const FCPPotionDeliveryResult DeliveryResult = LabGameMode->GetPotionDeliveryResult();
-	if (!FCPLabResultUICalc::ApplyDeliveryResult(DeliveryResult, this)) return false;
-	
-	World->GetTimerManager().ClearTimer(AutoCloseTimerHandle);
-	World->GetTimerManager().SetTimer(
-		AutoCloseTimerHandle, this, &UCPLabResultWidget::RequestClose,	AutoCloseDelay,false);
-	return true;
 }
 
 void UCPLabResultWidget::AddLabelValueRow(UVerticalBox* Container, const FText& LabelText, const FText& ValueText) const

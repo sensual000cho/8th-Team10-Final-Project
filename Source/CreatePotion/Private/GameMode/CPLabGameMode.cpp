@@ -4,43 +4,36 @@
 #include "GameState/CPLabGameState.h"
 #include "Lab/Actor/CPPotionActor.h"
 #include "PlayerState/CPLabPlayerState.h"
-#include "Quest/QuestManager.h"
 
-ACPLabGameMode::ACPLabGameMode()
+ACPLabGameMode::ACPLabGameMode() : bActiveRequest(false)
 {
 	GameStateClass = ACPLabGameState::StaticClass();
 	PlayerStateClass = ACPLabPlayerState::StaticClass();
 }
 
-bool ACPLabGameMode::StartPotionRequest(FName QuestId)
+bool ACPLabGameMode::StartPotionRequest()
 {
-	if (QuestId.IsNone()) return false;
+	if (bActiveRequest) return false;
 	
-	UQuestManager* QuestManager = GetGameInstance() ? GetGameInstance()->GetSubsystem<UQuestManager>() : nullptr;
-	if (!QuestManager || QuestManager->GetQuestState(QuestId) != EQuestState::Accepted) return false;
-	
-	FCPLabPotionRequest PotionRequest;
-	PotionRequest.RequestId = QuestId;
-	PotionRequest.DisplayText = QuestManager->GetQuestSummaryText(QuestId);
-	
-	if (!ActiveRequestId.IsNone()) return false;
-
-	ActiveRequestId = QuestId;
-	PotionDeliveryResult = FCPPotionDeliveryResult{};
+	bActiveRequest = true;
 	return true;
 }
 
 bool ACPLabGameMode::ClearPotionRequest()
 {
-	if (ActiveRequestId.IsNone()) return false;
-
-	ActiveRequestId = NAME_None;
-	PotionDeliveryResult = FCPPotionDeliveryResult{};
+	if (!bActiveRequest) return false;
+	
+	bActiveRequest = false;
 	return true;
 }
 
+bool ACPLabGameMode::IsActiveRequest() const
+{
+	return bActiveRequest;
+}
+
 bool ACPLabGameMode::CreatePotion(const TArray<FGameplayTag>& EffectTags, const FTransform& SpawnTransform,
-	const FVector& SpawnImpulse)
+                                  const FVector& SpawnImpulse)
 {
 	TArray<FGameplayTag> SortedEffectTags = EffectTags;
 	// 사전 순 정렬
@@ -52,30 +45,6 @@ bool ACPLabGameMode::CreatePotion(const TArray<FGameplayTag>& EffectTags, const 
 	if (!SpawnPotion(SortedEffectTags, SpawnTransform, SpawnImpulse)) return false;
 	
 	return true;
-}
-
-FCPPotionDeliveryResult ACPLabGameMode::GetPotionDeliveryResult(const TArray<FGameplayTag>& PotionEffectTags)
-{
-	if (PotionDeliveryResult.QuestId == ActiveRequestId) return PotionDeliveryResult;
-	if (ActiveRequestId.IsNone() || PotionEffectTags.IsEmpty()) return FCPPotionDeliveryResult{};
-	
-	PotionDeliveryResult = FCPPotionDeliveryResult{};
-	PotionDeliveryResult.QuestId = ActiveRequestId;
-	PotionDeliveryResult.CurrentEffects = PotionEffectTags;
-	
-	UQuestManager* QuestManager = GetGameInstance() ? GetGameInstance()->GetSubsystem<UQuestManager>() : nullptr;
-	if (!QuestManager) return PotionDeliveryResult;
-	
-	PotionDeliveryResult.DeliveryGrade = QuestManager->TryDeliver(ActiveRequestId, PotionEffectTags);
-	PotionDeliveryResult.RewardAmount = QuestManager->GetRewardGold(ActiveRequestId);
-	PotionDeliveryResult.TipAmount = 0;
-	
-	return PotionDeliveryResult;
-}
-
-FName ACPLabGameMode::GetActiveRequestId() const
-{
-	return ActiveRequestId;
 }
 
 bool ACPLabGameMode::SpawnPotion(const TArray<FGameplayTag>& EffectTags, const FTransform& SpawnTransform, const FVector& SpawnImpulse)
