@@ -496,10 +496,12 @@ void UCPInteractionComponent::RefreshCurrentTargetPresentation()
 {
 	
 	AActor* Target = CurrentTarget.Get();
+	if (!IsValid(Target)) return;
+	
 	AActor* Interactor = GetOwner();
 	UCPInteractableComponent* InteractableComp = Target->FindComponentByClass<UCPInteractableComponent>();
 	
-	if (!IsValid(Target) || !IsValid(Interactor) || !IsValid(InteractableComp))
+	if (!IsValid(Interactor) || !IsValid(InteractableComp))
 	{
 		ClearCurrentTarget();
 		return;
