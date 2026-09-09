@@ -1,4 +1,6 @@
 #include "Items/CPDroppedItemBase.h"
+
+#include "Components/CPInteractableComponent.h"
 #include "Components/CPInventoryComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/TimelineComponent.h"
@@ -43,8 +45,10 @@ ACPDroppedItemBase::ACPDroppedItemBase()
 	RotatingMovement->bAutoActivate = false;
 }
 
-void ACPDroppedItemBase::OnInteract_Implementation(AActor* Interactor)
+void ACPDroppedItemBase::HandleInteract(AActor* Interactor)
 {
+	Super::HandleInteract(Interactor);
+	
 	UCPInventoryComponent* Inventory = Interactor->FindComponentByClass<UCPInventoryComponent>();
 	if (!Inventory) return;
 	
@@ -62,21 +66,6 @@ void ACPDroppedItemBase::OnInteract_Implementation(AActor* Interactor)
 	}
 }
 
-FText ACPDroppedItemBase::GetInteractionPrompt_Implementation()
-{
-	return FText::FromString(TEXT("줍기"));
-}
-
-FName ACPDroppedItemBase::GetInteractionName_Implementation()
-{
-	return FName(*ItemData->DisplayName.ToString());
-}
-
-bool ACPDroppedItemBase::CanInteract_Implementation(AActor* Interactor)
-{
-	return Interactor != nullptr && ItemData != nullptr && Amount > 0;
-}
-
 void ACPDroppedItemBase::OnAcquireFromPool_Implementation()
 {
 	SetActorHiddenInGame(false);
@@ -84,6 +73,8 @@ void ACPDroppedItemBase::OnAcquireFromPool_Implementation()
 	
 	Mesh->SetHiddenInGame(false, true);
 	Mesh->SetVisibility(true, true);
+	
+	TestInteractableComponent->SetInteractability(true);
 }
 
 void ACPDroppedItemBase::OnReleaseToPool_Implementation()
@@ -94,6 +85,10 @@ void ACPDroppedItemBase::OnReleaseToPool_Implementation()
 	ItemData = nullptr;
 	Amount = 0;
 	
+	if (TestInteractableComponent)
+	{
+		TestInteractableComponent->SetInteractability(false);
+	}
 	DropMovement->StopMovementImmediately();
 	DropMovement->Deactivate();
 	
@@ -111,6 +106,14 @@ void ACPDroppedItemBase::Initialize(UCPForageableItemData* InItemData, int32 InA
 	ItemData = InItemData;
 	Amount = InAmount;
 	Mesh->SetStaticMesh(InMesh);
+	
+	if (TestInteractableComponent)
+	{
+		const bool bValid = ItemData != nullptr && Amount > 0;
+		TestInteractableComponent->SetInteractability(bValid);
+		TestInteractableComponent->SetTargetName(ItemData ? FName(*ItemData->DisplayName.ToString()) : NAME_None);
+		TestInteractableComponent->SetInteractionPrompt(FText::FromString(TEXT("줍기")));
+	}
 }
 
 void ACPDroppedItemBase::StartDropMotion(const FVector& DropDirection)
