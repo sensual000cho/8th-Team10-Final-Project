@@ -14,13 +14,12 @@ class CREATEPOTION_API ACPTownNPC : public ACPQuestNPC
 public:
 	virtual void OnInteract_Implementation(AActor* Interactor) override;
 	virtual bool CanInteract_Implementation(AActor* Interactor) override;
+	
+protected:
+	virtual const TArray<FName>& GetPotionQuestIDs() const override;
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UCPNPCDialogueWidget> DialogueWidgetClass;
-
-private:
-	UPROPERTY()
-	class UCPNPCDialogueWidget* ActiveDialogueWidget;
 
 };

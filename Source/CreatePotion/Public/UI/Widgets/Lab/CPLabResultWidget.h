@@ -13,7 +13,7 @@ class UVerticalBox;
  * 판정, 보상 계산, 퀘스트 처리, 재시도 초기화는 담당하지 않는다.
  */
 
-struct FCPPotionDeliveryResult;
+struct FCPQuestResult;
 
 UCLASS()
 class CREATEPOTION_API UCPLabResultWidget : public UCPBasePopupWidget
@@ -38,7 +38,7 @@ public:
 	void AddTipRow(const FText& InReasonText, const FText& InAmountText);
 	
 	//UI 내용 채우는 함수
-	bool InitializeResult();
+	bool InitializeResult(FName QuestId);
 
 protected:
 	// WBP가 제거될 때 버튼 이벤트 연결을 해제해 중복 호출과 남은 참조를 방지한다.
