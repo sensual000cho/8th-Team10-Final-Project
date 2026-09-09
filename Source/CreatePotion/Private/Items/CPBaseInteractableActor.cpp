@@ -3,12 +3,25 @@
 
 #include "Items/CPBaseInteractableActor.h"
 
+#include "Components/CPInteractableComponent.h"
+#include "Components/WidgetComponent.h"
+
 
 // Sets default values
 ACPBaseInteractableActor::ACPBaseInteractableActor()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	TestInteractableComponent = CreateDefaultSubobject<UCPInteractableComponent>("InteractableComponent");
+	TestInteractionWidget = CreateDefaultSubobject<UWidgetComponent>("InteractionWidget");
+}
+
+void ACPBaseInteractableActor::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+	
+	if (TestInteractionWidget && RootComponent && !TestInteractionWidget->GetAttachParent())
+	{
+		TestInteractionWidget->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
+	}
 }
 
 // Called when the game starts or when spawned
@@ -16,11 +29,30 @@ void ACPBaseInteractableActor::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	if (TestInteractableComponent)
+	{
+		TestInteractableComponent->OnActorInteractionStarted.AddUniqueDynamic(this, &ACPBaseInteractableActor::HandleInteractionStarted);
+		TestInteractableComponent->OnActorInteractionCompleted.AddUniqueDynamic(this, &ACPBaseInteractableActor::HandleInteract);
+	}
 }
 
-// Called every frame
-void ACPBaseInteractableActor::Tick(float DeltaTime)
+void ACPBaseInteractableActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	Super::Tick(DeltaTime);
+	if (TestInteractableComponent)
+	{
+		TestInteractableComponent->OnActorInteractionStarted.RemoveDynamic(this, &ACPBaseInteractableActor::HandleInteractionStarted);
+		TestInteractableComponent->OnActorInteractionCompleted.RemoveDynamic(this, &ACPBaseInteractableActor::HandleInteract);
+	}
+	
+	Super::EndPlay(EndPlayReason);
+}
+
+
+void ACPBaseInteractableActor::HandleInteract(AActor* Interactor)
+{
+}
+
+void ACPBaseInteractableActor::HandleInteractionStarted(AActor* Interactor)
+{
 }
 
