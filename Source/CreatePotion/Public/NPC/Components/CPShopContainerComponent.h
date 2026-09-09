@@ -6,7 +6,7 @@
 #include "Components/CPItemContainerComponent.h"
 #include "CPShopContainerComponent.generated.h"
 
-UCLASS()
+UCLASS(ClassGroup = (CPContainer), meta = (BlueprintSpawnableComponent))
 class CREATEPOTION_API UCPShopContainerComponent : public UCPItemContainerComponent
 {
 	GENERATED_BODY()
