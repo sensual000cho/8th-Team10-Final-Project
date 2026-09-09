@@ -9,6 +9,7 @@
 class UCPForageableItemData;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnForageableCodexUpdated);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnForageableItemDiscovered, UCPForageableItemData*, ItemData);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCodexItemSelected, UCPForageableItemData*, ItemData);
 
 USTRUCT(BlueprintType)
@@ -55,6 +56,10 @@ public:
 public:
 	UPROPERTY(BlueprintAssignable, Category = "Codex|Forageable")
 	FOnForageableCodexUpdated OnForageableCodexUpdated;
+	
+	// 채집물 첫 발견
+	UPROPERTY(BlueprintAssignable, Category = "Codex|Forageable")
+	FOnForageableItemDiscovered OnForageableItemDiscovered;
 	
 	UPROPERTY(BlueprintAssignable, Category = "Codex|Forageable")
 	FOnCodexItemSelected OnCodexItemSelected;
