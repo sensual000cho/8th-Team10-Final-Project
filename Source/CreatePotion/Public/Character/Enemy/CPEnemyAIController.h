@@ -8,6 +8,7 @@
 
 class UStateTree;
 class UStateTreeAIComponent;
+class UCPEnemyDetectionComponent;
 
 UCLASS()
 class CREATEPOTION_API ACPEnemyAIController : public AAIController
@@ -32,9 +33,12 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|AI")
 	TObjectPtr<UStateTree> EnemyStateTree;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|AI", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UCPEnemyDetectionComponent> DetectionComponent;
+	
 private:
 	void TryStartStateTree();
 	
-	UPROPERTY(VisibleInstanceOnly, Category = "Enemy|AI")
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Enemy|AI", meta = (AllowPrivateAccess = "true"))
 	FVector HomeLocation = FVector::ZeroVector;
 };

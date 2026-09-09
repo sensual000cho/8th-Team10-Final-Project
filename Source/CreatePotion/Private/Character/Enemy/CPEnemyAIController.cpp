@@ -3,6 +3,7 @@
 
 #include "Character/Enemy/CPEnemyAIController.h"
 
+#include "Character/Enemy/CPEnemyDetectionComponent.h"
 #include "Components/StateTreeAIComponent.h"
 #include "GameFramework/Pawn.h"
 #include "StateTree.h"
@@ -10,7 +11,8 @@
 ACPEnemyAIController::ACPEnemyAIController()
 {
 	StateTreeComponent = CreateDefaultSubobject<UStateTreeAIComponent>(TEXT("StateTreeComponent"));
-
+	DetectionComponent = CreateDefaultSubobject<UCPEnemyDetectionComponent>(TEXT("DetectionComponent"));
+	
 	// AIController가 사용하는 Brain으로 등록
 	BrainComponent = StateTreeComponent;
 	// 초기 데이터를 준비한 뒤 직접 시작
