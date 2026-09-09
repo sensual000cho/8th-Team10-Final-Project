@@ -286,13 +286,12 @@ void UCPInteractionComponent::TryInteract()
 	const float Duration = InteractableComp->GetInteractionDuration();
 	if (Duration > 0.f)
 	{
-		InteractingTarget = Target;
-		StartTimedInteraction(InteractingTarget.Get(), Duration);
+		StartTimedInteraction(Target, Duration);
 		return;
 	}
 	
 	// 시간형 인터페이스가 없으면 일반 상호작용 실행
-	InteractableComp->Interact(Interactor);
+	InteractableComp->HandleInteract(Interactor);
 	RefreshCurrentTargetPresentation();
 	
 }
@@ -399,7 +398,7 @@ void UCPInteractionComponent::CompleteTimedInteraction()
 
 	// 시간이 끝나면 기존 OnInteract 호출
 	//ICPInteractable::Execute_OnInteract(Target, Interactor);
-	InteractableComp->Interact(Interactor);
+	InteractableComp->HandleInteract(Interactor);
 	
 	OnInteractionCompleted.Broadcast();
 	RefreshCurrentTargetPresentation();
@@ -435,9 +434,7 @@ void UCPInteractionComponent::BeginTimedInteraction()
 	OnInteractionProgressChanged.Broadcast(0.f);
 
 	// 여기에서 처음으로 조사/채집 몽타주 실행
-	//ICPTimedInteractable::Execute_OnInteractionStarted(Target, Interactor);
-	// TODO: InteractableComponent에 함수 추가 
-	//InteractableComp->BeginInteractionProgress(Interactor);
+	InteractableComp->HandleInteractionStarted(Interactor);
 	
 	RefreshCurrentTargetPresentation();
 
@@ -453,7 +450,7 @@ void UCPInteractionComponent::BeginTimedInteraction()
 void UCPInteractionComponent::SetActorHighlight(AActor* Target, bool bHighlighted)
 {
 	// TODO: 하이라이트 로직 InteractableActorComponent로 옮기기
-	UE_LOG(LogTemp, Warning, TEXT("[InteractionComponent] SetActorHighlight 호출됨"));
+	// UE_LOG(LogTemp, Warning, TEXT("[InteractionComponent] SetActorHighlight 호출됨"));
 	
 	if (!Target) return;
 	
@@ -467,13 +464,14 @@ void UCPInteractionComponent::SetActorHighlight(AActor* Target, bool bHighlighte
 	if (UMeshComponent* Mesh = Target->FindComponentByClass<UMeshComponent>())
 	{
 		const TCHAR* Message = HighlightMaterial ? TEXT("Valid") : TEXT("NULL");
-		UE_LOG(LogTemp, Warning, TEXT("[InteractionComponent] Found Mesh: %s, HighlightMaterial: %s"),
-			*Mesh->GetName(), Message);
 		Mesh->SetOverlayMaterial(bHighlighted ? HighlightMaterial : nullptr);
+		
+		// UE_LOG(LogTemp, Warning, TEXT("[InteractionComponent] Found Mesh: %s, HighlightMaterial: %s"),
+		// 	*Mesh->GetName(), Message);
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("[InteractionComponent] %s 에서 Mesh 발견되지 않음"), *Target->GetName());
+		// UE_LOG(LogTemp, Error, TEXT("[InteractionComponent] %s 에서 Mesh 발견되지 않음"), *Target->GetName());
 	}
 }
 
