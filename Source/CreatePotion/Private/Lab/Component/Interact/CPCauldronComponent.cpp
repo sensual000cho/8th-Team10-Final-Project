@@ -90,7 +90,7 @@ bool UCPCauldronComponent::CanAcceptProp(const ACPAlchemyProp* Prop) const
 void UCPCauldronComponent::ResolveTagCombinations(int32 NewTagIndex)
 {
 	// 새로운 태그 or 조합 태그로 첫번째 Tag 까지 탐색
-	while (IngredientTags.IsValidIndex(NewTagIndex)){
+	while (NewTagIndex > 0 && IngredientTags.IsValidIndex(NewTagIndex)){
 		const FGameplayTag NewTag = IngredientTags[NewTagIndex];
 		const FCPTagDefinitionRow* NewTagRow = nullptr;
 		if (!FindTagDefinitionRow(NewTag, NewTagRow) || !NewTagRow) break;
@@ -193,10 +193,20 @@ void UCPCauldronComponent::HandleIngredientOverlap(
 	IngredientInstances.Add(Ingredient);
 	if (Ingredient.SourceItemData && !Ingredient.SourceItemData->TagAxes.IsEmpty()){
 		const FGameplayTag IngredientTag = Ingredient.SourceItemData->TagAxes[0];
+		static const FGameplayTag ResetTag = FGameplayTag::RequestGameplayTag(TEXT("Potion.Effect.Reset"));
 		
-		if (IngredientTag.IsValid() && !IngredientTags.Contains(IngredientTag)){
-			IngredientTags.Add(IngredientTag);
-			ResolveTagCombinations(IngredientTags.Num() - 1);
+		if (IngredientTag.IsValid()){
+			// Reset은 다른 Tag와 같이 존재하지 않음
+			if (IngredientTag == ResetTag){
+				IngredientTags.Reset();
+			}else{
+				IngredientTags.Remove(ResetTag);
+			}
+			
+			if (!IngredientTags.Contains(IngredientTag)){
+				IngredientTags.Add(IngredientTag);
+				ResolveTagCombinations(IngredientTags.Num() - 1);
+			}
 		}
 	}
 	IngredientProp->SetActorEnableCollision(false);
