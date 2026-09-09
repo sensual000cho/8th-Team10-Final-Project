@@ -3,7 +3,7 @@
 #include "UI/Widgets/Common/Interaction/CPInteractionPromptWidget.h"
 #include "Character/CPInteractionComponent.h"
 #include "Components/TextBlock.h"
-#include "Components/Border.h"
+#include "Components/Image.h"
 
 void UCPInteractionPromptWidget::NativeConstruct()
 {
@@ -20,13 +20,12 @@ void UCPInteractionPromptWidget::CacheDefaultColors()
 		return;
 	}
 
-	if (!Border_InputKey || !TextBlock_InputKey || !TextBlock_ActorName || !TextBlock_InteractionPrompt)
+	if (!Image_InputKey || !TextBlock_ActorName || !TextBlock_InteractionPrompt)
 	{
 		return;
 	}
-
-	DefaultInputKeyBackgroundColor = Border_InputKey->GetBrushColor();
-	DefaultInputKeyTextColor = TextBlock_InputKey->GetColorAndOpacity();
+	
+	DefaultInputKeyColor = Image_InputKey->GetColorAndOpacity();
 	DefaultActorNameTextColor = TextBlock_ActorName->GetColorAndOpacity();
 	DefaultInteractionPromptTextColor = TextBlock_InteractionPrompt->GetColorAndOpacity();
 
@@ -49,12 +48,10 @@ void UCPInteractionPromptWidget::ApplyDisplayStateColors(ECPInteractionDisplaySt
 
 	if (bUnavailable)
 	{
-		const FLinearColor UnavailableInputKeyBackground = FLinearColor::FromSRGBColor(FColor::FromHex(TEXT("2A2A2AAE")));
-		
 		const FLinearColor UnavailableTextColor = FLinearColor::FromSRGBColor(FColor::FromHex(TEXT("8C8C8CFF")));
+		const FLinearColor UnavailableInputKeyColor = FLinearColor(1.f, 1.f, 1.f, 0.3f);
 
-		Border_InputKey->SetBrushColor(UnavailableInputKeyBackground);
-		TextBlock_InputKey->SetColorAndOpacity(FSlateColor(UnavailableTextColor));
+		Image_InputKey->SetColorAndOpacity(UnavailableInputKeyColor);
 		TextBlock_ActorName->SetColorAndOpacity(FSlateColor(UnavailableTextColor));
 		TextBlock_InteractionPrompt->SetColorAndOpacity(FSlateColor(UnavailableTextColor));
 
@@ -62,8 +59,8 @@ void UCPInteractionPromptWidget::ApplyDisplayStateColors(ECPInteractionDisplaySt
 	}
 
 	// Enabled 상태가 되면 WBP에서 설정했던 원래 색상으로 복구
-	Border_InputKey->SetBrushColor(DefaultInputKeyBackgroundColor);
-	TextBlock_InputKey->SetColorAndOpacity(DefaultInputKeyTextColor);
+	//Border_InputKey->SetBrushColor(DefaultInputKeyBackgroundColor);
+	Image_InputKey->SetColorAndOpacity(DefaultInputKeyColor);
 	TextBlock_ActorName->SetColorAndOpacity(DefaultActorNameTextColor);
 	TextBlock_InteractionPrompt->SetColorAndOpacity(DefaultInteractionPromptTextColor);
 }

@@ -10,6 +10,7 @@ enum class ECPInteractionDisplayState : uint8;
 class UCPInteractionComponent;
 class UTextBlock;
 class UBorder;
+class UImage;
 /**
  * 
  */
@@ -28,10 +29,7 @@ protected:
 
 protected:	
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UBorder> Border_InputKey;
-	
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> TextBlock_InputKey;
+	TObjectPtr<UImage> Image_InputKey;
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> TextBlock_ActorName;
@@ -43,8 +41,7 @@ protected:
 	UCPInteractionComponent* BoundInteractionComponent;
 	
 private:
-	FLinearColor DefaultInputKeyBackgroundColor;
-	FSlateColor DefaultInputKeyTextColor;
+	FLinearColor DefaultInputKeyColor;
 	FSlateColor DefaultActorNameTextColor;
 	FSlateColor DefaultInteractionPromptTextColor;
 
