@@ -10,17 +10,17 @@
 // Sets default values
 ACPBaseInteractableActor::ACPBaseInteractableActor()
 {
-	TestInteractableComponent = CreateDefaultSubobject<UCPInteractableComponent>("InteractableComponent");
-	TestInteractionWidget = CreateDefaultSubobject<UWidgetComponent>("InteractionWidget");
+	InteractableComponent = CreateDefaultSubobject<UCPInteractableComponent>("InteractableComponent");
+	InteractionWidget = CreateDefaultSubobject<UWidgetComponent>("InteractionWidget");
 }
 
 void ACPBaseInteractableActor::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 	
-	if (TestInteractionWidget && RootComponent && !TestInteractionWidget->GetAttachParent())
+	if (InteractionWidget && RootComponent && !InteractionWidget->GetAttachParent())
 	{
-		TestInteractionWidget->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
+		InteractionWidget->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
 	}
 }
 
@@ -29,19 +29,19 @@ void ACPBaseInteractableActor::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	if (TestInteractableComponent)
+	if (InteractableComponent)
 	{
-		TestInteractableComponent->OnActorInteractionStarted.AddUniqueDynamic(this, &ACPBaseInteractableActor::HandleInteractionStarted);
-		TestInteractableComponent->OnActorInteractionCompleted.AddUniqueDynamic(this, &ACPBaseInteractableActor::HandleInteract);
+		InteractableComponent->OnActorInteractionStarted.AddUniqueDynamic(this, &ACPBaseInteractableActor::HandleInteractionStarted);
+		InteractableComponent->OnActorInteractionCompleted.AddUniqueDynamic(this, &ACPBaseInteractableActor::HandleInteract);
 	}
 }
 
 void ACPBaseInteractableActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (TestInteractableComponent)
+	if (InteractableComponent)
 	{
-		TestInteractableComponent->OnActorInteractionStarted.RemoveDynamic(this, &ACPBaseInteractableActor::HandleInteractionStarted);
-		TestInteractableComponent->OnActorInteractionCompleted.RemoveDynamic(this, &ACPBaseInteractableActor::HandleInteract);
+		InteractableComponent->OnActorInteractionStarted.RemoveDynamic(this, &ACPBaseInteractableActor::HandleInteractionStarted);
+		InteractableComponent->OnActorInteractionCompleted.RemoveDynamic(this, &ACPBaseInteractableActor::HandleInteract);
 	}
 	
 	Super::EndPlay(EndPlayReason);

@@ -39,6 +39,10 @@ public:
 	virtual void OnReleaseToPool_Implementation() override;
 	
 private:
+	// 채집/조사 프롬프트 갱신
+	UFUNCTION()
+	void HandleResourceDiscovered(UCPForageableItemData* DiscoveredItem);
+	
 	// 채집물에 해당하는 정보 적용
 	void ApplyDefinition();
 	
@@ -47,7 +51,7 @@ private:
 	
 	// 조사
 	void Inspect(AActor* Interactor);
-	
+
 private:
 	UPROPERTY(VisibleAnywhere, Category = "Component")
 	TObjectPtr<UStaticMeshComponent> Mesh;

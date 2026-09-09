@@ -37,9 +37,9 @@ protected:
 protected:
 	// 상호작용 액터 컴포넌트
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction")
-	TObjectPtr<UCPInteractableComponent> TestInteractableComponent;
+	TObjectPtr<UCPInteractableComponent> InteractableComponent;
 	
 	// 상호작용 위젯 컴포넌트
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
-	TObjectPtr<UWidgetComponent> TestInteractionWidget;
+	TObjectPtr<UWidgetComponent> InteractionWidget;
 };

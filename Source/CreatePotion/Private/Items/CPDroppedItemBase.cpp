@@ -74,7 +74,7 @@ void ACPDroppedItemBase::OnAcquireFromPool_Implementation()
 	Mesh->SetHiddenInGame(false, true);
 	Mesh->SetVisibility(true, true);
 	
-	TestInteractableComponent->SetInteractability(true);
+	InteractableComponent->SetInteractability(true);
 }
 
 void ACPDroppedItemBase::OnReleaseToPool_Implementation()
@@ -85,9 +85,9 @@ void ACPDroppedItemBase::OnReleaseToPool_Implementation()
 	ItemData = nullptr;
 	Amount = 0;
 	
-	if (TestInteractableComponent)
+	if (InteractableComponent)
 	{
-		TestInteractableComponent->SetInteractability(false);
+		InteractableComponent->SetInteractability(false);
 	}
 	DropMovement->StopMovementImmediately();
 	DropMovement->Deactivate();
@@ -107,12 +107,12 @@ void ACPDroppedItemBase::Initialize(UCPForageableItemData* InItemData, int32 InA
 	Amount = InAmount;
 	Mesh->SetStaticMesh(InMesh);
 	
-	if (TestInteractableComponent)
+	if (InteractableComponent)
 	{
 		const bool bValid = ItemData != nullptr && Amount > 0;
-		TestInteractableComponent->SetInteractability(bValid);
-		TestInteractableComponent->SetTargetName(ItemData ? FName(*ItemData->DisplayName.ToString()) : NAME_None);
-		TestInteractableComponent->SetInteractionPrompt(FText::FromString(TEXT("줍기")));
+		InteractableComponent->SetInteractability(bValid);
+		InteractableComponent->SetTargetName(ItemData ? FName(*ItemData->DisplayName.ToString()) : NAME_None);
+		InteractableComponent->SetInteractionPrompt(FText::FromString(TEXT("줍기")));
 	}
 }
 
