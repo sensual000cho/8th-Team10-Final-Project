@@ -26,6 +26,9 @@ void UCPInteractableComponent::BeginPlay()
 			InteractWidgetComp->SetVisibility(false);
 		}
 	}
+	
+	// Interaction Component쪽 델리게이트 바인딩
+	// InteractionComp->OnInteractionStarted.AddUniqueDynamic(this, &UCPInteractableComponent::HandleInteractionStarted);
 }
 
 void UCPInteractableComponent::BeginFocus(AActor* Interactor)
@@ -61,12 +64,17 @@ void UCPInteractableComponent::EndFocus(AActor* Interactor)
 	UE_LOG(LogTemp, Warning, TEXT("[InteractableComponent]위젯 꺼짐!"))
 }
 
-void UCPInteractableComponent::Interact(AActor* Interactor)
+void UCPInteractableComponent::HandleInteract(AActor* Interactor)
 {
 	if (!bCanInteract) return;
 	
-	OnInteracted.Broadcast(Interactor);
+	OnActorInteractionCompleted.Broadcast(Interactor);
 	
+}
+
+void UCPInteractableComponent::HandleInteractionStarted(AActor* Interactor)
+{
+	OnActorInteractionStarted.Broadcast(Interactor);
 }
 
 void UCPInteractableComponent::RefreshUI()
@@ -83,16 +91,45 @@ void UCPInteractableComponent::RefreshUI()
 void UCPInteractableComponent::SetDisplayState(ECPInteractionDisplayState NewDisplayState)
 {
 	if (CachedDisplayState == NewDisplayState) return;
+	
 	CachedDisplayState = NewDisplayState;
 	
-	// 상태가 바뀌었을 때 스스로 갱신
-	if (IsValid(InteractWidgetComp))
-	{
-		if (UCPInteractionPromptWidget* InteractionUI = Cast<UCPInteractionPromptWidget>(InteractWidgetComp->GetUserWidgetObject()))
-		{
-			InteractionUI->UpdateUI(InteractionPrompt, TargetName, CachedDisplayState);
-		}
-	}
+	RefreshUI();
 }
+
+void UCPInteractableComponent::SetInteractability(bool bValue)
+{
+	bCanInteract = bValue;
+}
+
+void UCPInteractableComponent::SetInteractionPrompt(FText NewPrompt)
+{
+	if (InteractionPrompt.IdenticalTo(NewPrompt)) return;
+	
+	InteractionPrompt = NewPrompt;
+	
+	RefreshUI();
+}
+
+void UCPInteractableComponent::SetTargetName(FName NewName)
+{
+	if (TargetName == NewName) return;
+	
+	TargetName = NewName;
+	
+	RefreshUI();
+}
+
+void UCPInteractableComponent::SetInteractionDuration(float NewDuration)
+{
+	if (NewDuration <= 0.0) return;
+	
+	InteractionDuration = NewDuration;
+	
+	RefreshUI();
+}
+
+
+
 
 

@@ -6,9 +6,14 @@
 #include "Components/ActorComponent.h"
 #include "CPInteractableComponent.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInteracted, AActor*, Interactor);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnActorInteractionStarted, AActor*, Interactor);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnActorInteractionCompleted, AActor*, Interactor);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnActorInteractionCancelled);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInteractableAlignmentStarted);
 
 enum class ECPInteractionDisplayState : uint8;
+class UCPInteractionComponent;
 class UWidgetComponent;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -29,19 +34,34 @@ public:
 	
 	// 상호작용 실행
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
-	void Interact(AActor* Interactor); 
+	void HandleInteract(AActor* Interactor); 
 	
-	void BeginInteractionProgress(AActor* Interactor);
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void HandleInteractionStarted(AActor* Interactor);
+	
 	
 	
 	// UI 갱신
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void RefreshUI();
 	
+	
+	
 	// --- Setter ---
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void SetDisplayState(ECPInteractionDisplayState NewDisplayState);
 	
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void SetInteractability(bool bValue);
+	
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void SetInteractionPrompt(FText NewPrompt);
+	
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void SetTargetName(FName NewName);
+	
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void SetInteractionDuration(float NewDuration);
 	
 	// --- Getter---
 	UFUNCTION(BlueprintPure, Category = "Interaction")
@@ -60,11 +80,15 @@ public:
 	float GetInteractionDuration() const { return InteractionDuration; }
 
 public:
-	UPROPERTY(BlueprintAssignable, Category = "Interaction")
-	FOnInteracted OnInteracted;
-	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Timed")
 	float InteractionDuration = 0.f;
+
+	
+	UPROPERTY(BlueprintAssignable, Category = "InteractableComponent")
+	FOnActorInteractionCompleted OnActorInteractionCompleted;
+	
+	UPROPERTY(BlueprintAssignable, Category = "InteractableComponent")
+	FOnActorInteractionStarted OnActorInteractionStarted;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
@@ -85,4 +109,7 @@ protected:
 private:
 	UPROPERTY()
 	UWidgetComponent* InteractWidgetComp;
+	
+	UPROPERTY()
+	UCPInteractionComponent* InteractionComp;
 };
