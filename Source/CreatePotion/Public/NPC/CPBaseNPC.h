@@ -79,6 +79,7 @@ protected:
 
 	UCPNPCSubsystem* GetNPCSubsystem() const;
 	void GrantPotionReactionAbilities();
+	void RegisterCodex();
 
 public:
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Potion")

@@ -88,3 +88,15 @@ bool UCPCodexSubsystem::IncreaseForageableLevel(UCPForageableItemData* ItemData)
 	OnForageableCodexUpdated.Broadcast();
 	return true;
 }
+
+bool UCPCodexSubsystem::RegisterNPCEntry(UCPNPCDataAsset* NPCData)
+{
+	if (NPCCodexEntries.Contains(NPCData)) return true;
+	
+	FCPNPCCodexEntry NewEntry;
+	NewEntry.Entry = NPCData;
+	NPCCodexEntries.Add(NPCData, NewEntry);
+	
+	OnNPCCodexUpdated.Broadcast();
+	return true;
+}

@@ -6,9 +6,11 @@
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "CPCodexSubsystem.generated.h"
 
+class UCPNPCDataAsset;
 class UCPForageableItemData;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnForageableCodexUpdated);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnNPCCodexUpdated);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCodexItemSelected, UCPForageableItemData*, ItemData);
 
 USTRUCT(BlueprintType)
@@ -25,6 +27,16 @@ public:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Codex")
 	int32 HarvestCount = 0;
+};
+
+USTRUCT(BlueprintType)
+struct FCPNPCCodexEntry
+{
+	GENERATED_BODY()
+	
+public:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Codex")
+	TObjectPtr<UCPNPCDataAsset> Entry = nullptr;
 };
 
 UCLASS()
@@ -52,14 +64,23 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Codex|Forageable")
 	bool IncreaseForageableLevel(UCPForageableItemData* ItemData);
 	
+	UFUNCTION(BlueprintCallable, Category = "Codex|NPC")
+	bool RegisterNPCEntry(UCPNPCDataAsset* NPCData);
+	
 public:
 	UPROPERTY(BlueprintAssignable, Category = "Codex|Forageable")
 	FOnForageableCodexUpdated OnForageableCodexUpdated;
 	
 	UPROPERTY(BlueprintAssignable, Category = "Codex|Forageable")
 	FOnCodexItemSelected OnCodexItemSelected;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Codex|NPC")
+	FOnNPCCodexUpdated OnNPCCodexUpdated;
 
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Codex|Forageable")
 	TMap<TObjectPtr<UCPForageableItemData>, FCPForageableCodexEntry> ForageableCodexEntries;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Codex|NPC")
+	TMap<TObjectPtr<UCPNPCDataAsset>, FCPNPCCodexEntry> NPCCodexEntries;
 };

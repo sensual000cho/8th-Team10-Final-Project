@@ -6,6 +6,7 @@
 
 class USkeletalMesh;
 class UAnimSequence;
+class UTexture2D;
 
 UCLASS(BlueprintType)
 class CREATEPOTION_API UCPNPCDataAsset : public UPrimaryDataAsset
@@ -15,6 +16,9 @@ class CREATEPOTION_API UCPNPCDataAsset : public UPrimaryDataAsset
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC")
 	FName NPCName;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Codex")
+	TSoftObjectPtr<UTexture2D> CodexImage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Mesh")
 	TSoftObjectPtr<USkeletalMesh> NPCMesh;
