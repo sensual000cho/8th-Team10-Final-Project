@@ -50,4 +50,11 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Potion|Bouncy")
 	FLinearColor SlimeOuterColor = FLinearColor(0.2f, 1.0f, 0.4f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Move")
+	FDataTableRowHandle TargetRowHandle;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Move")
+	float MoveSpeed = 200.0f;
+
 };

@@ -14,6 +14,7 @@
 #include "EnhancedInputComponent.h"		// IA 바인딩
 #include "Chaos/PBDSuspensionConstraintData.h"
 #include "Components/CPInteractableComponent.h"
+#include "Items/CPBaseInteractableActor.h"
 
 // 에디터에서 콘솔창에 cp.Debug.Interaction를 입력해서 Debug On/Off 가능
 // cp.Debug.Interaction 1 --> Debug On
@@ -743,7 +744,14 @@ void UCPInteractionComponent::UpdateCurrentTarget(AActor* NewTarget, ECPInteract
 		CurrentDisplayState == ECPInteractionDisplayState::Disabled)
 	{
 		SetActorHighlight(NewTarget, true);
+		
+		if (ACPBaseInteractableActor* TargetActor = Cast<ACPBaseInteractableActor>(NewTarget))
+		{
+			TargetActor->CheckInteractionConditions();
+		}
+		
 		NewComp->SetDisplayState(NewDisplayState);
+		NewComp->RefreshUI();
 		NewComp->BeginFocus(GetOwner());
 	}
 	

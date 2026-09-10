@@ -79,7 +79,7 @@ void UGA_CPThrowProp::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
         return;
     }
 
-    const bool bThrowSucceeded = CarryComponent->ThrowHeldProp(ThrowDirection, ThrowSpeed);
+    const bool bThrowSucceeded = CarryComponent->ThrowHeldProp(ThrowDirection, GetResolvedThrowSpeed(*CarryComponent));
 
     if (!bThrowSucceeded)
     {
@@ -97,6 +97,11 @@ void UGA_CPThrowProp::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 float UGA_CPThrowProp::GetThrowSpeed() const
 {
     return ThrowSpeed;
+}
+
+float UGA_CPThrowProp::GetResolvedThrowSpeed(const UCPCarryComponent& CarryComponent) const
+{
+    return ThrowSpeed * CarryComponent.GetThrowSpeedMultiplier();
 }
 
 UCPCarryComponent* UGA_CPThrowProp::FindCarryComponent(const FGameplayAbilityActorInfo* ActorInfo) const
