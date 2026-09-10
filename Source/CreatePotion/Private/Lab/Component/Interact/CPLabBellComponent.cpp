@@ -3,6 +3,7 @@
 
 #include "Lab/Component/Interact/CPLabBellComponent.h"
 
+#include "Character/CPInteractionComponent.h"
 #include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
 #include "GameMode/CPLabGameMode.h"
 #include "UI/Widgets/Common/Quest/CPQuestSelectWidget.h"

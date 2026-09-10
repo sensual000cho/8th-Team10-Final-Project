@@ -43,7 +43,7 @@ void ACPThrowablePropBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
     Super::EndPlay(EndPlayReason);
 }
 
-void ACPThrowablePropBase::OnInteract_Implementation(AActor* Interactor)
+void ACPThrowablePropBase::HandleInteract(AActor* Interactor)
 {
     if (!IsValid(Interactor) || !CanBePickedUp()) return;
     
@@ -61,19 +61,19 @@ void ACPThrowablePropBase::OnInteract_Implementation(AActor* Interactor)
     AbilitySystem->HandleGameplayEvent(PickupEventTag, &EventData);
 }
 
-bool ACPThrowablePropBase::CanInteract_Implementation(AActor* Interactor)
+bool ACPThrowablePropBase::EvaluateInteractability_Implementation() const
 {
-    return IsValid(Interactor) && CanBePickedUp();
+    return CanBePickedUp();
 }
 
-FText ACPThrowablePropBase::GetInteractionPrompt_Implementation()
-{
-    return FText::FromString(TEXT("들기"));
-}
-
-FName ACPThrowablePropBase::GetInteractionName_Implementation()
+FName ACPThrowablePropBase::EvaluateTargetName_Implementation() const
 {
     return FName(TEXT("Prop"));
+}
+
+FText ACPThrowablePropBase::EvaluateInteractionPrompt_Implementation() const
+{
+    return FText::FromString(TEXT("들기"));
 }
 
 void ACPThrowablePropBase::InitializeFromItemData(UCPForageableItemData* ItemData, const TArray<FGameplayTag>& EffectTags)
@@ -81,6 +81,7 @@ void ACPThrowablePropBase::InitializeFromItemData(UCPForageableItemData* ItemDat
     WorkingIngredient = FCPItemInstance{};
     WorkingIngredient.SourceItemData = ItemData;
     WorkingIngredient.CurrentEffects = EffectTags;
+    CheckInteractionConditions();
 }
 
 const FCPItemInstance& ACPThrowablePropBase::GetWorkingIngredient() const
@@ -293,6 +294,7 @@ void ACPThrowablePropBase::SetPropState(ECPThrowablePropState NewState)
 {
     if (PropState == NewState) return;
     PropState = NewState;
+    CheckInteractionConditions();
 }
 
 void ACPThrowablePropBase::StartRestCheck()

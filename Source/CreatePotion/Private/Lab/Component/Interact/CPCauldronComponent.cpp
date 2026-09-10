@@ -3,6 +3,7 @@
 
 #include "Lab/Component/Interact/CPCauldronComponent.h"
 
+#include "Character/CPInteractionComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Data/CPForageableItemData.h"
