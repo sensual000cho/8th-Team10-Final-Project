@@ -21,7 +21,7 @@ UCPCauldronComponent::UCPCauldronComponent():
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	InteractionPrompt = FText::FromString(TEXT("포션 만들기"));
-	bShowWhenUnavailable = true;
+	bShouldShowUnavailableInteraction = true;
 }
 
 void UCPCauldronComponent::BeginPlay()
@@ -49,24 +49,25 @@ void UCPCauldronComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-bool UCPCauldronComponent::ExecuteInteraction(AActor* Interactor)
+void UCPCauldronComponent::HandleInteract(AActor* Interactor)
 {
-	if (!CanExecuteInteraction(Interactor)) return false;
-	if (!BoundIngredientTrigger) return false;
+	if (!IsValid(Interactor) || !CanInteract() || !BoundIngredientTrigger) return;
 	
 	ACPLabGameMode* LabGameMode = Cast<ACPLabGameMode>(UGameplayStatics::GetGameMode(this));
-	if (!LabGameMode || !LabGameMode->CreatePotion(GetEffectTags(), MakePotionTransform(), MakeSpawnImpulse())) return false;
+	if (!LabGameMode || !LabGameMode->CreatePotion(GetEffectTags(), MakePotionTransform(), MakeSpawnImpulse())) return;
 	
 	IngredientInstances.Reset();
 	IngredientTags.Reset();
-	return true;
 }
 
-bool UCPCauldronComponent::CanExecuteInteraction(AActor* Interactor) const
+bool UCPCauldronComponent::CanInteract() const
 {
-	if (!Super::CanExecuteInteraction(Interactor)) return false;
-
 	return IngredientInstances.Num() > 0;
+}
+
+bool UCPCauldronComponent::ShouldShowUnavailableInteraction() const
+{
+	return bShouldShowUnavailableInteraction;
 }
 
 TArray<FGameplayTag> UCPCauldronComponent::GetEffectTags() const

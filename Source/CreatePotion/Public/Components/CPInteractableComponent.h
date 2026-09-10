@@ -34,7 +34,7 @@ public:
 	
 	// 상호작용 실행
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
-	void HandleInteract(AActor* Interactor); 
+	virtual void HandleInteract(AActor* Interactor); 
 	
 	// 시간형 상호작용 실행
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
@@ -76,13 +76,13 @@ public:
 	// --- Getter---
 	
 	UFUNCTION(BlueprintPure, Category = "Interaction")
-	bool CanInteract() const { return bCanInteract; }
+	virtual bool CanInteract() const { return bCanInteract; }
 	
 	UFUNCTION(BlueprintPure, Category = "Interaction")
 	ECPInteractionDisplayState GetDisplayState() const { return CachedDisplayState; }
 	
 	UFUNCTION(BlueprintPure, Category = "Interaction")
-	bool ShouldShowUnavailableInteraction() const { return bShouldShowUnavailableInteraction; }
+	virtual bool ShouldShowUnavailableInteraction() const { return bShouldShowUnavailableInteraction; }
 	
 	UFUNCTION(BlueprintPure, Category = "Interaction")
 	FName GetTargetName() const { return TargetName; }
