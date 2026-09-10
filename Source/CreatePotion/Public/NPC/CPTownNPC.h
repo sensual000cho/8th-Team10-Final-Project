@@ -18,6 +18,8 @@ public:
 protected:
 	virtual const TArray<FName>& GetPotionQuestIDs() const override;
 
+	virtual void OnDialogueClosed() override;
+
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UCPNPCDialogueWidget> DialogueWidgetClass;

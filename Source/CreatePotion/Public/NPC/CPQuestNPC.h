@@ -32,7 +32,9 @@ protected:
 	virtual void RefreshInteractionState() override;
 
 	FName FindAcceptedQuestId() const;
-	void OnTraceFocusLost();
+
+	virtual void OnTraceFocusLost();
+	virtual void OnDialogueClosed();
 
 private:
 	void UpdateGazeTracking();
@@ -54,7 +56,8 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "NPC|Interaction")
 	bool bIsInteracting = false;
 
+	bool bIsPlayerLooking = false;
+
 private:
 	FTimerHandle TraceLostTimerHandle;
-	bool bIsPlayerLooking = false;
 };

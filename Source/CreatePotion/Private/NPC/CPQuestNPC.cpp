@@ -168,6 +168,15 @@ void ACPQuestNPC::ShowResultDialogue()
 	ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
 	if (!ActiveDialogueWidget) return;
 
+	bIsInteracting = true;
+	if (MoveComponent)
+	{
+		MoveComponent->StopMoving();
+	}
+
+	ActiveDialogueWidget->OnClosed.RemoveAll(this);
+	ActiveDialogueWidget->OnClosed.AddUObject(this, &ACPQuestNPC::OnDialogueClosed);
+
 	TArray<FText> ReactionTexts;
 	const TArray<FConditionEvaluation> Evaluations = QuestManager->EvaluateConditions(DeliveryResult.QuestId, DeliveryResult.CurrentEffects);
 
@@ -224,4 +233,10 @@ void ACPQuestNPC::OnTraceFocusLost()
 	{
 		MoveComponent->StartMoving();
 	}
+}
+
+void ACPQuestNPC::OnDialogueClosed()
+{
+	bIsInteracting = false;
+	ActiveDialogueWidget = nullptr;
 }

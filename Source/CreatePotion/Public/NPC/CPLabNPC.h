@@ -20,6 +20,10 @@ public:
 protected:
 	virtual const TArray<FName>& GetPotionQuestIDs() const override;
 
+	virtual void OnTraceFocusLost() override;
+
 private:
 	void OnResultDialogueClosed();
+
+	bool bWaitingForPotion = false;
 };

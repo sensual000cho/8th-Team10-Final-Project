@@ -19,6 +19,7 @@ void ACPLabNPC::HandleInteract(AActor* Interactor)
 		UE_LOG(LogTemp, Warning, TEXT("[%s] DA에 지정된 공방 퀘스트가 없습니다."), *GetName());
 		return;
 	}
+	bWaitingForPotion = true;
 	Super::HandleInteract(Interactor);
 	UGameInstance* GameInstance = GetGameInstance();
 	if (!GameInstance) { return; }
@@ -53,6 +54,9 @@ void ACPLabNPC::HandleInteract(AActor* Interactor)
 
 		if (ActiveDialogueWidget)
 		{
+			ActiveDialogueWidget->OnClosed.RemoveAll(this);
+			ActiveDialogueWidget->OnClosed.AddUObject(this, &ACPLabNPC::OnDialogueClosed);
+
 			FText NPCNameText = FText::FromName(QuestData->NPCName);
 			TArray<FText> DialogueLines;
 			DialogueLines.Add(FirstHint);
@@ -109,6 +113,16 @@ const TArray<FName>& ACPLabNPC::GetPotionQuestIDs() const
 {
 	static const TArray<FName> QuestIDs;
 	return QuestData ? QuestData->LabQuestIDs : QuestIDs;
+}
+
+void ACPLabNPC::OnTraceFocusLost()
+{
+	if (bWaitingForPotion)
+	{
+		bIsPlayerLooking = false;
+		return;
+	}
+	Super::OnTraceFocusLost();
 }
 
 void ACPLabNPC::OnResultDialogueClosed()
