@@ -7,6 +7,7 @@
 #include "GameFramework/Pawn.h"
 #include "Kismet/GameplayStatics.h"
 #include "Character/Enemy/CPEnemyAIController.h"
+#include "Character/CPHealthComponent.h"
 
 UCPEnemyDetectionComponent::UCPEnemyDetectionComponent()
 {
@@ -71,6 +72,15 @@ void UCPEnemyDetectionComponent::UpdateDetection()
         TargetActor = nullptr;
         return;
     }
+	
+	const UCPHealthComponent* PlayerHealth = CachedPlayerPawn->FindComponentByClass<UCPHealthComponent>();
+
+	if (!IsValid(PlayerHealth) || PlayerHealth->IsDead())
+	{
+		bCanSeePlayer = false;
+		TargetActor = nullptr;
+		return;
+	}
 
     const FVector PlayerLocation = CachedPlayerPawn->GetActorLocation();
     const FVector EnemyLocation = EnemyPawn->GetActorLocation();
