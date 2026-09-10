@@ -69,6 +69,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	virtual void SetInteractionDuration(float NewDuration);
 	
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void SetInteractionWidgetComponent(UWidgetComponent* InWidgetComp);
 	
 	
 	// --- Getter---

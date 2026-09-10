@@ -100,8 +100,7 @@ protected:
 
 	UFUNCTION(BlueprintPure, Category = "Interaction")
 	float GetInteractionDuration() const;
-	
-	
+
 protected:
 	// 상호작용 액터 컴포넌트
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction")
