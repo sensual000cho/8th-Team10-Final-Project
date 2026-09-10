@@ -20,6 +20,7 @@ public:
 	virtual void UnbindEvents() override;
 	
 	void SetQuest(FName InQuestID, const FText& InQuestTitle);
+	void ApplyFocusState(FName FocusedQuestID);
 	
 private:
 	UFUNCTION()

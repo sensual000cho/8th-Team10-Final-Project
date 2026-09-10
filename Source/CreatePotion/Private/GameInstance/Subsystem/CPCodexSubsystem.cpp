@@ -3,6 +3,7 @@
 #include "GameInstance/Subsystem/CPCodexSubsystem.h"
 
 #include "Data/CPForageableItemData.h"
+#include "Data/NPC/CPNPCDataAsset.h"
 
 TArray<FCPForageableCodexEntry> UCPCodexSubsystem::GetForageableCodexEntries() const
 {
@@ -55,6 +56,26 @@ bool UCPCodexSubsystem::GetForageableEntry(UCPForageableItemData* ItemData,
 		*OutForageableEntry = *CodexEntry;	
 	}
 	return true;
+}
+
+TArray<UCPNPCDataAsset*> UCPCodexSubsystem::GetRegisteredNPCDatas() const
+{
+	TArray<TObjectPtr<UCPNPCDataAsset>> Keys;
+	NPCCodexEntries.GenerateKeyArray(Keys);
+	
+	TArray<UCPNPCDataAsset*> NPCDatas;
+	NPCDatas.Reserve(Keys.Num());
+	
+	for (const TObjectPtr<UCPNPCDataAsset>& Key : Keys) {
+		NPCDatas.Add(Key.Get());
+	}
+	
+	NPCDatas.Sort([](const UCPNPCDataAsset& A, const UCPNPCDataAsset& B)
+	{
+		return A.NPCName.ToString() < B.NPCName.ToString();
+	});
+	
+	return NPCDatas;
 }
 
 bool UCPCodexSubsystem::RecordForageableEntry(UCPForageableItemData* ItemData)

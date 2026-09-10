@@ -21,18 +21,14 @@ void UCPNPCCodexWidget::RefreshCodex()
 {
 	if (!CurrentNPCData) return;
 	
-	if (Img_NPC){
-		UTexture2D* ImageTexture = CurrentNPCData->CodexImage.LoadSynchronous();
-		Img_NPC->SetBrushFromTexture(ImageTexture);
-	}
+	FocusQuestID = NAME_None;
 	
-	if (Txt_Name){
-		Txt_Name->SetText(FText::FromName(CurrentNPCData->NPCName));
-	}
-	
-	if (Txt_Description){
-		Txt_Description->SetText(FText::GetEmpty());
-	}
+	UTexture2D* ImageTexture = CurrentNPCData->CodexImage.LoadSynchronous();
+	Img_NPC->SetBrushFromTexture(ImageTexture);
+	Txt_Name->SetText(FText::FromName(CurrentNPCData->NPCName));
+	Txt_QuestTitle->SetText(FText::GetEmpty());
+	Txt_QuestTitle->SetVisibility(ESlateVisibility::Collapsed);
+	Txt_Description->SetText(FText::FromString("Text"));
 	
 	RefreshCompletedQuestButtons();
 }
@@ -60,8 +56,10 @@ void UCPNPCCodexWidget::RefreshCompletedQuestButtons()
 		if (!QuestButton) continue;
 		
 		QuestButton->SetQuest(QuestID, QuestManager->GetQuestTitle(QuestID));
+		QuestButton->ApplyFocusState(FocusQuestID);
 		QuestButton->OnNPCQuestButtonClicked.AddDynamic(this, &UCPNPCCodexWidget::HandleQuestButtonClicked);
 		SB_Quest->AddChild(QuestButton);
+		QuestButtons.Add(QuestButton);
 	}
 }
 
@@ -71,10 +69,27 @@ void UCPNPCCodexWidget::SetQuestDsecription(FName QuestID)
 	UQuestManager* QuestManager =GI ? GI->GetSubsystem<UQuestManager>() : nullptr;
 	if (!QuestManager || !Txt_Description) return;
 	
+	Txt_QuestTitle->SetText(QuestManager->GetQuestTitle(QuestID));
+	Txt_QuestTitle->SetVisibility(ESlateVisibility::Visible);
 	Txt_Description->SetText(QuestManager->GetQuestSummaryText(QuestID));
 }
 
 void UCPNPCCodexWidget::HandleQuestButtonClicked(FName QuestID)
 {
-	SetQuestDsecription(QuestID);
+	if (FocusQuestID == QuestID){
+		FocusQuestID = NAME_None;
+		
+		// NPC Description으로 변경
+		Txt_QuestTitle->SetText(FText::GetEmpty());
+		Txt_QuestTitle->SetVisibility(ESlateVisibility::Collapsed);
+		Txt_Description->SetText(FText::GetEmpty());
+	}else{
+		FocusQuestID = QuestID;
+		SetQuestDsecription(QuestID);	
+	}
+	
+	for (UCPNPCQuestButtonWidget* QuestButton : QuestButtons){
+		if (!QuestButton) continue;
+		QuestButton->ApplyFocusState(FocusQuestID);
+	}
 }

@@ -12,6 +12,7 @@ class UCPForageableItemData;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnForageableCodexUpdated);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnNPCCodexUpdated);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCodexItemSelected, UCPForageableItemData*, ItemData);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCodexNPCSelected, UCPNPCDataAsset*, NPCData);
 
 USTRUCT(BlueprintType)
 struct FCPForageableCodexEntry
@@ -56,6 +57,9 @@ public:
 	// 등록된 채집물이 있는 경우 정보를 반환, 등록 여부만 필요할 경우 ItemData만 인자로 전달
 	bool GetForageableEntry(UCPForageableItemData* ItemData, FCPForageableCodexEntry* OutForageableEntry = nullptr) const;
 	
+	UFUNCTION(BlueprintPure, Category = "Codex|NPC")
+	TArray<UCPNPCDataAsset*> GetRegisteredNPCDatas() const;
+	
 	// 도감 SubSystem에 새로운 채집물을 등록 및 채집 횟수 증가
 	UFUNCTION(BlueprintCallable, Category = "Codex|Forageable")
 	bool RecordForageableEntry(UCPForageableItemData* ItemData);
@@ -76,6 +80,9 @@ public:
 	
 	UPROPERTY(BlueprintAssignable, Category = "Codex|NPC")
 	FOnNPCCodexUpdated OnNPCCodexUpdated;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Codex|NPC")
+	FOnCodexNPCSelected OnCodexNPCSelected;
 
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Codex|Forageable")

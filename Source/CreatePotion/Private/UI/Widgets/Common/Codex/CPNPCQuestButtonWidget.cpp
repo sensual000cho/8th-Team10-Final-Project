@@ -31,6 +31,15 @@ void UCPNPCQuestButtonWidget::SetQuest(FName InQuestID, const FText& InQuestTitl
 	}
 }
 
+void UCPNPCQuestButtonWidget::ApplyFocusState(FName FocusedQuestID)
+{
+	if (QuestID == FocusedQuestID){
+		Txt_QuestTitle->SetColorAndOpacity(FLinearColor::Yellow);
+	}else{
+		Txt_QuestTitle->SetColorAndOpacity(FLinearColor::Black);
+	}
+}
+
 void UCPNPCQuestButtonWidget::HandleButtonClicked()
 {
 	OnNPCQuestButtonClicked.Broadcast(QuestID);

@@ -39,6 +39,9 @@ private:
 	TObjectPtr<UTextBlock> Txt_Name;
 	
 	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> Txt_QuestTitle;
+	
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Txt_Description;
 	
 	UPROPERTY(meta = (BindWidget))
@@ -49,4 +52,10 @@ private:
 	
 	UPROPERTY()
 	TObjectPtr<UCPNPCDataAsset> CurrentNPCData;
+	
+	UPROPERTY()
+	FName FocusQuestID = NAME_None;
+	
+	UPROPERTY()
+	TArray<TObjectPtr<UCPNPCQuestButtonWidget>> QuestButtons;
 };
