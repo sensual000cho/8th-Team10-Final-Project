@@ -88,7 +88,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UCPNPCVisualComponent> VisualComponent;
 
-protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC")
 	TObjectPtr<UCPNPCDataAsset> NPCData;
 
@@ -104,4 +103,23 @@ protected:
 private:
 	// 태그별로 바인딩된 비주얼 함수 맵
 	TMap<FGameplayTag, FOnPotionVisualUpdateDelegate> VisualDelegateMap;
+
+
+#pragma region Route Debug
+protected:
+	virtual void OnConstruction(const FTransform& Transform) override;
+#if WITH_EDITOR
+	void DrawDebugPatrolRoute();
+#endif
+	UPROPERTY(EditAnywhere, Category = "Debug")
+	bool bShowPatrolRouteInEditor = false;
+
+	UPROPERTY(EditAnywhere, Category = "Debug")
+	FColor PatrolRouteColor = FColor::Emerald;
+
+	UPROPERTY(EditAnywhere, Category = "Debug", meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "20.0"))
+	float RouteLineThickness = 10.0f;
+
+#pragma endregion Route Debug
+
 };

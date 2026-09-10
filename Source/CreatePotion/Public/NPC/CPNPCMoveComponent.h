@@ -34,6 +34,8 @@ public:
 	int32 GetCurrentPointIndex() const { return CurrentPointIndex; }
 	void RestoreMovementState(const FCPNPCMovementSaveData& SaveData);
 
+	bool IsMovePaused() const { return bIsMovePaused; }
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -67,7 +69,7 @@ private:
 	bool bLoop = true;
 
 	UPROPERTY(EditAnywhere, Category = "AI Movement")
-	float AcceptanceRadius = 100.0f;
+	float AcceptanceRadius = 10.0f;
 
 	UPROPERTY(EditAnywhere, Category = "AI Movement")
 	float MoveSpeed = 100.0f;
@@ -77,6 +79,9 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "RVO")
 	float AvoidanceWeight = 0.5f;
+
+	UPROPERTY()
+	bool bIsMovePaused = false;
 
 	FTimerHandle MoveWaitTimerHandle;
 };

@@ -78,6 +78,7 @@ void UCPNPCMoveComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void UCPNPCMoveComponent::StartMoving()
 {
+	bIsMovePaused = false;
 	if (TargetPoints.Num() == 0)
 	{
 		return;
@@ -89,6 +90,7 @@ void UCPNPCMoveComponent::StartMoving()
 void UCPNPCMoveComponent::StopMoving()
 {
 	bIsMoving = false;
+	bIsMovePaused = true;
 
 	if (GetWorld())
 	{
@@ -183,10 +185,7 @@ void UCPNPCMoveComponent::SaveMovementState()
 			SaveData.bHasSavedTransform = true;
 			Subsystem->SaveNPCMovementData(StorageKey, SaveData);
 
-			UE_LOG(LogCPNPC, Log, TEXT("[NPC 위치 저장] 키: [%s] | 좌표: %s | 다음 목표 인덱스: %d"),
-				*StorageKey.ToString(),
-				*SaveData.SavedLocation.ToCompactString(),
-				SaveData.NextPointIndex);
+			//UE_LOG(LogCPNPC, Log, TEXT("[NPC 위치 저장] 키: [%s] | 좌표: %s | 다음 목표 인덱스: %d"),*StorageKey.ToString(),*SaveData.SavedLocation.ToCompactString(),SaveData.NextPointIndex);
 		}
 	}
 }
@@ -230,8 +229,7 @@ void UCPNPCMoveComponent::InitializeMovementData()
 		}
 		else
 		{
-			//UE_LOG(LogCPNPC, Log, TEXT("[%s] 현재 레벨 [%s]에 지정된 루트가 없어 정지 상태를 유지합니다."),
-				//*GetNameSafe(GetOwner()), *CurrentLevelName);
+			//UE_LOG(LogCPNPC, Log, TEXT("[%s] 현재 레벨 [%s]에 지정된 루트가 없어 정지 상태를 유지합니다."),*GetNameSafe(GetOwner()), *CurrentLevelName);
 		}
 	}
 
@@ -240,6 +238,8 @@ void UCPNPCMoveComponent::InitializeMovementData()
 
 void UCPNPCMoveComponent::MoveToCurrentIndex()
 {
+	//UE_LOG(LogCPNPC, Warning, TEXT("[%s] MoveToCurrentIndex 호출됨! 인덱스: %d"),*GetNameSafe(GetOwner()), CurrentPointIndex);
+
 	if (!AIController || TargetPoints.Num() == 0)
 	{
 		return;
@@ -266,6 +266,21 @@ void UCPNPCMoveComponent::MoveToCurrentIndex()
 
 	bIsMoving = true;
 
+	/*if (AActor* OwnerActor = GetOwner())
+	{
+		const FVector CurrentLoc = OwnerActor->GetActorLocation();
+		const float Dist3D = FVector::Dist(CurrentLoc, Destination);
+		const float Dist2D = FVector::Dist2D(CurrentLoc, Destination);
+
+		UE_LOG(LogCPNPC, Error, TEXT("[%s] [이동 시도] 목표: %s | 현재위치: %s | 3D거리: %.1f | 2D거리: %.1f | AcceptanceRadius: %.1f"),
+			*GetNameSafe(OwnerActor),
+			*Destination.ToString(),
+			*CurrentLoc.ToString(),
+			Dist3D,
+			Dist2D,
+			AcceptanceRadius);
+	}*/
+
 	EPathFollowingRequestResult::Type MoveResult = AIController->MoveToLocation(
 		Destination,
 		AcceptanceRadius,
@@ -274,6 +289,8 @@ void UCPNPCMoveComponent::MoveToCurrentIndex()
 		false, // 수동 투영 완료 상태
 		true   // bCanStrafe
 	);
+
+	//UE_LOG(LogCPNPC, Warning, TEXT("[%s] MoveToLocation 결과: %s"),*GetNameSafe(GetOwner()),*UEnum::GetValueAsString(MoveResult));
 
 	if (MoveResult == EPathFollowingRequestResult::Failed)
 	{
@@ -300,6 +317,11 @@ void UCPNPCMoveComponent::OnMoveCompleted(FAIRequestID RequestID, EPathFollowing
 {
 	bIsMoving = false;
 
+	if (bIsMovePaused)
+	{
+		return;
+	}
+
 	FVector ArrivedLocation = FVector::ZeroVector;
 	float WaitTime = 0.0f;
 
@@ -308,12 +330,11 @@ void UCPNPCMoveComponent::OnMoveCompleted(FAIRequestID RequestID, EPathFollowing
 		WaitTime = TargetPoints[CurrentPointIndex].WaitSeconds;
 		ArrivedLocation = TargetPoints[CurrentPointIndex].Point;
 	}
-	//UE_LOG(LogCPNPC, Log, TEXT("[%s] 도착 좌표: %s | 대기 시간: %.2f | 현재 인덱스: %d"),
-		//*GetNameSafe(GetOwner()), *ArrivedLocation.ToString(), WaitTime, CurrentPointIndex);
+	//UE_LOG(LogCPNPC, Log, TEXT("[%s] 도착 좌표: %s | 대기 시간: %.2f | 현재 인덱스: %d"),*GetNameSafe(GetOwner()), *ArrivedLocation.ToString(), WaitTime, CurrentPointIndex);
 
-	CurrentPointIndex++;
 	if (Result == EPathFollowingResult::Success)
 	{
+		CurrentPointIndex++;
 		if (CurrentPointIndex >= TargetPoints.Num())
 		{
 			if (bLoop)
