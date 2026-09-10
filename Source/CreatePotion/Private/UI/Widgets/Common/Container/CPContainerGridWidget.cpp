@@ -29,10 +29,9 @@ void UCPContainerGridWidget::InitializeGrid(UCPItemContainerComponent* TargetCon
 	float SlotSize = Settings->SlotSize;
 	float SlotPadding = Settings->SlotPadding;
 
-	ItemGrid->SetSlotPadding(FMargin(0.f, 0.f, Settings->SlotPadding, 0.f));
+	ItemGrid->SetSlotPadding(FMargin(0.f, 0.f, SlotPadding, SlotPadding));
 
 	int32 TotalSlots = 0;
-
 
 	if (TargetContainer->ContainerType == EContainerType::Grid2D)
 	{
@@ -60,8 +59,13 @@ void UCPContainerGridWidget::InitializeGrid(UCPItemContainerComponent* TargetCon
 				Row = i / TargetContainer->Columns;
 				Col = i % TargetContainer->Columns;
 
+				USizeBox* SizeBox = NewObject<USizeBox>(this);
+				SizeBox->SetWidthOverride(SlotSize);
+				SizeBox->SetHeightOverride(SlotSize);
+				SizeBox->AddChild(BgSlot);
+
 				// Grid2D의 경우 UniformGrid에 바로 추가
-				ItemGrid->AddChildToUniformGrid(BgSlot, Row, Col);
+				ItemGrid->AddChildToUniformGrid(SizeBox, Row, Col);
 			}
 			else if (TargetContainer->ContainerType == EContainerType::Slot1D)
 			{
