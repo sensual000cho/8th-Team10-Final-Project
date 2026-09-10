@@ -36,10 +36,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void HandleInteract(AActor* Interactor); 
 	
+	// 시간형 상호작용 실행
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void HandleInteractionStarted(AActor* Interactor);
-	
-	
 	
 	// UI 갱신
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
@@ -48,22 +47,30 @@ public:
 	
 	
 	// --- Setter ---
+	
+	// 활성화/비활성화/숨김 여부 Enum값 설정
+	// Enabled: 활성화(UI, 하이라이트 보임), Disabled: 비활성화(회색 UI만 보임), Hidden: 모두 숨김
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void SetDisplayState(ECPInteractionDisplayState NewDisplayState);
 	
+	// 상호작용 가능 여부 설정 (기존의 CanInteract() 함수와 같은 역할)
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void SetInteractability(bool bValue);
 	
+	// 상호작용 프롬프트 설정
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void SetInteractionPrompt(FText NewPrompt);
 	
+	// 상호작용 대상 액터 이름 설정
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void SetTargetName(FName NewName);
 	
+	// 시간형 상호작용 소요시간 설정
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void SetInteractionDuration(float NewDuration);
 	
 	// --- Getter---
+	
 	UFUNCTION(BlueprintPure, Category = "Interaction")
 	bool CanInteract() const { return bCanInteract; }
 	
@@ -80,13 +87,11 @@ public:
 	float GetInteractionDuration() const { return InteractionDuration; }
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Timed")
-	float InteractionDuration = 0.f;
-
-	
+	// 상호작용 완료 델리게이트
 	UPROPERTY(BlueprintAssignable, Category = "InteractableComponent")
 	FOnActorInteractionCompleted OnActorInteractionCompleted;
 	
+	// 상호작용 시작 델리게이트
 	UPROPERTY(BlueprintAssignable, Category = "InteractableComponent")
 	FOnActorInteractionStarted OnActorInteractionStarted;
 
@@ -105,6 +110,9 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
 	ECPInteractionDisplayState CachedDisplayState; // 활성화/비활성화/숨기기 상태 캐싱
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Timed")
+	float InteractionDuration = 0.f;
 	
 private:
 	UPROPERTY()
