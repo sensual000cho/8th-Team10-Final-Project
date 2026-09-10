@@ -38,14 +38,14 @@ void UCPQuestSelectWidget::HandleCallButtonClicked()
 	if (!World) return;
 	
 	ACPNPCSpawner* Spawner = Cast<ACPNPCSpawner>(UGameplayStatics::GetActorOfClass(World, ACPNPCSpawner::StaticClass()));
-	if (!Spawner || !Spawner->SpawnNPC((SelectedQuestId)))
+	if (!Spawner || !Spawner->SpawnNPC(SelectedQuestId))
 	{
 		UE_LOG(LogTemp, Error, TEXT("[QuestSelectWidget] NPC 스포너가 설치되어있지 않습니다."));
 		return;
 	}
 	
 	ACPLabGameMode* LabGameMode = World->GetAuthGameMode<ACPLabGameMode>();
-	if (!LabGameMode || !LabGameMode->StartPotionRequest(SelectedQuestId)) return;
+	if (!LabGameMode || !LabGameMode->StartPotionRequest()) return;
 	
 	RequestClose();
 }

@@ -74,7 +74,7 @@ TArray<FGameplayTag> UCPCauldronComponent::GetEffectTags() const
 	return IngredientTags;
 }
 
-TArray<FCPLabIngredientInstance> UCPCauldronComponent::GetIngredientInstance() const
+TArray<FCPItemInstance> UCPCauldronComponent::GetIngredientInstance() const
 {
 	return IngredientInstances;
 }
@@ -83,7 +83,7 @@ bool UCPCauldronComponent::CanAcceptProp(const ACPAlchemyProp* Prop) const
 {
 	if (!IsValid(Prop) || MaxSlotCount <= 0 || IngredientInstances.Num() >= MaxSlotCount) return false;
 
-	const FCPLabIngredientInstance& Ingredient = Prop->GetWorkingIngredient();
+	const FCPItemInstance& Ingredient = Prop->GetWorkingIngredient();
 	return Ingredient.IsValid() && Ingredient.CurrentEffects.IsEmpty();
 }
 
@@ -187,7 +187,7 @@ void UCPCauldronComponent::HandleIngredientOverlap(
 	ACPAlchemyProp* IngredientProp = Cast<ACPAlchemyProp>(OtherActor);
 	if (!CanAcceptProp(IngredientProp)) return;
 
-	const FCPLabIngredientInstance Ingredient = IngredientProp->GetWorkingIngredient();
+	const FCPItemInstance Ingredient = IngredientProp->GetWorkingIngredient();
 	
 	// Slot에 넣고, Destroy
 	IngredientInstances.Add(Ingredient);
@@ -221,7 +221,7 @@ void UCPCauldronComponent::DebugPrintSlots() const
 
 	for (int32 Index = 0; Index < IngredientInstances.Num(); ++Index)
 	{
-		const FCPLabIngredientInstance& Ingredient = IngredientInstances[Index];
+		const FCPItemInstance& Ingredient = IngredientInstances[Index];
 
 		const FString ItemName = Ingredient.SourceItemData
 			? Ingredient.SourceItemData->DisplayName.ToString()

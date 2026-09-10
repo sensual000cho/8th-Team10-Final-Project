@@ -5,77 +5,8 @@
 #include "Components/Button.h"
 #include "Quest/QuestManager.h"
 #include "TimerManager.h"
-#include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
-#include "NPC/CPLabNPC.h"
-
-// [신규] 여러 줄 대사(TArray<FText>)를 받는 오버로드.
-// DialogueLines에 배열을 저장하고, 0번째 줄부터 재생 시작.
-void UCPNPCDialogueWidget::InitDialogueLines(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName, const TArray<FText>& InDialogueLines, ACPLabNPC* InSourceLabNPC)
-{
-    CurrentQuestID = InQuestID;
-    bCurrentIsWorkshopQuest = bIsWorkshopQuest;
-    SourceLabNPC = InSourceLabNPC;
-    bIsPotionResultDialogue = false;
-
-    DialogueLines = InDialogueLines;
-    CurrentLineIndex = 0;
-
-    if (Text_NPCName) {
-        Text_NPCName->SetText(InNPCName);
-    }
-
-    if (UGameInstance* GI = GetGameInstance())
-    {
-        if (UQuestManager* QuestManager = GI->GetSubsystem<UQuestManager>())
-        {
-            CurrentHintLevel =
-                QuestManager->GetQuestHintLevel(CurrentQuestID);
-
-            if (bCurrentIsWorkshopQuest)
-            {
-                DialogueLines.Empty();
-
-                FText HintText = QuestManager->GetSessionHintText(CurrentQuestID);
-                if (!HintText.IsEmpty())
-                {
-                    DialogueLines.Add(HintText);
-                }
-
-                TArray<FText> StoryLines = QuestManager->GetNPCStoryLines(CurrentQuestID);
-                if (StoryLines.Num() > 0)
-                {
-                    DialogueLines.Append(StoryLines);
-                }
-            }
-            else
-            {
-                DialogueLines = InDialogueLines;
-            }
-        }
-    }
-
-    PlayCurrentLine();
-}
-
-void UCPNPCDialogueWidget::InitResultDialogue(bool bIsWorkshopQuest, FName InQuestID, const FText& InNPCName,
-    const FText& InDialogueText, class ACPLabNPC* InSourceLabNPC, AActor* InInteractor)
-{
-    // [신규] 이전 대화의 여러 줄 상태가 남아있지 않도록 초기화
-    DialogueLines.Empty();
-    CurrentLineIndex = 0;
-
-    CurrentQuestID = InQuestID;
-    bCurrentIsWorkshopQuest = bIsWorkshopQuest;
-    SourceLabNPC = InSourceLabNPC;
-    ResultInteractor = InInteractor;
-    bIsPotionResultDialogue = true;
-
-    if (Text_NPCName) {
-        Text_NPCName->SetText(InNPCName);
-    }
-
-    PlayTypewriterEffect(InDialogueText);
-}
+#include "Settings/CPUISettings.h"
+#include "UI/Widgets/Lab/CPLabResultWidget.h"
 
 // [신규] DialogueLines[CurrentLineIndex]를 꺼내 타자기 효과로 재생.
 // "다음" 버튼 클릭 시에도 이 함수가 다시 호출되어 다음 줄을 재생함.
@@ -85,6 +16,20 @@ void UCPNPCDialogueWidget::PlayCurrentLine()
     {
         PlayTypewriterEffect(DialogueLines[CurrentLineIndex]);
     }
+}
+
+void UCPNPCDialogueWidget::InitDialogueLines(FName InQuestID, const FText& InNPCName,
+    const TArray<FText>& InDialogueLines)
+{
+    CurrentQuestID = InQuestID;
+    DialogueLines = InDialogueLines;
+    CurrentLineIndex = 0;
+    
+    if (Text_NPCName) {
+        Text_NPCName->SetText(InNPCName);
+    }
+    
+    PlayCurrentLine();
 }
 
 void UCPNPCDialogueWidget::BindEvents()
@@ -120,30 +65,37 @@ void UCPNPCDialogueWidget::OnChoiceSelected(const FString& ButtonText) {
     }
 
     UGameInstance* GI = GetGameInstance();
-    if (!GI) { return; }
-
-    UQuestManager* QuestManager = GI->GetSubsystem<UQuestManager>();
-    UCPUIManagerSubsystem* UIManager = GI->GetSubsystem<UCPUIManagerSubsystem>();
-
+    if (!GI){
+        OnClosed.Broadcast();
+        RequestClose();
+        return;
+    }
+    
     if (ButtonText == TEXT("결과 보기"))
     {
-        if (ACPLabNPC* LabNPC = SourceLabNPC.Get())
-        {
-            // NPC에게 명령해서 ResultWidget을 열도록 함
-            LabNPC->OpenResultWidget(ResultInteractor.Get());
+        UCPUIManagerSubsystem* UIManager = GI->GetSubsystem<UCPUIManagerSubsystem>();
+        const UCPUISettings* UISettings = GetDefault<UCPUISettings>();
+        UClass* ResultWidgetClass = UISettings ? UISettings->ResultWidgetClass.LoadSynchronous() : nullptr;
+        
+        if (UIManager && ResultWidgetClass){
+            UCPLabResultWidget* ResultWidget = Cast<UCPLabResultWidget>(UIManager->PushWidget(ResultWidgetClass));
+            if (ResultWidget && !ResultWidget->InitializeResult(CurrentQuestID)){
+                ResultWidget->RequestClose();
+            }
         }
+        
+        OnClosed.Broadcast();
         RequestClose(); // 대화창 닫기
         return;
     }
+    
+    UQuestManager* QuestManager = GI->GetSubsystem<UQuestManager>();
     if (ButtonText == TEXT("네")) {
-        if (QuestManager && !CurrentQuestID.IsNone()) {
-            if (QuestManager->GetQuestState(CurrentQuestID) == EQuestState::NotAccepted) {
-                QuestManager->AcceptQuest(CurrentQuestID);
-            }
-            else {
-                UE_LOG(LogTemp, Log, TEXT("이미 수락되었거나 완료된 퀘스트"));
-            }
+        if (QuestManager && !CurrentQuestID.IsNone() 
+            && QuestManager->GetQuestState(CurrentQuestID) == EQuestState::NotAccepted) {
+            QuestManager->AcceptQuest(CurrentQuestID);
         }
+        OnClosed.Broadcast();
         RequestClose();
     }
 }
@@ -236,64 +188,7 @@ void UCPNPCDialogueWidget::OnTypewriterTick()
         }
         else
         {
-            // 신규 추가
-            // 마지막 줄까지 도달한 시점. 대화형 퀘스트의 완료 확정 대사(NPCStoryLines)라면
-            // 여기서 완료 처리. bCurrentIsWorkshopQuest가 false인 마을 NPC 흐름에서만 해당.
-            UE_LOG(LogTemp, Warning, TEXT("[완료체크] bWorkshop=%d, bResult=%d, QuestID=%s"),
-                bCurrentIsWorkshopQuest, bIsPotionResultDialogue, *CurrentQuestID.ToString());
-
-            if (!bCurrentIsWorkshopQuest && !bIsPotionResultDialogue)
-            {
-                if (UGameInstance* GI = GetGameInstance())
-                {
-                    if (UQuestManager* QuestManager = GI->GetSubsystem<UQuestManager>())
-                    {
-                        EQuestState State = QuestManager->GetQuestState(CurrentQuestID);
-                        EQuestCompletionType Type = QuestManager->GetQuestCompletionType(CurrentQuestID);
-
-                        UE_LOG(LogTemp, Warning, TEXT("[완료체크] State=%d, CompletionType=%d"),
-                            (int32)State, (int32)Type);
-
-                        if (State == EQuestState::Accepted
-                            && Type == EQuestCompletionType::Dialogue)
-                        {
-                            bool bSuccess = QuestManager->CompleteQuestByDialogue(CurrentQuestID);
-                            UE_LOG(LogTemp, Warning, TEXT("[완료체크] CompleteQuestByDialogue 결과: %d"), bSuccess);
-                        }
-                        else
-                        {
-                            UE_LOG(LogTemp, Error, TEXT("[완료체크] 조건 불일치로 완료 처리 안 됨!"));
-                        }
-                    }
-                    else
-                    {
-                        UE_LOG(LogTemp, Error, TEXT("[완료체크] QuestManager를 찾을 수 없음!"));
-                    }
-                }
-            }
-            else
-            {
-                UE_LOG(LogTemp, Error, TEXT("[완료체크] bWorkshop 또는 bResult가 true라서 건너뜀"));
-            }
-            CheckDialogueCompletionQuest();
             CreateChoiceButtons();
-        }
-    }
-}
-
-void UCPNPCDialogueWidget::CheckDialogueCompletionQuest()
-{
-    if (bCurrentIsWorkshopQuest || bIsPotionResultDialogue) return;
-
-    if (UGameInstance* GI = GetGameInstance())
-    {
-        if (UQuestManager* QuestManager = GI->GetSubsystem<UQuestManager>())
-        {
-            if (QuestManager->GetQuestState(CurrentQuestID) == EQuestState::Accepted
-                && QuestManager->GetQuestCompletionType(CurrentQuestID) == EQuestCompletionType::Dialogue)
-            {
-                QuestManager->CompleteQuestByDialogue(CurrentQuestID);
-            }
         }
     }
 }
@@ -303,22 +198,20 @@ void UCPNPCDialogueWidget::CreateChoiceButtons()
     if (!HBox_ChoiceList || !DialogueButtonClass) { return; }
 
     HBox_ChoiceList->ClearChildren();
-
-    //결과 보기 버튼
-    if (bIsPotionResultDialogue)
-    {
-        UCPNPCDialogueButtonWidget* NewButton = CreateWidget<UCPNPCDialogueButtonWidget>(this, DialogueButtonClass);
-        if (NewButton) {
-            NewButton->SetButtonText(FText::FromString(TEXT("결과 보기")));
-            NewButton->OnButtonClickedEvent.AddDynamic(this, &UCPNPCDialogueWidget::OnChoiceSelected);
-            HBox_ChoiceList->AddChild(NewButton);
+    FText ButtonText = FText::FromString(TEXT("네"));
+    
+    UGameInstance* GI = GetGameInstance();
+    UQuestManager* QuestManager = GI ? GI->GetSubsystem<UQuestManager>() : nullptr;
+    if (QuestManager){
+        const FCPQuestResult QuestResult = QuestManager->GetResult(CurrentQuestID);
+        if (!QuestResult.QuestId.IsNone()){
+            ButtonText = FText::FromString(TEXT("결과 보기"));
         }
-        return;
     }
-
+    
     UCPNPCDialogueButtonWidget* NewButton = CreateWidget<UCPNPCDialogueButtonWidget>(this, DialogueButtonClass);
     if (NewButton) {
-        NewButton->SetButtonText(FText::FromString(TEXT("네")));
+        NewButton->SetButtonText(ButtonText);
         NewButton->OnButtonClickedEvent.AddDynamic(this, &UCPNPCDialogueWidget::OnChoiceSelected);
         HBox_ChoiceList->AddChild(NewButton);
     }
@@ -354,7 +247,6 @@ void UCPNPCDialogueWidget::OnSkipAllClicked()
     if (Text_Dialogue) {
         Text_Dialogue->SetText(FText::FromString(FullDialogueText));
     }
-    CheckDialogueCompletionQuest();
     CreateChoiceButtons();
 
     if (Button_SkipAll) {
@@ -381,7 +273,6 @@ void UCPNPCDialogueWidget::SkipTypewriterEffect()
     }
     else
     {
-        CheckDialogueCompletionQuest();
         CreateChoiceButtons();
     }
 }

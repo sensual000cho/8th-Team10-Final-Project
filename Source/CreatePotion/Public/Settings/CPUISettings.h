@@ -20,6 +20,10 @@ class CREATEPOTION_API UCPUISettings : public UDeveloperSettings
 	GENERATED_BODY()
 	
 public:
+	// Main
+	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Main")
+	TSoftClassPtr<UUserWidget> MainWidgetClass;
+	
 	// Quest
 	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Quest")
 	TSoftClassPtr<UUserWidget> QuestJournalWidgetClass;
@@ -45,6 +49,10 @@ public:
 	// Dialogue
 	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Dialogue")
 	TSoftClassPtr<UUserWidget> NPCDialogueWidgetClass;
+	
+	//Result
+	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Result")
+	TSoftClassPtr<UUserWidget> ResultWidgetClass;
 	
 	// Inventory
 	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Container")

@@ -2,18 +2,18 @@
 
 
 #include "Character/CPInteractionComponent.h"
-
-#include "GameCore/Interface/CPInteractable.h"
-#include "GameCore/Interface/CPTimedInteractable.h"
 #include "Camera/CameraComponent.h"
 #include "GameCore/Interface/CPHighlightable.h"
 #include "HAL/IConsoleManager.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/World.h"
 #include "Components/MeshComponent.h"
+#include "Components/WidgetComponent.h"
 
 #include "EnhancedInputSubsystems.h"	// IMC 바인딩
 #include "EnhancedInputComponent.h"		// IA 바인딩
+#include "Chaos/PBDSuspensionConstraintData.h"
+#include "Components/CPInteractableComponent.h"
 
 // 에디터에서 콘솔창에 cp.Debug.Interaction를 입력해서 Debug On/Off 가능
 // cp.Debug.Interaction 1 --> Debug On
@@ -223,7 +223,7 @@ void UCPInteractionComponent::PerformTrace()
 
             DebuggedActors.Add(HitActor);
 
-            if (!HitActor->Implements<UCPInteractable>())
+            if (!HitActor->FindComponentByClass<UCPInteractableComponent>())
             {
                 continue;
             }
@@ -280,35 +280,27 @@ void UCPInteractionComponent::TryInteract()
 	AActor* Target = CurrentTarget.Get();
 	AActor* Interactor = GetOwner();
 	
-	if (!Target || !Target->Implements<UCPInteractable>())
+	UCPInteractableComponent* InteractableComp = Target->FindComponentByClass<UCPInteractableComponent>();
+	if (!InteractableComp || !InteractableComp->CanInteract()) return;
+	
+	// 시간형 상호작용인지 검사
+	const float Duration = InteractableComp->GetInteractionDuration();
+	if (Duration > 0.f)
 	{
+		StartTimedInteraction(Target, Duration);
 		return;
 	}
 	
-	if (!ICPInteractable::Execute_CanInteract(Target, Interactor))
-	{
-		return;
-	}
-	
-	if (Target->Implements<UCPTimedInteractable>())
-	{
-		const float Duration = ICPTimedInteractable::Execute_GetInteractionDuration(Target, Interactor);
-
-		if (Duration > 0.f)
-		{
-			StartTimedInteraction(Target, Duration);
-			return;
-		}
-	}
-
 	// 시간형 인터페이스가 없으면 일반 상호작용 실행
-	ICPInteractable::Execute_OnInteract(Target, Interactor);
-	
+	InteractableComp->HandleInteract(Interactor);
 	RefreshCurrentTargetPresentation();
+	
 }
 
 void UCPInteractionComponent::StartTimedInteraction(AActor* Target, float Duration)
 {
+	UE_LOG(LogTemp, Warning, TEXT("[InteractionComp] 시간형 상호작용 시작"));
+	
 	if (!IsValid(Target) || Duration <= 0.f || InteractingTarget.IsValid())
 	{
 		return;
@@ -396,7 +388,8 @@ void UCPInteractionComponent::CompleteTimedInteraction()
 	bTimedInteractionAligning = false;
 	InteractionAlignmentElapsedTime = 0.f;
 
-	if (!IsValid(Target) || !Target->Implements<UCPInteractable>())
+	UCPInteractableComponent* InteractableComp = Target->FindComponentByClass<UCPInteractableComponent>();
+	if (!IsValid(Target) || !IsValid(InteractableComp))
 	{
 		OnInteractionProgressChanged.Broadcast(0.f);
 		OnInteractionCancelled.Broadcast();
@@ -405,10 +398,10 @@ void UCPInteractionComponent::CompleteTimedInteraction()
 	}
 
 	// 시간이 끝나면 기존 OnInteract 호출
-	ICPInteractable::Execute_OnInteract(Target, Interactor);
+	//ICPInteractable::Execute_OnInteract(Target, Interactor);
+	InteractableComp->HandleInteract(Interactor);
 	
 	OnInteractionCompleted.Broadcast();
-	
 	RefreshCurrentTargetPresentation();
 }
 
@@ -423,10 +416,11 @@ void UCPInteractionComponent::BeginTimedInteraction()
 	AActor* Target = InteractingTarget.Get();
 	AActor* Interactor = GetOwner();
 
+	UCPInteractableComponent* InteractableComp = Target->FindComponentByClass<UCPInteractableComponent>();
 	if (!IsValid(World) ||
 		!IsValid(Target) ||
 		!IsValid(Interactor) ||
-		!Target->Implements<UCPTimedInteractable>())
+		!IsValid(InteractableComp))
 	{
 		CancelTimedInteraction();
 		return;
@@ -441,8 +435,8 @@ void UCPInteractionComponent::BeginTimedInteraction()
 	OnInteractionProgressChanged.Broadcast(0.f);
 
 	// 여기에서 처음으로 조사/채집 몽타주 실행
-	ICPTimedInteractable::Execute_OnInteractionStarted(Target, Interactor);
-
+	InteractableComp->HandleInteractionStarted(Interactor);
+	
 	RefreshCurrentTargetPresentation();
 
 	World->GetTimerManager().SetTimer(
@@ -456,6 +450,7 @@ void UCPInteractionComponent::BeginTimedInteraction()
 
 void UCPInteractionComponent::SetActorHighlight(AActor* Target, bool bHighlighted)
 {
+	// TODO: 하이라이트 로직 InteractableActorComponent로 옮기기
 	UE_LOG(LogTemp, Warning, TEXT("[InteractionComponent] SetActorHighlight 호출됨"));
 	
 	if (!Target) return;
@@ -467,25 +462,46 @@ void UCPInteractionComponent::SetActorHighlight(AActor* Target, bool bHighlighte
 		return;
 	}
 	
-	if (UMeshComponent* Mesh = Target->FindComponentByClass<UMeshComponent>())
+	// 하이라이트할 메쉬 찾기
+	TArray<UMeshComponent*> MeshComponents;
+	Target->GetComponents<UMeshComponent>(MeshComponents);
+	
+	bool bMeshFound = false;
+	for (UMeshComponent* Comp : MeshComponents)
 	{
-		const TCHAR* Message = HighlightMaterial ? TEXT("Valid") : TEXT("NULL");
-		UE_LOG(LogTemp, Warning, TEXT("[InteractionComponent] Found Mesh: %s, HighlightMaterial: %s"),
-			*Mesh->GetName(), Message);
-		Mesh->SetOverlayMaterial(bHighlighted ? HighlightMaterial : nullptr);
+		if (!Comp && !Comp->IsA<UWidgetComponent>())
+		{
+			continue;
+		}
+		
+		
+		Comp->SetOverlayMaterial(bHighlighted ? HighlightMaterial : nullptr);
+		bMeshFound = true;
+		
+		// Debug Log: 어떤 메쉬를 찾아서 하이라이트 하고 있는지 출력
+		// const TCHAR* Message = HighlightMaterial ? TEXT("Valid") : TEXT("NULL");
+		// UE_LOG(LogTemp, Warning, TEXT("[InteractionComponent] Found Mesh: %s, HighlightMaterial: %s"),
+		// *Comp->GetName(), Message);
 	}
-	else
+	
+	// Debug Log: Mesh 발견되지 않으면 출력
+	if (!bMeshFound)
 	{
 		UE_LOG(LogTemp, Error, TEXT("[InteractionComponent] %s 에서 Mesh 발견되지 않음"), *Target->GetName());
 	}
+	
 }
 
 void UCPInteractionComponent::RefreshCurrentTargetPresentation()
 {
+	
 	AActor* Target = CurrentTarget.Get();
+	if (!IsValid(Target)) return;
+	
 	AActor* Interactor = GetOwner();
-
-	if (!IsValid(Target) || !IsValid(Interactor) || !Target->Implements<UCPInteractable>())
+	UCPInteractableComponent* InteractableComp = Target->FindComponentByClass<UCPInteractableComponent>();
+	
+	if (!IsValid(Interactor) || !IsValid(InteractableComp))
 	{
 		ClearCurrentTarget();
 		return;
@@ -506,11 +522,7 @@ void UCPInteractionComponent::RefreshCurrentTargetPresentation()
 		return;
 	}
 
-	// 프롬프트 변경(ex.조사 -> 채집).
-	const FText Prompt = ICPInteractable::Execute_GetInteractionPrompt(Target);
-	const FName TargetName = ICPInteractable::Execute_GetInteractionName(Target);
-
-	OnPromptChanged.Broadcast(Prompt, TargetName, NewDisplayState);
+	InteractableComp->RefreshUI();
 }
 
 AActor* UCPInteractionComponent::SelectBestInteractionTarget(const TArray<FHitResult>& InteractionHits, const FVector& CameraLocation, const FVector& CameraForward, ECPInteractionDisplayState& OutDisplayState) const
@@ -710,27 +722,31 @@ void UCPInteractionComponent::UpdateCurrentTarget(AActor* NewTarget, ECPInteract
 	if (AActor* PreviousTarget = CurrentTarget.Get())
 	{
 		SetActorHighlight(PreviousTarget, false);
+		if (UCPInteractableComponent* PrevComp = PreviousTarget->FindComponentByClass<UCPInteractableComponent>())
+		{
+			PrevComp->EndFocus(GetOwner());
+		}
 	}
 
 	CurrentTarget = NewTarget;
 	CurrentDisplayState = NewDisplayState;
-
+	
 	if (!IsValid(NewTarget))
 	{
-		OnPromptChanged.Broadcast(FText::GetEmpty(), NAME_None, ECPInteractionDisplayState::Hidden);
 		return;
 	}
-
-	// 노란 하이라이트는 실제 상호작용이 가능할 때만 표시
-	if (CurrentDisplayState == ECPInteractionDisplayState::Enabled)
+	
+	UCPInteractableComponent* NewComp = NewTarget->FindComponentByClass<UCPInteractableComponent>();
+	if (!IsValid(NewComp)) return;
+	
+	if (CurrentDisplayState == ECPInteractionDisplayState::Enabled ||
+		CurrentDisplayState == ECPInteractionDisplayState::Disabled)
 	{
 		SetActorHighlight(NewTarget, true);
+		NewComp->SetDisplayState(NewDisplayState);
+		NewComp->BeginFocus(GetOwner());
 	}
-
-	const FText Prompt = ICPInteractable::Execute_GetInteractionPrompt(NewTarget);
-	const FName TargetName = ICPInteractable::Execute_GetInteractionName(NewTarget);
-
-	OnPromptChanged.Broadcast(Prompt, TargetName, CurrentDisplayState);
+	
 }
 
 ECPInteractionDisplayState UCPInteractionComponent::ResolveInteractionDisplayState(AActor* Target, AActor* Interactor) const
@@ -739,22 +755,22 @@ ECPInteractionDisplayState UCPInteractionComponent::ResolveInteractionDisplaySta
 	{
 		return ECPInteractionDisplayState::Hidden;
 	}
-
-	if (!Target->Implements<UCPInteractable>())
+	
+	if (UCPInteractableComponent* InteractableComp = Target->FindComponentByClass<UCPInteractableComponent>())
 	{
-		return ECPInteractionDisplayState::Hidden;
+		if (InteractableComp->CanInteract())
+		{
+			return ECPInteractionDisplayState::Enabled;	
+		}
+		else
+		{
+			if (InteractableComp->ShouldShowUnavailableInteraction())
+			{
+				return ECPInteractionDisplayState::Disabled;
+			}
+		}
 	}
-
-	if (ICPInteractable::Execute_CanInteract(Target, Interactor))
-	{
-		return ECPInteractionDisplayState::Enabled;
-	}
-
-	if (ICPInteractable::Execute_ShouldShowUnavailableInteraction(Target, Interactor))
-	{
-		return ECPInteractionDisplayState::Disabled;
-	}
-
+	
 	return ECPInteractionDisplayState::Hidden;
 }
 
