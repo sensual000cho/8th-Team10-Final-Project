@@ -20,6 +20,7 @@ public class CreatePotion : ModuleRules
             "GameplayTasks",
             "DeveloperSettings",
             "Niagara",
+            "NavigationSystem"
         });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
