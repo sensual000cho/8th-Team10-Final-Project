@@ -19,6 +19,9 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Codex")
 	TSoftObjectPtr<UTexture2D> CodexImage;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Codex")
+	FName CodexTextKey;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Mesh")
 	TSoftObjectPtr<USkeletalMesh> NPCMesh;

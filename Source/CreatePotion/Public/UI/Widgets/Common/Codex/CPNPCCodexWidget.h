@@ -26,7 +26,8 @@ public:
 private:
 	void RefreshCodex();
 	void RefreshCompletedQuestButtons();
-	void SetQuestDsecription(FName QuestID);	
+	void RefreshNPCDescription();
+	void SetQuestDescription(FName QuestID);	
 	
 	UFUNCTION()
 	void HandleQuestButtonClicked(FName QuestID);
@@ -49,6 +50,9 @@ private:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Codex|NPC")
 	TSubclassOf<UCPNPCQuestButtonWidget> QuestButtonWidgetClass;
+	
+	UPROPERTY(EditAnywhere, Category = "Codex|NPC")
+	TObjectPtr<UStringTable> NPCStringTable;
 	
 	UPROPERTY()
 	TObjectPtr<UCPNPCDataAsset> CurrentNPCData;

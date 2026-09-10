@@ -8,6 +8,7 @@
 #include "Components/TextBlock.h"
 #include "Data/NPC/CPNPCDataAsset.h"
 #include "Data/NPC/CPQuestNPCDataAsset.h"
+#include "Internationalization/StringTable.h"
 #include "Quest/QuestManager.h"
 #include "UI/Widgets/Common/Codex/CPNPCQuestButtonWidget.h"
 
@@ -28,7 +29,7 @@ void UCPNPCCodexWidget::RefreshCodex()
 	Txt_Name->SetText(FText::FromName(CurrentNPCData->NPCName));
 	Txt_QuestTitle->SetText(FText::GetEmpty());
 	Txt_QuestTitle->SetVisibility(ESlateVisibility::Collapsed);
-	Txt_Description->SetText(FText::FromString("Text"));
+	RefreshNPCDescription();
 	
 	RefreshCompletedQuestButtons();
 }
@@ -37,6 +38,7 @@ void UCPNPCCodexWidget::RefreshCompletedQuestButtons()
 {
 	if (!SB_Quest) return;
 	SB_Quest->ClearChildren();
+	QuestButtons.Empty();
 	
 	const UCPQuestNPCDataAsset* QuestNPCData = Cast<UCPQuestNPCDataAsset>(CurrentNPCData);
 	if (!QuestNPCData || !QuestButtonWidgetClass) return;
@@ -63,7 +65,26 @@ void UCPNPCCodexWidget::RefreshCompletedQuestButtons()
 	}
 }
 
-void UCPNPCCodexWidget::SetQuestDsecription(FName QuestID)
+void UCPNPCCodexWidget::RefreshNPCDescription()
+{
+	Txt_Description->SetText(FText::GetEmpty());
+	
+	if (!CurrentNPCData || !Txt_Description || !NPCStringTable) return;
+	if (CurrentNPCData->CodexTextKey.IsNone()) return;
+	
+	const UGameInstance* GI = GetGameInstance();
+	const UQuestManager* QuestManager = GI ? GI->GetSubsystem<UQuestManager>() : nullptr;
+	if (!QuestManager) return;
+	
+	const int32 StoryStage = QuestManager->GetNPCStoryStage(CurrentNPCData->NPCName);
+	const FString TextKeyString = FString::Printf(
+		TEXT("%s.%02d"), *CurrentNPCData->CodexTextKey.ToString(), StoryStage);
+	
+	const FName TableId = NPCStringTable->GetStringTableId();
+	Txt_Description->SetText(FText::FromStringTable(TableId, TextKeyString));
+}
+
+void UCPNPCCodexWidget::SetQuestDescription(FName QuestID)
 {
 	const UGameInstance* GI = GetGameInstance();
 	UQuestManager* QuestManager =GI ? GI->GetSubsystem<UQuestManager>() : nullptr;
@@ -82,10 +103,10 @@ void UCPNPCCodexWidget::HandleQuestButtonClicked(FName QuestID)
 		// NPC Description으로 변경
 		Txt_QuestTitle->SetText(FText::GetEmpty());
 		Txt_QuestTitle->SetVisibility(ESlateVisibility::Collapsed);
-		Txt_Description->SetText(FText::GetEmpty());
+		RefreshNPCDescription();
 	}else{
 		FocusQuestID = QuestID;
-		SetQuestDsecription(QuestID);	
+		SetQuestDescription(QuestID);	
 	}
 	
 	for (UCPNPCQuestButtonWidget* QuestButton : QuestButtons){
