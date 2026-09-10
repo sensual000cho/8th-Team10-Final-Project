@@ -137,5 +137,32 @@ void ACPBaseInteractableActor::SetInteractionDuration(float NewDuration)
 	InteractableComponent->SetInteractionDuration(NewDuration);
 }
 
+bool ACPBaseInteractableActor::CanInteract() const
+{
+	return IsValid(InteractableComponent) ? InteractableComponent->CanInteract() : false;
+}
+
+ECPInteractionDisplayState ACPBaseInteractableActor::GetDisplayState() const
+{
+	return IsValid(InteractableComponent) ? InteractableComponent->GetDisplayState() : ECPInteractionDisplayState::Hidden;
+}
+
+FName ACPBaseInteractableActor::GetTargetName() const
+{
+	return IsValid(InteractableComponent) ? InteractableComponent->GetTargetName() : NAME_None;
+}
+
+FText ACPBaseInteractableActor::GetInteractionPrompt() const
+{
+	return IsValid(InteractableComponent) ? InteractableComponent->GetInteractionPrompt() : FText::GetEmpty();
+}
+
+float ACPBaseInteractableActor::GetInteractionDuration() const
+{
+	return IsValid(InteractableComponent) ? InteractableComponent->GetInteractionDuration() : 0.0f;
+}
+
+
+
 
 

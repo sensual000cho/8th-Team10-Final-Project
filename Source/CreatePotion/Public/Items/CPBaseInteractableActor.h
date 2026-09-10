@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "GeometryCollection/Facades/CollectionPositionTargetFacade.h"
 #include "CPBaseInteractableActor.generated.h"
 
 class UCPInteractableComponent;
@@ -39,7 +40,7 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Interaction|InteractableActor")
 	virtual void HandleInteractionStarted(AActor* Interactor);
 	
-	// 액터에서 특수한 조건 처리가 필요할 경우 오버라이드하여 사용
+	// 특수한 조건 처리가 필요할 경우 오버라이드하여 사용
 	UFUNCTION(BlueprintNativeEvent)
 	bool EvaluateInteractability() const;
 	virtual bool EvaluateInteractability_Implementation() const;
@@ -83,6 +84,24 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void SetInteractionDuration(float NewDuration);
 
+	// --- Getter 함수 ---
+	
+	UFUNCTION(BlueprintPure, Category = "Interaction")
+	bool CanInteract() const;
+	
+	UFUNCTION(BlueprintPure, Category = "Interaction")
+	ECPInteractionDisplayState GetDisplayState() const;
+	
+	UFUNCTION(BlueprintPure, Category = "Interaction")
+	FName GetTargetName() const;
+
+	UFUNCTION(BlueprintPure, Category = "Interaction")
+	FText GetInteractionPrompt() const;
+
+	UFUNCTION(BlueprintPure, Category = "Interaction")
+	float GetInteractionDuration() const;
+	
+	
 protected:
 	// 상호작용 액터 컴포넌트
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction")
