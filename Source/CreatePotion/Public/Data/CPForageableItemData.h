@@ -49,7 +49,7 @@ public:
 	int32 BuyPrice = 0;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Shop", meta = (ClampMin = "0"))
-	float SellPriceRatio = 0.25f;
+	float SellPriceRatio = 0.5f;
 #pragma endregion
 
 public:
