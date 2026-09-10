@@ -1,24 +1,97 @@
 ﻿#include "NPC/CPQuestNPC.h"
-
 #include "Data/NPC/CPNPCDataAsset.h"       
 #include "Data/NPC/CPQuestNPCDataAsset.h"
 #include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
 #include "Quest/QuestManager.h"
 #include "Settings/CPUISettings.h"
 #include "UI/Widgets/Common/Dialogue/CPNPCDialogueWidget.h"
+#include "NPC/CPNPCMoveComponent.h"
+#include "NPC/CPNPCAIController.h"
 
 ACPQuestNPC::ACPQuestNPC() : CurrentQuestId(NAME_None)
 {
 }
 
-FText ACPQuestNPC::GetInteractionPrompt_Implementation()
+bool ACPQuestNPC::CanInteract_Implementation(AActor* Interactor)
 {
-	if (!CanInteract_Implementation(nullptr))
+	if (!Interactor)
 	{
-		return FText::GetEmpty();
+		return true;
 	}
 
+	if (!bIsInteracting)
+	{
+		if (!MoveComponent)
+		{
+			MoveComponent = FindComponentByClass<UCPNPCMoveComponent>();
+		}
+
+		if (!bIsPlayerLooking)
+		{
+			bIsPlayerLooking = true;
+
+			//UE_LOG(LogTemp, Error, TEXT("[%s] 시선 감지 -> StopMoving 호출"), *GetNameSafe(this));
+			if (MoveComponent)
+			{
+				MoveComponent->StopMoving();
+			}
+		}
+
+		if (UWorld* World = GetWorld())
+		{
+			World->GetTimerManager().SetTimer(
+				TraceLostTimerHandle,
+				this,
+				&ACPQuestNPC::OnTraceFocusLost,
+				0.5f,
+				false
+			);
+		}
+	}
+
+	return true;
+}
+
+FText ACPQuestNPC::GetInteractionPrompt_Implementation()
+{
 	return FText::FromString(TEXT("대화하기"));
+}
+
+void ACPQuestNPC::OnInteract_Implementation(AActor* Interactor)
+{
+	if (!Interactor) { return; }
+
+	bIsInteracting = true;
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(TraceLostTimerHandle);
+	}
+
+	if (MoveComponent)
+	{
+		MoveComponent->StopMoving();
+	}
+
+	FVector Direction = Interactor->GetActorLocation() - GetActorLocation();
+	Direction.Z = 0.f;
+	if (!Direction.IsNearlyZero())
+	{
+		SetActorRotation(FRotationMatrix::MakeFromX(Direction).Rotator());
+	}
+
+	if (AAIController* AIController = Cast<AAIController>(GetController()))
+	{
+		AIController->MoveToActor(
+			Interactor,
+			StopRadius,
+			true,  // bStopOnOverlap
+			true,  // bUsePathfinding
+			false, // bCanStrafe
+			nullptr,
+			true
+		);
+	}
 }
 
 void ACPQuestNPC::HandleThrownPotionImpact(const TArray<FGameplayTag>& PotionEffectTags)
@@ -105,4 +178,16 @@ FName ACPQuestNPC::FindAcceptedQuestId() const
 		return QuestID;
 	}
 	return NAME_None;
+}
+
+void ACPQuestNPC::OnTraceFocusLost()
+{
+	if (bIsInteracting) { return; }
+
+	bIsPlayerLooking = false;
+
+	if (MoveComponent)
+	{
+		MoveComponent->StartMoving();
+	}
 }

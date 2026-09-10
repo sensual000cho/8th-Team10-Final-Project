@@ -18,12 +18,14 @@ public class CreatePotion : ModuleRules
             "GameplayTags",
             "GameplayAbilities",
             "GameplayTasks",
+            "GameplayCameras",
             "DeveloperSettings",
             "Niagara",
             "AIModule",
             "StateTreeModule",
             "GameplayStateTreeModule",
             "NavigationSystem",
+            "NavigationSystem"
         });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
