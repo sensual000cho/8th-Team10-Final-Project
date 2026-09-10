@@ -5,8 +5,7 @@
 #include "Lab/Actor/CPThrowablePropBase.h"
 
 UCPCarryComponent::UCPCarryComponent()  
-    : ReplacementDropForwardDistance(120.f),
-      ReplacementDropTraceUpDistance(100.f),
+    : ReplacementDropTraceUpDistance(100.f),
       ReplacementDropTraceDownDistance(300.f),
       ReplacementDropGroundClearance(3.f),
       ResetDropForwardDistance(100.f)
@@ -96,7 +95,8 @@ bool UCPCarryComponent::ReplaceHeldProp(ACPThrowablePropBase* NewProp)
 
     if (IsValid(PreviousHeldProp))
     {
-        const FVector DropLocation = MakeReplacementDropLocation(PreviousHeldProp);
+        // NewProp이 부착되기 전에 원래 위치 기준으로 계산
+        const FVector DropLocation = MakeReplacementDropLocation(PreviousHeldProp, NewProp);
 
         if (!DropHeldProp(DropLocation))
         {
@@ -205,56 +205,51 @@ ACPThrowablePropBase* UCPCarryComponent::GetHeldProp() const
     return IsValid(HeldProp) ? HeldProp.Get() : nullptr;
 }
 
-FVector UCPCarryComponent::MakeReplacementDropLocation(const ACPThrowablePropBase* Prop) const
+FVector UCPCarryComponent::MakeReplacementDropLocation(const ACPThrowablePropBase* PreviousHeldProp, const ACPThrowablePropBase* NewProp) const
 {
-    const AActor* OwnerActor = GetOwner();
-
-    if (!IsValid(OwnerActor))
+    if (!IsValid(PreviousHeldProp) || !IsValid(NewProp))
     {
         return GetComponentLocation();
     }
 
-    const FVector ForwardLocation = OwnerActor->GetActorLocation() + OwnerActor->GetActorForwardVector() * ReplacementDropForwardDistance;
+    FVector PreviousBoundsOrigin;
+    FVector PreviousBoundsExtent;
 
-    const FVector TraceStart = ForwardLocation + FVector::UpVector * ReplacementDropTraceUpDistance;
-
-    const FVector TraceEnd = ForwardLocation - FVector::UpVector * ReplacementDropTraceDownDistance;
-
-    FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(CarryReplacementDrop), false);
-    QueryParams.AddIgnoredActor(OwnerActor);
-
-    if (IsValid(Prop))
+    if (!PreviousHeldProp->GetPropCollisionBounds(PreviousBoundsOrigin, PreviousBoundsExtent))
     {
-        QueryParams.AddIgnoredActor(Prop);
+        return NewProp->GetActorLocation();
     }
 
-    FHitResult GroundHit;
+    FVector NewBoundsOrigin;
+    FVector NewBoundsExtent;
 
-    const bool bGroundFound = GetWorld() && GetWorld()->LineTraceSingleByChannel(
-        GroundHit,
-        TraceStart,
-        TraceEnd,
-        ECC_Visibility,
-        QueryParams);
-
-    if (!bGroundFound)
+    if (!NewProp->GetPropCollisionBounds(NewBoundsOrigin, NewBoundsExtent))
     {
-        return ForwardLocation;
+        return NewProp->GetActorLocation();
     }
 
-    float PropHalfHeight = 10.f;
+    const FVector PreviousActorLocation = PreviousHeldProp->GetActorLocation();
 
-    if (IsValid(Prop))
-    {
-        FVector BoundsOrigin;
-        FVector BoundsExtent;
-        Prop->GetActorBounds(true, BoundsOrigin, BoundsExtent);
+    // 기존 Held Prop의 피벗에서 Bounds 중심까지의 차이
+    const FVector PreviousBoundsOffset = PreviousBoundsOrigin - PreviousActorLocation;
 
-        PropHalfHeight = FMath::Max(BoundsExtent.Z, 1.f);
-    }
+    FVector DropLocation;
 
-    return GroundHit.ImpactPoint +
-        FVector::UpVector * (PropHalfHeight + ReplacementDropGroundClearance);
+    // 기존 Held Prop의 Bounds 중심을 NewProp의 기존 Bounds 중심에 맞춤
+    DropLocation.X = NewBoundsOrigin.X - PreviousBoundsOffset.X;
+    DropLocation.Y = NewBoundsOrigin.Y - PreviousBoundsOffset.Y;
+
+    // NewProp이 놓여 있던 바닥 높이
+    const float TargetFloorZ = NewBoundsOrigin.Z - NewBoundsExtent.Z;
+
+    // 기존 Held Prop의 피벗에서 Bounds 바닥까지의 거리
+    const float PreviousBoundsBottomZ = PreviousBoundsOrigin.Z - PreviousBoundsExtent.Z;
+    const float PreviousBottomOffset = PreviousActorLocation.Z - PreviousBoundsBottomZ;
+
+    // 기존 Prop의 Bounds 바닥이 원래 NewProp의 바닥 위치에 오도록 배치
+    DropLocation.Z = TargetFloorZ + PreviousBottomOffset + ReplacementDropClearance;
+
+    return DropLocation;
 }
 
 void UCPCarryComponent::SetHeldProp(ACPThrowablePropBase* NewHeldProp)

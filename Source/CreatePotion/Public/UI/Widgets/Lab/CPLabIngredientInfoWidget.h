@@ -4,13 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
-#include "Lab/CPLabTypes.h"
+#include "Types/CPItemInstanceTypes.h"
 #include "UI/Widgets/Base/CPBaseUserWidget.h"
 #include "CPLabIngredientInfoWidget.generated.h"
 
 class UCPForageableItemData;
 class UCPLabIngredientEffectRowWidget;
-class ACPAlchemyProp;
+class ACPThrowablePropBase;
 class UImage;
 class UTextBlock;
 class UVerticalBox;
@@ -24,13 +24,9 @@ class CREATEPOTION_API UCPLabIngredientInfoWidget : public UCPBaseUserWidget
 	GENERATED_BODY()
 
 public:
-	// Actor를 계속 추적하지 않고 전달받은 순간의 재료 정보만 표시한다.
+	// 월드의 Prop를 관찰하며 작업 데이터가 바뀔 때마다 자동으로 다시 표시한다.
 	UFUNCTION(BlueprintCallable, Category = "Lab|UI|Ingredient")
-	void SetIngredientInfo(const FCPLabIngredientInstance& InIngredient);
-
-	// 월드의 재료 Actor를 관찰하며 작업 데이터가 바뀔 때마다 자동으로 다시 표시한다.
-	UFUNCTION(BlueprintCallable, Category = "Lab|UI|Ingredient")
-	void SetObservedIngredient(ACPAlchemyProp* InIngredientProp);
+	void SetIngredientProp(ACPThrowablePropBase* InProp);
 
 	UFUNCTION(BlueprintCallable, Category = "Lab|UI|Ingredient")
 	void ClearObservedIngredient();
@@ -66,23 +62,16 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lab|UI|Ingredient")
 	TSubclassOf<UCPLabIngredientEffectRowWidget> EffectRowWidgetClass;
 
-	// 화면에 표시할 이름만 덮어쓴다. 효과의 실제 식별자는 계속 GameplayTag를 사용한다.
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lab|UI|Ingredient")
-	TMap<FGameplayTag, FText> EffectDisplayNames;
-
 	// 운반 카드처럼 위젯은 남아 있지만 재료가 없는 상태에서 표시할 문구다.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lab|UI|Ingredient")
 	FText EmptyIngredientText = FText::FromString(TEXT("비어 있음"));
 private:
 	// 스냅샷과 Actor 관찰 경로가 최종적으로 공유하는 표시 진입점이다.
-	void ApplyIngredientInfo(const FCPLabIngredientInstance& InIngredient);
+	void ApplyIngredientInfo(const FCPItemInstance& InIngredient);
 	void RefreshObservedIngredient();
 
 	// 다른 Prop으로 갈아타거나 위젯이 파괴될 때 이전 Prop의 델리게이트를 반드시 해제한다.
 	void UnbindObservedIngredient();
-
-	UFUNCTION()
-	void HandleObservedIngredientChanged();
 
 	void RefreshWidget();
 	void RefreshEmptyState();
@@ -90,9 +79,9 @@ private:
 	FText GetEffectDisplayName(const FGameplayTag& EffectTag) const;
 
 	UPROPERTY(Transient)
-	FCPLabIngredientInstance Ingredient;
+	FCPItemInstance Ingredient;
 
 	// Actor의 생명주기를 UI가 연장하지 않도록 약한 참조로 관찰한다.
 	UPROPERTY(Transient)
-	TWeakObjectPtr<ACPAlchemyProp> ObservedIngredientProp;
+	TWeakObjectPtr<ACPThrowablePropBase> ObservedIngredientProp;
 };

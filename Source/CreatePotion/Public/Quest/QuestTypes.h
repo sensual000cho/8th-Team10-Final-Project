@@ -26,13 +26,42 @@ struct FQuestData : public FTableRowBase
 	// 퀘스트 요약 (수락 후 저널에서 다시 확인할 때 표시)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerFacing")
 	FText QuestSummaryText;
+
+	// ===================================================================
+	// [스토리 진행 - NPC별 독립 스토리 관리용]
+	// ===================================================================
+
+	// 이 퀘스트가 소속된 NPC 식별자 (UCPNPCDataAsset::NPCName과 일치해야 함)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Story")
+	FName OwningNPCId;
+
+	// 이 퀘스트가 노출되려면 해당 NPC 스토리가 최소 몇 단계여야 하는지
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Story")
+	int32 RequiredStoryStage = 0;
+
+	// 이 퀘스트를 완료하면 해당 NPC 스토리를 이 단계로 진행시킴 (-1이면 스토리 진행에 영향 없음)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Story")
+	int32 AdvanceToStage = -1;
+
 };
+
+
 
 // ===================================================================
 // [DT 2: 조건/정답 데이터 (포션 메이킹 힌트/답지)]
 // 실제 판정에 쓰이는 조건과, 세션 진입 시 보여줄 힌트 텍스트를 담음.
 // ===================================================================
 
+// 퀘스트가 어떤 방식으로 완료되는지 구분
+UENUM(BlueprintType)
+enum class EQuestCompletionType : uint8
+{
+	Dialogue,
+	FindTarget,
+	ItemCollection,
+	Potion
+
+};
 // 퀘스트가 요구하는 효능 조건 하나 (틀 - 실제로는 배열로 여러 개 담김)
 USTRUCT(BlueprintType)
 struct FQuestEffectRequirement
@@ -68,6 +97,22 @@ struct FQuestAnswerData : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Reward")
 	int32 RewardGold = 100;
+
+	// 신규 추가 - 완료 방식 구분
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Completion")
+	EQuestCompletionType CompletionType = EQuestCompletionType::Potion;
+
+	// [FindTarget 전용] 찾아야 하는 대상의 식별자
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Completion|FindTarget")
+	FName TargetIdentifier;
+
+	// [ItemCollection 전용] 가져다줘야 하는 아이템 ID 목록
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Completion|ItemCollection")
+	TArray<FName> RequiredItemIDs;
+
+	// [ItemCollection 전용] 각 아이템당 필요한 수량
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Completion|ItemCollection")
+	int32 RequiredItemCount = 1;
 };
 
 // ===================================================================
@@ -108,4 +153,12 @@ struct FConditionEvaluation
 	// 이게 정답이 요구한 조건인지(true), 아니면 포션에 여분으로 섞인 태그인지(false)
 	UPROPERTY(BlueprintReadOnly)
 	bool bWasRequested = true;
+};
+
+UENUM(BlueprintType)
+enum class EQuestMarkerState : uint8
+{
+	None,          // 표시 없음
+	Available,     // 새 퀘스트 있음 (느낌표)
+	InProgress,    // 진행 중 (물음표)
 };

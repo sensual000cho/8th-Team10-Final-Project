@@ -1,7 +1,5 @@
 ﻿#include "NPC/GA/CPGA_PotionReactionBase.h"
 #include "NPC/CPBaseNPC.h"
-#include "NPC/CPLabNPC.h"
-#include "AbilitySystemComponent.h"
 
 UCPGA_PotionReactionBase::UCPGA_PotionReactionBase()
 {
@@ -15,17 +13,14 @@ UCPGA_PotionReactionBase::UCPGA_PotionReactionBase()
 	ActivationOwnedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Reaction.Potion")));
 }
 
-void UCPGA_PotionReactionBase::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
+void UCPGA_PotionReactionBase::OnGiveAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec)
 {
-	if (ActorInfo && ActorInfo->AvatarActor.IsValid())
-	{
-		if (ACPLabNPC* LabNPC = Cast<ACPLabNPC>(ActorInfo->AvatarActor.Get()))
-		{
-			LabNPC->ShowResultDialogue();
-		}
-	}
+	Super::OnGiveAbility(ActorInfo, Spec);
 
-	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
+	if (ImmunityTag.IsValid())
+	{
+		ActivationBlockedTags.AddTag(ImmunityTag);
+	}
 }
 
 bool UCPGA_PotionReactionBase::ExtractImpactHitResult(const FGameplayEventData* TriggerEventData, FHitResult& OutHitResult)
@@ -49,24 +44,16 @@ ACPBaseNPC* UCPGA_PotionReactionBase::GetOwningPotionNPC(const FGameplayAbilityA
 	return ActorInfo ? Cast<ACPBaseNPC>(ActorInfo->AvatarActor.Get()) : nullptr;
 }
 
-FGameplayEffectContextHandle UCPGA_PotionReactionBase::BuildPotionEffectContext(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayEventData* TriggerEventData) const
+ACPBaseNPC* UCPGA_PotionReactionBase::GetValidatedOwningPotionNPC(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+	const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	UAbilitySystemComponent* ASC = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr;
-	if (!ASC)
+	ACPBaseNPC* NPC = GetOwningPotionNPC(ActorInfo);
+	if (!IsValid(NPC) || !HasAuthority(&ActivationInfo))
 	{
-		return FGameplayEffectContextHandle();
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return nullptr;
 	}
-
-	FGameplayEffectContextHandle Context = ASC->MakeEffectContext();
-	Context.AddInstigator(ActorInfo->AvatarActor.Get(), ActorInfo->AvatarActor.Get());
-
-	FHitResult ImpactHit;
-	if (ExtractImpactHitResult(TriggerEventData, ImpactHit))
-	{
-		Context.AddHitResult(ImpactHit, true);
-	}
-
-	return Context;
+	return NPC;
 }
 
 void UCPGA_PotionReactionBase::PrintPotionEventLog(const FGameplayEventData* TriggerEventData) const

@@ -14,9 +14,16 @@ void UCPItemContainerComponent::BeginPlay()
 	Super::BeginPlay();
 }
 
-int32 UCPItemContainerComponent::TryGetItem(UCPForageableItemData* InItemData, int32 Count)
+int32 UCPItemContainerComponent::TryGetItemFromData(UCPForageableItemData* InItemData, int32 Count)
 {
-    if (!InItemData || Count <= 0)
+    FCPItemInstance Instance;
+    Instance.SourceItemData = InItemData;
+    return TryGetItemFromInstance(Instance, Count);
+}
+
+int32 UCPItemContainerComponent::TryGetItemFromInstance(const FCPItemInstance& InInstance, int32 Count)
+{
+    if (!InInstance.SourceItemData || Count <= 0)
     {
         UE_LOG(LogContainer, Warning, TEXT("TryGetItem 실패: 아이템 데이터가 없거나 수량이 0 이하입니다."));
         return Count;
@@ -25,19 +32,18 @@ int32 UCPItemContainerComponent::TryGetItem(UCPForageableItemData* InItemData, i
     // 이미 기존 아이템이 존재하는지 확인 후, 존재한다면 Stack
     for (FContainerItem& Item : ContainerItems)
     {
-        if (Item.ItemDataAsset == InItemData && Item.Stacked < MaxStack)
+        if (AreInstancesStackable(Item.Instance, InInstance) && Item.Stacked < MaxStack)
         {
-            int32 SpaceLeft = MaxStack - Item.Stacked;  // Stack 가능한 숫자
+            int32 SpaceLeft = MaxStack - Item.Stacked;
             int32 AmountToAdd = FMath::Min(Count, SpaceLeft);
             int32 OldStacked = Item.Stacked;
 
             Item.Stacked += AmountToAdd;
-            Count -= AmountToAdd;   // 남은 수량
+            Count -= AmountToAdd;
 
-            UE_LOG(LogContainer, Log, TEXT("아이템 겹치기: [%s (%dx%d)] GridIndex [%d]에 %d개 추가 (%d -> %d) / 현재 [%d / %d]"),
-                *InItemData->DisplayName.ToString(),
-                InItemData->ContainerSizeX, InItemData->ContainerSizeY,
-                Item.GridIndex, AmountToAdd, OldStacked, Item.Stacked, Item.Stacked, MaxStack);
+            UE_LOG(LogContainer, Log, TEXT("아이템 겹치기: [%s] GridIndex [%d]에 %d개 추가 (%d -> %d)"),
+                *InInstance.SourceItemData->DisplayName.ToString(),
+                Item.GridIndex, AmountToAdd, OldStacked, Item.Stacked);
 
             if (Count <= 0) // 남은 수량이 없으면 = 완벽하게 다 Stack되었으면
             {
@@ -53,18 +59,13 @@ int32 UCPItemContainerComponent::TryGetItem(UCPForageableItemData* InItemData, i
         int32 AmountToAdd = FMath::Min(Count, MaxStack);
         int32 FoundIndex = -1;
         bool bHasSpace = false;
-        bool bIsRotated = false; // 회전 여부
+        bool bIsRotated = false;
 
         // 컨테이너 타입에 따라 빈 공간을 찾는 방식을 다르게 적용
         if (ContainerType == EContainerType::Grid2D)
         {
-            FoundIndex = FindGridSpace(InItemData, bIsRotated);
-
-            // -1이 아니면 자리를 찾은 것
-            if (FoundIndex != -1)
-            {
-                bHasSpace = true;
-            }
+            FoundIndex = FindGridSpace(InInstance.SourceItemData, bIsRotated);
+            bHasSpace = (FoundIndex != -1);     // FoundIndex가 -1이 아니면 자리를 찾은 것
         }
         else if (ContainerType == EContainerType::Slot1D)
         {
@@ -75,7 +76,7 @@ int32 UCPItemContainerComponent::TryGetItem(UCPForageableItemData* InItemData, i
         if (bHasSpace)
         {
             FContainerItem NewItem;
-            NewItem.ItemDataAsset = InItemData;
+            NewItem.Instance = InInstance;
             NewItem.Stacked = AmountToAdd;
             NewItem.GridIndex = FoundIndex;
             NewItem.bIsRotated = bIsRotated;
@@ -83,19 +84,16 @@ int32 UCPItemContainerComponent::TryGetItem(UCPForageableItemData* InItemData, i
             ContainerItems.Add(NewItem);
             Count -= AmountToAdd;
 
-            UE_LOG(LogContainer, Log, TEXT("새 아이템 획득 성공! [%s (%dx%d)] GridIndex [%d]에 %d개 위치함 (회전: %d) 현재 총 %d개"),
-                *InItemData->DisplayName.ToString(),
-                InItemData->ContainerSizeX, InItemData->ContainerSizeY,
-                FoundIndex, AmountToAdd, bIsRotated, ContainerItems.Num());
+            UE_LOG(LogContainer, Log, TEXT("새 아이템 획득 성공! [%s] GridIndex [%d]에 %d개 위치함 (회전: %d)"),
+                *InInstance.SourceItemData->DisplayName.ToString(), FoundIndex, AmountToAdd, bIsRotated);
         }
         else
         {
             UE_LOG(LogContainer, Warning, TEXT("컨테이너 공간 부족으로 인해 [%s] 남은 %d개를 반환"),
-                *InItemData->DisplayName.ToString(), Count);
+                *InInstance.SourceItemData->DisplayName.ToString(), Count);
             break;
         }
     }
-
     // UI 업데이트 Broadcast
     OnContainerUpdated.Broadcast();
     return Count;
@@ -120,15 +118,15 @@ bool UCPItemContainerComponent::IsGridSpaceEnough(int32 TargetIndex, int32 ItemW
     // 컨테이너 내 기존 아이템과 충돌 검사
     for (const FContainerItem& ExistingItem : ContainerItems)
     {
-        if (!ExistingItem.ItemDataAsset || ExistingItem.GridIndex < 0) continue;
+        if (!ExistingItem.Instance.SourceItemData || ExistingItem.GridIndex < 0) continue;
 
         // 기존 아이템의 위치 (X, Y)
         int32 ExCol = ExistingItem.GridIndex % Columns;
         int32 ExRow = ExistingItem.GridIndex / Columns;
 
         // 기존 아이템의 가로/세로 (회전되어 있다면 Width와 Height를 바꿔서 계산)
-        int32 ExW = ExistingItem.bIsRotated ? ExistingItem.ItemDataAsset->ContainerSizeY : ExistingItem.ItemDataAsset->ContainerSizeX;
-        int32 ExH = ExistingItem.bIsRotated ? ExistingItem.ItemDataAsset->ContainerSizeX : ExistingItem.ItemDataAsset->ContainerSizeY;
+        int32 ExW = ExistingItem.bIsRotated ? ExistingItem.Instance.SourceItemData->ContainerSizeY : ExistingItem.Instance.SourceItemData->ContainerSizeX;
+        int32 ExH = ExistingItem.bIsRotated ? ExistingItem.Instance.SourceItemData->ContainerSizeX : ExistingItem.Instance.SourceItemData->ContainerSizeY;
 
         // Overlap 판별
         bool bOverlapX = (TargetCol < ExCol + ExW) && (TargetCol + ItemWidth > ExCol);
@@ -160,12 +158,12 @@ int32 UCPItemContainerComponent::FindItemArrayIndexCoveringGridIndex(int32 Query
     for (int32 i = 0; i < ContainerItems.Num(); ++i)
     {
         const FContainerItem& Item = ContainerItems[i];
-        if (!Item.ItemDataAsset || Item.GridIndex < 0) continue;
+        if (!Item.Instance.SourceItemData || Item.GridIndex < 0) continue;
 
         int32 ItemCol = Item.GridIndex % Columns;
         int32 ItemRow = Item.GridIndex / Columns;
-        int32 ItemW = Item.bIsRotated ? Item.ItemDataAsset->ContainerSizeY : Item.ItemDataAsset->ContainerSizeX;
-        int32 ItemH = Item.bIsRotated ? Item.ItemDataAsset->ContainerSizeX : Item.ItemDataAsset->ContainerSizeY;
+        int32 ItemW = Item.bIsRotated ? Item.Instance.SourceItemData->ContainerSizeY : Item.Instance.SourceItemData->ContainerSizeX;
+        int32 ItemH = Item.bIsRotated ? Item.Instance.SourceItemData->ContainerSizeX : Item.Instance.SourceItemData->ContainerSizeY;
 
         // 클릭한 칸이 이 아이템의 바운딩 박스 안에 들어오는지
         if (QueryCol >= ItemCol && QueryCol < ItemCol + ItemW &&
@@ -273,6 +271,52 @@ bool UCPItemContainerComponent::RemoveItemFromContainer(int32 TargetGridIndex, i
     return false;
 }
 
+// 신규 추가
+TMap<FName, int32> UCPItemContainerComponent::GetItemCountsByID() const
+{
+    TMap<FName, int32> Result;
+    for (const FContainerItem& Item : ContainerItems)
+    {
+        if (Item.Instance.SourceItemData)
+        {
+            FName ItemID = Item.Instance.SourceItemData->GetFName(); 
+            Result.FindOrAdd(ItemID) += Item.Stacked;
+        }
+    }
+    return Result;
+}
+
+// 신규 추가
+bool UCPItemContainerComponent::RemoveItemByID(FName ItemID, int32 AmountToRemove)
+{
+    int32 Remaining = AmountToRemove;
+
+    // 뒤에서부터 순회 (RemoveAt으로 배열이 줄어들 수 있으므로 안전하게)
+    for (int32 i = ContainerItems.Num() - 1; i >= 0 && Remaining > 0; --i)
+    {
+        if (ContainerItems[i].Instance.SourceItemData && 
+            ContainerItems[i].Instance.SourceItemData->GetFName() == ItemID)
+        {
+            int32 ToRemove = FMath::Min(Remaining, ContainerItems[i].Stacked);
+            ContainerItems[i].Stacked -= ToRemove;
+            Remaining -= ToRemove;
+
+            if (ContainerItems[i].Stacked <= 0)
+            {
+                ContainerItems.RemoveAt(i);
+            }
+        }
+    }
+
+    if (Remaining < AmountToRemove)
+    {
+        // 하나라도 뺐으면 UI 갱신 필요
+        OnContainerUpdated.Broadcast();
+    }
+
+    return Remaining <= 0;   // 요구한 수량을 전부 뺐으면 성공
+}
+
 bool UCPItemContainerComponent::PopItemFromContainer(int32 TargetGridIndex, FContainerItem& OutPoppedItem)
 {
     int32 ArrayIdx = ContainerItems.IndexOfByPredicate(
@@ -310,17 +354,17 @@ bool UCPItemContainerComponent::AutoInsertItemToTargetContainer(int32 SourceGrid
     }
 
     // 아이템이 없거나 데이터가 비어있으면 실패
-    if (!ItemToMove || !ItemToMove->ItemDataAsset)
+    if (!ItemToMove || !ItemToMove->Instance.SourceItemData)
     {
         return false;
     }
 
     // 안전하게 데이터 복사해두기 (배열이 수정될 수 있으므로)
-    UCPForageableItemData* DataAsset = ItemToMove->ItemDataAsset;
+    UCPForageableItemData* DataAsset = ItemToMove->Instance.SourceItemData;
     int32 OriginalCount = ItemToMove->Stacked;
 
     // 대상(Target) 컨테이너에 아이템 밀어 넣기
-    int32 LeftoverCount = TargetContainer->TryGetItem(DataAsset, OriginalCount);
+    int32 LeftoverCount = TargetContainer->TryGetItemFromData(DataAsset, OriginalCount);
     int32 TransferredCount = OriginalCount - LeftoverCount;
 
     // 1개 이상이 성공적으로 넘어갔다면 갯수 차감
@@ -347,8 +391,8 @@ bool UCPItemContainerComponent::TryPlaceHoldingItem(UCPItemContainerComponent* H
     }
 
     FContainerItem HeldItem = HandContainer->ContainerItems[0];
-    int32 ItemW = HeldItem.bIsRotated ? HeldItem.ItemDataAsset->ContainerSizeY : HeldItem.ItemDataAsset->ContainerSizeX;
-    int32 ItemH = HeldItem.bIsRotated ? HeldItem.ItemDataAsset->ContainerSizeX : HeldItem.ItemDataAsset->ContainerSizeY;
+    int32 ItemW = HeldItem.bIsRotated ? HeldItem.Instance.SourceItemData->ContainerSizeY : HeldItem.Instance.SourceItemData->ContainerSizeX;
+    int32 ItemH = HeldItem.bIsRotated ? HeldItem.Instance.SourceItemData->ContainerSizeX : HeldItem.Instance.SourceItemData->ContainerSizeY;
 
     // 바운딩 박스 기준으로 "이 칸을 덮고 있는 아이템"을 찾음
     int32 TargetArrayIdx = FindItemArrayIndexCoveringGridIndex(TargetIndex);
@@ -379,7 +423,7 @@ bool UCPItemContainerComponent::TryPlaceHoldingItem(UCPItemContainerComponent* H
     FContainerItem ExistingItem = ContainerItems[TargetArrayIdx];
 
     // Case B : 같은 타입 -> 스택 합치기 (기존 로직 그대로, 위치 무관)
-    if (ExistingItem.ItemDataAsset == HeldItem.ItemDataAsset)
+    if (UCPItemContainerComponent::AreInstancesStackable(ExistingItem.Instance, HeldItem.Instance))
     {
         int32 SpaceLeft = MaxStack - ExistingItem.Stacked;
         int32 AmountToMove = FMath::Min(HeldItem.Stacked, SpaceLeft);
@@ -432,4 +476,28 @@ bool UCPItemContainerComponent::TryPlaceHoldingItem(UCPItemContainerComponent* H
         HandContainer->OnContainerUpdated.Broadcast();
         return false; // 손은 안 비었음 - 대신 기존 아이템을 들게 됨
     }
+}
+
+bool UCPItemContainerComponent::AreInstancesStackable(const FCPItemInstance& A, const FCPItemInstance& B)
+{
+    if (A.SourceItemData != B.SourceItemData)
+    {
+        return false;
+    }
+
+    if (A.CurrentEffects.Num() != B.CurrentEffects.Num())
+    {
+        return false;
+    }
+
+    for (const FGameplayTag& Tag : A.CurrentEffects)
+    {
+        if (!B.CurrentEffects.Contains(Tag))
+        {
+            return false;
+        }
+    }
+
+    // 모든 비교 후 동일하다면 Stack 가능하다고 true 리턴
+    return true;
 }

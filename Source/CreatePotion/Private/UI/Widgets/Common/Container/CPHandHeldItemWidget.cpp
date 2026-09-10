@@ -1,4 +1,4 @@
-// CPHandHeldItemWidget.cpp
+ï»¿// CPHandHeldItemWidget.cpp
 
 #include "UI/Widgets/Common/Container/CPHandHeldItemWidget.h"
 #include "Components/Image.h"
@@ -23,7 +23,7 @@ void UCPHandHeldItemWidget::TryBindHandContainer(UCPItemContainerComponent* InHa
 
 	SetAlignmentInViewport(FVector2D(0.f, 0.f));
 
-	OnHandContainerUpdated(); // ÃÖÃÊ ¾÷µ¥ÀÌÆ® (= Collapsed·Î)
+	OnHandContainerUpdated(); // ìµœì´ˆ ì—…ë°ì´íŠ¸ (= Collapsedë¡œ)
 }
 
 void UCPHandHeldItemWidget::OnHandContainerUpdated()
@@ -35,18 +35,18 @@ void UCPHandHeldItemWidget::OnHandContainerUpdated()
 	}
 
 	const FContainerItem& Held = HandContainer->ContainerItems[0];
-	if (!Held.ItemDataAsset)
+	if (!Held.Instance.SourceItemData)
 	{
 		SetVisibility(ESlateVisibility::Collapsed);
 		return;
 	}
 
-	SetVisibility(ESlateVisibility::HitTestInvisible); // Ä¿¼­¸¦ µû¶ó´Ù´ÏµÇ ¸¶¿ì½º Å¬¸¯Àº Åë°ú
+	SetVisibility(ESlateVisibility::HitTestInvisible); // ì»¤ì„œë¥¼ ë”°ë¼ë‹¤ë‹ˆë˜ ë§ˆìš°ìŠ¤ í´ë¦­ì€ í†µê³¼
 	UpdatePositionToMouse();
 
-	// È¸Àü ¿©ºÎ±îÁö ¹Ý¿µÇÑ ½ÇÁ¦ °¡·Î/¼¼·Î Ä­ ¼ö
-	int32 ItemW = Held.bIsRotated ? Held.ItemDataAsset->ContainerSizeY : Held.ItemDataAsset->ContainerSizeX;
-	int32 ItemH = Held.bIsRotated ? Held.ItemDataAsset->ContainerSizeX : Held.ItemDataAsset->ContainerSizeY;
+	// íšŒì „ ì—¬ë¶€ê¹Œì§€ ë°˜ì˜í•œ ì‹¤ì œ ê°€ë¡œ/ì„¸ë¡œ ì¹¸ ìˆ˜
+	int32 ItemW = Held.bIsRotated ? Held.Instance.SourceItemData->ContainerSizeY : Held.Instance.SourceItemData->ContainerSizeX;
+	int32 ItemH = Held.bIsRotated ? Held.Instance.SourceItemData->ContainerSizeX : Held.Instance.SourceItemData->ContainerSizeY;
 
 	if (RootSizeBox)
 	{
@@ -58,7 +58,7 @@ void UCPHandHeldItemWidget::OnHandContainerUpdated()
 		RootSizeBox->SetHeightOverride(SizeY);
 	}
 
-	UTexture2D* LoadedTexture = Held.ItemDataAsset->Icon.LoadSynchronous();
+	UTexture2D* LoadedTexture = Held.Instance.SourceItemData->Icon.LoadSynchronous();
 	if (LoadedTexture && ItemIcon)
 	{
 		ItemIcon->SetBrushFromTexture(LoadedTexture);

@@ -1,44 +1,83 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "UI/Widgets/Common/Interaction/CPInteractionPromptWidget.h"
 #include "Character/CPInteractionComponent.h"
 #include "Components/TextBlock.h"
+#include "Components/Image.h"
 
-void UCPInteractionPromptWidget::BindEvents()
+void UCPInteractionPromptWidget::NativeConstruct()
 {
-	APawn* OwningPawn = GetOwningPlayerPawn();
-	if (!OwningPawn) return;
+	Super::NativeConstruct();
 	
-	BoundInteractionComponent = OwningPawn->FindComponentByClass<UCPInteractionComponent>();
-	if (BoundInteractionComponent)
-	{
-		BoundInteractionComponent->OnPromptChanged.AddDynamic(this, &UCPInteractionPromptWidget::OnPromptChanged);
-	}
-	
-	
-	HideWidget();
+	// WBP의 원래 색상 저장
+	CacheDefaultColors();
 }
 
-void UCPInteractionPromptWidget::UnbindEvents()
+void UCPInteractionPromptWidget::CacheDefaultColors()
 {
-	// 구독한 델리게이트 해제 
-	if (BoundInteractionComponent)
+	if (bDefaultColorsCached)
 	{
-		BoundInteractionComponent->OnPromptChanged.RemoveDynamic(this, &UCPInteractionPromptWidget::OnPromptChanged);
-		BoundInteractionComponent = nullptr;
+		return;
 	}
+
+	if (!Image_InputKey || !TextBlock_ActorName || !TextBlock_InteractionPrompt)
+	{
+		return;
+	}
+	
+	DefaultInputKeyColor = Image_InputKey->GetColorAndOpacity();
+	DefaultActorNameTextColor = TextBlock_ActorName->GetColorAndOpacity();
+	DefaultInteractionPromptTextColor = TextBlock_InteractionPrompt->GetColorAndOpacity();
+
+	bDefaultColorsCached = true;
 }
 
-void UCPInteractionPromptWidget::OnPromptChanged(FText Prompt, FName TargetName)
+void UCPInteractionPromptWidget::ApplyDisplayStateColors(ECPInteractionDisplayState DisplayState)
 {
-	bool bHasTarget = !Prompt.IsEmpty();
-	
-	if (bHasTarget && TextBlock_InteractionPrompt)
+	if (!bDefaultColorsCached)
+	{
+		CacheDefaultColors();
+	}
+
+	if (!bDefaultColorsCached)
+	{
+		return;
+	}
+
+	const bool bUnavailable = DisplayState == ECPInteractionDisplayState::Disabled;
+
+	if (bUnavailable)
+	{
+		const FLinearColor UnavailableTextColor = FLinearColor::FromSRGBColor(FColor::FromHex(TEXT("8C8C8CFF")));
+		const FLinearColor UnavailableInputKeyColor = FLinearColor(1.f, 1.f, 1.f, 0.3f);
+
+		Image_InputKey->SetColorAndOpacity(UnavailableInputKeyColor);
+		TextBlock_ActorName->SetColorAndOpacity(FSlateColor(UnavailableTextColor));
+		TextBlock_InteractionPrompt->SetColorAndOpacity(FSlateColor(UnavailableTextColor));
+
+		return;
+	}
+
+	// Enabled 상태가 되면 WBP에서 설정했던 원래 색상으로 복구
+	//Border_InputKey->SetBrushColor(DefaultInputKeyBackgroundColor);
+	Image_InputKey->SetColorAndOpacity(DefaultInputKeyColor);
+	TextBlock_ActorName->SetColorAndOpacity(DefaultActorNameTextColor);
+	TextBlock_InteractionPrompt->SetColorAndOpacity(DefaultInteractionPromptTextColor);
+}
+
+void UCPInteractionPromptWidget::UpdateUI(const FText& Prompt, const FName& TargetName, ECPInteractionDisplayState DisplayState)
+{
+	if (IsValid(TextBlock_ActorName))
 	{
 		TextBlock_ActorName->SetText(FText::FromName(TargetName));
+	}
+	
+	if (IsValid(TextBlock_InteractionPrompt))
+	{
 		TextBlock_InteractionPrompt->SetText(Prompt);
 	}
 	
-	bHasTarget ? ShowWidget() : HideWidget();
+	ApplyDisplayStateColors(DisplayState);
 }
+
+

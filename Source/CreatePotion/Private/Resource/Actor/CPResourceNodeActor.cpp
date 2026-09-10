@@ -1,4 +1,8 @@
 #include "Resource/Actor/CPResourceNodeActor.h"
+
+#include "Character/CPInteractionComponent.h"
+#include "Components/CPInteractableComponent.h"
+#include "Components/WidgetComponent.h"
 #include "Data/CPResourceDefinition.h"
 #include "GameInstance/Subsystem/CPCodexSubsystem.h"
 #include "Resource/System/CPResourceStateSubsystem.h"
@@ -14,6 +18,44 @@ ACPResourceNodeActor::ACPResourceNodeActor()
 	
 	HarvestComponent = CreateDefaultSubobject<UCPHarvestComponent>(TEXT("HarvestComponent"));
 }
+
+void ACPResourceNodeActor::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	if (IsValid(InteractableComponent))
+	{
+		InteractableComponent->OnActorInteractionStarted.AddUniqueDynamic(this, &ACPResourceNodeActor::HandleInteractionStarted);
+		InteractableComponent->OnActorInteractionCompleted.AddUniqueDynamic(this, &ACPResourceNodeActor::HandleInteract);
+	}
+	
+	UGameInstance* GI = GetGameInstance();
+	if (!GI) return;
+	UCPCodexSubsystem* CodexSubsystem = GI->GetSubsystem<UCPCodexSubsystem>();
+	if (!CodexSubsystem) return;
+	
+	CodexSubsystem->OnForageableItemDiscovered.AddUniqueDynamic(this, &ACPResourceNodeActor::HandleResourceDiscovered);
+}
+
+void ACPResourceNodeActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (IsValid(InteractableComponent))
+	{
+		InteractableComponent->OnActorInteractionStarted.RemoveDynamic(this, &ACPResourceNodeActor::HandleInteractionStarted);
+		InteractableComponent->OnActorInteractionCompleted.RemoveDynamic(this, &ACPResourceNodeActor::HandleInteract);
+	}
+	
+	UGameInstance* GI = GetGameInstance();
+	if (!GI) return;
+	UCPCodexSubsystem* CodexSubsystem = GI->GetSubsystem<UCPCodexSubsystem>();
+	if (!CodexSubsystem) return;
+	
+	CodexSubsystem->OnForageableItemDiscovered.RemoveDynamic(this, &ACPResourceNodeActor::HandleResourceDiscovered);
+	
+	Super::EndPlay(EndPlayReason);
+	
+}
+
 
 void ACPResourceNodeActor::InitializeResource(const FCPResourceNodeKey& InNodeKey, UCPResourceDefinition* InDefinition)
 {
@@ -31,10 +73,43 @@ void ACPResourceNodeActor::InitializeResource(const FCPResourceNodeKey& InNodeKe
 			DroppedItemClass
 			);
 	}
+	
+	// 도감 상태에 따라 컴포넌트 설정값 동적 세팅
+	if (InteractableComponent && ResourceDefinition)
+	{
+		const bool bValid = ResourceDefinition->HarvestData.HarvestedItem != nullptr;
+		InteractableComponent->SetInteractability(bValid);
+		
+		
+		UGameInstance* GI = GetGameInstance();
+		UCPCodexSubsystem* CodexSubsystem = GI ? GI->GetSubsystem<UCPCodexSubsystem>() : nullptr;
+		const bool bIsDiscovered = CodexSubsystem ? CodexSubsystem->GetForageableEntry(ResourceDefinition->HarvestData.HarvestedItem) : false;
+		
+		FText PromptText = bIsDiscovered ? FText::FromString(TEXT("채집하기")) : FText::FromString(TEXT("조사하기"));;
+		FName ItemName = FName(*ResourceDefinition->HarvestData.HarvestedItem->DisplayName.ToString());
+		
+		UE_LOG(LogTemp, Warning, TEXT("[InitializeResource] Prompt=%s, ItemName=%s"), *PromptText.ToString(), *ItemName.ToString());
+		
+		InteractableComponent->SetInteractionPrompt(PromptText);
+		InteractableComponent->SetTargetName(ItemName);
+		
+		UE_LOG(LogTemp, Warning, TEXT("[InitializeResource] Prompt=%s, ItemName=%s"), *PromptText.ToString(), *ItemName.ToString());
+		
+		float Duration = bIsDiscovered ? ResourceDefinition->HarvestData.HarvestDuration : InspectDuration;
+		InteractableComponent->SetInteractionDuration(Duration);
+		
+		
+	}
+	
+	
+	
 }
 
-void ACPResourceNodeActor::OnInteract_Implementation(AActor* Interactor)
+void ACPResourceNodeActor::HandleInteract(AActor* Interactor)
 {
+	// UE_LOG(LogTemp, Warning, TEXT("HandleInteract 함수 호출됨"));
+	if (!ResourceDefinition) return;
+	
 	UGameInstance* GI = GetGameInstance();
 	if (GI)
 	{
@@ -44,80 +119,54 @@ void ACPResourceNodeActor::OnInteract_Implementation(AActor* Interactor)
 			// 처음 발견하는 거라면 조사하기
 			if (!CodexSubsystem->GetForageableEntry(ResourceDefinition->HarvestData.HarvestedItem))
 			{
+				// UE_LOG(LogTemp, Warning, TEXT("조사중..."));
 				Inspect(Interactor);
 			}
 
 			// 아니라면 수확
 			else
 			{
+				// UE_LOG(LogTemp, Warning, TEXT("채집중..."));
 				Harvest(Interactor);
 			}
 		}
 	}
 }
 
-FText ACPResourceNodeActor::GetInteractionPrompt_Implementation()
+void ACPResourceNodeActor::HandleInteractionStarted(AActor* Interactor)
 {
-	UGameInstance* GI = GetGameInstance();
-	if (GI)
+	UE_LOG(LogTemp, Warning, TEXT("[ResourceActor] 채집 상호작용 호출됨"));
+	if (!IsValid(Interactor) || !ResourceDefinition)
 	{
-		UCPCodexSubsystem* CodexSubsystem = GI->GetSubsystem<UCPCodexSubsystem>();
-		if (CodexSubsystem)
-		{
-			//처음 발견하는 거라면 조사하기
-			if (!CodexSubsystem->GetForageableEntry(ResourceDefinition->HarvestData.HarvestedItem))
-			{
-				return FText::FromString(TEXT("조사하기"));
-			}
+		return;
+	}
 
-			//아니라면 채집
-			else
-			{
-				return FText::FromString(TEXT("채집하기"));
-			}
-		}
+	UGameInstance* GameInstance = GetGameInstance();
+	UCPCodexSubsystem* CodexSubsystem = GameInstance ? GameInstance->GetSubsystem<UCPCodexSubsystem>() : nullptr;
+
+	if (!CodexSubsystem)
+	{
+		return;
 	}
 	
-	return FText::FromString(TEXT("None"));
-}
+	USkeletalMeshComponent* CharacterMesh = Interactor->FindComponentByClass<USkeletalMeshComponent>();
+	UAnimInstance* AnimInstance = IsValid(CharacterMesh) ? CharacterMesh->GetAnimInstance() : nullptr;
 
-FName ACPResourceNodeActor::GetInteractionName_Implementation()
-{
-	return FName(*ResourceDefinition->HarvestData.HarvestedItem->DisplayName.ToString());
-}
-
-bool ACPResourceNodeActor::CanInteract_Implementation(AActor* Interactor)
-{
-	return Interactor != nullptr
-		&& ResourceDefinition != nullptr
-		&& ResourceDefinition->HarvestData.HarvestedItem != nullptr;
-}
-
-float ACPResourceNodeActor::GetInteractionDuration_Implementation(AActor* Interactor)
-{
-	if (!ResourceDefinition) return 0.f;
-	
-	UGameInstance* GI = GetGameInstance();
-	if (GI)
+	// 조사일 경우 조사 몽타주 재생
+	if (!CodexSubsystem->GetForageableEntry(ResourceDefinition->HarvestData.HarvestedItem))
 	{
-		UCPCodexSubsystem* CodexSubsystem = GI->GetSubsystem<UCPCodexSubsystem>();
-		if (CodexSubsystem)
+		if (IsValid(AnimInstance) && IsValid(InspectMontage))
 		{
-			// 처음 발견하는 거라면 조사시간
-			if (!CodexSubsystem->GetForageableEntry(ResourceDefinition->HarvestData.HarvestedItem))
-			{
-				return InspectDuration;
-			}
-
-			// 아니라면 채집물 채집시간
-			else
-			{
-				return ResourceDefinition->HarvestData.HarvestDuration;
-			}
+			AnimInstance->Montage_Play(InspectMontage);
 		}
+		return;
 	}
 	
-	return 0.f;
+	// 조사가 아닐 경우 채집 몽타주 재생
+	if (IsValid(AnimInstance) && IsValid(HarvestMontage))
+	{
+		AnimInstance->Montage_Play(HarvestMontage);
+	}
 }
 
 void ACPResourceNodeActor::OnAcquireFromPool_Implementation()
@@ -130,6 +179,7 @@ void ACPResourceNodeActor::OnReleaseToPool_Implementation()
 {
 	SetActorHiddenInGame(true);
 	SetActorEnableCollision(false);
+	InteractableComponent->SetInteractability(false);
 	
 	NodeKey = FCPResourceNodeKey{};
 	ResourceDefinition = nullptr;
@@ -186,4 +236,16 @@ void ACPResourceNodeActor::Inspect(AActor* Interactor)
 	if (!CodexSubsystem) return;
 	
 	CodexSubsystem->RecordForageableEntry(ResourceDefinition->HarvestData.HarvestedItem);
+	
 }
+
+void ACPResourceNodeActor::HandleResourceDiscovered(UCPForageableItemData* DiscoveredItem)
+{
+	// 조사 완료된 재료 프롬프트 변경
+	if (!ResourceDefinition || !InteractableComponent) return;
+	if (ResourceDefinition->HarvestData.HarvestedItem != DiscoveredItem) return;
+	
+	InteractableComponent->SetInteractionPrompt(FText::FromString(TEXT("채집하기")));
+}
+
+

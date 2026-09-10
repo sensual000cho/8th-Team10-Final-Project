@@ -6,8 +6,11 @@
 #include "UI/Widgets/Base/CPBaseFixedWidget.h"
 #include "CPInteractionPromptWidget.generated.h"
 
+enum class ECPInteractionDisplayState : uint8;
 class UCPInteractionComponent;
 class UTextBlock;
+class UBorder;
+class UImage;
 /**
  * 
  */
@@ -16,20 +19,34 @@ class CREATEPOTION_API UCPInteractionPromptWidget : public UCPBaseFixedWidget
 {
 	GENERATED_BODY()
 	
-protected:
-	virtual void BindEvents() override;
-	virtual void UnbindEvents() override;
-	
-	UFUNCTION()
-	void OnPromptChanged(FText Prompt, FName TargetName);
+public:
+	// UI 텍스트 설정
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void UpdateUI(const FText& Prompt, const FName& TargetName, ECPInteractionDisplayState DisplayState);
 
 protected:
+	void NativeConstruct() override;
+
+protected:	
 	UPROPERTY(meta = (BindWidget))
-	UTextBlock* TextBlock_InteractionPrompt;
+	TObjectPtr<UImage> Image_InputKey;
 	
 	UPROPERTY(meta = (BindWidget))
-	UTextBlock* TextBlock_ActorName;
+	TObjectPtr<UTextBlock> TextBlock_ActorName;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> TextBlock_InteractionPrompt;
 	
 	UPROPERTY()
 	UCPInteractionComponent* BoundInteractionComponent;
+	
+private:
+	FLinearColor DefaultInputKeyColor;
+	FSlateColor DefaultActorNameTextColor;
+	FSlateColor DefaultInteractionPromptTextColor;
+
+	bool bDefaultColorsCached = false;
+	
+	void CacheDefaultColors();
+	void ApplyDisplayStateColors(ECPInteractionDisplayState DisplayState);
 };

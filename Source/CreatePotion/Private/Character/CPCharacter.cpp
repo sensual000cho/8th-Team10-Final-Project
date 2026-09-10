@@ -19,8 +19,6 @@
 
 #include "UI/Widgets/Common/Container/CPContainerMainWidget.h"		// Container
 #include "Components/CPInventoryComponent.h"						// Container
-#include "GameInstance/Subsystem/CPInventorySubsystem.h"			// Container Subsystem
-
 
 ACPCharacter::ACPCharacter()
 {
@@ -100,18 +98,6 @@ void ACPCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 void ACPCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if (InventoryComponent)
-	{
-		if (UGameInstance* GI = GetGameInstance())
-		{
-			if (UCPInventorySubsystem* InvSubsystem = GI->GetSubsystem<UCPInventorySubsystem>())
-			{
-				// 백업된 데이터가 있다면 InventoryComponent의 배열을 덮어씌우기
-				InvSubsystem->LoadInventoryData(InventoryComponent->ContainerItems);
-			}
-		}
-	}
 
 	// 위젯 생성 및 초기 설정
 	if (InventoryUIClass)
@@ -216,18 +202,6 @@ void ACPCharacter::OnQuestTogglePressed()
 
 void ACPCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (InventoryComponent)
-	{
-		if (UGameInstance* GI = GetGameInstance())
-		{
-			if (UCPInventorySubsystem* InvSubsystem = GI->GetSubsystem<UCPInventorySubsystem>()) // 게임 인스턴스를 통해 서브시스템에 접근
-			{
-				InvSubsystem->SaveInventoryData(InventoryComponent->ContainerItems);
-				// 현재 인벤토리 컴포넌트의 배열 데이터를 통째로 서브시스템에 저장
-			}
-		}
-	}
-
 	Super::EndPlay(EndPlayReason);
 }
 

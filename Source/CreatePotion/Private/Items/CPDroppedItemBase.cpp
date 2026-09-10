@@ -1,4 +1,6 @@
 #include "Items/CPDroppedItemBase.h"
+
+#include "Components/CPInteractableComponent.h"
 #include "Components/CPInventoryComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/TimelineComponent.h"
@@ -12,7 +14,7 @@ ACPDroppedItemBase::ACPDroppedItemBase()
 	
 	SphereCollision = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionRoot"));
 	SetRootComponent(SphereCollision);
-	SphereCollision->SetSphereRadius(30.f);
+	SphereCollision->SetSphereRadius(20.f);
 	
 	// 일단 채널 지정전까지는 BlockAll
 	SphereCollision->SetCollisionProfileName(TEXT("BlockAll"));
@@ -43,12 +45,14 @@ ACPDroppedItemBase::ACPDroppedItemBase()
 	RotatingMovement->bAutoActivate = false;
 }
 
-void ACPDroppedItemBase::OnInteract_Implementation(AActor* Interactor)
+void ACPDroppedItemBase::HandleInteract(AActor* Interactor)
 {
+	Super::HandleInteract(Interactor);
+	
 	UCPInventoryComponent* Inventory = Interactor->FindComponentByClass<UCPInventoryComponent>();
 	if (!Inventory) return;
 	
-	Inventory->TryGetItem(ItemData, Amount);
+	Inventory->TryGetItemFromData(ItemData, Amount);
 	
 	UCPObjectPoolSubsystem* Pool = GetWorld()->GetSubsystem<UCPObjectPoolSubsystem>();
 	if (Pool)
@@ -62,21 +66,6 @@ void ACPDroppedItemBase::OnInteract_Implementation(AActor* Interactor)
 	}
 }
 
-FText ACPDroppedItemBase::GetInteractionPrompt_Implementation()
-{
-	return FText::FromString(TEXT("줍기"));
-}
-
-FName ACPDroppedItemBase::GetInteractionName_Implementation()
-{
-	return FName(*ItemData->DisplayName.ToString());
-}
-
-bool ACPDroppedItemBase::CanInteract_Implementation(AActor* Interactor)
-{
-	return Interactor != nullptr && ItemData != nullptr && Amount > 0;
-}
-
 void ACPDroppedItemBase::OnAcquireFromPool_Implementation()
 {
 	SetActorHiddenInGame(false);
@@ -84,6 +73,8 @@ void ACPDroppedItemBase::OnAcquireFromPool_Implementation()
 	
 	Mesh->SetHiddenInGame(false, true);
 	Mesh->SetVisibility(true, true);
+	
+	InteractableComponent->SetInteractability(true);
 }
 
 void ACPDroppedItemBase::OnReleaseToPool_Implementation()
@@ -94,6 +85,10 @@ void ACPDroppedItemBase::OnReleaseToPool_Implementation()
 	ItemData = nullptr;
 	Amount = 0;
 	
+	if (InteractableComponent)
+	{
+		InteractableComponent->SetInteractability(false);
+	}
 	DropMovement->StopMovementImmediately();
 	DropMovement->Deactivate();
 	
@@ -111,6 +106,14 @@ void ACPDroppedItemBase::Initialize(UCPForageableItemData* InItemData, int32 InA
 	ItemData = InItemData;
 	Amount = InAmount;
 	Mesh->SetStaticMesh(InMesh);
+	
+	if (InteractableComponent)
+	{
+		const bool bValid = ItemData != nullptr && Amount > 0;
+		InteractableComponent->SetInteractability(bValid);
+		InteractableComponent->SetTargetName(ItemData ? FName(*ItemData->DisplayName.ToString()) : NAME_None);
+		InteractableComponent->SetInteractionPrompt(FText::FromString(TEXT("줍기")));
+	}
 }
 
 void ACPDroppedItemBase::StartDropMotion(const FVector& DropDirection)

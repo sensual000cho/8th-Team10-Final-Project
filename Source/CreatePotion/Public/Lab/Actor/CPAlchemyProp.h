@@ -2,10 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "Lab/Actor/CPThrowablePropBase.h"
-#include "Lab/CPLabPotionRequestTypes.h"
 #include "CPAlchemyProp.generated.h"
 
-class UCPForageableItemData;
 class USceneComponent;
 class UStaticMeshComponent;
 
@@ -20,16 +18,7 @@ public:
 
 	virtual void Tick(float DeltaSeconds) override;
 	
-	virtual FText GetInteractionPrompt_Implementation() override;
 	virtual FName GetInteractionName_Implementation() override;
-
-	UFUNCTION(BlueprintCallable, Category = "Lab|Ingredient")
-	void InitializeFromItemData(UCPForageableItemData* ItemData);
-
-	void InitializeAlchemyProp(UCPForageableItemData* ItemData, const TArray<FGameplayTag>& EffectTags = TArray<FGameplayTag>());
-
-	UFUNCTION(BlueprintPure, Category = "Lab|Ingredient")
-	FCPLabIngredientInstance GetWorkingIngredient() const;
 
 protected:
 	virtual void BeginPlay() override;
@@ -57,8 +46,5 @@ protected:
 	float UprightRecoverySpeed = 0.9f;
 
 private:
-	UPROPERTY(VisibleInstanceOnly, Category = "Lab|Ingredient")
-	FCPLabIngredientInstance WorkingIngredient;
-
 	FVector IngredientBobbleBaseLocation = FVector::ZeroVector;
 };

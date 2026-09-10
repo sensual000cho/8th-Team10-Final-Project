@@ -1,60 +1,21 @@
 ﻿#include "NPC/GA/CPGA_Giant.h"
 #include "NPC/CPBaseNPC.h"
-#include "AbilitySystemComponent.h"
-#include "GameplayEffect.h"
+#include "NPC/CPNPCVisualComponent.h"
 
 UCPGA_Giant::UCPGA_Giant()
 {
-	DurationWorldMinutes = 1440;
-	GiantScaleMultiplier = 3.0f;
-	GiantStateTag = FGameplayTag::RequestGameplayTag(FName("State.Effect.Giant"));
-
-	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Immunity.Potion.Giant")));
+	EffectTag = FGameplayTag::RequestGameplayTag(FName("State.Effect.Giant"));
+	ImmunityTag = FGameplayTag::RequestGameplayTag(FName("Immunity.Potion.Giant"));
+	DurationWorldMinutes = 60;
+	Magnitude = 3.0f;
 }
 
-void UCPGA_Giant::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
+void UCPGA_Giant::ApplyVisual(ACPBaseNPC* NPC, bool bActive, float InMagnitude)
 {
-	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
+	if (!NPC || !NPC->GetMesh()) { return; }
 
-	//PrintPotionEventLog(TriggerEventData);
-
-	UAbilitySystemComponent* ASC = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr;
-
-	if (!ASC || !IsValid(GiantEffectClass) || !ActorInfo->IsNetAuthority())
+	if (UCPNPCVisualComponent* VisualComp = NPC->GetVisualComponent())
 	{
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
-		return;
+		VisualComp->SetScaleMultiplier(bActive ? InMagnitude : 1.0f);
 	}
-
-	if (ASC->HasMatchingGameplayTag(GiantStateTag))
-	{
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
-		return;
-	}
-
-	FGameplayEffectContextHandle EffectContext = ASC->MakeEffectContext();
-	EffectContext.AddInstigator(ActorInfo->AvatarActor.Get(), ActorInfo->AvatarActor.Get());
-
-	const FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(GiantEffectClass, GetAbilityLevel(), EffectContext);
-
-	if (!SpecHandle.IsValid())
-	{
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
-		return;
-	}
-
-	const FActiveGameplayEffectHandle ActiveHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
-
-	if (!ActiveHandle.WasSuccessfullyApplied())
-	{
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
-		return;
-	}
-
-	if (ACPBaseNPC* PotionNPC = GetOwningPotionNPC(ActorInfo))
-	{
-		PotionNPC->RegisterPersistentPotionEffect(GiantStateTag, DurationWorldMinutes, GiantScaleMultiplier);
-	}
-
-	EndAbility(Handle, ActorInfo, ActivationInfo, false, false);
 }

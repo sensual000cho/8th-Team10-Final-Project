@@ -3,38 +3,23 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameMode/CPLabGameMode.h"
-#include "NPC/CPBaseNPC.h"
+#include "NPC/CPQuestNPC.h"
 #include "CPLabNPC.generated.h"
 
-class UCPLabResultWidget;
+class UCPNPCDialogueWidget;
 
 UCLASS()
-class CREATEPOTION_API ACPLabNPC : public ACPBaseNPC
+class CREATEPOTION_API ACPLabNPC : public ACPQuestNPC
 {
 	GENERATED_BODY()
 public:
 	virtual void OnInteract_Implementation(AActor* Interactor) override;
 	virtual bool CanInteract_Implementation(AActor* Interactor) override;
+	virtual void ShowResultDialogue() override;
 
-	UFUNCTION()
-	void OpenResultWidget(AActor* Interactor);
-
-	UFUNCTION()
-	void ShowResultDialogue();
-	void HandleThrownPotionImpact(const TArray<FGameplayTag>& PotionEffectTags);
-
-public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
-	TSubclassOf<UCPLabResultWidget> ResultWidgetClass;
+protected:
+	virtual const TArray<FName>& GetPotionQuestIDs() const override;
 	
 private:
-	UPROPERTY(Transient)
-	FCPPotionDeliveryResult PendingThrownPotionDeliveryResult;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UCPLabResultWidget> ActiveResultWidget;
-
-	UPROPERTY()
-	class UCPNPCDialogueWidget* ActiveDialogueWidget;
+	void OnResultDialogueClosed();
 };

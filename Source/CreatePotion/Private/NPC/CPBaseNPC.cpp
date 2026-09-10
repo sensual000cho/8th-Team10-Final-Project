@@ -1,15 +1,13 @@
 #include "NPC/CPBaseNPC.h"
-#include "Data/CPNPCDataAsset.h"
-#include "Data/CPGADataAsset.h"
-#include "Components/CapsuleComponent.h"
-#include "Animation/AnimSequence.h"
-#include "Kismet/GameplayStatics.h"
-#include "Quest/QuestManager.h"
+#include "Data/NPC/CPNPCDataAsset.h"
+#include "Data/NPC/CPGADataAsset.h"
 #include "GameInstance/Subsystem/CPNPCSubsystem.h"
 #include "AbilitySystemComponent.h"
-#include "GameplayEffect.h"
-#include "GameplayEffectTypes.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Animation/AnimSequence.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "NPC/CPNPCVisualComponent.h"
 
 ACPBaseNPC::ACPBaseNPC()
 {
@@ -34,38 +32,7 @@ ACPBaseNPC::ACPBaseNPC()
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	AbilitySystemComponent->SetIsReplicated(true);
 
-	PersistentPotionEffectTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Effect.Giant")));
-}
-
-void ACPBaseNPC::OnInteract_Implementation(AActor* Interactor)
-{
-}
-
-FText ACPBaseNPC::GetInteractionPrompt_Implementation()
-{
-	if (!CanInteract_Implementation(nullptr))
-	{
-		return FText::GetEmpty();
-	}
-
-	return FText::FromString(TEXT("대화하기"));
-}
-
-bool ACPBaseNPC::CanInteract_Implementation(AActor* Interactor)
-{
-	UE_LOG(LogTemp, Log, TEXT("[%s] CanInteract called by %s"),
-		*GetName(),
-		Interactor ? *Interactor->GetName() : TEXT("Unknown"));
-	return true;
-}
-
-FName ACPBaseNPC::GetInteractionName_Implementation()
-{
-	if (NPCData && NPCData->NPCName != NAME_None)
-	{
-		return NPCData->NPCName;
-	}
-	return GetFName();
+	VisualComponent = CreateDefaultSubobject<UCPNPCVisualComponent>(TEXT("VisualComponent"));
 }
 
 UAbilitySystemComponent* ACPBaseNPC::GetAbilitySystemComponent() const
@@ -75,7 +42,11 @@ UAbilitySystemComponent* ACPBaseNPC::GetAbilitySystemComponent() const
 
 FName ACPBaseNPC::GetPotionNPCId() const
 {
-	return IsValid(NPCData) ? NPCData->GetFName() : NAME_None;
+	if (NPCData && NPCData->NPCName != NAME_None)
+	{
+		return NPCData->NPCName;
+	}
+	return NAME_None;
 }
 
 UCPNPCSubsystem* ACPBaseNPC::GetNPCSubsystem() const
@@ -88,58 +59,51 @@ void ACPBaseNPC::BeginPlay()
 {
 	Super::BeginPlay();
 
+	InitializeFromDataAsset();
+
 	if (IsValid(AbilitySystemComponent))
 	{
 		AbilitySystemComponent->InitAbilityActorInfo(this, this);
-		//AbilitySystemComponent->OnGameplayEffectAppliedDelegateToSelf.AddUObject(this, &ACPBaseNPC::HandleGameplayEffectApplied);
-		
 		GrantPotionReactionAbilities();
 	}
 
 	if (UCPNPCSubsystem* Subsystem = GetNPCSubsystem())
 	{
-		Subsystem->OnNPCEffectApplied.AddDynamic(this, &ACPBaseNPC::HandlePotionEffectAppliedBroadcast);
-		Subsystem->OnNPCEffectExpired.AddDynamic(this, &ACPBaseNPC::HandlePotionEffectExpiredBroadcast);
+		Subsystem->RegisterActiveNPC(GetPotionNPCId(), this);
 	}
-	InitializeFromDataAsset();
+
 	CatchUpPersistentPotionEffects();
 }
 
 void ACPBaseNPC::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (IsValid(AbilitySystemComponent))
-	{
-		AbilitySystemComponent->OnGameplayEffectAppliedDelegateToSelf.RemoveAll(this);
-	}
-
 	if (UCPNPCSubsystem* Subsystem = GetNPCSubsystem())
 	{
-		Subsystem->OnNPCEffectApplied.RemoveDynamic(this, &ACPBaseNPC::HandlePotionEffectAppliedBroadcast);
-		Subsystem->OnNPCEffectExpired.RemoveDynamic(this, &ACPBaseNPC::HandlePotionEffectExpiredBroadcast);
+		Subsystem->UnregisterActiveNPC(GetPotionNPCId(), this);
 	}
 
+	VisualDelegateMap.Empty();
 	Super::EndPlay(EndPlayReason);
 }
 
 void ACPBaseNPC::InitializeFromDataAsset()
 {
-	if (!NPCData) { return; }
-
-	USkeletalMesh* LoadedMesh = NPCData->NPCMesh.LoadSynchronous();
-	if (LoadedMesh)
+	if (!NPCData)
 	{
-		GetMesh()->SetSkeletalMesh(LoadedMesh);
-		GetMesh()->SetRelativeRotation(NPCData->MeshRotationOffset);
-		GetMesh()->SetRelativeScale3D(NPCData->MeshScale);
-		BaseMeshScale = NPCData->MeshScale;
-		FitCapsuleToMesh(LoadedMesh);
+		return;
 	}
 
+	USkeletalMesh* LoadedMesh = NPCData->NPCMesh.LoadSynchronous();
 	UAnimSequence* LoadedAnim = NPCData->IdleAnimation.LoadSynchronous();
-	if (LoadedAnim)
+
+	if (GetMesh())
 	{
-		GetMesh()->SetAnimationMode(EAnimationMode::AnimationSingleNode);
-		GetMesh()->PlayAnimation(LoadedAnim, true); // 반복 재생
+		GetMesh()->SetRelativeRotation(NPCData->MeshRotationOffset);
+	}
+
+	if (VisualComponent)
+	{
+		VisualComponent->InitializeVisual(GetMesh(), GetCapsuleComponent(), LoadedMesh, LoadedAnim, NPCData->MeshScale, NPCData->CapsuleRadiusRatio);
 	}
 
 	if (NPCData->NPCName != NAME_None)
@@ -148,35 +112,21 @@ void ACPBaseNPC::InitializeFromDataAsset()
 	}
 }
 
-void ACPBaseNPC::FitCapsuleToMesh(USkeletalMesh* InMesh)
+void ACPBaseNPC::RegisterVisualDelegate(FGameplayTag EffectTag, const FOnPotionVisualUpdateDelegate& Delegate)
 {
-	if (!InMesh || !GetMesh())
+	if (EffectTag.IsValid())
 	{
-		return;
+		VisualDelegateMap.Add(EffectTag, Delegate);
 	}
-
-	const float CurrentScaleZ = GetMesh()->GetRelativeScale3D().Z;
-	const FBoxSphereBounds MeshBounds = InMesh->GetBounds();
-	const float MeshHalfHeight = MeshBounds.BoxExtent.Z * CurrentScaleZ;
-	const float MeshRadius = MeshHalfHeight * (NPCData ? NPCData->CapsuleRadiusRatio : 0.3f);
-
-	const float OldHalfHeight = GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
-	const float ZOffset = MeshHalfHeight - OldHalfHeight;
-
-	GetCapsuleComponent()->SetCapsuleSize(MeshRadius, MeshHalfHeight);
-	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -MeshHalfHeight));
-	if (FMath::Abs(ZOffset) > KINDA_SMALL_NUMBER)
-	{
-		AddActorWorldOffset(FVector(0.f, 0.f, ZOffset), false);
-	}
-
-	GetCapsuleComponent()->SetCapsuleSize(MeshRadius, MeshHalfHeight);
-	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -MeshHalfHeight));
 }
 
-//void ACPBaseNPC::HandleGameplayEffectApplied(UAbilitySystemComponent* SourceASC, const FGameplayEffectSpec& EffectSpec, FActiveGameplayEffectHandle ActiveHandle)
-//{
-//}
+void ACPBaseNPC::UnregisterVisualDelegate(FGameplayTag EffectTag)
+{
+	if (EffectTag.IsValid())
+	{
+		VisualDelegateMap.Remove(EffectTag);
+	}
+}
 
 void ACPBaseNPC::RegisterPersistentPotionEffect(FGameplayTag EffectTag, int32 InDurationWorldMinutes, float Magnitude)
 {
@@ -191,47 +141,46 @@ void ACPBaseNPC::RegisterPersistentPotionEffect(FGameplayTag EffectTag, int32 In
 	Subsystem->RegisterNPCEffect(NPCId, EffectTag, InDurationWorldMinutes, Magnitude);
 }
 
-void ACPBaseNPC::HandlePotionEffectAppliedBroadcast(FName BroadcastNPCId, FGameplayTag EffectTag, int64 ExpiresAtWorldMinute, float Magnitude)
+void ACPBaseNPC::HandlePotionEffectApplied(FGameplayTag EffectTag, int64 ExpiresAtWorldMinute, float Magnitude)
 {
-	if (BroadcastNPCId != GetPotionNPCId())
+	if (AbilitySystemComponent)
 	{
-		return;
+		AbilitySystemComponent->AddLooseGameplayTag(EffectTag);
 	}
 
 	ApplyPotionEffectVisual(EffectTag, true, Magnitude);
 }
 
-void ACPBaseNPC::HandlePotionEffectExpiredBroadcast(FName BroadcastNPCId, FGameplayTag EffectTag)
+void ACPBaseNPC::HandlePotionEffectExpired(FGameplayTag EffectTag)
 {
-	if (BroadcastNPCId != GetPotionNPCId())
+	if (AbilitySystemComponent)
 	{
-		return;
-	}
-
-	if (IsValid(AbilitySystemComponent) && PersistentPotionEffectTags.HasTagExact(EffectTag))
-	{
-		FGameplayEffectQuery Query;
-		Query.OwningTagQuery = FGameplayTagQuery::MakeQuery_MatchAnyTags(FGameplayTagContainer(EffectTag));
-		AbilitySystemComponent->RemoveActiveEffects(Query);
+		AbilitySystemComponent->RemoveLooseGameplayTag(EffectTag);
 	}
 
 	ApplyPotionEffectVisual(EffectTag, false, 1.0f);
+}
+
+void ACPBaseNPC::SetNPCData(UCPNPCDataAsset* InNPCData)
+{
+	NPCData = InNPCData;
 }
 
 void ACPBaseNPC::CatchUpPersistentPotionEffects()
 {
 	UCPNPCSubsystem* Subsystem = GetNPCSubsystem();
 	const FName NPCId = GetPotionNPCId();
-	if (!Subsystem || NPCId.IsNone())
-	{
-		return;
-	}
+	if (!Subsystem || NPCId.IsNone()) return;
 
 	FCPNPCEffectSaveData SaveData;
 	if (Subsystem->GetNPCEffectData(NPCId, SaveData))
 	{
 		for (const auto& EffectPair : SaveData.ActiveEffects)
 		{
+			if (AbilitySystemComponent)
+			{
+				AbilitySystemComponent->AddLooseGameplayTag(EffectPair.Key);
+			}
 			ApplyPotionEffectVisual(EffectPair.Key, true, EffectPair.Value.Magnitude);
 		}
 	}
@@ -239,13 +188,12 @@ void ACPBaseNPC::CatchUpPersistentPotionEffects()
 
 void ACPBaseNPC::ApplyPotionEffectVisual_Implementation(FGameplayTag EffectTag, bool bActive, float Magnitude)
 {
-	static const FGameplayTag GiantTag = FGameplayTag::RequestGameplayTag(FName("State.Effect.Giant"));
-
-	if (EffectTag == GiantTag && GetMesh())
+	if (const FOnPotionVisualUpdateDelegate* FoundDelegate = VisualDelegateMap.Find(EffectTag))
 	{
-		const FVector TargetScale = bActive ? (BaseMeshScale * Magnitude) : BaseMeshScale;
-		GetMesh()->SetRelativeScale3D(TargetScale);
-		FitCapsuleToMesh(GetMesh()->GetSkeletalMeshAsset());
+		if (FoundDelegate->IsBound())
+		{
+			FoundDelegate->Execute(bActive, Magnitude);
+		}
 	}
 }
 
@@ -267,3 +215,16 @@ void ACPBaseNPC::GrantPotionReactionAbilities()
 		}
 	}
 }
+
+void ACPBaseNPC::OnInteract_Implementation(AActor* Interactor) {}
+FText ACPBaseNPC::GetInteractionPrompt_Implementation() { return FText::GetEmpty(); }
+bool ACPBaseNPC::CanInteract_Implementation(AActor* Interactor) { return false; }
+FName ACPBaseNPC::GetInteractionName_Implementation()
+{
+	if (NPCData && NPCData->NPCName != NAME_None)
+	{
+		return NPCData->NPCName;
+	}
+	return GetFName();
+}
+

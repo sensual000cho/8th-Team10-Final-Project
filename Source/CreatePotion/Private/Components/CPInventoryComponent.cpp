@@ -5,7 +5,7 @@
 #include "Engine/LocalPlayer.h"
 #include "CreatePotion.h"   // 로그용 헤더
 
-#include "GameInstance/Subsystem/CPInventorySubsystem.h"
+#include "GameInstance/Subsystem/CPContainerSubsystem.h"
 #include "UI/Widgets/Common/Container/CPContainerMainWidget.h"
 
 UCPInventoryComponent::UCPInventoryComponent()
@@ -19,9 +19,9 @@ void UCPInventoryComponent::BeginPlay()
 
 	if (UGameInstance* GI = GetWorld()->GetGameInstance())
 	{
-		if (UCPInventorySubsystem* InvSubsystem = GI->GetSubsystem<UCPInventorySubsystem>())
+		if (UCPContainerSubsystem* ContainerSubsystem = GI->GetSubsystem<UCPContainerSubsystem>())
 		{
-			InvSubsystem->LoadInventoryData(this->ContainerItems);
+			ContainerSubsystem->LoadContainerData(this);
 		}
 	}
 
@@ -122,15 +122,41 @@ void UCPInventoryComponent::ToggleInventoryUI()
 	}
 }
 
-int32 UCPInventoryComponent::TryGetItem(UCPForageableItemData* InItemData, int32 Count)
+void UCPInventoryComponent::OpenInventoryUI()
 {
-	int32 LeftoverCount = Super::TryGetItem(InItemData, Count);
+	if (!InventoryUIInstance)
+	{
+		return;
+	}
+
+	if (InventoryUIInstance->GetVisibility() == ESlateVisibility::Collapsed)
+	{
+		ToggleInventoryUI();
+	}
+}
+
+void UCPInventoryComponent::CloseInventoryUI()
+{
+	if (!InventoryUIInstance)
+	{
+		return;
+	}
+
+	if (InventoryUIInstance->GetVisibility() == ESlateVisibility::Visible)
+	{
+		ToggleInventoryUI();
+	}
+}
+
+int32 UCPInventoryComponent::TryGetItemFromData(UCPForageableItemData* InItemData, int32 Count)
+{
+	int32 LeftoverCount = Super::TryGetItemFromData(InItemData, Count);
 
 	// 가방이 꽉 차서 남은 아이템이 반환되었을 때 임시 인벤토리에 저장
 	if (LeftoverCount > 0)
 	{
 		FContainerItem TempItem;
-		TempItem.ItemDataAsset = InItemData;
+		TempItem.Instance.SourceItemData = InItemData;
 		TempItem.Stacked = LeftoverCount;
 		TempItem.GridIndex = -1; // 임시 인벤토리임을 나타내는 인덱스
 
@@ -155,13 +181,64 @@ void UCPInventoryComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (UGameInstance* GI = GetWorld()->GetGameInstance())
 	{
-		if (UCPInventorySubsystem* InvSubsystem = GI->GetSubsystem<UCPInventorySubsystem>())
+		if (UCPContainerSubsystem* ContainerSubsystem = GI->GetSubsystem<UCPContainerSubsystem>())
 		{
-			InvSubsystem->SaveInventoryData(this->ContainerItems);
+			ContainerSubsystem->SaveContainerData(this);
 		}
 	}
 
 	GetWorld()->GetTimerManager().ClearTimer(InputBindingTimerHandle);
 
 	Super::EndPlay(EndPlayReason);
+}
+
+bool UCPInventoryComponent::TryGetMoney(int32 InAmount)
+{
+	if (InAmount <= 0)
+	{
+		UE_LOG(LogContainer, Warning, TEXT("[Money] TryGetMoney 실패, 0 이하의 금액을 획득 시도 : %d"), InAmount);
+		return false;
+	}
+
+	if (OwningMoney >= MaxMoney)
+	{
+		UE_LOG(LogContainer, Warning, TEXT("[Money] TryGetMoney 실패: 최대 소지 금액 한도에 도달 (%d / %d)"), OwningMoney, MaxMoney);
+		return false;
+	}
+
+	// 초과분은 잘라내고, 최대치(MaxMoney)까지만 채움
+	int32 OldAmount = OwningMoney;
+	OwningMoney = FMath::Min(OwningMoney + InAmount, MaxMoney);
+
+	UE_LOG(LogContainer, Log, TEXT("[Money] 소지금 증가: %d -> %d (요청: +%d)"), OldAmount, OwningMoney, InAmount);
+	OnMoneyChanged.Broadcast(OwningMoney);
+	return true;
+}
+
+bool UCPInventoryComponent::TrySpendMoney(int32 InAmount)
+{
+	if (InAmount <= 0)
+	{
+		UE_LOG(LogContainer, Warning, TEXT("[Money] TrySpendMoney 실패: 0 이하의 금액을 소비 시도 : %d"), InAmount);
+		return false;
+	}
+
+	if (OwningMoney < InAmount)
+	{
+		UE_LOG(LogContainer, Warning, TEXT("[Money] TrySpendMoney 실패: 소지금 부족 (보유 %d / 필요 %d)"), OwningMoney, InAmount);
+		return false;
+	}
+
+	int32 OldAmount = OwningMoney;
+	OwningMoney -= InAmount;
+
+	UE_LOG(LogContainer, Log, TEXT("[Money] 소지금 지출: %d -> %d (요청: -%d)"), OldAmount, OwningMoney, InAmount);
+	OnMoneyChanged.Broadcast(OwningMoney);
+	return true;
+}
+
+void UCPInventoryComponent::RestoreMoney(int32 InAmount)
+{
+	OwningMoney = FMath::Clamp(InAmount, 0, MaxMoney);
+	OnMoneyChanged.Broadcast(OwningMoney);
 }

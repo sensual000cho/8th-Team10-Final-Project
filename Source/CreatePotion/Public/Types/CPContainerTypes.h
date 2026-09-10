@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Data/CPForageableItemData.h"
+#include "Types/CPItemInstanceTypes.h"
 #include "CPContainerTypes.generated.h"
 
 UENUM(BlueprintType)
@@ -29,7 +30,7 @@ struct FContainerItem
     GENERATED_BODY()
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
-    UCPForageableItemData* ItemDataAsset = nullptr;
+    FCPItemInstance Instance;
 
     // 현재 개수
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
