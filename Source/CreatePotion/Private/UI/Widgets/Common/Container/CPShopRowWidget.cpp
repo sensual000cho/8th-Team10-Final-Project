@@ -4,7 +4,9 @@
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 
+#include "CreatePotion.h"
 #include "Data/CPForageableItemData.h"
+#include "UI/Widgets/Common/Container/CPShopMainWidget.h"
 
 void UCPShopRowWidget::UpdateRow(const FContainerItem& ItemData)
 {
@@ -38,4 +40,14 @@ void UCPShopRowWidget::UpdateRow(const FContainerItem& ItemData)
 	{
 		SellPriceText->SetText(FText::AsNumber(Data->GetSellPrice()));
 	}
+}
+
+FReply UCPShopRowWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && OwnerShopWidget && OwnerContainer)
+	{
+		OwnerShopWidget->OpenPurchasePopup(OwnerContainer, SlotGridIndex);
+		return FReply::Handled();
+	}
+	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }

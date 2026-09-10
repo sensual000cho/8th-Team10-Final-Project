@@ -9,6 +9,8 @@
 
 class UImage;
 class UTextBlock;
+
+class UCPShopMainWidget;
 class UCPItemContainerComponent;
 
 UCLASS()
@@ -19,7 +21,14 @@ class CREATEPOTION_API UCPShopRowWidget : public UCPBaseUserWidget
 public:
 	void UpdateRow(const FContainerItem& ItemData);
 
+protected:
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+
 public:
+	// 현재 이 Row가 속한 상점 위젯 - 구매 위젯 팝업에 사용
+	UPROPERTY()
+	UCPShopMainWidget* OwnerShopWidget = nullptr;
+
 	// 구매 팝업 연동 시 사용할 정보 (일단 저장만)
 	UPROPERTY(VisibleAnywhere, Category = "Shop")
 	UCPItemContainerComponent* OwnerContainer = nullptr;
