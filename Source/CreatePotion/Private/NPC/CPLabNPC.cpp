@@ -19,7 +19,7 @@ void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 		UE_LOG(LogTemp, Warning, TEXT("[%s] DA에 지정된 공방 퀘스트가 없습니다."), *GetName());
 		return;
 	}
-
+	Super::OnInteract_Implementation(Interactor);
 	UGameInstance* GameInstance = GetGameInstance();
 	if (!GameInstance) { return; }
 
@@ -71,12 +71,29 @@ bool ACPLabNPC::CanInteract_Implementation(AActor* Interactor)
 	UQuestManager* QuestManager = GetGameInstance()->GetSubsystem<UQuestManager>();
 	if (!QuestManager) { return false; }
 
-	for (const FName& QuestID : QuestData->LabQuestIDs){
-		if (QuestID.IsNone()) continue;
-		if (QuestManager->GetQuestState(QuestID) == EQuestState::Accepted) return true; 
+	bool bCanQuestInteract = false;
+	for (const FName& QuestID : QuestData->LabQuestIDs)
+	{
+		if (QuestID.IsNone()) { continue; }
+		const FCPQuestResult QuestResult = QuestManager->GetResult(QuestID);
+		if (!QuestResult.QuestId.IsNone())
+		{
+			bCanQuestInteract = true;
+			break;
+		}
+		if (QuestManager->GetQuestState(QuestID) == EQuestState::Accepted)
+		{
+			bCanQuestInteract = true;
+			break;
+		}
 	}
 
-	return false; 
+	if (bCanQuestInteract)
+	{
+		return Super::CanInteract_Implementation(Interactor);
+	}
+
+	return false;
 }
 
 void ACPLabNPC::ShowResultDialogue()
