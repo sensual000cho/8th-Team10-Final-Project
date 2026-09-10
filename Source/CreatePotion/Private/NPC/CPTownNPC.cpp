@@ -5,7 +5,7 @@
 #include "Components/CPInventoryComponent.h"
 #include "UI/Widgets/Common/Dialogue/CPNPCDialogueWidget.h"
 
-void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
+void ACPTownNPC::HandleInteract(AActor* Interactor)
 {
 	if (ActiveDialogueWidget && ActiveDialogueWidget->IsInViewport())
 	{
@@ -17,7 +17,7 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 		return;
 	}
 
-	Super::OnInteract_Implementation(Interactor);
+	Super::HandleInteract(Interactor);
 
 	UGameInstance* GameInstance = GetGameInstance();
 	if (!GameInstance) { return; }
@@ -66,7 +66,7 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 			break;
 		}
 
-		else if (CurrentState == EQuestState::Accepted 
+		else if (CurrentState == EQuestState::Accepted
 			&& QuestManager->GetQuestCompletionType(QuestID) == EQuestCompletionType::Dialogue)
 		{
 			TArray<FText> StoryLines = QuestManager->GetNPCStoryLines(QuestID);
@@ -130,7 +130,7 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 	}
 }
 
-bool ACPTownNPC::CanInteract_Implementation(AActor* Interactor)
+bool ACPTownNPC::CanInteract(AActor* Interactor) const
 {
 	if (!QuestData || !GetGameInstance()) { return false; }
 
@@ -141,7 +141,7 @@ bool ACPTownNPC::CanInteract_Implementation(AActor* Interactor)
 
 	for (const FName& QuestID : QuestData->TownQuestIDs)
 	{
-		if (QuestID.IsNone()){continue;	}
+		if (QuestID.IsNone()) { continue; }
 
 		EQuestState CurrentState = QuestManager->GetQuestState(QuestID);
 
@@ -166,7 +166,7 @@ bool ACPTownNPC::CanInteract_Implementation(AActor* Interactor)
 
 	if (bCanQuestInteract)
 	{
-		return Super::CanInteract_Implementation(Interactor);
+		return Super::CanInteract(Interactor);
 	}
 
 	// 모든 퀘스트를 수락했다면 상호작용 불가 상태 (false)로 만듦

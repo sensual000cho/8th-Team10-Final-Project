@@ -7,24 +7,64 @@
 #include "UI/Widgets/Common/Dialogue/CPNPCDialogueWidget.h"
 #include "NPC/CPNPCMoveComponent.h"
 #include "NPC/CPNPCAIController.h"
+#include "Character/CPInteractionComponent.h"
 
 ACPQuestNPC::ACPQuestNPC() : CurrentQuestId(NAME_None)
 {
+	InteractionRefreshInterval = 0.1f;
 }
 
-bool ACPQuestNPC::CanInteract_Implementation(AActor* Interactor)
+bool ACPQuestNPC::CanInteract(AActor* Interactor) const
 {
-	if (!Interactor)
+	return true;
+}
+
+FText ACPQuestNPC::GetInteractionPrompt() const
+{
+	return FText::FromString(TEXT("대화하기"));
+}
+
+void ACPQuestNPC::RefreshInteractionState()
+{
+	Super::RefreshInteractionState();
+	UpdateGazeTracking();
+}
+
+void ACPQuestNPC::UpdateGazeTracking()
+{
+	// 상호작용(대화) 진행 중에는 시선 추적으로 다시 이동을 멈추거나 재개하지 않음
+	if (bIsInteracting)
 	{
-		return true;
+		return;
 	}
 
-	if (!bIsInteracting)
+	UWorld* World = GetWorld();
+	if (!World)
 	{
-		if (!MoveComponent)
+		return;
+	}
+
+	if (!MoveComponent)
+	{
+		MoveComponent = FindComponentByClass<UCPNPCMoveComponent>();
+	}
+
+	// 플레이어의 CPInteractionComponent가 현재 나를 상호작용 대상으로 잡고 있는지 확인
+	bool bLookedAtNow = false;
+	if (APlayerController* PC = World->GetFirstPlayerController())
+	{
+		if (APawn* PlayerPawn = PC->GetPawn())
 		{
-			MoveComponent = FindComponentByClass<UCPNPCMoveComponent>();
+			if (UCPInteractionComponent* PlayerInteraction = PlayerPawn->FindComponentByClass<UCPInteractionComponent>())
+			{
+				bLookedAtNow = (PlayerInteraction->GetCurrentTarget() == this);
+			}
 		}
+	}
+
+	if (bLookedAtNow)
+	{
+		World->GetTimerManager().ClearTimer(TraceLostTimerHandle);
 
 		if (!bIsPlayerLooking)
 		{
@@ -36,28 +76,22 @@ bool ACPQuestNPC::CanInteract_Implementation(AActor* Interactor)
 				MoveComponent->StopMoving();
 			}
 		}
-
-		if (UWorld* World = GetWorld())
-		{
-			World->GetTimerManager().SetTimer(
-				TraceLostTimerHandle,
-				this,
-				&ACPQuestNPC::OnTraceFocusLost,
-				0.5f,
-				false
-			);
-		}
+		return;
 	}
 
-	return true;
+	if (bIsPlayerLooking && !World->GetTimerManager().IsTimerActive(TraceLostTimerHandle))
+	{
+		World->GetTimerManager().SetTimer(
+			TraceLostTimerHandle,
+			this,
+			&ACPQuestNPC::OnTraceFocusLost,
+			0.5f,
+			false
+		);
+	}
 }
 
-FText ACPQuestNPC::GetInteractionPrompt_Implementation()
-{
-	return FText::FromString(TEXT("대화하기"));
-}
-
-void ACPQuestNPC::OnInteract_Implementation(AActor* Interactor)
+void ACPQuestNPC::HandleInteract(AActor* Interactor)
 {
 	if (!Interactor) { return; }
 
@@ -97,17 +131,17 @@ void ACPQuestNPC::OnInteract_Implementation(AActor* Interactor)
 void ACPQuestNPC::HandleThrownPotionImpact(const TArray<FGameplayTag>& PotionEffectTags)
 {
 	if (PotionEffectTags.IsEmpty()) return;
-	
+
 	UGameInstance* GameInstance = GetGameInstance();
 	UQuestManager* QuestManager = GameInstance ? GameInstance->GetSubsystem<UQuestManager>() : nullptr;
 	if (!QuestManager) return;
-	
+
 	const FName QuestID = FindAcceptedQuestId();
 	if (QuestID.IsNone()) return;
-	
+
 	const FCPQuestResult Result = QuestManager->CreateResult(QuestID, PotionEffectTags);
 	CurrentQuestId = Result.QuestId;
-	
+
 	ShowResultDialogue();
 }
 
@@ -115,46 +149,46 @@ void ACPQuestNPC::ShowResultDialogue()
 {
 	UGameInstance* GameInstance = GetGameInstance();
 	if (!GameInstance) return;
-	
+
 	UQuestManager* QuestManager = GameInstance->GetSubsystem<UQuestManager>();
 	if (!QuestManager) return;
-	
+
 	if (CurrentQuestId.IsNone()) return;
-	
+
 	FCPQuestResult DeliveryResult = QuestManager->GetResult(CurrentQuestId);
 	if (DeliveryResult.QuestId.IsNone()) return;
-	
+
 	const FName QuestID = DeliveryResult.QuestId;
-	
+
 	UCPUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UCPUIManagerSubsystem>();
 	const UCPUISettings* UISettings = GetDefault<UCPUISettings>();
 	UClass* DialogueWidgetClass = UISettings ? UISettings->NPCDialogueWidgetClass.LoadSynchronous() : nullptr;
 	if (!UIManager || !DialogueWidgetClass) return;
-	
+
 	ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
 	if (!ActiveDialogueWidget) return;
-	
+
 	TArray<FText> ReactionTexts;
 	const TArray<FConditionEvaluation> Evaluations = QuestManager->EvaluateConditions(DeliveryResult.QuestId, DeliveryResult.CurrentEffects);
-	
-	for (const FConditionEvaluation& Eval : Evaluations){
-		if (DeliveryResult.DeliveryGrade == EDeliveryGrade::Fail 
-			&&(!Eval.bWasRequested || Eval.Result != EConditionMatchResult::WrongTag)) continue;
-		
+
+	for (const FConditionEvaluation& Eval : Evaluations) {
+		if (DeliveryResult.DeliveryGrade == EDeliveryGrade::Fail
+			&& (!Eval.bWasRequested || Eval.Result != EConditionMatchResult::WrongTag)) continue;
+
 		FText Reaction = QuestManager->GetReactionText(DeliveryResult.QuestId, Eval);
-		if (!Reaction.IsEmpty()){
+		if (!Reaction.IsEmpty()) {
 			ReactionTexts.Add(Reaction);
 		}
 	}
-	
+
 	ActiveDialogueWidget->InitDialogueLines(QuestID, FText::FromName(QuestData->NPCName), ReactionTexts);
 }
 
 void ACPQuestNPC::BeginPlay()
 {
-	Super::BeginPlay();
-	
 	QuestData = Cast<UCPQuestNPCDataAsset>(NPCData);
+
+	Super::BeginPlay();
 }
 
 const TArray<FName>& ACPQuestNPC::GetPotionQuestIDs() const
@@ -166,15 +200,15 @@ const TArray<FName>& ACPQuestNPC::GetPotionQuestIDs() const
 FName ACPQuestNPC::FindAcceptedQuestId() const
 {
 	if (!QuestData) return NAME_None;
-	
+
 	UGameInstance* GameInstance = GetGameInstance();
 	UQuestManager* QuestManager = GameInstance ? GameInstance->GetSubsystem<UQuestManager>() : nullptr;
 	if (!QuestManager) return NAME_None;
-	
-	for (const FName& QuestID : GetPotionQuestIDs()){
+
+	for (const FName& QuestID : GetPotionQuestIDs()) {
 		if (QuestID.IsNone()) continue;
 		if (QuestManager->GetQuestState(QuestID) != EQuestState::Accepted) continue;
-		
+
 		return QuestID;
 	}
 	return NAME_None;

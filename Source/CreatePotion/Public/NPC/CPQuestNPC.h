@@ -16,29 +16,34 @@ class CREATEPOTION_API ACPQuestNPC : public ACPBaseNPC
 
 public:
 	ACPQuestNPC();
-	virtual bool CanInteract_Implementation(AActor* Interactor) override;
-	virtual FText GetInteractionPrompt_Implementation() override;
-	virtual void OnInteract_Implementation(AActor* Interactor) override;
-	
+	virtual bool CanInteract(AActor* Interactor) const override;
+	virtual FText GetInteractionPrompt() const override;
+	virtual void HandleInteract(AActor* Interactor) override;
+
 	void HandleThrownPotionImpact(const TArray<FGameplayTag>& PotionEffectTags);
-	
+
 	UFUNCTION()
 	virtual void ShowResultDialogue();
 
 protected:
 	virtual void BeginPlay() override;
 	virtual const TArray<FName>& GetPotionQuestIDs() const;
-	
+
+	virtual void RefreshInteractionState() override;
+
 	FName FindAcceptedQuestId() const;
 	void OnTraceFocusLost();
+
+private:
+	void UpdateGazeTracking();
 
 protected:
 	UPROPERTY(Transient)
 	TObjectPtr<const UCPQuestNPCDataAsset> QuestData;
-	
+
 	UPROPERTY()
 	TObjectPtr<UCPNPCDialogueWidget> ActiveDialogueWidget;
-	
+
 	FName CurrentQuestId;
 
 	// 플레이어에게 상호작용으로 접근할 때 멈추는 거리 (cm)

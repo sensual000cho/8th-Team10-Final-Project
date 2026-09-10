@@ -141,10 +141,22 @@ void UCPNPCMoveComponent::RestoreMovementState(const FCPNPCMovementSaveData& Sav
 
 	FVector TargetLocation = SaveData.SavedLocation;
 
-	if (UCharacterMovementComponent* MoveComp = OwnerCharacter->GetCharacterMovement())
+	if (UWorld* World = GetWorld())
 	{
-		MoveComp->UpdateComponentVelocity();
-		MoveComp->FindFloor(OwnerCharacter->GetActorLocation(), MoveComp->CurrentFloor, false);
+		UCapsuleComponent* Capsule = OwnerCharacter->GetCapsuleComponent();
+		const float CapsuleHalfHeight = Capsule ? Capsule->GetScaledCapsuleHalfHeight() : 88.0f;
+
+		FHitResult GroundHit;
+		const FVector TraceStart = TargetLocation + FVector(0.f, 0.f, 300.f);
+		const FVector TraceEnd = TargetLocation - FVector(0.f, 0.f, 1500.f);
+
+		FCollisionQueryParams QueryParams;
+		QueryParams.AddIgnoredActor(OwnerCharacter);
+
+		if (World->LineTraceSingleByChannel(GroundHit, TraceStart, TraceEnd, ECC_WorldStatic, QueryParams))
+		{
+			TargetLocation.Z = GroundHit.ImpactPoint.Z + CapsuleHalfHeight;
+		}
 	}
 
 	OwnerCharacter->SetActorLocationAndRotation(
@@ -154,6 +166,14 @@ void UCPNPCMoveComponent::RestoreMovementState(const FCPNPCMovementSaveData& Sav
 		nullptr,
 		ETeleportType::TeleportPhysics
 	);
+
+	if (UCharacterMovementComponent* MoveComp = OwnerCharacter->GetCharacterMovement())
+	{
+		MoveComp->UpdateComponentVelocity();
+		MoveComp->SetMovementMode(MOVE_Walking);
+		MoveComp->FindFloor(OwnerCharacter->GetActorLocation(), MoveComp->CurrentFloor, false);
+		MoveComp->AdjustFloorHeight();
+	}
 
 	CurrentPointIndex = SaveData.NextPointIndex;
 
