@@ -5,7 +5,7 @@
 #include "Abilities/GameplayAbilityTypes.h"
 #include "GameFramework/Pawn.h"
 #include "Kismet/KismetSystemLibrary.h"
-#include "NPC/CPLabNPC.h"
+#include "NPC/CPQuestNPC.h"
 
 UCPPotionImpactComponent::UCPPotionImpactComponent()
 {
@@ -85,7 +85,7 @@ void UCPPotionImpactComponent::ResolvePotionEffectArea(const FHitResult& HitResu
 
 		ProcessedActors.Add(TargetActor);
 		
-		if (ACPLabNPC* LabNPC = Cast<ACPLabNPC>(TargetActor)){
+		if (ACPQuestNPC* LabNPC = Cast<ACPQuestNPC>(TargetActor)){
 			LabNPC->HandleThrownPotionImpact(PotionEffectTags);
 		}
 		

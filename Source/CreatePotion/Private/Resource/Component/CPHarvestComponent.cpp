@@ -34,7 +34,8 @@ bool UCPHarvestComponent::TryHarvest(AActor* Interactor)
 	UCPObjectPoolSubsystem* Pool = World->GetSubsystem<UCPObjectPoolSubsystem>();
 	if (!Pool) return false;
 	
-	AActor* AcquiredActor = Pool->AcquireActor(DroppedItemClass, {FRotator::ZeroRotator, Owner->GetActorLocation()});
+	AActor* AcquiredActor = Pool->AcquireActor(DroppedItemClass, {FRotator::ZeroRotator,
+		Owner->GetActorLocation() + FVector::UpVector * 50});
 	
 	ACPDroppedItemBase* DroppedItem = Cast<ACPDroppedItemBase>(AcquiredActor);
 	if (!DroppedItem)

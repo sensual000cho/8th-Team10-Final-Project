@@ -12,6 +12,7 @@ class UAbilitySystemComponent;
 class UCPNPCSubsystem;
 class UCPGADataAsset;
 class UCPNPCVisualComponent;
+class UCPNPCMoveComponent;
 
 // (bActive: 적용/해제 여부, Magnitude: 배율/강도)
 DECLARE_DELEGATE_TwoParams(FOnPotionVisualUpdateDelegate, bool /*bActive*/, float /*Magnitude*/);
@@ -49,6 +50,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "NPC")
 	FVector GetBaseMeshScale() const { return BaseMeshScale; }
 
+	UFUNCTION(BlueprintCallable, Category = "NPC")
+	void SetNPCData(UCPNPCDataAsset* InNPCData);
+	
 	UFUNCTION(BlueprintPure, Category = "NPC|Data")
 	const UCPNPCDataAsset* GetNPCData() const { return NPCData; }
 
@@ -77,17 +81,19 @@ protected:
 	UCPNPCSubsystem* GetNPCSubsystem() const;
 	void GrantPotionReactionAbilities();
 
-public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC")
-	TObjectPtr<UCPNPCDataAsset> NPCData;
-
-	UPROPERTY(EditDefaultsOnly, Category = "GAS|Potion")
+protected:
+	UPROPERTY(EditDefaultsOnly, Category = "GAS")
 	TObjectPtr<UCPGADataAsset> CommonAbilitySet;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UCPNPCVisualComponent> VisualComponent;
 
-protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC")
+	TObjectPtr<UCPNPCDataAsset> NPCData;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UCPNPCMoveComponent> MoveComponent;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
 	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
 
@@ -97,4 +103,23 @@ protected:
 private:
 	// 태그별로 바인딩된 비주얼 함수 맵
 	TMap<FGameplayTag, FOnPotionVisualUpdateDelegate> VisualDelegateMap;
+
+
+#pragma region Route Debug
+protected:
+	virtual void OnConstruction(const FTransform& Transform) override;
+#if WITH_EDITOR
+	void DrawDebugPatrolRoute();
+#endif
+	UPROPERTY(EditAnywhere, Category = "Debug")
+	bool bShowPatrolRouteInEditor = false;
+
+	UPROPERTY(EditAnywhere, Category = "Debug")
+	FColor PatrolRouteColor = FColor::Emerald;
+
+	UPROPERTY(EditAnywhere, Category = "Debug", meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "20.0"))
+	float RouteLineThickness = 10.0f;
+
+#pragma endregion Route Debug
+
 };

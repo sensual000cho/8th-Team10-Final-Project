@@ -5,10 +5,9 @@
 #include "CoreMinimal.h"
 #include "GameCore/Interface/CPInteractable.h"
 #include "GameFramework/Actor.h"
-#include "Lab/CPLabTypes.h"
+#include "Types/CPItemInstanceTypes.h"
 #include "CPThrowablePropBase.generated.h"
 
-struct FCPItemInstance;
 class UCPForageableItemData;
 class USceneComponent;
 class UStaticMeshComponent;
@@ -40,7 +39,7 @@ public:
     virtual FName GetInteractionName_Implementation() override;
     
     virtual void InitializeFromItemData(UCPForageableItemData* ItemData, const TArray<FGameplayTag>& EffectTags = TArray<FGameplayTag>());
-    const FCPLabIngredientInstance& GetWorkingIngredient() const;
+    const FCPItemInstance& GetWorkingIngredient() const;
     
     bool AttachAsHeld(USceneComponent* CarryAnchor);
     void DetachAsHeld(const FVector& DropLocation);
@@ -76,6 +75,8 @@ protected:
     void StartRestCheck();
     void StopRestCheck();
     void CheckForRest();
+    void BeginThrowerCollisionIgnore();
+    void EndThrowerCollisionIgnore();
 
     UFUNCTION()
     void HandleMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& HitResult);
@@ -92,6 +93,9 @@ protected:
     // 100.0만큼 투척방향으로 이동(물리 활성화 전)
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Throw", meta = (ClampMin = "0.0", Units = "cm"))
     float ThrowStartOffset = 100.f;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Throw", meta = (ClampMin = "0.01", Units = "s"))
+    float ThrowerCollisionIgnoreDuration = 0.2f;
 
     // 0.1초마다 정지 상태 확인
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Rest", meta = (ClampMin = "0.01", Units = "s"))
@@ -142,7 +146,10 @@ private:
     ECPThrowablePropState PropState = ECPThrowablePropState::Resting;
 
     bool bHasHitSinceThrow = false;
+    bool bIgnoringThrowerCollision = false;
     float LowSpeedElapsedTime = 0.f;
+    ECollisionResponse OriginalPawnCollisionResponse = ECR_Block;
 
     FTimerHandle RestCheckTimerHandle;
+    FTimerHandle ThrowerCollisionIgnoreTimerHandle;
 };
