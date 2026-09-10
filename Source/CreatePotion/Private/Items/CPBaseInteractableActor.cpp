@@ -5,6 +5,7 @@
 
 #include "Components/CPInteractableComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Settings/CPUISettings.h"
 
 
 // Sets default values
@@ -12,6 +13,12 @@ ACPBaseInteractableActor::ACPBaseInteractableActor()
 {
 	InteractableComponent = CreateDefaultSubobject<UCPInteractableComponent>("InteractableComponent");
 	InteractionWidget = CreateDefaultSubobject<UWidgetComponent>("InteractionWidget");
+	
+	// 상호작용 위젯 클래스 설정
+	if (const UCPUISettings* UISettings = GetDefault<UCPUISettings>())
+	{
+		InteractionWidget->SetWidgetClass(UISettings->InteractionWidgetClass.Get());
+	}
 }
 
 void ACPBaseInteractableActor::PostInitializeComponents()
