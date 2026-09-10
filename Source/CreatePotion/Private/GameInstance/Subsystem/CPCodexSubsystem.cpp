@@ -95,7 +95,6 @@ bool UCPCodexSubsystem::RecordForageableEntry(UCPForageableItemData* ItemData)
 	ForageableCodexEntries.Add(ItemData, NewEntry);
 	
 	OnForageableCodexUpdated.Broadcast();
-	OnForageableItemDiscovered.Broadcast(ItemData);
 	return true;
 }
 
