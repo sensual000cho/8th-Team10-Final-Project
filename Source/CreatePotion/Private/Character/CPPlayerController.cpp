@@ -8,6 +8,9 @@
 #include "GameCore/Interface/CPLevelUIInterface.h"
 #include "GameFramework/HUD.h"
 
+#include "EngineUtils.h"                          // TActorIterator
+#include "NPC/Components/CPShopContainerComponent.h"
+
 #include "CreatePotion.h"   // 로그용 헤더
 #include "UI/Widgets/Common/Container/CPContainerMainWidget.h"
 #include "UI/Widgets/Common/Container/CPContainerGridWidget.h"
@@ -367,6 +370,29 @@ void ACPPlayerController::ResetHoldingItem()
 	}
 	LeftClickPickedItemOriginContainer = nullptr;
 	LeftClickPickedOriginSlotIndex = -1;
+}
+
+void ACPPlayerController::DebugToggleShopDirectly()
+{
+	UCPShopContainerComponent* FoundShop = nullptr;
+
+	// TODO[Container] : 현재 Actor 순회를 통해 찾는 중, 추후 상호작용키로 변경 예정
+	for (TActorIterator<AActor> It(GetWorld()); It; ++It)
+	{
+		if (UCPShopContainerComponent* Shop = It->FindComponentByClass<UCPShopContainerComponent>())
+		{
+			FoundShop = Shop;
+			break; // 지금은 상점이 하나뿐인 상황을 전제로 작동, 여러 개면 비교 로직 필요
+		}
+	}
+
+	if (!FoundShop)
+	{
+		UE_LOG(LogContainer, Warning, TEXT("[Debug] 월드에서 ShopContainerComponent를 찾지 못함"));
+		return;
+	}
+
+	ToggleExternalContainerUI(FoundShop);
 }
 #pragma endregion
 
