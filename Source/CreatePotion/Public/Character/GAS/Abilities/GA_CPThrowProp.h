@@ -28,6 +28,7 @@ public:
 	FVector CalculateThrowDirection(const AActor* AvatarActor, const APlayerController* PlayerController) const;
 	//Trajectory 계산 위한 Get 함수
 	float GetThrowSpeed() const;
+	float GetResolvedThrowSpeed(const UCPCarryComponent& CarryComponent) const;
 	
 private:
 	UCPCarryComponent* FindCarryComponent(const FGameplayAbilityActorInfo* ActorInfo) const;

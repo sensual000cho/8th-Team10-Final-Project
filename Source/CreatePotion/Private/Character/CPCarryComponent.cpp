@@ -205,6 +205,16 @@ ACPThrowablePropBase* UCPCarryComponent::GetHeldProp() const
     return IsValid(HeldProp) ? HeldProp.Get() : nullptr;
 }
 
+float UCPCarryComponent::GetThrowSpeedMultiplier() const
+{
+    return ThrowSpeedMultiplier;
+}
+
+void UCPCarryComponent::SetThrowSpeedMultiplier(float NewMultiplier)
+{
+    ThrowSpeedMultiplier = FMath::Max(NewMultiplier, 0.0f);
+}
+
 FVector UCPCarryComponent::MakeReplacementDropLocation(const ACPThrowablePropBase* PreviousHeldProp, const ACPThrowablePropBase* NewProp) const
 {
     if (!IsValid(PreviousHeldProp) || !IsValid(NewProp))
