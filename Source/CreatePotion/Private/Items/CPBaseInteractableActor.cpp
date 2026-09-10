@@ -12,6 +12,8 @@
 // Sets default values
 ACPBaseInteractableActor::ACPBaseInteractableActor()
 {
+	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("DefaultSceneRoot"));
+	
 	InteractableComponent = CreateDefaultSubobject<UCPInteractableComponent>("InteractableComponent");
 	InteractionWidget = CreateDefaultSubobject<UWidgetComponent>("InteractionWidget");
 	
