@@ -2,6 +2,7 @@
 
 #include "Abilities/GameplayAbilityTypes.h"
 #include "Character/CPCarryComponent.h"
+#include "Components/ActorComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Core/CameraObjectInterface.h"
@@ -9,16 +10,14 @@
 #include "Core/CameraVariableTable.h"
 #include "Engine/World.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/BlueprintCameraEvaluationDataRef.h"
 #include "GameFramework/GameplayCameraComponentBase.h"
-#include "UObject/ConstructorHelpers.h"
+#include "UObject/UnrealType.h"
 
 UGA_CPPlayerGiant::UGA_CPPlayerGiant()
 {
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
-
-	static ConstructorHelpers::FObjectFinder<UCameraRigAsset> GiantCameraRigAsset(TEXT("/Game/CreatePotion/Character/Blueprints/Cameras/Rigs/CameraRig_PlayerGiant.CameraRig_PlayerGiant"));
-	GiantCameraRig = GiantCameraRigAsset.Object;
 
 	FGameplayTagContainer InitialAssetTags;
 	InitialAssetTags.AddTag(FGameplayTag::RequestGameplayTag(FName(TEXT("Ability.Reaction.Potion"))));
@@ -43,9 +42,9 @@ void UGA_CPPlayerGiant::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 
 	ACharacter* PlayerCharacter = ActorInfo ? Cast<ACharacter>(ActorInfo->AvatarActor.Get()) : nullptr;
-	if (!IsValid(PlayerCharacter) || !HasAuthority(&ActivationInfo) || DurationSeconds <= 0.0f)
+	if (!IsValid(PlayerCharacter) || DurationSeconds <= 0.0f)
 	{
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		EndAbility(Handle, ActorInfo, ActivationInfo, false, true);
 		return;
 	}
 
@@ -67,7 +66,18 @@ void UGA_CPPlayerGiant::EndAbility(const FGameplayAbilitySpecHandle Handle, cons
 
 void UGA_CPPlayerGiant::HandleDurationExpired()
 {
-	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
+	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, false, false);
+}
+
+void UGA_CPPlayerGiant::HandlePreCharacterMovement()
+{
+	OriginalMaxWalkSpeed = CachedCharacterMovement->MaxWalkSpeed;
+	CachedCharacterMovement->MaxWalkSpeed = OriginalMaxWalkSpeed * WalkSpeedMultiplier;
+}
+
+void UGA_CPPlayerGiant::RestoreCalculatedWalkSpeed(float DeltaSeconds, FVector OldLocation, FVector OldVelocity)
+{
+	CachedCharacterMovement->MaxWalkSpeed = OriginalMaxWalkSpeed;
 }
 
 void UGA_CPPlayerGiant::CacheOriginalState(ACharacter* PlayerCharacter)
@@ -76,12 +86,14 @@ void UGA_CPPlayerGiant::CacheOriginalState(ACharacter* PlayerCharacter)
 	CachedMesh = PlayerCharacter->GetMesh();
 	CachedCapsule = PlayerCharacter->GetCapsuleComponent();
 	CachedCarryComponent = PlayerCharacter->FindComponentByClass<UCPCarryComponent>();
+	CachedCharacterMovement = PlayerCharacter->GetCharacterMovement();
 	CachedGameplayCamera = PlayerCharacter->FindComponentByClass<UGameplayCameraComponentBase>();
 
 	OriginalMeshScale = CachedMesh->GetRelativeScale3D();
 	OriginalMeshLocation = CachedMesh->GetRelativeLocation();
 	OriginalCapsuleRadius = CachedCapsule->GetUnscaledCapsuleRadius();
 	OriginalCapsuleHalfHeight = CachedCapsule->GetUnscaledCapsuleHalfHeight();
+	OriginalMaxWalkSpeed = CachedCharacterMovement->MaxWalkSpeed;
 
 	if (CachedCarryComponent.IsValid())
 	{
@@ -97,6 +109,8 @@ void UGA_CPPlayerGiant::ApplyGiantState()
 
 	CachedCapsule->SetCapsuleSize(OriginalCapsuleRadius * Magnitude, OriginalCapsuleHalfHeight * Magnitude, true);
 	CachedCharacter->AddActorWorldOffset(FVector(0.0f, 0.0f, OriginalCapsuleHalfHeight * (Magnitude - 1.0f)), false, nullptr, ETeleportType::TeleportPhysics);
+	BindPreCharacterMovement();
+	CachedCharacter->OnCharacterMovementUpdated.AddUniqueDynamic(this, &UGA_CPPlayerGiant::RestoreCalculatedWalkSpeed);
 	ApplyGiantCamera();
 
 	if (CachedCarryComponent.IsValid())
@@ -118,8 +132,11 @@ void UGA_CPPlayerGiant::RestoreOriginalState()
 	CachedMesh->SetRelativeScale3D(OriginalMeshScale);
 	CachedMesh->SetRelativeLocation(OriginalMeshLocation);
 
+	UnbindPreCharacterMovement();
+	CachedCharacter->OnCharacterMovementUpdated.RemoveDynamic(this, &UGA_CPPlayerGiant::RestoreCalculatedWalkSpeed);
 	CachedCapsule->SetCapsuleSize(OriginalCapsuleRadius, OriginalCapsuleHalfHeight, true);
 	CachedCharacter->AddActorWorldOffset(FVector(0.0f, 0.0f, -OriginalCapsuleHalfHeight * (Magnitude - 1.0f)), false, nullptr, ETeleportType::TeleportPhysics);
+	CachedCharacterMovement->MaxWalkSpeed = OriginalMaxWalkSpeed;
 	RestoreGiantCamera();
 
 	if (CachedCarryComponent.IsValid())
@@ -129,6 +146,25 @@ void UGA_CPPlayerGiant::RestoreOriginalState()
 	}
 
 	bGiantApplied = false;
+}
+
+void UGA_CPPlayerGiant::BindPreCharacterMovement()
+{
+	const FObjectPropertyBase* PreCMCTickProperty = FindFProperty<FObjectPropertyBase>(CachedCharacter->GetClass(), TEXT("AC_PreCMCTick"));
+	CachedPreCMCTickComponent = Cast<UActorComponent>(PreCMCTickProperty->GetObjectPropertyValue_InContainer(CachedCharacter.Get()));
+
+	FMulticastDelegateProperty* TickDelegateProperty = FindFProperty<FMulticastDelegateProperty>(CachedPreCMCTickComponent->GetClass(), TEXT("Tick"));
+	FScriptDelegate Delegate;
+	Delegate.BindUFunction(this, GET_FUNCTION_NAME_CHECKED(UGA_CPPlayerGiant, HandlePreCharacterMovement));
+	TickDelegateProperty->AddDelegate(Delegate, CachedPreCMCTickComponent.Get(), TickDelegateProperty->ContainerPtrToValuePtr<void>(CachedPreCMCTickComponent.Get()));
+}
+
+void UGA_CPPlayerGiant::UnbindPreCharacterMovement()
+{
+	FMulticastDelegateProperty* TickDelegateProperty = FindFProperty<FMulticastDelegateProperty>(CachedPreCMCTickComponent->GetClass(), TEXT("Tick"));
+	FScriptDelegate Delegate;
+	Delegate.BindUFunction(this, GET_FUNCTION_NAME_CHECKED(UGA_CPPlayerGiant, HandlePreCharacterMovement));
+	TickDelegateProperty->RemoveDelegate(Delegate, CachedPreCMCTickComponent.Get(), TickDelegateProperty->ContainerPtrToValuePtr<void>(CachedPreCMCTickComponent.Get()));
 }
 
 void UGA_CPPlayerGiant::ApplyGiantCamera()
