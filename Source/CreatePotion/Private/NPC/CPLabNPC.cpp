@@ -53,6 +53,7 @@ void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 
 		if (ActiveDialogueWidget)
 		{
+			RegisterCodex();
 			FText NPCNameText = FText::FromName(QuestData->NPCName);
 			TArray<FText> DialogueLines;
 			DialogueLines.Add(FirstHint);

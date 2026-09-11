@@ -6,6 +6,8 @@
 #include "UI/Widgets/Base/CPBasePopupWidget.h"
 #include "CPCodexMainWidget.generated.h"
 
+class UCPNPCCodexWidget;
+class UCPNPCDataAsset;
 class UCPForageableItemData;
 class UCPForageableCodexWidget;
 class UCPCodexSubsystem;
@@ -25,11 +27,16 @@ protected:
 private:
 	UFUNCTION()
 	void OpenItemDetail(UCPForageableItemData* SelectedItemData);
+	
+	UFUNCTION()
+	void OpenNPCDetail(UCPNPCDataAsset* SelectedNPCData);
 
 public:
 	// 아이템 위젯 클래스
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Codex")
 	TSubclassOf<UUserWidget> ForageableCodexWidgetClass;
+	
+	
 
 protected:
 	// 도감 서브시스템
@@ -43,4 +50,7 @@ private:
 	
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UCPForageableCodexWidget> WBP_CPForageableCodex;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UCPNPCCodexWidget> WBP_CPNPCCodex;
 };
