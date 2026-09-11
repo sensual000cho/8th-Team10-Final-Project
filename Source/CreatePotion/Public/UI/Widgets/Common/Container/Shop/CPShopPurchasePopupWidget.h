@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UI/Widgets/Base/CPBasePopupWidget.h"
+#include "Types/CPContainerTypes.h"
 #include "CPShopPurchasePopupWidget.generated.h"
 
 class UImage;
@@ -21,8 +22,10 @@ class CREATEPOTION_API UCPShopPurchasePopupWidget : public UCPBasePopupWidget
 	GENERATED_BODY()
 
 public:
-	// Row 클릭시 호출됨
+	// 상점 컨테이너 Row 클릭시 호출
 	void OpenForPurchase(UCPItemContainerComponent* InShopContainer, int32 InGridIndex, UCPInventoryComponent* InPlayerInventory);
+
+	void OpenForSale(UCPItemContainerComponent* InPlayerContainer, int32 InGridIndex, UCPItemContainerComponent* InShopContainer, UCPInventoryComponent* InPlayerInventory);
 
 protected:
 	virtual void NativeConstruct() override;
@@ -52,6 +55,15 @@ private:
 	void OnQuantityTextCommitted(const FText& NewText, ETextCommit::Type CommitType);
 
 private:
+	EShopPopupMode CurrentMode = EShopPopupMode::Buy;
+
+	// 판매 모드일 때 필요한 추가 참조 (구매 모드에선 필요 x)
+	UPROPERTY()
+	UCPItemContainerComponent* PlayerContainerForSale = nullptr;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	UTextBlock* ModeTitleText;
+
 	UPROPERTY()
 	UCPItemContainerComponent* ShopContainer = nullptr;
 

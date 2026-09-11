@@ -91,13 +91,16 @@ void UCPShopPurchasePopupWidget::OpenForPurchase(UCPItemContainerComponent* InSh
 
 	FContainerItem* ShopItem = InShopContainer->ContainerItems.FindByPredicate(
 		[InGridIndex](const FContainerItem& It) { return It.GridIndex == InGridIndex; });
-
 	if (!ShopItem || !ShopItem->Instance.SourceItemData) return;
 
+	CurrentMode = EShopPopupMode::Buy;
 	ShopContainer = InShopContainer;
 	ShopGridIndex = InGridIndex;
 	PlayerInventory = InPlayerInventory;
+	PlayerContainerForSale = nullptr;
 	CurrentQuantity = 1;
+
+	if (ModeTitleText) ModeTitleText->SetText(FText::FromString(TEXT("구매하기")));
 
 	if (QuantitySlider)
 	{
@@ -109,9 +112,42 @@ void UCPShopPurchasePopupWidget::OpenForPurchase(UCPItemContainerComponent* InSh
 
 	if (ErrorMessageText) ErrorMessageText->SetText(FText::GetEmpty());
 
-	// 클릭 위치를 위젯의 좌상단으로 삼도록 정렬 고정
 	SetAlignmentInViewport(FVector2D(0.f, 0.f));
+	FVector2D MousePos = UWidgetLayoutLibrary::GetMousePositionOnViewport(this);
+	SetPositionInViewport(MousePos, false); // 마우스 위치를 좌상단으로 
 
+	SetVisibility(ESlateVisibility::Visible);
+	RefreshDisplay();
+}
+
+void UCPShopPurchasePopupWidget::OpenForSale(UCPItemContainerComponent* InPlayerContainer, int32 InGridIndex, UCPItemContainerComponent* InShopContainer, UCPInventoryComponent* InPlayerInventory)
+{
+	if (!InPlayerContainer || !InShopContainer || !InPlayerInventory) return;
+
+	FContainerItem* PlayerItem = InPlayerContainer->ContainerItems.FindByPredicate(
+		[InGridIndex](const FContainerItem& It) { return It.GridIndex == InGridIndex; });
+	if (!PlayerItem || !PlayerItem->Instance.SourceItemData) return;
+
+	CurrentMode = EShopPopupMode::Sell;
+	PlayerContainerForSale = InPlayerContainer;
+	ShopContainer = InShopContainer;
+	ShopGridIndex = InGridIndex;              // 판매 대상 슬롯은 "플레이어 컨테이너 기준" 인덱스로 재사용
+	PlayerInventory = InPlayerInventory;
+	CurrentQuantity = 1;
+
+	if (ModeTitleText) ModeTitleText->SetText(FText::FromString(TEXT("판매하기")));
+
+	if (QuantitySlider)
+	{
+		QuantitySlider->SetMinValue(1.f);
+		QuantitySlider->SetMaxValue(static_cast<float>(PlayerItem->Stacked)); // 내가 가진 수량이 최대치
+		QuantitySlider->SetValue(1.f);
+		QuantitySlider->SetStepSize(1.f);
+	}
+
+	if (ErrorMessageText) ErrorMessageText->SetText(FText::GetEmpty());
+
+	SetAlignmentInViewport(FVector2D(0.f, 0.f));
 	FVector2D MousePos = UWidgetLayoutLibrary::GetMousePositionOnViewport(this);
 	SetPositionInViewport(MousePos, false);
 
@@ -127,19 +163,14 @@ void UCPShopPurchasePopupWidget::OnQuantityChanged(float NewValue)
 
 void UCPShopPurchasePopupWidget::RefreshDisplay()
 {
-	if (!ShopContainer)
-	{
-		return;
-	}
+	UCPItemContainerComponent* SourceContainer = (CurrentMode == EShopPopupMode::Buy) ? ShopContainer : PlayerContainerForSale;
+	if (!SourceContainer) return;
 
-	FContainerItem* ShopItem = ShopContainer->ContainerItems.FindByPredicate(
+	FContainerItem* Item = SourceContainer->ContainerItems.FindByPredicate(
 		[this](const FContainerItem& It) { return It.GridIndex == ShopGridIndex; });
-	if (!ShopItem || !ShopItem->Instance.SourceItemData)
-	{
-		return;
-	}
+	if (!Item || !Item->Instance.SourceItemData) return;
 
-	UCPForageableItemData* Data = ShopItem->Instance.SourceItemData;
+	UCPForageableItemData* Data = Item->Instance.SourceItemData;
 
 	if (ItemIcon)
 	{
@@ -154,43 +185,66 @@ void UCPShopPurchasePopupWidget::RefreshDisplay()
 		QuantityInputBox->SetText(FText::AsNumber(CurrentQuantity));
 	}
 
+	int32 UnitPrice = (CurrentMode == EShopPopupMode::Buy) ? Data->BuyPrice : Data->GetSellPrice();
+
 	if (TotalPriceText)
 	{
-		TotalPriceText->SetText(FText::AsNumber(Data->BuyPrice * CurrentQuantity));
+		TotalPriceText->SetText(FText::AsNumber(UnitPrice * CurrentQuantity));
 	}
 }
 
 void UCPShopPurchasePopupWidget::OnConfirmClicked()
 {
-	if (!ShopContainer || !PlayerInventory)
+	if (CurrentMode == EShopPopupMode::Buy)
 	{
-		return;
-	}
+		if (!ShopContainer || !PlayerInventory) return;
 
-	FContainerItem* ShopItem = ShopContainer->ContainerItems.FindByPredicate(
-		[this](const FContainerItem& It) { return It.GridIndex == ShopGridIndex; });
-	if (!ShopItem || !ShopItem->Instance.SourceItemData)
-	{
-		return;
-	}
+		FContainerItem* ShopItem = ShopContainer->ContainerItems.FindByPredicate(
+			[this](const FContainerItem& It) { return It.GridIndex == ShopGridIndex; });
+		if (!ShopItem || !ShopItem->Instance.SourceItemData) return;
 
-	UCPForageableItemData* Data = ShopItem->Instance.SourceItemData;
-	int32 TotalPrice = Data->BuyPrice * CurrentQuantity;
+		int32 TotalPrice = ShopItem->Instance.SourceItemData->BuyPrice * CurrentQuantity;
 
-	if (!PlayerInventory->TrySpendMoney(TotalPrice))
-	{
-		if (ErrorMessageText)
+		if (!PlayerInventory->TrySpendMoney(TotalPrice))
 		{
-			ErrorMessageText->SetText(FText::FromString(TEXT("소지 금액이 부족합니다.")));
+			if (ErrorMessageText)
+			{
+				ErrorMessageText->SetText(FText::FromString(TEXT("소지 금액이 부족합니다.")));
+			}
+
+			return;
 		}
-		return; // 다시 시도할 수 있도록 팝업은 닫지 않고 그대로 유지
+
+		FCPItemInstance PurchasedInstance = ShopItem->Instance;
+		ShopContainer->RemoveItemFromContainer(ShopGridIndex, CurrentQuantity);
+		PlayerInventory->TryGetItemFromInstance(PurchasedInstance, CurrentQuantity);
 	}
+	else // Sell
+	{
+		if (!PlayerContainerForSale || !ShopContainer || !PlayerInventory) return;
 
-	// 구매 전 인스턴스를 값으로 복사해둠 (RemoveItemFromContainer가 배열을 바꿀 수 있으므로)
-	FCPItemInstance PurchasedInstance = ShopItem->Instance;
+		FContainerItem* PlayerItem = PlayerContainerForSale->ContainerItems.FindByPredicate(
+			[this](const FContainerItem& It) { return It.GridIndex == ShopGridIndex; });
+		if (!PlayerItem || !PlayerItem->Instance.SourceItemData) return;
 
-	ShopContainer->RemoveItemFromContainer(ShopGridIndex, CurrentQuantity); // 상점 재고 차감
-	PlayerInventory->TryGetItemFromInstance(PurchasedInstance, CurrentQuantity); // 플레이어에게 지급
+		int32 SellPricePerUnit = PlayerItem->Instance.SourceItemData->GetSellPrice();
+		FCPItemInstance InstanceCopy = PlayerItem->Instance;
+
+		int32 Leftover = ShopContainer->TryGetItemFromInstance(InstanceCopy, CurrentQuantity);
+		int32 ActuallySold = CurrentQuantity - Leftover;
+
+		if (ActuallySold <= 0)
+		{
+			if (ErrorMessageText)
+			{
+				ErrorMessageText->SetText(FText::FromString(TEXT("상점 재고 공간이 부족합니다.")));
+			}
+			return;
+		}
+
+		PlayerContainerForSale->RemoveItemFromContainer(ShopGridIndex, ActuallySold);
+		PlayerInventory->TryGetMoney(SellPricePerUnit * ActuallySold);
+	}
 
 	ClosePopup();
 }
