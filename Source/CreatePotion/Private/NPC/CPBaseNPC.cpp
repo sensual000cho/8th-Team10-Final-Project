@@ -7,6 +7,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimSequence.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameInstance/Subsystem/CPCodexSubsystem.h"
 #include "NPC/CPNPCVisualComponent.h"
 #include "NPC/CPNPCMoveComponent.h"
 #include "NPC/CPNPCAIController.h"
@@ -273,6 +274,7 @@ void ACPBaseNPC::GrantPotionReactionAbilities()
 	}
 }
 
+
 void ACPBaseNPC::HandleInteract(AActor* Interactor) {}
 
 void ACPBaseNPC::HandleInteractionStarted(AActor* Interactor)
@@ -281,13 +283,23 @@ void ACPBaseNPC::HandleInteractionStarted(AActor* Interactor)
 
 FText ACPBaseNPC::GetInteractionPrompt() const { return FText::GetEmpty(); }
 bool ACPBaseNPC::CanInteract(AActor* Interactor) const { return false; }
-FName ACPBaseNPC::GetInteractionName() const
-{
+FName ACPBaseNPC::GetInteractionName() const{
 	if (NPCData && NPCData->NPCName != NAME_None)
 	{
 		return NPCData->NPCName;
 	}
 	return GetFName();
+}
+
+void ACPBaseNPC::RegisterCodex()
+{
+	if (!NPCData) return;
+	
+	UGameInstance* GameInstance = GetGameInstance();
+	UCPCodexSubsystem* CodexSubsystem = GameInstance ? GameInstance->GetSubsystem<UCPCodexSubsystem>() : nullptr;
+	if (!CodexSubsystem) return;
+	
+	CodexSubsystem->RegisterNPCEntry(NPCData);
 }
 
 void ACPBaseNPC::RefreshInteractionState()

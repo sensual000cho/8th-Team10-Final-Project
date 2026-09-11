@@ -90,6 +90,7 @@ protected:
 
 	UCPNPCSubsystem* GetNPCSubsystem() const;
 	void GrantPotionReactionAbilities();
+	void RegisterCodex();
 
 	UFUNCTION(BlueprintCallable, Category = "NPC|Interaction")
 	virtual void RefreshInteractionState();

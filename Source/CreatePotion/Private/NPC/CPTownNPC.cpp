@@ -58,9 +58,11 @@ void ACPTownNPC::HandleInteract(AActor* Interactor)
 				ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
 				if (ActiveDialogueWidget)
 				{
+
 					ActiveDialogueWidget->OnClosed.RemoveAll(this);
 					ActiveDialogueWidget->OnClosed.AddUObject(this, &ACPTownNPC::OnDialogueClosed);
 
+					RegisterCodex();
 					FText NPCNameText = FText::FromName(QuestData->NPCName);
 					// [변경] InitDialogue(FText 버전) → InitDialogueLines(TArray<FText> 버전)
 					// 여러 줄 대사를 순서대로 타이핑해서 보여주기 위해 배열을 그대로 전달
@@ -83,6 +85,7 @@ void ACPTownNPC::HandleInteract(AActor* Interactor)
 					ActiveDialogueWidget->OnClosed.RemoveAll(this);
 					ActiveDialogueWidget->OnClosed.AddUObject(this, &ACPTownNPC::OnDialogueClosed);
 
+					RegisterCodex();
 					FText NPCNameText = FText::FromName(QuestData->NPCName);
 					ActiveDialogueWidget->InitDialogueLines(QuestID, NPCNameText, StoryLines);
 				}
@@ -123,6 +126,7 @@ void ACPTownNPC::HandleInteract(AActor* Interactor)
 							ActiveDialogueWidget->OnClosed.RemoveAll(this);
 							ActiveDialogueWidget->OnClosed.AddUObject(this, &ACPTownNPC::OnDialogueClosed);
 
+							RegisterCodex();
 							FText NPCNameText = FText::FromName(QuestData->NPCName);
 							ActiveDialogueWidget->InitDialogueLines(QuestID, NPCNameText, StoryLines);
 						}

@@ -57,6 +57,7 @@ void ACPLabNPC::HandleInteract(AActor* Interactor)
 			ActiveDialogueWidget->OnClosed.RemoveAll(this);
 			ActiveDialogueWidget->OnClosed.AddUObject(this, &ACPLabNPC::OnDialogueClosed);
 
+			RegisterCodex();
 			FText NPCNameText = FText::FromName(QuestData->NPCName);
 			TArray<FText> DialogueLines;
 			DialogueLines.Add(FirstHint);
