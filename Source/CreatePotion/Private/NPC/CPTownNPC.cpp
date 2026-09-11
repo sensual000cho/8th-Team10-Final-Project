@@ -4,8 +4,9 @@
 #include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
 #include "Components/CPInventoryComponent.h"
 #include "UI/Widgets/Common/Dialogue/CPNPCDialogueWidget.h"
+#include "NPC/CPNPCMoveComponent.h"
 
-void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
+void ACPTownNPC::HandleInteract(AActor* Interactor)
 {
 	if (ActiveDialogueWidget && ActiveDialogueWidget->IsInViewport())
 	{
@@ -17,7 +18,7 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 		return;
 	}
 
-	Super::OnInteract_Implementation(Interactor);
+	Super::HandleInteract(Interactor);
 
 	UGameInstance* GameInstance = GetGameInstance();
 	if (!GameInstance) { return; }
@@ -57,6 +58,10 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 				ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
 				if (ActiveDialogueWidget)
 				{
+
+					ActiveDialogueWidget->OnClosed.RemoveAll(this);
+					ActiveDialogueWidget->OnClosed.AddUObject(this, &ACPTownNPC::OnDialogueClosed);
+
 					RegisterCodex();
 					FText NPCNameText = FText::FromName(QuestData->NPCName);
 					// [변경] InitDialogue(FText 버전) → InitDialogueLines(TArray<FText> 버전)
@@ -67,7 +72,7 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 			break;
 		}
 
-		else if (CurrentState == EQuestState::Accepted 
+		else if (CurrentState == EQuestState::Accepted
 			&& QuestManager->GetQuestCompletionType(QuestID) == EQuestCompletionType::Dialogue)
 		{
 			TArray<FText> StoryLines = QuestManager->GetNPCStoryLines(QuestID);
@@ -77,6 +82,9 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 				ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
 				if (ActiveDialogueWidget)
 				{
+					ActiveDialogueWidget->OnClosed.RemoveAll(this);
+					ActiveDialogueWidget->OnClosed.AddUObject(this, &ACPTownNPC::OnDialogueClosed);
+
 					RegisterCodex();
 					FText NPCNameText = FText::FromName(QuestData->NPCName);
 					ActiveDialogueWidget->InitDialogueLines(QuestID, NPCNameText, StoryLines);
@@ -115,6 +123,9 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 						ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
 						if (ActiveDialogueWidget)
 						{
+							ActiveDialogueWidget->OnClosed.RemoveAll(this);
+							ActiveDialogueWidget->OnClosed.AddUObject(this, &ACPTownNPC::OnDialogueClosed);
+
 							RegisterCodex();
 							FText NPCNameText = FText::FromName(QuestData->NPCName);
 							ActiveDialogueWidget->InitDialogueLines(QuestID, NPCNameText, StoryLines);
@@ -133,7 +144,7 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 	}
 }
 
-bool ACPTownNPC::CanInteract_Implementation(AActor* Interactor)
+bool ACPTownNPC::CanInteract(AActor* Interactor) const
 {
 	if (!QuestData || !GetGameInstance()) { return false; }
 
@@ -144,7 +155,7 @@ bool ACPTownNPC::CanInteract_Implementation(AActor* Interactor)
 
 	for (const FName& QuestID : QuestData->TownQuestIDs)
 	{
-		if (QuestID.IsNone()){continue;	}
+		if (QuestID.IsNone()) { continue; }
 
 		EQuestState CurrentState = QuestManager->GetQuestState(QuestID);
 
@@ -169,7 +180,7 @@ bool ACPTownNPC::CanInteract_Implementation(AActor* Interactor)
 
 	if (bCanQuestInteract)
 	{
-		return Super::CanInteract_Implementation(Interactor);
+		return Super::CanInteract(Interactor);
 	}
 
 	// 모든 퀘스트를 수락했다면 상호작용 불가 상태 (false)로 만듦
@@ -180,4 +191,14 @@ const TArray<FName>& ACPTownNPC::GetPotionQuestIDs() const
 {
 	static const TArray<FName> EmptyQuestIDs;
 	return QuestData ? QuestData->TownQuestIDs : EmptyQuestIDs;
+}
+
+void ACPTownNPC::OnDialogueClosed()
+{
+	Super::OnDialogueClosed();
+
+	if (MoveComponent)
+	{
+		MoveComponent->StartMoving();
+	}
 }
