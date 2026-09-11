@@ -17,14 +17,10 @@ class CREATEPOTION_API ACPNestActor : public ACPBaseFieldActor
 public:
 	ACPNestActor();
 	
-	virtual void PotionReaction() override;
+	virtual bool PotionReaction(const FGameplayTag& EventTag, AActor* InstigatorActor = nullptr) override;
 	virtual bool CanReactToTag(const FGameplayTag& EventTag) const override;
 	
 protected:
-	// 루트 컴포넌트
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TObjectPtr<USceneComponent> Root;
-	
 	// 드랍 아이템 DA
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Drop")
 	TObjectPtr<UCPResourceDefinition> DropItemData;
