@@ -50,8 +50,8 @@ void ACPAlchemyProp::Tick(float DeltaSeconds)
     IngredientBobblePivot->SetRelativeLocation(IngredientBobbleBaseLocation + FVector::UpVector * BobbleOffset);
 }
 
-FName ACPAlchemyProp::GetInteractionName_Implementation()
+FName ACPAlchemyProp::EvaluateTargetName_Implementation() const
 {
-    return WorkingIngredient.SourceItemData ? 
-        FName(*WorkingIngredient.SourceItemData->DisplayName.ToString()) : Super::GetInteractionName_Implementation();
+    return WorkingIngredient.SourceItemData 
+        ? FName(*WorkingIngredient.SourceItemData->DisplayName.ToString()) : Super::EvaluateTargetName_Implementation();
 }

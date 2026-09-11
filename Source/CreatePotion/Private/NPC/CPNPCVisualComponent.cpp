@@ -128,11 +128,10 @@ FVector UCPNPCVisualComponent::GetCurrentBaseScale() const
 
 void UCPNPCVisualComponent::FitCapsuleToCurrentMesh()
 {
-	if (!MeshComponent.IsValid() || !CapsuleComponent.IsValid()) return;
+	if (!MeshComponent.IsValid() || !CapsuleComponent.IsValid()) { return; }
 	USkeletalMesh* CurrentMesh = MeshComponent->GetSkeletalMeshAsset();
-	if (!CurrentMesh) return;
+	if (!CurrentMesh) { return; }
 
-	// 1. 크기 변경 전 현재 캡슐의 ScaledHalfHeight 기록
 	const float OldHalfHeight = CapsuleComponent->GetScaledCapsuleHalfHeight();
 
 	float TargetRadius = -1.0f;
@@ -238,10 +237,6 @@ void UCPNPCVisualComponent::RestoreMeshTransformAfterRagdoll()
 	MeshComponent->RecreatePhysicsState();
 
 	float ExpectedHalfHeight = CapsuleComponent->GetScaledCapsuleHalfHeight();
-	if (MeshOverrideStack.Num() > 0 && MeshOverrideStack.Last().OverrideCapsuleHalfHeight > 0.0f)
-	{
-		ExpectedHalfHeight = MeshOverrideStack.Last().OverrideCapsuleHalfHeight;
-	}
 
 	FHitResult Hit;
 	FCollisionQueryParams Params;

@@ -33,6 +33,7 @@ void ACPThrowablePropBase::BeginPlay()
 void ACPThrowablePropBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
     StopRestCheck();
+    EndThrowerCollisionIgnore();
 
     if (IsValid(StaticMeshComponent))
     {
@@ -42,7 +43,7 @@ void ACPThrowablePropBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
     Super::EndPlay(EndPlayReason);
 }
 
-void ACPThrowablePropBase::OnInteract_Implementation(AActor* Interactor)
+void ACPThrowablePropBase::HandleInteract(AActor* Interactor)
 {
     if (!IsValid(Interactor) || !CanBePickedUp()) return;
     
@@ -60,19 +61,19 @@ void ACPThrowablePropBase::OnInteract_Implementation(AActor* Interactor)
     AbilitySystem->HandleGameplayEvent(PickupEventTag, &EventData);
 }
 
-bool ACPThrowablePropBase::CanInteract_Implementation(AActor* Interactor)
+bool ACPThrowablePropBase::EvaluateInteractability_Implementation() const
 {
-    return IsValid(Interactor) && CanBePickedUp();
+    return CanBePickedUp();
 }
 
-FText ACPThrowablePropBase::GetInteractionPrompt_Implementation()
-{
-    return FText::FromString(TEXT("들기"));
-}
-
-FName ACPThrowablePropBase::GetInteractionName_Implementation()
+FName ACPThrowablePropBase::EvaluateTargetName_Implementation() const
 {
     return FName(TEXT("Prop"));
+}
+
+FText ACPThrowablePropBase::EvaluateInteractionPrompt_Implementation() const
+{
+    return FText::FromString(TEXT("들기"));
 }
 
 void ACPThrowablePropBase::InitializeFromItemData(UCPForageableItemData* ItemData, const TArray<FGameplayTag>& EffectTags)
@@ -80,6 +81,7 @@ void ACPThrowablePropBase::InitializeFromItemData(UCPForageableItemData* ItemDat
     WorkingIngredient = FCPItemInstance{};
     WorkingIngredient.SourceItemData = ItemData;
     WorkingIngredient.CurrentEffects = EffectTags;
+    CheckInteractionConditions();
 }
 
 const FCPItemInstance& ACPThrowablePropBase::GetWorkingIngredient() const
@@ -107,6 +109,7 @@ bool ACPThrowablePropBase::AttachAsHeld(USceneComponent* CarryAnchor)
     }
 
     StopRestCheck();
+    EndThrowerCollisionIgnore();
 
     // 이전 물리 운동 제거
     StaticMeshComponent->SetPhysicsLinearVelocity(FVector::ZeroVector);
@@ -224,6 +227,7 @@ bool ACPThrowablePropBase::Throw(const FVector& Direction, float Speed)
 
     // 투척자 저장(현 프로젝트 상 무조건 Player)
     LastThrower = GetAttachParentActor();
+    BeginThrowerCollisionIgnore();
 
     DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 
@@ -290,6 +294,7 @@ void ACPThrowablePropBase::SetPropState(ECPThrowablePropState NewState)
 {
     if (PropState == NewState) return;
     PropState = NewState;
+    CheckInteractionConditions();
 }
 
 void ACPThrowablePropBase::StartRestCheck()
@@ -311,6 +316,47 @@ void ACPThrowablePropBase::StopRestCheck()
     }
 
     GetWorldTimerManager().ClearTimer(RestCheckTimerHandle);
+}
+
+void ACPThrowablePropBase::BeginThrowerCollisionIgnore()
+{
+    StaticMeshComponent->IgnoreActorWhenMoving(LastThrower.Get(), true);
+    OriginalPawnCollisionResponse = StaticMeshComponent->GetCollisionResponseToChannel(ECC_Pawn);
+    StaticMeshComponent->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+    bIgnoringThrowerCollision = true;
+
+    if (UPrimitiveComponent* ThrowerRoot = Cast<UPrimitiveComponent>(LastThrower->GetRootComponent()))
+    {
+        ThrowerRoot->IgnoreActorWhenMoving(this, true);
+    }
+
+    GetWorldTimerManager().SetTimer(ThrowerCollisionIgnoreTimerHandle, this, &ACPThrowablePropBase::EndThrowerCollisionIgnore, ThrowerCollisionIgnoreDuration, false);
+}
+
+void ACPThrowablePropBase::EndThrowerCollisionIgnore()
+{
+    if (!bIgnoringThrowerCollision)
+    {
+        return;
+    }
+
+    GetWorldTimerManager().ClearTimer(ThrowerCollisionIgnoreTimerHandle);
+
+    if (IsValid(StaticMeshComponent))
+    {
+        StaticMeshComponent->SetCollisionResponseToChannel(ECC_Pawn, OriginalPawnCollisionResponse);
+        StaticMeshComponent->IgnoreActorWhenMoving(LastThrower.Get(), false);
+    }
+
+    if (IsValid(LastThrower))
+    {
+        if (UPrimitiveComponent* ThrowerRoot = Cast<UPrimitiveComponent>(LastThrower->GetRootComponent()))
+        {
+            ThrowerRoot->IgnoreActorWhenMoving(this, false);
+        }
+    }
+
+    bIgnoringThrowerCollision = false;
 }
 
 void ACPThrowablePropBase::CheckForRest()

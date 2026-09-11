@@ -3,8 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameCore/Interface/CPInteractable.h"
-#include "GameFramework/Actor.h"
+#include "Items/CPBaseInteractableActor.h"
 #include "Types/CPItemInstanceTypes.h"
 #include "CPThrowablePropBase.generated.h"
 
@@ -23,7 +22,7 @@ enum class ECPThrowablePropState : uint8
 };
 
 UCLASS(Abstract)
-class CREATEPOTION_API ACPThrowablePropBase : public AActor, public ICPInteractable
+class CREATEPOTION_API ACPThrowablePropBase : public ACPBaseInteractableActor
 {
     GENERATED_BODY()
 
@@ -33,10 +32,10 @@ public:
     virtual void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-    virtual void OnInteract_Implementation(AActor* Interactor) override;
-    virtual bool CanInteract_Implementation(AActor* Interactor) override;
-    virtual FText GetInteractionPrompt_Implementation() override;
-    virtual FName GetInteractionName_Implementation() override;
+    virtual void HandleInteract(AActor* Interactor) override;
+    virtual bool EvaluateInteractability_Implementation() const override;
+    virtual FName EvaluateTargetName_Implementation() const override;
+    virtual FText EvaluateInteractionPrompt_Implementation() const override;
     
     virtual void InitializeFromItemData(UCPForageableItemData* ItemData, const TArray<FGameplayTag>& EffectTags = TArray<FGameplayTag>());
     const FCPItemInstance& GetWorkingIngredient() const;
@@ -75,6 +74,8 @@ protected:
     void StartRestCheck();
     void StopRestCheck();
     void CheckForRest();
+    void BeginThrowerCollisionIgnore();
+    void EndThrowerCollisionIgnore();
 
     UFUNCTION()
     void HandleMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& HitResult);
@@ -91,6 +92,9 @@ protected:
     // 100.0만큼 투척방향으로 이동(물리 활성화 전)
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Throw", meta = (ClampMin = "0.0", Units = "cm"))
     float ThrowStartOffset = 100.f;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Throw", meta = (ClampMin = "0.01", Units = "s"))
+    float ThrowerCollisionIgnoreDuration = 0.2f;
 
     // 0.1초마다 정지 상태 확인
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Rest", meta = (ClampMin = "0.01", Units = "s"))
@@ -141,7 +145,10 @@ private:
     ECPThrowablePropState PropState = ECPThrowablePropState::Resting;
 
     bool bHasHitSinceThrow = false;
+    bool bIgnoringThrowerCollision = false;
     float LowSpeedElapsedTime = 0.f;
+    ECollisionResponse OriginalPawnCollisionResponse = ECR_Block;
 
     FTimerHandle RestCheckTimerHandle;
+    FTimerHandle ThrowerCollisionIgnoreTimerHandle;
 };

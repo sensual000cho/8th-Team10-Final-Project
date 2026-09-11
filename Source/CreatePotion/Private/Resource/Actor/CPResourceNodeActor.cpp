@@ -34,7 +34,7 @@ void ACPResourceNodeActor::BeginPlay()
 	UCPCodexSubsystem* CodexSubsystem = GI->GetSubsystem<UCPCodexSubsystem>();
 	if (!CodexSubsystem) return;
 	
-	CodexSubsystem->OnForageableItemDiscovered.AddUniqueDynamic(this, &ACPResourceNodeActor::HandleResourceDiscovered);
+	CodexSubsystem->OnForageableCodexUpdated.AddUniqueDynamic(this, &ACPResourceNodeActor::HandleResourceDiscovered);
 }
 
 void ACPResourceNodeActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -50,7 +50,7 @@ void ACPResourceNodeActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	UCPCodexSubsystem* CodexSubsystem = GI->GetSubsystem<UCPCodexSubsystem>();
 	if (!CodexSubsystem) return;
 	
-	CodexSubsystem->OnForageableItemDiscovered.RemoveDynamic(this, &ACPResourceNodeActor::HandleResourceDiscovered);
+	CodexSubsystem->OnForageableCodexUpdated.RemoveDynamic(this, &ACPResourceNodeActor::HandleResourceDiscovered);
 	
 	Super::EndPlay(EndPlayReason);
 	
@@ -239,11 +239,15 @@ void ACPResourceNodeActor::Inspect(AActor* Interactor)
 	
 }
 
-void ACPResourceNodeActor::HandleResourceDiscovered(UCPForageableItemData* DiscoveredItem)
+void ACPResourceNodeActor::HandleResourceDiscovered()
 {
 	// 조사 완료된 재료 프롬프트 변경
 	if (!ResourceDefinition || !InteractableComponent) return;
-	if (ResourceDefinition->HarvestData.HarvestedItem != DiscoveredItem) return;
+	UGameInstance* GI = GetGameInstance();
+	UCPCodexSubsystem* CodexSubsystem = GI ? GI->GetSubsystem<UCPCodexSubsystem>() : nullptr;
+	if (!CodexSubsystem) return;
+	
+	if (!CodexSubsystem->GetForageableEntry(ResourceDefinition->HarvestData.HarvestedItem)) return;
 	
 	InteractableComponent->SetInteractionPrompt(FText::FromString(TEXT("채집하기")));
 }

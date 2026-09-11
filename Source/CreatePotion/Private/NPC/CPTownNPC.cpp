@@ -17,6 +17,8 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 		return;
 	}
 
+	Super::OnInteract_Implementation(Interactor);
+
 	UGameInstance* GameInstance = GetGameInstance();
 	if (!GameInstance) { return; }
 
@@ -55,6 +57,7 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 				ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
 				if (ActiveDialogueWidget)
 				{
+					RegisterCodex();
 					FText NPCNameText = FText::FromName(QuestData->NPCName);
 					// [변경] InitDialogue(FText 버전) → InitDialogueLines(TArray<FText> 버전)
 					// 여러 줄 대사를 순서대로 타이핑해서 보여주기 위해 배열을 그대로 전달
@@ -74,6 +77,7 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 				ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
 				if (ActiveDialogueWidget)
 				{
+					RegisterCodex();
 					FText NPCNameText = FText::FromName(QuestData->NPCName);
 					ActiveDialogueWidget->InitDialogueLines(QuestID, NPCNameText, StoryLines);
 				}
@@ -111,6 +115,7 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 						ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
 						if (ActiveDialogueWidget)
 						{
+							RegisterCodex();
 							FText NPCNameText = FText::FromName(QuestData->NPCName);
 							ActiveDialogueWidget->InitDialogueLines(QuestID, NPCNameText, StoryLines);
 						}
@@ -135,20 +140,19 @@ bool ACPTownNPC::CanInteract_Implementation(AActor* Interactor)
 	UQuestManager* QuestManager = GetGameInstance()->GetSubsystem<UQuestManager>();
 	if (!QuestManager) { return false; }
 
-	// NPC가 가진 마을 퀘스트 중 NotAccepted 퀘스트가 있는지 검사
+	bool bCanQuestInteract = false;
+
 	for (const FName& QuestID : QuestData->TownQuestIDs)
 	{
-		if (QuestID.IsNone())
-		{
-			continue;
-		}
+		if (QuestID.IsNone()){continue;	}
 
 		EQuestState CurrentState = QuestManager->GetQuestState(QuestID);
 
 		if (CurrentState == EQuestState::NotAccepted
 			&& QuestManager->IsQuestStoryUnlocked(QuestID))
 		{
-			return true;
+			bCanQuestInteract = true;
+			break;
 		}
 
 		// Accepted 상태에서 완료 확정 대화/아이템 확인이 필요한 경우도 상호작용 가능해야 함
@@ -157,9 +161,15 @@ bool ACPTownNPC::CanInteract_Implementation(AActor* Interactor)
 			EQuestCompletionType Type = QuestManager->GetQuestCompletionType(QuestID);
 			if (Type == EQuestCompletionType::Dialogue || Type == EQuestCompletionType::ItemCollection)
 			{
-				return true;
+				bCanQuestInteract = true;
+				break;
 			}
 		}
+	}
+
+	if (bCanQuestInteract)
+	{
+		return Super::CanInteract_Implementation(Interactor);
 	}
 
 	// 모든 퀘스트를 수락했다면 상호작용 불가 상태 (false)로 만듦
