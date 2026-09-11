@@ -30,9 +30,4 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Shop|UI")
 	TSubclassOf<UCPShopPurchasePopupWidget> PurchasePopupWidgetClass;
-
-private:
-	UPROPERTY()
-	UCPShopPurchasePopupWidget* PurchasePopupWidgetInstance;
-	
 };

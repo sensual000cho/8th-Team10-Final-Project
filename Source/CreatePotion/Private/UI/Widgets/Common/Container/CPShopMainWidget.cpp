@@ -53,28 +53,14 @@ void UCPShopMainWidget::UpdateUI()
 
 void UCPShopMainWidget::OpenPurchasePopup(UCPItemContainerComponent* ShopContainer, int32 GridIndex)
 {
-	if (!PurchasePopupWidgetClass)
-	{
-		return;
-	}
-
 	ACPPlayerController* PC = Cast<ACPPlayerController>(GetOwningPlayer());
 	if (!PC || !PC->CachedInventoryComponent)
 	{
 		return;
 	}
 
-	if (!PurchasePopupWidgetInstance)
+	if (UCPShopPurchasePopupWidget* Popup = PC->GetOrCreateShopPopup())
 	{
-		PurchasePopupWidgetInstance = CreateWidget<UCPShopPurchasePopupWidget>(PC, PurchasePopupWidgetClass);
-		if (PurchasePopupWidgetInstance)
-		{
-			PurchasePopupWidgetInstance->AddToViewport(200); // 상점 창보다 위에 그려지도록 ZOrder를 높게
-		}
-	}
-
-	if (PurchasePopupWidgetInstance)
-	{
-		PurchasePopupWidgetInstance->OpenForPurchase(ShopContainer, GridIndex, PC->CachedInventoryComponent);
+		Popup->OpenForPurchase(ShopContainer, GridIndex, PC->CachedInventoryComponent);
 	}
 }
