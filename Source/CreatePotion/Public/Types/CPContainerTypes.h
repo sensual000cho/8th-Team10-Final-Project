@@ -24,6 +24,13 @@ enum class EUITargetContext : uint8
     Shop            UMETA(DisplayName = "상점")
 };
 
+UENUM(BlueprintType)
+enum class EShopPopupMode : uint8
+{
+    Buy,
+    Sell
+};
+
 USTRUCT(BlueprintType)
 struct FContainerItem
 {

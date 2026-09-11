@@ -8,11 +8,17 @@
 #include "GameCore/Interface/CPLevelUIInterface.h"
 #include "GameFramework/HUD.h"
 
+#include "EngineUtils.h"                          // TActorIterator
+#include "NPC/Components/CPShopContainerComponent.h"
+
 #include "CreatePotion.h"   // 로그용 헤더
 #include "UI/Widgets/Common/Container/CPContainerMainWidget.h"
 #include "UI/Widgets/Common/Container/CPContainerGridWidget.h"
 #include "UI/Widgets/Common/Container/CPHandHeldItemWidget.h"
 #include "UI/Widgets/Common/Container/CPItemWheelWidget.h"
+#include "UI/Widgets/Common/Container/CPWheelModeIndicatorWidget.h"
+#include "UI/Widgets/Common/Container/Shop/CPShopPurchasePopupWidget.h"
+
 #include "Components/CPItemContainerComponent.h"
 #include "Components/CPInventoryComponent.h"
 #include "Components/CPHandItemContainerComponent.h"
@@ -65,15 +71,10 @@ void ACPPlayerController::CycleWheelInputMode()
 	uint8 NextModeValue = (static_cast<uint8>(CurrentWheelMode) + 1) % 3;
 	SetWheelInputMode(static_cast<EWheelInputMode>(NextModeValue));
 
-	FString ModeName;
-	switch (CurrentWheelMode)
+	if (WheelModeIndicatorInstance)
 	{
-	case EWheelInputMode::CameraZoom:        ModeName = TEXT("카메라 줌"); break;
-	case EWheelInputMode::PotionSelect:      ModeName = TEXT("포션 선택"); break;
-	case EWheelInputMode::IngredientSelect:  ModeName = TEXT("재료 선택"); break;
+		WheelModeIndicatorInstance->ShowMode(CurrentWheelMode);
 	}
-
-	// TODO[Container] : 현재 Mode UI 표시
 }
 
 void ACPPlayerController::BeginPlay()
@@ -239,6 +240,20 @@ void ACPPlayerController::SetPawn(APawn* InPawn)
 
 			UE_LOG(LogContainer, Log, TEXT("아이템 집기 컴포넌트 캐싱 및 UI 바인딩 완료"));
 		}
+
+		if (WheelModeIndicatorWidgetClass && !WheelModeIndicatorInstance)
+		{
+			WheelModeIndicatorInstance = CreateWidget<UCPWheelModeIndicatorWidget>(this, WheelModeIndicatorWidgetClass);
+			if (WheelModeIndicatorInstance)
+			{
+				WheelModeIndicatorInstance->AddToViewport();
+			}
+		}
+		else
+		{
+			UE_LOG(LogContainer, Log, TEXT("아이템 선택 모드 UI 바인딩 실패"));
+		}
+
 	}
 	else
 	{
@@ -358,6 +373,46 @@ void ACPPlayerController::ResetHoldingItem()
 	LeftClickPickedItemOriginContainer = nullptr;
 	LeftClickPickedOriginSlotIndex = -1;
 }
+
+void ACPPlayerController::DebugToggleShopDirectly()
+{
+	UCPShopContainerComponent* FoundShop = nullptr;
+
+	// TODO[Container] : 현재 Actor 순회를 통해 찾는 중, 추후 상호작용키로 변경 예정
+	for (TActorIterator<AActor> It(GetWorld()); It; ++It)
+	{
+		if (UCPShopContainerComponent* Shop = It->FindComponentByClass<UCPShopContainerComponent>())
+		{
+			FoundShop = Shop;
+			break; // 지금은 상점이 하나뿐인 상황을 전제로 작동, 여러 개면 비교 로직 필요
+		}
+	}
+
+	if (!FoundShop)
+	{
+		UE_LOG(LogContainer, Warning, TEXT("[Debug] 월드에서 ShopContainerComponent를 찾지 못함"));
+		return;
+	}
+
+	ToggleExternalContainerUI(FoundShop);
+}
+#pragma endregion
+
+#pragma region Shop
+
+UCPShopPurchasePopupWidget* ACPPlayerController::GetOrCreateShopPopup()
+{
+	if (!ShopPopupInstance && ShopPopupWidgetClass)
+	{
+		ShopPopupInstance = CreateWidget<UCPShopPurchasePopupWidget>(this, ShopPopupWidgetClass);
+		if (ShopPopupInstance)
+		{
+			ShopPopupInstance->AddToViewport(200);
+		}
+	}
+	return ShopPopupInstance;
+}
+
 #pragma endregion
 
 

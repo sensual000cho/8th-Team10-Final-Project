@@ -34,10 +34,10 @@ void ACPPotionActor::Tick(float DeltaTime)
     UpdatePotionVisual(DeltaTime);
 }
 
-FName ACPPotionActor::GetInteractionName_Implementation()
+FName ACPPotionActor::EvaluateTargetName_Implementation() const
 {
     return WorkingIngredient.SourceItemData ? 
-        FName(*WorkingIngredient.SourceItemData->DisplayName.ToString()) : Super::GetInteractionName_Implementation();   
+        FName(*WorkingIngredient.SourceItemData->DisplayName.ToString()) : Super::EvaluateTargetName_Implementation();
 }
 
 void ACPPotionActor::InitializeFromItemData(UCPForageableItemData* ItemData, const TArray<FGameplayTag>& EffectTags)

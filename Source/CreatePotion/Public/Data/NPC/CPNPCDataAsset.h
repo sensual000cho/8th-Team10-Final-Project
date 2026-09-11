@@ -6,6 +6,7 @@
 
 class USkeletalMesh;
 class UAnimSequence;
+class UTexture2D;
 
 UCLASS(BlueprintType)
 class CREATEPOTION_API UCPNPCDataAsset : public UPrimaryDataAsset
@@ -15,6 +16,12 @@ class CREATEPOTION_API UCPNPCDataAsset : public UPrimaryDataAsset
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC")
 	FName NPCName;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Codex")
+	TSoftObjectPtr<UTexture2D> CodexImage;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Codex")
+	FName CodexTextKey;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Mesh")
 	TSoftObjectPtr<USkeletalMesh> NPCMesh;
@@ -43,4 +50,11 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Potion|Bouncy")
 	FLinearColor SlimeOuterColor = FLinearColor(0.2f, 1.0f, 0.4f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Move")
+	FDataTableRowHandle TargetRowHandle;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Move")
+	float MoveSpeed = 200.0f;
+
 };

@@ -114,29 +114,55 @@ void UCPNPCSubsystem::ClearNPCEffect(FName NPCId, FGameplayTag EffectTag)
 void UCPNPCSubsystem::RegisterActiveNPC(FName NPCId, ACPBaseNPC* NPC)
 {
 	if (NPCId.IsNone() || !IsValid(NPC)) return;
-	ActiveNPCRegistry.Add(NPCId, NPC);
+
+	TArray<TWeakObjectPtr<ACPBaseNPC>>& NPCList = ActiveNPCRegistry.FindOrAdd(NPCId);
+	NPCList.AddUnique(NPC);
 }
 
 void UCPNPCSubsystem::UnregisterActiveNPC(FName NPCId, ACPBaseNPC* NPC)
 {
 	if (NPCId.IsNone()) return;
 
-	if (TWeakObjectPtr<ACPBaseNPC>* Found = ActiveNPCRegistry.Find(NPCId))
+	if (TArray<TWeakObjectPtr<ACPBaseNPC>>* NPCList = ActiveNPCRegistry.Find(NPCId))
 	{
-		if (Found->Get() == NPC)
+		NPCList->RemoveAll([NPC](const TWeakObjectPtr<ACPBaseNPC>& WeakNPC)
+			{
+				return !WeakNPC.IsValid() || WeakNPC.Get() == NPC;
+			});
+
+		if (NPCList->Num() == 0)
 		{
 			ActiveNPCRegistry.Remove(NPCId);
 		}
 	}
 }
 
+void UCPNPCSubsystem::SaveNPCMovementData(FName NPCId, const FCPNPCMovementSaveData& MovementData)
+{
+	if (NPCId.IsNone()) return;
+	NPCMovementRepository.Add(NPCId, MovementData);
+}
+
+bool UCPNPCSubsystem::GetNPCMovementData(FName NPCId, FCPNPCMovementSaveData& OutMovementData) const
+{
+	if (const FCPNPCMovementSaveData* Found = NPCMovementRepository.Find(NPCId))
+	{
+		OutMovementData = *Found;
+		return true;
+	}
+	return false;
+}
+
 void UCPNPCSubsystem::NotifyEffectApplied(FName NPCId, FGameplayTag EffectTag, int64 ExpiresAtWorldMinute, float Magnitude)
 {
-	if (TWeakObjectPtr<ACPBaseNPC>* Found = ActiveNPCRegistry.Find(NPCId))
+	if (TArray<TWeakObjectPtr<ACPBaseNPC>>* NPCList = ActiveNPCRegistry.Find(NPCId))
 	{
-		if (ACPBaseNPC* NPC = Found->Get())
+		for (const TWeakObjectPtr<ACPBaseNPC>& WeakNPC : *NPCList)
 		{
-			NPC->HandlePotionEffectApplied(EffectTag, ExpiresAtWorldMinute, Magnitude);
+			if (ACPBaseNPC* NPC = WeakNPC.Get())
+			{
+				NPC->HandlePotionEffectApplied(EffectTag, ExpiresAtWorldMinute, Magnitude);
+			}
 		}
 	}
 
@@ -145,11 +171,14 @@ void UCPNPCSubsystem::NotifyEffectApplied(FName NPCId, FGameplayTag EffectTag, i
 
 void UCPNPCSubsystem::NotifyEffectExpired(FName NPCId, FGameplayTag EffectTag)
 {
-	if (TWeakObjectPtr<ACPBaseNPC>* Found = ActiveNPCRegistry.Find(NPCId))
+	if (TArray<TWeakObjectPtr<ACPBaseNPC>>* NPCList = ActiveNPCRegistry.Find(NPCId))
 	{
-		if (ACPBaseNPC* NPC = Found->Get())
+		for (const TWeakObjectPtr<ACPBaseNPC>& WeakNPC : *NPCList)
 		{
-			NPC->HandlePotionEffectExpired(EffectTag);
+			if (ACPBaseNPC* NPC = WeakNPC.Get())
+			{
+				NPC->HandlePotionEffectExpired(EffectTag);
+			}
 		}
 	}
 

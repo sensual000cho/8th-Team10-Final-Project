@@ -25,6 +25,12 @@ void UCPContainerGridWidget::InitializeGrid(UCPItemContainerComponent* TargetCon
 
 	ItemGrid->ClearChildren();
 
+	const UCPContainerUISettings* Settings = GetDefault<UCPContainerUISettings>();
+	float SlotSize = Settings->SlotSize;
+	float SlotPadding = Settings->SlotPadding;
+
+	ItemGrid->SetSlotPadding(FMargin(0.f, 0.f, SlotPadding, SlotPadding));
+
 	int32 TotalSlots = 0;
 
 	if (TargetContainer->ContainerType == EContainerType::Grid2D)
@@ -48,23 +54,11 @@ void UCPContainerGridWidget::InitializeGrid(UCPItemContainerComponent* TargetCon
 			int32 Row = 0;
 			int32 Col = i;
 
-			if (TargetContainer->ContainerType == EContainerType::Grid2D)
-			{
-				Row = i / TargetContainer->Columns;
-				Col = i % TargetContainer->Columns;
-
-				// Grid2D의 경우 UniformGrid에 바로 추가
-				ItemGrid->AddChildToUniformGrid(BgSlot, Row, Col);
-			}
-			else if (TargetContainer->ContainerType == EContainerType::Slot1D)
+			if (TargetContainer->ContainerType == EContainerType::Slot1D)
 			{
 				// Slot1D의 경우 1칸짜리 배경을 (Columns x Rows) 크기로 거대하게 그리기
-				const UCPContainerUISettings* Settings = GetDefault<UCPContainerUISettings>();
-				float SlotSize = Settings->SlotSize;
-				float SlotPadding = Settings->SlotPadding;
-
-				float BigSlotSizeX = (TargetContainer->Columns * SlotSize) + FMath::Max(0, (TargetContainer->Columns - 1)) * SlotPadding;
-				float BigSlotSizeY = (TargetContainer->Rows * SlotSize) + FMath::Max(0, (TargetContainer->Rows - 1)) * SlotPadding;
+				float BigSlotSizeX = (TargetContainer->SlotFitWidth * SlotSize) + FMath::Max(0, (TargetContainer->SlotFitWidth - 1)) * SlotPadding;
+				float BigSlotSizeY = (TargetContainer->SlotFitHeight * SlotSize) + FMath::Max(0, (TargetContainer->SlotFitHeight - 1)) * SlotPadding;
 
 				// SizeBox를 동적으로 생성해서 배경 위젯을 감싼 뒤 강제로 크기를 늘림
 				USizeBox* SizeBox = NewObject<USizeBox>(this);
@@ -72,7 +66,19 @@ void UCPContainerGridWidget::InitializeGrid(UCPItemContainerComponent* TargetCon
 				SizeBox->SetHeightOverride(BigSlotSizeY);
 				SizeBox->AddChild(BgSlot);
 
-				// 확장된 SizeBox를 UniformGrid에 추가 (가로로 일렬 배치)
+				ItemGrid->AddChildToUniformGrid(SizeBox, Row, Col);
+			}
+			else if (TargetContainer->ContainerType == EContainerType::Grid2D)
+			{
+				Row = i / TargetContainer->Columns;
+				Col = i % TargetContainer->Columns;
+
+				// Grid2D의 경우에도 SizeBox로 랩핑한 뒤 사이즈를 강제로 override
+				USizeBox* SizeBox = NewObject<USizeBox>(this);
+				SizeBox->SetWidthOverride(SlotSize);
+				SizeBox->SetHeightOverride(SlotSize);
+				SizeBox->AddChild(BgSlot);
+
 				ItemGrid->AddChildToUniformGrid(SizeBox, Row, Col);
 			}
 		}
@@ -122,13 +128,22 @@ void UCPContainerGridWidget::UpdateGrid(const TArray<FContainerItem>& ContainerI
 			float ItemSizeX = (ItemW * SlotSize) + FMath::Max(0, (ItemW - 1)) * SlotPadding;
 			float ItemSizeY = (ItemH * SlotSize) + FMath::Max(0, (ItemH - 1)) * SlotPadding;
 
+			// Slot1D의 경우
 			if (CachedContainer->ContainerType == EContainerType::Slot1D)
 			{
 				// 배경(BigSlot)의 물리적 크기
-				float BigSlotSizeX = (CachedContainer->Columns * SlotSize) + FMath::Max(0, (CachedContainer->Columns - 1)) * SlotPadding;
-				float BigSlotSizeY = (CachedContainer->Rows * SlotSize) + FMath::Max(0, (CachedContainer->Rows - 1)) * SlotPadding;
+				float BigSlotSizeX = (CachedContainer->SlotFitWidth * SlotSize) + FMath::Max(0, (CachedContainer->SlotFitWidth - 1)) * SlotPadding;
+				float BigSlotSizeY = (CachedContainer->SlotFitHeight * SlotSize) + FMath::Max(0, (CachedContainer->SlotFitHeight - 1)) * SlotPadding;
 
-				// 다음 거대 슬롯으로 넘어갈 때의 간격: (거대 슬롯 크기 + 패딩 1개)
+				// 아이템이 슬롯보다 크면, 비율 유지한 채로 축소 (Fit)
+				float ScaleX = BigSlotSizeX / ItemSizeX;
+				float ScaleY = BigSlotSizeY / ItemSizeY;
+				float FitScale = FMath::Min(FMath::Min(ScaleX, ScaleY), 1.0f); // 1.0을 넘으면(원래 더 작으면) 확대는 안 함
+
+				ItemSizeX *= FitScale;
+				ItemSizeY *= FitScale;
+
+				// 다음 거대 슬롯으로 넘어갈 때의 간격
 				float BasePosX = Item.GridIndex * (BigSlotSizeX + SlotPadding);
 				float BasePosY = 0.0f;
 
