@@ -54,20 +54,7 @@ void UCPContainerGridWidget::InitializeGrid(UCPItemContainerComponent* TargetCon
 			int32 Row = 0;
 			int32 Col = i;
 
-			if (TargetContainer->ContainerType == EContainerType::Grid2D)
-			{
-				Row = i / TargetContainer->Columns;
-				Col = i % TargetContainer->Columns;
-
-				USizeBox* SizeBox = NewObject<USizeBox>(this);
-				SizeBox->SetWidthOverride(SlotSize);
-				SizeBox->SetHeightOverride(SlotSize);
-				SizeBox->AddChild(BgSlot);
-
-				// Grid2D의 경우 UniformGrid에 바로 추가
-				ItemGrid->AddChildToUniformGrid(SizeBox, Row, Col);
-			}
-			else if (TargetContainer->ContainerType == EContainerType::Slot1D)
+			if (TargetContainer->ContainerType == EContainerType::Slot1D)
 			{
 				// Slot1D의 경우 1칸짜리 배경을 (Columns x Rows) 크기로 거대하게 그리기
 				float BigSlotSizeX = (TargetContainer->SlotFitWidth * SlotSize) + FMath::Max(0, (TargetContainer->SlotFitWidth - 1)) * SlotPadding;
@@ -77,6 +64,19 @@ void UCPContainerGridWidget::InitializeGrid(UCPItemContainerComponent* TargetCon
 				USizeBox* SizeBox = NewObject<USizeBox>(this);
 				SizeBox->SetWidthOverride(BigSlotSizeX);
 				SizeBox->SetHeightOverride(BigSlotSizeY);
+				SizeBox->AddChild(BgSlot);
+
+				ItemGrid->AddChildToUniformGrid(SizeBox, Row, Col);
+			}
+			else if (TargetContainer->ContainerType == EContainerType::Grid2D)
+			{
+				Row = i / TargetContainer->Columns;
+				Col = i % TargetContainer->Columns;
+
+				// Grid2D의 경우에도 SizeBox로 랩핑한 뒤 사이즈를 강제로 override
+				USizeBox* SizeBox = NewObject<USizeBox>(this);
+				SizeBox->SetWidthOverride(SlotSize);
+				SizeBox->SetHeightOverride(SlotSize);
 				SizeBox->AddChild(BgSlot);
 
 				ItemGrid->AddChildToUniformGrid(SizeBox, Row, Col);
