@@ -41,7 +41,7 @@ public:
 private:
 	// 채집/조사 프롬프트 갱신
 	UFUNCTION()
-	void HandleResourceDiscovered(UCPForageableItemData* DiscoveredItem);
+	void HandleResourceDiscovered();
 	
 	// 채집물에 해당하는 정보 적용
 	void ApplyDefinition();

@@ -3,6 +3,7 @@
 
 #include "Lab/Component/Interact/CPCauldronComponent.h"
 
+#include "Character/CPInteractionComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Data/CPForageableItemData.h"
@@ -21,7 +22,7 @@ UCPCauldronComponent::UCPCauldronComponent():
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	InteractionPrompt = FText::FromString(TEXT("포션 만들기"));
-	bShowWhenUnavailable = true;
+	bShouldShowUnavailableInteraction = true;
 }
 
 void UCPCauldronComponent::BeginPlay()
@@ -49,24 +50,25 @@ void UCPCauldronComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-bool UCPCauldronComponent::ExecuteInteraction(AActor* Interactor)
+void UCPCauldronComponent::HandleInteract(AActor* Interactor)
 {
-	if (!CanExecuteInteraction(Interactor)) return false;
-	if (!BoundIngredientTrigger) return false;
+	if (!IsValid(Interactor) || !CanInteract() || !BoundIngredientTrigger) return;
 	
 	ACPLabGameMode* LabGameMode = Cast<ACPLabGameMode>(UGameplayStatics::GetGameMode(this));
-	if (!LabGameMode || !LabGameMode->CreatePotion(GetEffectTags(), MakePotionTransform(), MakeSpawnImpulse())) return false;
+	if (!LabGameMode || !LabGameMode->CreatePotion(GetEffectTags(), MakePotionTransform(), MakeSpawnImpulse())) return;
 	
 	IngredientInstances.Reset();
 	IngredientTags.Reset();
-	return true;
 }
 
-bool UCPCauldronComponent::CanExecuteInteraction(AActor* Interactor) const
+bool UCPCauldronComponent::CanInteract() const
 {
-	if (!Super::CanExecuteInteraction(Interactor)) return false;
-
 	return IngredientInstances.Num() > 0;
+}
+
+bool UCPCauldronComponent::ShouldShowUnavailableInteraction() const
+{
+	return bShouldShowUnavailableInteraction;
 }
 
 TArray<FGameplayTag> UCPCauldronComponent::GetEffectTags() const
@@ -90,7 +92,7 @@ bool UCPCauldronComponent::CanAcceptProp(const ACPAlchemyProp* Prop) const
 void UCPCauldronComponent::ResolveTagCombinations(int32 NewTagIndex)
 {
 	// 새로운 태그 or 조합 태그로 첫번째 Tag 까지 탐색
-	while (IngredientTags.IsValidIndex(NewTagIndex)){
+	while (NewTagIndex > 0 && IngredientTags.IsValidIndex(NewTagIndex)){
 		const FGameplayTag NewTag = IngredientTags[NewTagIndex];
 		const FCPTagDefinitionRow* NewTagRow = nullptr;
 		if (!FindTagDefinitionRow(NewTag, NewTagRow) || !NewTagRow) break;
@@ -193,10 +195,20 @@ void UCPCauldronComponent::HandleIngredientOverlap(
 	IngredientInstances.Add(Ingredient);
 	if (Ingredient.SourceItemData && !Ingredient.SourceItemData->TagAxes.IsEmpty()){
 		const FGameplayTag IngredientTag = Ingredient.SourceItemData->TagAxes[0];
+		static const FGameplayTag ResetTag = FGameplayTag::RequestGameplayTag(TEXT("Potion.Effect.Reset"));
 		
-		if (IngredientTag.IsValid() && !IngredientTags.Contains(IngredientTag)){
-			IngredientTags.Add(IngredientTag);
-			ResolveTagCombinations(IngredientTags.Num() - 1);
+		if (IngredientTag.IsValid()){
+			// Reset은 다른 Tag와 같이 존재하지 않음
+			if (IngredientTag == ResetTag){
+				IngredientTags.Reset();
+			}else{
+				IngredientTags.Remove(ResetTag);
+			}
+			
+			if (!IngredientTags.Contains(IngredientTag)){
+				IngredientTags.Add(IngredientTag);
+				ResolveTagCombinations(IngredientTags.Num() - 1);
+			}
 		}
 	}
 	IngredientProp->SetActorEnableCollision(false);

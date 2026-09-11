@@ -12,8 +12,15 @@
 // Sets default values
 ACPBaseInteractableActor::ACPBaseInteractableActor()
 {
+	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("DefaultSceneRoot"));
+	
 	InteractableComponent = CreateDefaultSubobject<UCPInteractableComponent>("InteractableComponent");
 	InteractionWidget = CreateDefaultSubobject<UWidgetComponent>("InteractionWidget");
+	
+	if (InteractableComponent)
+	{
+		InteractableComponent->SetInteractionWidgetComponent(InteractionWidget);
+	}
 	
 	// 상호작용 위젯 클래스 설정
 	if (const UCPUISettings* UISettings = GetDefault<UCPUISettings>())
