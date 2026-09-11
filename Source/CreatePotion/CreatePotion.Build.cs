@@ -24,7 +24,6 @@ public class CreatePotion : ModuleRules
             "AIModule",
             "StateTreeModule",
             "GameplayStateTreeModule",
-            "NavigationSystem",
             "NavigationSystem"
         });
 
