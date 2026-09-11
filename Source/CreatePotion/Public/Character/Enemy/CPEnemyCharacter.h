@@ -47,7 +47,7 @@ protected:
 
     // 액터 중심 사이의 3D 거리 기준(높이 포함)
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Attack", meta = (ClampMin = "1.0", Units = "cm"))
-    float AttackRange = 110.f;
+    float AttackRange = 100.f;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Attack", meta = (ClampMin = "0.0"))
     float AttackDamage = 10.f;
@@ -58,7 +58,7 @@ protected:
 
     // 실제 타격 시 정면 좌우 허용 각도
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Attack", meta = (ClampMin = "0.0", ClampMax = "180.0", Units = "deg"))
-    float AttackHalfAngle = 50.f;
+    float AttackHalfAngle = 60.f;
 
 private:
     bool IsTargetInAttackReach(AActor* Target) const;
