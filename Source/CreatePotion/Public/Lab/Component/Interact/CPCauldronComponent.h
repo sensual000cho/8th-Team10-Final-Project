@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "Types/CPItemInstanceTypes.h"
-#include "Lab/Component/CPLabInteractActionComponent.h"
+#include "Components/CPInteractableComponent.h"
 #include "CPCauldronComponent.generated.h"
 
 struct FCPTagDefinitionRow;
@@ -13,7 +13,7 @@ class ACPAlchemyProp;
 class UPrimitiveComponent;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class CREATEPOTION_API UCPCauldronComponent : public UCPLabInteractActionComponent
+class CREATEPOTION_API UCPCauldronComponent : public UCPInteractableComponent
 {
 	GENERATED_BODY()
 
@@ -24,8 +24,9 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
 	// 상호작용
-	virtual bool ExecuteInteraction(AActor* Interactor) override;
-	virtual bool CanExecuteInteraction(AActor* Interactor) const override;
+	virtual void HandleInteract(AActor* Interactor) override;
+	virtual bool CanInteract() const override;
+	virtual bool ShouldShowUnavailableInteraction() const override;
 	
 	// Getter
 	UFUNCTION(BlueprintPure, Category = "Lab|Interaction")
