@@ -62,12 +62,12 @@ FReply UCPContainerMainWidget::NativeOnMouseButtonDown(const FGeometry& InGeomet
 	// 좌클릭을 했을 때
 	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
-		// 마우스가 클릭된 위치가 'DragBorder' 영역 내부인지 검사합니다.
+		// 마우스가 클릭된 위치가 'DragBorder' 영역 내부인지 검사
 		if (DragBorder && DragBorder->GetCachedGeometry().IsUnderLocation(InMouseEvent.GetScreenSpacePosition()))
 		{
 			bIsDraggingWindow = true;
 
-			// 💡 중요: 캡처(CaptureMouse)를 하면 마우스를 빠르게 휙 움직여서 UI 밖으로 나가도 드래그가 풀리지 않습니다!
+			// 캡처를 하여 마우스가 UI 밖으로 나가도 드래그가 풀리지 않도록 설정
 			return FReply::Handled().CaptureMouse(TakeWidget());
 		}
 	}
@@ -80,14 +80,14 @@ FReply UCPContainerMainWidget::NativeOnMouseMove(const FGeometry& InGeometry, co
 	// 드래그 중이고, 이 위젯이 마우스를 캡처하고 있다면
 	if (bIsDraggingWindow && this->HasMouseCapture())
 	{
-		// 1. 화면 해상도(DPI) 스케일을 가져옵니다. (4K 화면 등에서도 동일한 이동 속도를 보장하기 위해)
+		
 		float DPIScale = UWidgetLayoutLibrary::GetViewportScale(GetWorld());
 
-		// 2. 마우스가 움직인 거리(Delta)를 DPI로 나눕니다.
+		// 마우스가 움직인 거리를 DPI로 나눠 해상도가 다르더라도 정확한 이동 수치 계산
 		FVector2D ScaledDelta = InMouseEvent.GetCursorDelta() / DPIScale;
 
-		// 3. 위젯의 현재 RenderTranslation 값에 더해서 실제 화면에서 이동시킵니다.
 		FVector2D NewTranslation = GetRenderTransform().Translation + ScaledDelta;
+
 		SetRenderTranslation(NewTranslation);
 
 		return FReply::Handled();
@@ -103,7 +103,7 @@ FReply UCPContainerMainWidget::NativeOnMouseButtonUp(const FGeometry& InGeometry
 	{
 		bIsDraggingWindow = false;
 
-		// 마우스 캡처를 풀어주어 다른 버튼들을 클릭할 수 있게 되돌립니다.
+		// 마우스 캡처를 Release
 		return FReply::Handled().ReleaseMouseCapture();
 	}
 

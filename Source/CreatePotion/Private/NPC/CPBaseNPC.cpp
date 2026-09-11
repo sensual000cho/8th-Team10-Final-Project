@@ -11,6 +11,9 @@
 #include "NPC/CPNPCVisualComponent.h"
 #include "NPC/CPNPCMoveComponent.h"
 #include "NPC/CPNPCAIController.h"
+#include "Components/CPInteractableComponent.h"
+#include "Components/WidgetComponent.h"
+#include "Settings/CPUISettings.h"
 
 #if WITH_EDITOR
 #include "DrawDebugHelpers.h"
@@ -41,9 +44,26 @@ ACPBaseNPC::ACPBaseNPC()
 
 	VisualComponent = CreateDefaultSubobject<UCPNPCVisualComponent>(TEXT("VisualComponent"));
 	MoveComponent = CreateDefaultSubobject<UCPNPCMoveComponent>(TEXT("MoveComponent"));
+	InteractableComponent = CreateDefaultSubobject<UCPInteractableComponent>(TEXT("InteractableComponent"));
+
+	InteractionWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractionWidget"));
+	if (const UCPUISettings* UISettings = GetDefault<UCPUISettings>())
+	{
+		InteractionWidget->SetWidgetClass(UISettings->InteractionWidgetClass.Get());
+	}
 
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 	AIControllerClass = ACPNPCAIController::StaticClass();
+}
+
+void ACPBaseNPC::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	if (InteractionWidget && RootComponent && !InteractionWidget->GetAttachParent())
+	{
+		InteractionWidget->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
+	}
 }
 
 UAbilitySystemComponent* ACPBaseNPC::GetAbilitySystemComponent() const
@@ -71,6 +91,11 @@ void ACPBaseNPC::BeginPlay()
 	Super::BeginPlay();
 
 	InitializeFromDataAsset();
+	if (InteractableComponent)
+	{
+		InteractableComponent->OnActorInteractionStarted.AddUniqueDynamic(this, &ACPBaseNPC::HandleInteractionStarted);
+		InteractableComponent->OnActorInteractionCompleted.AddUniqueDynamic(this, &ACPBaseNPC::HandleInteract);
+	}
 
 	if (IsValid(AbilitySystemComponent))
 	{
@@ -84,6 +109,17 @@ void ACPBaseNPC::BeginPlay()
 	}
 
 	CatchUpPersistentPotionEffects();
+	RefreshInteractionState();
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimer(
+			InteractionRefreshTimerHandle,
+			this,
+			&ACPBaseNPC::RefreshInteractionState,
+			InteractionRefreshInterval,
+			true
+		);
+	}
 }
 
 void ACPBaseNPC::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -91,6 +127,17 @@ void ACPBaseNPC::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	if (UCPNPCSubsystem* Subsystem = GetNPCSubsystem())
 	{
 		Subsystem->UnregisterActiveNPC(GetPotionNPCId(), this);
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(InteractionRefreshTimerHandle);
+	}
+
+	if (InteractableComponent)
+	{
+		InteractableComponent->OnActorInteractionStarted.RemoveDynamic(this, &ACPBaseNPC::HandleInteractionStarted);
+		InteractableComponent->OnActorInteractionCompleted.RemoveDynamic(this, &ACPBaseNPC::HandleInteract);
 	}
 
 	VisualDelegateMap.Empty();
@@ -227,6 +274,23 @@ void ACPBaseNPC::GrantPotionReactionAbilities()
 	}
 }
 
+
+void ACPBaseNPC::HandleInteract(AActor* Interactor) {}
+
+void ACPBaseNPC::HandleInteractionStarted(AActor* Interactor)
+{
+}
+
+FText ACPBaseNPC::GetInteractionPrompt() const { return FText::GetEmpty(); }
+bool ACPBaseNPC::CanInteract(AActor* Interactor) const { return false; }
+FName ACPBaseNPC::GetInteractionName() const{
+	if (NPCData && NPCData->NPCName != NAME_None)
+	{
+		return NPCData->NPCName;
+	}
+	return GetFName();
+}
+
 void ACPBaseNPC::RegisterCodex()
 {
 	if (!NPCData) return;
@@ -238,16 +302,24 @@ void ACPBaseNPC::RegisterCodex()
 	CodexSubsystem->RegisterNPCEntry(NPCData);
 }
 
-void ACPBaseNPC::OnInteract_Implementation(AActor* Interactor) {}
-FText ACPBaseNPC::GetInteractionPrompt_Implementation() { return FText::GetEmpty(); }
-bool ACPBaseNPC::CanInteract_Implementation(AActor* Interactor) { return false; }
-FName ACPBaseNPC::GetInteractionName_Implementation()
+void ACPBaseNPC::RefreshInteractionState()
 {
-	if (NPCData && NPCData->NPCName != NAME_None)
+	if (!InteractableComponent)
 	{
-		return NPCData->NPCName;
+		return;
 	}
-	return GetFName();
+	AActor* Interactor = nullptr;
+	if (const UWorld* World = GetWorld())
+	{
+		if (const APlayerController* PC = World->GetFirstPlayerController())
+		{
+			Interactor = PC->GetPawn();
+		}
+	}
+
+	InteractableComponent->SetInteractability(CanInteract(Interactor));
+	InteractableComponent->SetInteractionPrompt(GetInteractionPrompt());
+	InteractableComponent->SetTargetName(GetInteractionName());
 }
 
 #pragma region Route Debug

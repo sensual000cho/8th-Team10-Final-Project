@@ -141,10 +141,22 @@ void UCPNPCMoveComponent::RestoreMovementState(const FCPNPCMovementSaveData& Sav
 
 	FVector TargetLocation = SaveData.SavedLocation;
 
-	if (UCharacterMovementComponent* MoveComp = OwnerCharacter->GetCharacterMovement())
+	if (UWorld* World = GetWorld())
 	{
-		MoveComp->UpdateComponentVelocity();
-		MoveComp->FindFloor(OwnerCharacter->GetActorLocation(), MoveComp->CurrentFloor, false);
+		UCapsuleComponent* Capsule = OwnerCharacter->GetCapsuleComponent();
+		const float CapsuleHalfHeight = Capsule ? Capsule->GetScaledCapsuleHalfHeight() : 88.0f;
+
+		FHitResult GroundHit;
+		const FVector TraceStart = TargetLocation + FVector(0.f, 0.f, 300.f);
+		const FVector TraceEnd = TargetLocation - FVector(0.f, 0.f, 1500.f);
+
+		FCollisionQueryParams QueryParams;
+		QueryParams.AddIgnoredActor(OwnerCharacter);
+
+		if (World->LineTraceSingleByChannel(GroundHit, TraceStart, TraceEnd, ECC_WorldStatic, QueryParams))
+		{
+			TargetLocation.Z = GroundHit.ImpactPoint.Z + CapsuleHalfHeight;
+		}
 	}
 
 	OwnerCharacter->SetActorLocationAndRotation(
@@ -154,6 +166,14 @@ void UCPNPCMoveComponent::RestoreMovementState(const FCPNPCMovementSaveData& Sav
 		nullptr,
 		ETeleportType::TeleportPhysics
 	);
+
+	if (UCharacterMovementComponent* MoveComp = OwnerCharacter->GetCharacterMovement())
+	{
+		MoveComp->UpdateComponentVelocity();
+		MoveComp->SetMovementMode(MOVE_Walking);
+		MoveComp->FindFloor(OwnerCharacter->GetActorLocation(), MoveComp->CurrentFloor, false);
+		MoveComp->AdjustFloorHeight();
+	}
 
 	CurrentPointIndex = SaveData.NextPointIndex;
 
@@ -266,7 +286,7 @@ void UCPNPCMoveComponent::MoveToCurrentIndex()
 
 	bIsMoving = true;
 
-	/*if (AActor* OwnerActor = GetOwner())
+	if (AActor* OwnerActor = GetOwner())
 	{
 		const FVector CurrentLoc = OwnerActor->GetActorLocation();
 		const float Dist3D = FVector::Dist(CurrentLoc, Destination);
@@ -279,7 +299,7 @@ void UCPNPCMoveComponent::MoveToCurrentIndex()
 			Dist3D,
 			Dist2D,
 			AcceptanceRadius);
-	}*/
+	}
 
 	EPathFollowingRequestResult::Type MoveResult = AIController->MoveToLocation(
 		Destination,
@@ -330,7 +350,7 @@ void UCPNPCMoveComponent::OnMoveCompleted(FAIRequestID RequestID, EPathFollowing
 		WaitTime = TargetPoints[CurrentPointIndex].WaitSeconds;
 		ArrivedLocation = TargetPoints[CurrentPointIndex].Point;
 	}
-	//UE_LOG(LogCPNPC, Log, TEXT("[%s] 도착 좌표: %s | 대기 시간: %.2f | 현재 인덱스: %d"),*GetNameSafe(GetOwner()), *ArrivedLocation.ToString(), WaitTime, CurrentPointIndex);
+	UE_LOG(LogCPNPC, Log, TEXT("[%s] 도착 좌표: %s | 대기 시간: %.2f | 현재 인덱스: %d"),*GetNameSafe(GetOwner()), *ArrivedLocation.ToString(), WaitTime, CurrentPointIndex);
 
 	if (Result == EPathFollowingResult::Success)
 	{

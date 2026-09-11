@@ -100,7 +100,8 @@ private:
 
 	UPROPERTY()
 	TMap<FName, FCPNPCEffectSaveData> NPCStateRepository;
-	TMap<FName, TWeakObjectPtr<ACPBaseNPC>> ActiveNPCRegistry;
+	
+	TMap<FName, TArray<TWeakObjectPtr<ACPBaseNPC>>> ActiveNPCRegistry;
 	int64 CachedCurrentWorldMinute = 0;
 
 	UPROPERTY()
