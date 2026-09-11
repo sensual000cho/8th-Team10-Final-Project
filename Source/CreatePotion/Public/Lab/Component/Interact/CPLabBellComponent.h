@@ -3,13 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Lab/Component/CPLabInteractActionComponent.h"
+#include "Components/CPInteractableComponent.h"
 #include "CPLabBellComponent.generated.h"
 
 class UCPQuestSelectWidget;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class CREATEPOTION_API UCPLabBellComponent : public UCPLabInteractActionComponent
+class CREATEPOTION_API UCPLabBellComponent : public UCPInteractableComponent
 {
 	GENERATED_BODY()
 	
@@ -17,8 +17,9 @@ public:
 	UCPLabBellComponent();
 	
 	// Interact
-	virtual bool ExecuteInteraction(AActor* Interactor) override;
-	virtual bool CanExecuteInteraction(AActor* Interactor) const override;
+	virtual void HandleInteract(AActor* Interactor) override;
+	virtual bool CanInteract() const override;
+	virtual bool ShouldShowUnavailableInteraction() const override;
 	
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "UI")

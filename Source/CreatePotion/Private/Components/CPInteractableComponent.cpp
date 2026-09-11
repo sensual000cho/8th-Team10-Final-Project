@@ -129,6 +129,11 @@ void UCPInteractableComponent::SetInteractionDuration(float NewDuration)
 	RefreshUI();
 }
 
+void UCPInteractableComponent::SetInteractionWidgetComponent(UWidgetComponent* InWidgetComp)
+{
+	InteractWidgetComp = InWidgetComp;
+}
+
 
 
 
