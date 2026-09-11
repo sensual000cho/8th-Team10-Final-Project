@@ -1,18 +1,18 @@
-// HitReactionComponent.cpp
+// CPHitReactionComponent.cpp
 
 
-#include "Character/HitReactionComponent.h"
+#include "Character/CPHitReactionComponent.h"
 
 #include "Character/Enemy/CPEnemyCharacter.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
-UHitReactionComponent::UHitReactionComponent()
+UCPHitReactionComponent::UCPHitReactionComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-void UHitReactionComponent::HitReaction(float AppliedDamage, AActor* DamageCauser)
+void UCPHitReactionComponent::HitReaction(float AppliedDamage, AActor* DamageCauser)
 {
 	ACPEnemyCharacter* Enemy = Cast<ACPEnemyCharacter>(DamageCauser);
 		
@@ -32,7 +32,7 @@ void UHitReactionComponent::HitReaction(float AppliedDamage, AActor* DamageCause
 }
 
 
-void UHitReactionComponent::BeginPlay()
+void UCPHitReactionComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	

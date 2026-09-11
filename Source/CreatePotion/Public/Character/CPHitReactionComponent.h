@@ -1,19 +1,19 @@
-// HitReactionComponent.h
+// CPHitReactionComponent.h
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "HitReactionComponent.generated.h"
+#include "CPHitReactionComponent.generated.h"
 
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class CREATEPOTION_API UHitReactionComponent : public UActorComponent
+class CREATEPOTION_API UCPHitReactionComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:	
-	UHitReactionComponent();
+	UCPHitReactionComponent();
 
 	UFUNCTION(BlueprintCallable, Category = "Damaged")
 	void HitReaction(float AppliedDamage, AActor* DamageCauser);
