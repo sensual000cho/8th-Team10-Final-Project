@@ -62,6 +62,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "NPC")
 	void SetNPCData(UCPNPCDataAsset* InNPCData);
+
+	UFUNCTION(BlueprintCallable, Category = "NPC|State")
+	virtual void SetNPCActiveState(bool bActive);
 	
 	UFUNCTION(BlueprintPure, Category = "NPC|Data")
 	const UCPNPCDataAsset* GetNPCData() const { return NPCData; }

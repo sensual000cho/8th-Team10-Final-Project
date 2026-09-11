@@ -19,9 +19,13 @@ protected:
 	virtual const TArray<FName>& GetPotionQuestIDs() const override;
 
 	virtual void OnDialogueClosed() override;
+	virtual void OnTraceFocusLost() override;
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UCPNPCDialogueWidget> DialogueWidgetClass;
+
+protected:
+	bool bWaitingForDialogueCompletion = false;
 
 };

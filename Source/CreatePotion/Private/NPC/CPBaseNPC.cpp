@@ -224,6 +224,54 @@ void ACPBaseNPC::SetNPCData(UCPNPCDataAsset* InNPCData)
 	NPCData = InNPCData;
 }
 
+void ACPBaseNPC::SetNPCActiveState(bool bActive)
+{
+	SetActorHiddenInGame(!bActive);
+    SetActorEnableCollision(bActive);
+    SetActorTickEnabled(bActive);
+    if (InteractionWidget)
+    {
+        InteractionWidget->SetVisibility(bActive);
+    }
+
+    if (InteractableComponent)
+    {
+        InteractableComponent->SetInteractability(bActive);
+    }
+
+    if (UCharacterMovementComponent* MovementComp = GetCharacterMovement())
+    {
+        MovementComp->SetComponentTickEnabled(bActive);
+        if (!bActive)
+        {
+            MovementComp->StopMovementImmediately();
+        }
+    }
+    if (AAIController* AIC = Cast<AAIController>(GetController()))
+    {
+        if (bActive)
+        {
+            AIC->ResumeMove(FAIRequestID::CurrentRequest);
+        }
+        else
+        {
+            AIC->StopMovement();
+        }
+    }
+
+    if (MoveComponent)
+    {
+        if (bActive)
+        {
+            MoveComponent->StartMoving(); 
+        }
+        else
+        {
+            MoveComponent->StopMoving();
+        }
+    }
+}
+
 void ACPBaseNPC::CatchUpPersistentPotionEffects()
 {
 	UCPNPCSubsystem* Subsystem = GetNPCSubsystem();

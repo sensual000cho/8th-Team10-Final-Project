@@ -153,6 +153,25 @@ bool UCPNPCSubsystem::GetNPCMovementData(FName NPCId, FCPNPCMovementSaveData& Ou
 	return false;
 }
 
+void UCPNPCSubsystem::SetNPCActiveStateById(FName NPCId, bool bActive, ACPBaseNPC* IgnoreNPC)
+{
+	if (NPCId.IsNone()) return;
+
+	if (TArray<TWeakObjectPtr<ACPBaseNPC>>* NPCList = ActiveNPCRegistry.Find(NPCId))
+	{
+		for (const TWeakObjectPtr<ACPBaseNPC>& WeakNPC : *NPCList)
+		{
+			if (ACPBaseNPC* NPC = WeakNPC.Get())
+			{
+				if (NPC != IgnoreNPC)
+				{
+					NPC->SetNPCActiveState(bActive);
+				}
+			}
+		}
+	}
+}
+
 void UCPNPCSubsystem::NotifyEffectApplied(FName NPCId, FGameplayTag EffectTag, int64 ExpiresAtWorldMinute, float Magnitude)
 {
 	if (TArray<TWeakObjectPtr<ACPBaseNPC>>* NPCList = ActiveNPCRegistry.Find(NPCId))
