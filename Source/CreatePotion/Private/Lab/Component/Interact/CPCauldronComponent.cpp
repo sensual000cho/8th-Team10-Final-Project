@@ -3,16 +3,19 @@
 
 #include "Lab/Component/Interact/CPCauldronComponent.h"
 
-#include "Character/CPInteractionComponent.h"
+#include "Blueprint/UserWidget.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/WidgetComponent.h"
 #include "Data/CPForageableItemData.h"
 #include "Data/CPTagDefinitionTypes.h"
 #include "Engine/DataTable.h"
+#include "Engine/Engine.h"
 #include "GameMode/CPLabGameMode.h"
 #include "Kismet/GameplayStatics.h"
 #include "Lab/Actor/CPAlchemyProp.h"
 #include "Settings/CPDTSettings.h"
+#include "UI/Widgets/Lab/CPCauldronWidget.h"
 
 UCPCauldronComponent::UCPCauldronComponent(): 
 	MaxSlotCount(3), 
@@ -50,6 +53,18 @@ void UCPCauldronComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
+void UCPCauldronComponent::BeginFocus(AActor* Interactor)
+{
+	Super::BeginFocus(Interactor);
+	
+	if (!InteractWidgetComp) return;
+	
+	UUserWidget* UserWidget =InteractWidgetComp->GetUserWidgetObject();
+	if (UCPCauldronWidget* CauldronWidget = Cast<UCPCauldronWidget>(UserWidget)){
+		CauldronWidget->SetCauldronComponent(this);
+	}
+}
+
 void UCPCauldronComponent::HandleInteract(AActor* Interactor)
 {
 	if (!IsValid(Interactor) || !CanInteract() || !BoundIngredientTrigger) return;
@@ -59,6 +74,7 @@ void UCPCauldronComponent::HandleInteract(AActor* Interactor)
 	
 	IngredientInstances.Reset();
 	IngredientTags.Reset();
+	OnEffectsChanged.Broadcast();
 }
 
 bool UCPCauldronComponent::CanInteract() const
@@ -213,60 +229,5 @@ void UCPCauldronComponent::HandleIngredientOverlap(
 	}
 	IngredientProp->SetActorEnableCollision(false);
 	IngredientProp->Destroy();
-	
-	DebugPrintSlots();
-}
-
-// UI 도입 or PR확인 이후 삭제
-void UCPCauldronComponent::DebugPrintSlots() const
-{
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(
-			-1,
-			3.f,
-			FColor::Yellow,
-			FString::Printf(TEXT("[가마솥] 재료 개수: %d / %d"),
-				IngredientInstances.Num(),
-				MaxSlotCount));
-	}
-
-	for (int32 Index = 0; Index < IngredientInstances.Num(); ++Index)
-	{
-		const FCPItemInstance& Ingredient = IngredientInstances[Index];
-
-		const FString ItemName = Ingredient.SourceItemData
-			? Ingredient.SourceItemData->DisplayName.ToString()
-			: TEXT("없음");
-
-		FString EffectText;
-		if (Ingredient.SourceItemData){
-			for (const FGameplayTag& EffectTag : Ingredient.SourceItemData->TagAxes)
-			{
-				if (!EffectTag.IsValid()) continue;
-
-				if (!EffectText.IsEmpty())
-				{
-					EffectText += TEXT(", ");
-				}
-
-				EffectText += EffectTag.ToString();
-			}	
-		}
-
-		const FString Message = FString::Printf(
-			TEXT("[가마솥] 슬롯 %d: %s / 효과: %s"),
-			Index,
-			*ItemName,
-			EffectText.IsEmpty() ? TEXT("없음") : *EffectText);
-
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(
-				-1,
-				3.f,
-				FColor::Cyan,
-				Message);
-		}
-	}
+	OnEffectsChanged.Broadcast();
 }

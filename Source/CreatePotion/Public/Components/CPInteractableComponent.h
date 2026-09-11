@@ -27,10 +27,10 @@ public:
 	virtual void BeginPlay() override;
 	
 	// 플레이어가 시선을 맞췄을 때 호출
-	void BeginFocus(AActor* Interactor);
+	virtual void BeginFocus(AActor* Interactor);
 	
 	// 플레이어가 시선을 거뒀을 때 호출
-	void EndFocus(AActor* Interactor);
+	virtual void EndFocus(AActor* Interactor);
 	
 	// 상호작용 실행
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
@@ -121,10 +121,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Timed")
 	float InteractionDuration = 0.f;
 	
-private:
 	UPROPERTY()
 	UWidgetComponent* InteractWidgetComp;
 	
+private:	
 	UPROPERTY()
 	UCPInteractionComponent* InteractionComp;
 };
