@@ -21,6 +21,7 @@ class UCPContainerContextBase;
 class UCPHandHeldItemWidget;
 class UCPItemWheelWidget;
 class UCPWheelModeIndicatorWidget;
+class UCPShopPurchasePopupWidget;
 
 //디버깅용 포션생성 함수용
 class UCPForageableItemData;
@@ -161,6 +162,19 @@ private:
 
 	// 마우스 클릭으로 "현재 들고 있는 아이템"의 기존 Index
 	int32 LeftClickPickedOriginSlotIndex = -1;
+#pragma endregion
+
+#pragma region Shop
+public:
+	UCPShopPurchasePopupWidget* GetOrCreateShopPopup();
+
+public:
+	UPROPERTY(EditAnywhere, Category = "Shop|UI")
+	TSubclassOf<UCPShopPurchasePopupWidget> ShopPopupWidgetClass;
+
+private:
+	UPROPERTY()
+	UCPShopPurchasePopupWidget* ShopPopupInstance;
 #pragma endregion
 	
 //디버깅용 포션생성

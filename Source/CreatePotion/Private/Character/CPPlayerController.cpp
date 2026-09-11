@@ -17,6 +17,8 @@
 #include "UI/Widgets/Common/Container/CPHandHeldItemWidget.h"
 #include "UI/Widgets/Common/Container/CPItemWheelWidget.h"
 #include "UI/Widgets/Common/Container/CPWheelModeIndicatorWidget.h"
+#include "UI/Widgets/Common/Container/Shop/CPShopPurchasePopupWidget.h"
+
 #include "Components/CPItemContainerComponent.h"
 #include "Components/CPInventoryComponent.h"
 #include "Components/CPHandItemContainerComponent.h"
@@ -394,6 +396,23 @@ void ACPPlayerController::DebugToggleShopDirectly()
 
 	ToggleExternalContainerUI(FoundShop);
 }
+#pragma endregion
+
+#pragma region Shop
+
+UCPShopPurchasePopupWidget* ACPPlayerController::GetOrCreateShopPopup()
+{
+	if (!ShopPopupInstance && ShopPopupWidgetClass)
+	{
+		ShopPopupInstance = CreateWidget<UCPShopPurchasePopupWidget>(this, ShopPopupWidgetClass);
+		if (ShopPopupInstance)
+		{
+			ShopPopupInstance->AddToViewport(200);
+		}
+	}
+	return ShopPopupInstance;
+}
+
 #pragma endregion
 
 
