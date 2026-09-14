@@ -5,18 +5,67 @@
 #include "Quest/QuestManager.h"
 #include "Settings/CPUISettings.h"
 #include "UI/Widgets/Common/Dialogue/CPNPCDialogueWidget.h"
-#include "NPC/CPNPCMoveComponent.h"
+#include "NPC/Components/CPNPCMoveComponent.h"
 #include "NPC/CPNPCAIController.h"
-#include "Character/CPInteractionComponent.h"
+#include "Character/CPInteractionComponent.h"                   
+#include "Components/WidgetComponent.h"                        
+#include "Kismet/GameplayStatics.h"                             
+#include "Components/CPInventoryComponent.h"                    
+#include "UI/Widgets/Common/Quest/CPQuestMarkerWidget.h"                 
+
 
 ACPQuestNPC::ACPQuestNPC() : CurrentQuestId(NAME_None)
 {
 	InteractionRefreshInterval = 0.1f;
+
+	InteractionWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractionWidget"));
+	InteractionWidget->SetupAttachment(RootComponent);
+	InteractionWidget->SetRelativeLocation(FVector(0.f, 0.f, 120.f));
+	if (const UCPUISettings* UISettings = GetDefault<UCPUISettings>())
+	{
+		InteractionWidget->SetWidgetClass(UISettings->InteractionWidgetClass.Get());
+	}
+
+	QuestMarkerWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("QuestMarkerWidget"));
+	QuestMarkerWidget->SetupAttachment(RootComponent);
+	QuestMarkerWidget->SetRelativeLocation(FVector(0.f, 0.f, 200.f));
+	QuestMarkerWidget->SetWidgetSpace(EWidgetSpace::World);
+	QuestMarkerWidget->SetTwoSided(true);
+}
+
+void ACPQuestNPC::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	if (InteractionWidget)
+	{
+		InitialInteractionWidgetLocation = InteractionWidget->GetRelativeLocation();
+	}
+
+	if (QuestMarkerWidget)
+	{
+		InitialQuestMarkerLocation = QuestMarkerWidget->GetRelativeLocation();
+	}
 }
 
 bool ACPQuestNPC::CanInteract(AActor* Interactor) const
 {
 	return true;
+}
+
+void ACPQuestNPC::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (!QuestMarkerWidget) return;
+
+	if (APlayerCameraManager* CameraManager = UGameplayStatics::GetPlayerCameraManager(this, 0))
+	{
+		FVector CameraLocation = CameraManager->GetCameraLocation();
+		FVector WidgetLocation = QuestMarkerWidget->GetComponentLocation();
+		FRotator LookAtRotation = (CameraLocation - WidgetLocation).Rotation();
+		QuestMarkerWidget->SetWorldRotation(LookAtRotation);
+	}
 }
 
 FText ACPQuestNPC::GetInteractionPrompt() const
@@ -32,7 +81,6 @@ void ACPQuestNPC::RefreshInteractionState()
 
 void ACPQuestNPC::UpdateGazeTracking()
 {
-	// 상호작용(대화) 진행 중에는 시선 추적으로 다시 이동을 멈추거나 재개하지 않음
 	if (bIsInteracting)
 	{
 		return;
@@ -49,7 +97,6 @@ void ACPQuestNPC::UpdateGazeTracking()
 		MoveComponent = FindComponentByClass<UCPNPCMoveComponent>();
 	}
 
-	// 플레이어의 CPInteractionComponent가 현재 나를 상호작용 대상으로 잡고 있는지 확인
 	bool bLookedAtNow = false;
 	if (APlayerController* PC = World->GetFirstPlayerController())
 	{
@@ -70,7 +117,6 @@ void ACPQuestNPC::UpdateGazeTracking()
 		{
 			bIsPlayerLooking = true;
 
-			//UE_LOG(LogTemp, Error, TEXT("[%s] 시선 감지 -> StopMoving 호출"), *GetNameSafe(this));
 			if (MoveComponent)
 			{
 				MoveComponent->StopMoving();
@@ -119,9 +165,9 @@ void ACPQuestNPC::HandleInteract(AActor* Interactor)
 		AIController->MoveToActor(
 			Interactor,
 			StopRadius,
-			true,  // bStopOnOverlap
-			true,  // bUsePathfinding
-			false, // bCanStrafe
+			true,
+			true,
+			false,
 			nullptr,
 			true
 		);
@@ -193,11 +239,35 @@ void ACPQuestNPC::ShowResultDialogue()
 	ActiveDialogueWidget->InitDialogueLines(QuestID, FText::FromName(QuestData->NPCName), ReactionTexts);
 }
 
+void ACPQuestNPC::UpdateOverheadWidgetsScale(float ScaleMultiplier)
+{
+	Super::UpdateOverheadWidgetsScale(ScaleMultiplier);
+
+	if (QuestMarkerWidget)
+	{
+		QuestMarkerWidget->SetRelativeLocation(InitialQuestMarkerLocation * ScaleMultiplier);
+	}
+
+	if (InteractionWidget)
+	{
+		InteractionWidget->SetRelativeLocation(InitialInteractionWidgetLocation * ScaleMultiplier);
+	}
+}
+
 void ACPQuestNPC::BeginPlay()
 {
 	QuestData = Cast<UCPQuestNPCDataAsset>(NPCData);
 
 	Super::BeginPlay();
+
+	if (UGameInstance* GI = GetGameInstance())
+	{
+		if (UQuestManager* QuestManager = GI->GetSubsystem<UQuestManager>())
+		{
+			QuestManager->OnQuestUpdated.AddDynamic(this, &ACPQuestNPC::HandleQuestUpdatedForMarker);
+		}
+	}
+	UpdateQuestMarker();
 }
 
 const TArray<FName>& ACPQuestNPC::GetPotionQuestIDs() const
@@ -239,4 +309,32 @@ void ACPQuestNPC::OnDialogueClosed()
 {
 	bIsInteracting = false;
 	ActiveDialogueWidget = nullptr;
+}
+
+void ACPQuestNPC::HandleQuestUpdatedForMarker(FName QuestID, EQuestState NewState)
+{
+	UpdateQuestMarker();
+}
+
+void ACPQuestNPC::UpdateQuestMarker()
+{
+	UGameInstance* GameInstance = GetGameInstance();
+	UQuestManager* QuestManager = GameInstance ? GameInstance->GetSubsystem<UQuestManager>() : nullptr;
+	if (!QuestData || !QuestManager || !QuestMarkerWidget) return;
+
+	TMap<FName, int32> HeldItemCounts;
+	if (APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0))
+	{
+		if (UCPInventoryComponent* Inventory = PlayerPawn->FindComponentByClass<UCPInventoryComponent>())
+		{
+			HeldItemCounts = Inventory->GetItemCountsByID();
+		}
+	}
+
+	EQuestMarkerState State = QuestManager->GetMarkerStateForQuests(GetPotionQuestIDs(), HeldItemCounts);
+
+	if (UCPQuestMarkerWidget* MarkerWidget = Cast<UCPQuestMarkerWidget>(QuestMarkerWidget->GetUserWidgetObject()))
+	{
+		MarkerWidget->SetMarkerState(State);
+	}
 }

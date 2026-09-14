@@ -98,7 +98,8 @@ public:
 	UCPNPCVisualComponent();
 
 	void InitializeVisual(USkeletalMeshComponent* InMeshComp, UCapsuleComponent* InCapsuleComp,
-		USkeletalMesh* DefaultMesh, UAnimSequence* DefaultAnim, const FVector& BaseScale, float CapsuleRadiusRatio);
+		USkeletalMesh* DefaultMesh, TSubclassOf<UAnimInstance> InAnimClass, UAnimSequence* DefaultAnim,
+		const FVector& BaseScale, float CapsuleRadiusRatio);
 
 	// 메시 스택 관리
 	void PushMeshOverride(FGameplayTag EffectTag, USkeletalMesh* InMesh, UAnimSequence* InAnim, float InRadiusRatio = 0.3f,
@@ -168,4 +169,7 @@ private:
 
 	UPROPERTY()
 	TArray<FCompositeMaterialRule> CompositeRules;
+
+	UPROPERTY()
+	TSubclassOf<UAnimInstance> DefaultAnimClass;
 };
