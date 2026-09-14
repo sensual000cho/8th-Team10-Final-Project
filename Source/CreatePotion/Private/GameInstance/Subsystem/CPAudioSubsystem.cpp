@@ -2,29 +2,62 @@
 
 #include "GameInstance/Subsystem/CPAudioSubsystem.h"
 
-#include "Components/AudioComponent.h"
 #include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
-#include "Sound/SoundBase.h"
+#include "Sound/SoundClass.h"
+#include "Sound/SoundMix.h"
+#include "UObject/ConstructorHelpers.h"
+#include "UObject/UObjectGlobals.h"
+
+DEFINE_LOG_CATEGORY_STATIC(LogCPAudio, Log, All);
+
+namespace CPAudio
+{
+	const TCHAR* VolumeControlMixPath = TEXT("/Game/CreatePotion/Audio/SoundMixes/MIX_VolumeControl.MIX_VolumeControl");
+	const TCHAR* MasterSoundClassPath = TEXT("/Game/CreatePotion/Audio/SoundClasses/SC_Master.SC_Master");
+	const TCHAR* SFXSoundClassPath = TEXT("/Game/CreatePotion/Audio/SoundClasses/SC_SFX.SC_SFX");
+	const TCHAR* BGMSoundClassPath = TEXT("/Game/CreatePotion/Audio/SoundClasses/SC_BGM.SC_BGM");
+	constexpr float VolumeFadeTime = 0.05f;
+}
+
+UCPAudioSubsystem::UCPAudioSubsystem()
+{
+	static ConstructorHelpers::FObjectFinder<USoundMix> VolumeControlMixFinder(CPAudio::VolumeControlMixPath);
+	VolumeControlMix = VolumeControlMixFinder.Object;
+
+	static ConstructorHelpers::FObjectFinder<USoundClass> MasterSoundClassFinder(CPAudio::MasterSoundClassPath);
+	MasterSoundClass = MasterSoundClassFinder.Object;
+
+	static ConstructorHelpers::FObjectFinder<USoundClass> SFXSoundClassFinder(CPAudio::SFXSoundClassPath);
+	SFXSoundClass = SFXSoundClassFinder.Object;
+
+	static ConstructorHelpers::FObjectFinder<USoundClass> BGMSoundClassFinder(CPAudio::BGMSoundClassPath);
+	BGMSoundClass = BGMSoundClassFinder.Object;
+}
 
 bool UCPAudioSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 {
 	return Super::ShouldCreateSubsystem(Outer) && !IsRunningDedicatedServer();
 }
 
+void UCPAudioSubsystem::Initialize(FSubsystemCollectionBase& Collection)
+{
+	Super::Initialize(Collection);
+
+	PostLoadMapHandle = FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &ThisClass::HandlePostLoadMap);
+	ApplyVolumeMixForCurrentWorld();
+}
+
 void UCPAudioSubsystem::Deinitialize()
 {
-	ReleaseBGMComponent();
-
-	for (const TPair<TObjectPtr<UAudioComponent>, float>& Entry : ManagedSFXComponents)
+	if (PostLoadMapHandle.IsValid())
 	{
-		if (IsValid(Entry.Key))
-		{
-			Entry.Key->OnAudioFinishedNative.RemoveAll(this);
-			Entry.Key->Stop();
-		}
+		FCoreUObjectDelegates::PostLoadMapWithWorld.Remove(PostLoadMapHandle);
+		PostLoadMapHandle.Reset();
 	}
-	ManagedSFXComponents.Reset();
+
+	ReleaseVolumeMix();
 
 	Super::Deinitialize();
 }
@@ -32,167 +65,78 @@ void UCPAudioSubsystem::Deinitialize()
 void UCPAudioSubsystem::SetMasterVolume(float Volume)
 {
 	MasterVolume = FMath::Clamp(Volume, 0.0f, 1.0f);
-	ApplyBGMVolume();
-	ApplySFXVolume();
+	ApplyVolumeMixForCurrentWorld();
 }
 
 void UCPAudioSubsystem::SetSFXVolume(float Volume)
 {
 	SFXVolume = FMath::Clamp(Volume, 0.0f, 1.0f);
-	ApplySFXVolume();
+	ApplyVolumeMixForCurrentWorld();
 }
 
 void UCPAudioSubsystem::SetBGMVolume(float Volume)
 {
 	BGMVolume = FMath::Clamp(Volume, 0.0f, 1.0f);
-	ApplyBGMVolume();
+	ApplyVolumeMixForCurrentWorld();
 }
 
-UAudioComponent* UCPAudioSubsystem::PlayBGM(USoundBase* Sound, float FadeInDuration, float VolumeMultiplier, float StartTime)
+void UCPAudioSubsystem::HandlePostLoadMap(UWorld* LoadedWorld)
 {
-	if (!IsValid(Sound))
-	{
-		return nullptr;
-	}
-
-	CurrentBGMBaseVolume = FMath::Max(0.0f, VolumeMultiplier);
-
-	if (IsValid(BGMComponent) && CurrentBGM == Sound && BGMComponent->IsPlaying())
-	{
-		ApplyBGMVolume();
-		return BGMComponent;
-	}
-
-	if (!IsValid(BGMComponent))
-	{
-		BGMComponent = UGameplayStatics::CreateSound2D(GetGameInstance(), Sound, 1.0f, 1.0f, FMath::Max(0.0f, StartTime), nullptr, true, false);
-
-		if (!IsValid(BGMComponent))
-		{
-			return nullptr;
-		}
-
-		BGMComponent->bIsUISound = true;
-	}
-	else
-	{
-		BGMComponent->Stop();
-		BGMComponent->SetSound(Sound);
-	}
-
-	CurrentBGM = Sound;
-	ApplyBGMVolume();
-	BGMComponent->FadeIn(FMath::Max(0.0f, FadeInDuration), 1.0f, FMath::Max(0.0f, StartTime));
-
-	return BGMComponent;
+	ApplyVolumeMix(LoadedWorld);
 }
 
-void UCPAudioSubsystem::StopBGM(float FadeOutDuration)
+void UCPAudioSubsystem::ApplyVolumeMixForCurrentWorld()
 {
-	CurrentBGM = nullptr;
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		ApplyVolumeMix(GameInstance->GetWorld());
+	}
+}
 
-	if (!IsValid(BGMComponent) || !BGMComponent->IsPlaying())
+void UCPAudioSubsystem::ApplyVolumeMix(UWorld* World)
+{
+	if (!IsAudioWorld(World))
 	{
 		return;
 	}
 
-	if (FadeOutDuration > 0.0f)
+	if (!IsValid(VolumeControlMix) || !IsValid(MasterSoundClass) || !IsValid(SFXSoundClass) || !IsValid(BGMSoundClass))
 	{
-		BGMComponent->FadeOut(FadeOutDuration, 0.0f);
-	}
-	else
-	{
-		BGMComponent->Stop();
-	}
-}
-
-UAudioComponent* UCPAudioSubsystem::PlaySFX2D(USoundBase* Sound, float VolumeMultiplier, float PitchMultiplier, float StartTime, bool bIsUISound)
-{
-	if (!IsValid(Sound))
-	{
-		return nullptr;
-	}
-
-	const float BaseVolume = FMath::Max(0.0f, VolumeMultiplier);
-	UAudioComponent* AudioComponent = UGameplayStatics::CreateSound2D(GetGameInstance(), Sound, BaseVolume * MasterVolume * SFXVolume, FMath::Max(0.0f, PitchMultiplier), FMath::Max(0.0f, StartTime), nullptr, false, true);
-
-	if (!IsValid(AudioComponent))
-	{
-		return nullptr;
-	}
-
-	AudioComponent->bIsUISound = bIsUISound;
-	ManagedSFXComponents.Add(AudioComponent, BaseVolume);
-	AudioComponent->OnAudioFinishedNative.AddUObject(this, &ThisClass::HandleSFXFinished);
-	AudioComponent->Play(FMath::Max(0.0f, StartTime));
-
-	return AudioComponent;
-}
-
-UAudioComponent* UCPAudioSubsystem::PlaySFXAtLocation(USoundBase* Sound, FVector Location, float VolumeMultiplier, float PitchMultiplier, float StartTime)
-{
-	if (!IsValid(Sound))
-	{
-		return nullptr;
-	}
-
-	const float BaseVolume = FMath::Max(0.0f, VolumeMultiplier);
-	UAudioComponent* AudioComponent = UGameplayStatics::SpawnSoundAtLocation(GetGameInstance(), Sound, Location, FRotator::ZeroRotator, BaseVolume * MasterVolume * SFXVolume, FMath::Max(0.0f, PitchMultiplier), FMath::Max(0.0f, StartTime));
-
-	if (!IsValid(AudioComponent))
-	{
-		return nullptr;
-	}
-
-	ManagedSFXComponents.Add(AudioComponent, BaseVolume);
-	AudioComponent->OnAudioFinishedNative.AddUObject(this, &ThisClass::HandleSFXFinished);
-
-	return AudioComponent;
-}
-
-void UCPAudioSubsystem::ApplyBGMVolume()
-{
-	if (IsValid(BGMComponent))
-	{
-		BGMComponent->SetVolumeMultiplier(CurrentBGMBaseVolume * MasterVolume * BGMVolume);
-	}
-}
-
-void UCPAudioSubsystem::ApplySFXVolume()
-{
-	for (auto It = ManagedSFXComponents.CreateIterator(); It; ++It)
-	{
-		if (!IsValid(It.Key()))
-		{
-			It.RemoveCurrent();
-			continue;
-		}
-
-		It.Key()->SetVolumeMultiplier(It.Value() * MasterVolume * SFXVolume);
-	}
-}
-
-void UCPAudioSubsystem::HandleSFXFinished(UAudioComponent* FinishedComponent)
-{
-	if (IsValid(FinishedComponent))
-	{
-		FinishedComponent->OnAudioFinishedNative.RemoveAll(this);
-	}
-
-	ManagedSFXComponents.Remove(FinishedComponent);
-}
-
-void UCPAudioSubsystem::ReleaseBGMComponent()
-{
-	CurrentBGM = nullptr;
-
-	if (!IsValid(BGMComponent))
-	{
-		BGMComponent = nullptr;
+		UE_LOG(LogCPAudio, Warning, TEXT("Volume SoundMix or required SoundClass asset is missing."));
 		return;
 	}
 
-	BGMComponent->Stop();
-	BGMComponent->DestroyComponent();
-	BGMComponent = nullptr;
+	if (!bVolumeMixPushed)
+	{
+		UGameplayStatics::PushSoundMixModifier(World, VolumeControlMix);
+		bVolumeMixPushed = true;
+	}
+
+	UGameplayStatics::SetSoundMixClassOverride(World, VolumeControlMix, MasterSoundClass, MasterVolume, 1.0f, CPAudio::VolumeFadeTime, true);
+	UGameplayStatics::SetSoundMixClassOverride(World, VolumeControlMix, SFXSoundClass, SFXVolume, 1.0f, CPAudio::VolumeFadeTime, true);
+	UGameplayStatics::SetSoundMixClassOverride(World, VolumeControlMix, BGMSoundClass, BGMVolume, 1.0f, CPAudio::VolumeFadeTime, true);
+}
+
+void UCPAudioSubsystem::ReleaseVolumeMix()
+{
+	if (!bVolumeMixPushed || !IsValid(VolumeControlMix))
+	{
+		bVolumeMixPushed = false;
+		return;
+	}
+
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UWorld* World = GameInstance->GetWorld(); IsAudioWorld(World))
+		{
+			UGameplayStatics::PopSoundMixModifier(World, VolumeControlMix);
+		}
+	}
+
+	bVolumeMixPushed = false;
+}
+
+bool UCPAudioSubsystem::IsAudioWorld(const UWorld* World) const
+{
+	return IsValid(World) && World->IsGameWorld() && World->GetGameInstance() == GetGameInstance() && World->GetNetMode() != NM_DedicatedServer;
 }

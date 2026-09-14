@@ -6,14 +6,15 @@
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "CPAudioSubsystem.generated.h"
 
-class UAudioComponent;
-class USoundBase;
+class USoundClass;
+class USoundMix;
+class UWorld;
 
 /**
- * 게임 인스턴스 동안 유지되는 오디오 재생과 사용자 볼륨을 관리합니다.
+ * 게임 인스턴스 동안 유지되는 프로젝트 전역 사용자 볼륨을 관리합니다.
  *
- * 이 서브시스템을 통해 생성한 BGM/SFX 컴포넌트에는
- * MasterVolume과 각 카테고리 볼륨이 즉시 반영됩니다.
+ * SoundMix와 SoundClass를 통해 프로젝트 전체 오디오에
+ * MasterVolume과 각 카테고리 볼륨을 즉시 반영합니다.
  * 값은 게임 인스턴스 수명 동안만 유지되며 디스크에는 자동 저장되지 않습니다.
  */
 UCLASS()
@@ -22,7 +23,10 @@ class CREATEPOTION_API UCPAudioSubsystem final : public UGameInstanceSubsystem
 	GENERATED_BODY()
 
 public:
+	UCPAudioSubsystem();
+
 	virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
 	UFUNCTION(BlueprintCallable, Category = "CP|Audio|Volume")
@@ -43,26 +47,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "CP|Audio|Volume")
 	float GetBGMVolume() const { return BGMVolume; }
 
-	/** 맵 전환에도 유지되는 비공간화 BGM을 재생합니다. */
-	UFUNCTION(BlueprintCallable, Category = "CP|Audio|BGM")
-	UAudioComponent* PlayBGM(USoundBase* Sound, float FadeInDuration = 1.0f, float VolumeMultiplier = 1.0f, float StartTime = 0.0f);
-
-	UFUNCTION(BlueprintCallable, Category = "CP|Audio|BGM")
-	void StopBGM(float FadeOutDuration = 1.0f);
-
-	/** 서브시스템의 Master/SFX 볼륨을 따르는 비공간화 효과음을 재생합니다. */
-	UFUNCTION(BlueprintCallable, Category = "CP|Audio|SFX")
-	UAudioComponent* PlaySFX2D(USoundBase* Sound, float VolumeMultiplier = 1.0f, float PitchMultiplier = 1.0f, float StartTime = 0.0f, bool bIsUISound = false);
-
-	/** 서브시스템의 Master/SFX 볼륨을 따르는 공간화 효과음을 재생합니다. */
-	UFUNCTION(BlueprintCallable, Category = "CP|Audio|SFX")
-	UAudioComponent* PlaySFXAtLocation(USoundBase* Sound, FVector Location, float VolumeMultiplier = 1.0f, float PitchMultiplier = 1.0f, float StartTime = 0.0f);
-
 private:
-	void ApplyBGMVolume();
-	void ApplySFXVolume();
-	void HandleSFXFinished(UAudioComponent* FinishedComponent);
-	void ReleaseBGMComponent();
+	void HandlePostLoadMap(UWorld* LoadedWorld);
+	void ApplyVolumeMixForCurrentWorld();
+	void ApplyVolumeMix(UWorld* World);
+	void ReleaseVolumeMix();
+	bool IsAudioWorld(const UWorld* World) const;
 
 private:
 	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "CP|Audio|Volume", meta = (AllowPrivateAccess = "true"))
@@ -74,16 +64,18 @@ private:
 	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "CP|Audio|Volume", meta = (AllowPrivateAccess = "true"))
 	float BGMVolume = 1.0f;
 
-	UPROPERTY(Transient)
-	TObjectPtr<UAudioComponent> BGMComponent;
+	UPROPERTY()
+	TObjectPtr<USoundMix> VolumeControlMix;
 
-	UPROPERTY(Transient)
-	TObjectPtr<USoundBase> CurrentBGM;
+	UPROPERTY()
+	TObjectPtr<USoundClass> MasterSoundClass;
 
-	UPROPERTY(Transient)
-	float CurrentBGMBaseVolume = 1.0f;
+	UPROPERTY()
+	TObjectPtr<USoundClass> SFXSoundClass;
 
-	/** 컴포넌트별 기본 볼륨을 보관해 슬라이더 변경 시 재계산합니다. */
-	UPROPERTY(Transient)
-	TMap<TObjectPtr<UAudioComponent>, float> ManagedSFXComponents;
+	UPROPERTY()
+	TObjectPtr<USoundClass> BGMSoundClass;
+
+	bool bVolumeMixPushed = false;
+	FDelegateHandle PostLoadMapHandle;
 };
