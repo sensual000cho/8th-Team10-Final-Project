@@ -1,6 +1,6 @@
 ﻿#include "NPC/GA/CPGA_Giant.h"
 #include "NPC/CPBaseNPC.h"
-#include "NPC/CPNPCVisualComponent.h"
+#include "NPC/Components/CPNPCVisualComponent.h"
 
 UCPGA_Giant::UCPGA_Giant()
 {

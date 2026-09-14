@@ -1,4 +1,4 @@
-﻿#include "NPC/CPNPCMoveComponent.h"
+﻿#include "NPC/Components/CPNPCMoveComponent.h"
 #include "NPC/CPBaseNPC.h"
 #include "Data/NPC/CPNPCDataAsset.h"
 #include "NavigationSystem.h"

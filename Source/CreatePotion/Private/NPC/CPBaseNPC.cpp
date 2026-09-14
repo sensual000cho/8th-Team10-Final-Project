@@ -8,8 +8,8 @@
 #include "Animation/AnimSequence.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameInstance/Subsystem/CPCodexSubsystem.h"
-#include "NPC/CPNPCVisualComponent.h"
-#include "NPC/CPNPCMoveComponent.h"
+#include "NPC/Components/CPNPCVisualComponent.h"
+#include "NPC/Components/CPNPCMoveComponent.h"
 #include "NPC/CPNPCAIController.h"
 #include "Components/CPInteractableComponent.h"
 

@@ -1,6 +1,6 @@
 ﻿#include "NPC/GA/CPGA_FartLaunch.h"
 #include "NPC/CPBaseNPC.h"
-#include "NPC/CPNPCVisualComponent.h"
+#include "NPC/Components/CPNPCVisualComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"

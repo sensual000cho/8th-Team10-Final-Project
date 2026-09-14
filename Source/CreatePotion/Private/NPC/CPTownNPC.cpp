@@ -4,7 +4,7 @@
 #include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
 #include "Components/CPInventoryComponent.h"
 #include "UI/Widgets/Common/Dialogue/CPNPCDialogueWidget.h"
-#include "NPC/CPNPCMoveComponent.h"
+#include "NPC/Components/CPNPCMoveComponent.h"
 #include "NPC/CPNPCAIController.h"
 
 void ACPTownNPC::HandleInteract(AActor* Interactor)

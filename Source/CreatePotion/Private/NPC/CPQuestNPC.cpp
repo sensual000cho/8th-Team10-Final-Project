@@ -5,7 +5,7 @@
 #include "Quest/QuestManager.h"
 #include "Settings/CPUISettings.h"
 #include "UI/Widgets/Common/Dialogue/CPNPCDialogueWidget.h"
-#include "NPC/CPNPCMoveComponent.h"
+#include "NPC/Components/CPNPCMoveComponent.h"
 #include "NPC/CPNPCAIController.h"
 #include "Character/CPInteractionComponent.h"                   
 #include "Components/WidgetComponent.h"                        
