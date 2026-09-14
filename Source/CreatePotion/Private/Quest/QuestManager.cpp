@@ -64,6 +64,20 @@ TArray<FName> UQuestManager::GetAllTrackedQuestIDs() const
 	return QuestOrder;
 }
 
+// 신규 추가 - 화면에 계속 표시할 "현재 활성 목표" 조회
+// 수락 순서 중 아직 완료 안 된 첫 번째 퀘스트를 반환, 없으면 NAME_None
+FName UQuestManager::GetActiveGoalQuestID() const
+{
+	for (const FName& QuestID : QuestOrder)
+	{
+		if (GetQuestState(QuestID) == EQuestState::Accepted)
+		{
+			return QuestID;
+		}
+	}
+	return NAME_None;
+}
+
 // 이 QuestID가 RandomQuestAnswerTable 소속인지 확인 (일반 테이블에 있으면 false)
 bool UQuestManager::IsRandomQuest(FName QuestID) const
 {
@@ -126,20 +140,14 @@ bool UQuestManager::IsQuestStoryUnlocked(FName QuestID) const
 	return Quest->RequiredStoryStage <= CurrentStage;
 }
 
-// 팀원 요청으로 분리된 완료 처리 함수 (TryDeliver 등 여러 곳에서 재사용 가능)
 void UQuestManager::CompleteQuest(FName QuestID)
 {
 	if (QuestID.IsNone()) return;
-
-	if (GetQuestState(QuestID) == EQuestState::Completed)
-	{
-		return;
-	}
+	if (GetQuestState(QuestID) == EQuestState::Completed) return;
 
 	QuestStates.Add(QuestID, EQuestState::Completed);
-	OnQuestUpdated.Broadcast(QuestID, EQuestState::Completed);
 
-	// 완료된 퀘스트가 소속 NPC의 스토리를 진행시키는지 확인 후 반영
+	// 스토리 단계 진행을 먼저 처리 (방송보다 앞으로 이동)
 	if (QuestScriptTable)
 	{
 		if (FQuestData* Quest = QuestScriptTable->FindRow<FQuestData>(QuestID, TEXT("")))
@@ -156,6 +164,10 @@ void UQuestManager::CompleteQuest(FName QuestID)
 			}
 		}
 	}
+
+	// 스토리 단계가 다 갱신된 후에 방송
+	OnQuestUpdated.Broadcast(QuestID, EQuestState::Completed);
+
 	UE_LOG(LogTemp, Warning, TEXT("퀘스트 [%s] 완료 처리"), *QuestID.ToString());
 }
 
@@ -196,6 +208,13 @@ FText UQuestManager::GetQuestScriptTextJoined(FName QuestID) const
 {
 	TArray<FText> Lines = GetQuestScriptLines(QuestID);
 	return FText::Join(FText::FromString(TEXT("\n")), Lines);
+}
+
+FText UQuestManager::GetCodexSummaryText(FName QuestID) const
+{
+	if (!QuestScriptTable) return FText::GetEmpty();
+	FQuestData* Quest = QuestScriptTable->FindRow<FQuestData>(QuestID, TEXT(""));
+	return Quest ? Quest->CodexSummaryText : FText::GetEmpty();
 }
 
 // ===================================================================
@@ -594,7 +613,29 @@ void UQuestManager::ValidateQuestTablesMatch()
 	}
 }
 
-EQuestMarkerState UQuestManager::GetMarkerStateForQuests(const TArray<FName>& QuestIDs) const
+// ===================================================================
+// [퀘스트 마커]
+// ===================================================================
+
+bool UQuestManager::IsItemQuestCompletable(FName QuestID, const TMap<FName, int32>& HeldItemCounts) const
+{
+	if (GetQuestCompletionType(QuestID) != EQuestCompletionType::ItemCollection) return false;
+
+	FQuestAnswerData* Answer = FindAnswerData(QuestID);
+	if (!Answer) return false;
+
+	for (const FName& RequiredItemID : Answer->RequiredItemIDs)
+	{
+		const int32* HeldCount = HeldItemCounts.Find(RequiredItemID);
+		if (!HeldCount || *HeldCount < Answer->RequiredItemCount)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+EQuestMarkerState UQuestManager::GetMarkerStateForQuests(const TArray<FName>& QuestIDs, const TMap<FName, int32>& HeldItemCounts) const
 {
 	bool bHasInProgress = false;
 
@@ -606,10 +647,27 @@ EQuestMarkerState UQuestManager::GetMarkerStateForQuests(const TArray<FName>& Qu
 
 		if (State == EQuestState::NotAccepted && IsQuestStoryUnlocked(QuestID))
 		{
-			return EQuestMarkerState::Available;   // 새 퀘스트 발견 시 최우선으로 바로 반환
+			return EQuestMarkerState::Available;
 		}
+
 		if (State == EQuestState::Accepted)
 		{
+			EQuestCompletionType Type = GetQuestCompletionType(QuestID);
+			bool bIsCompletable = false;
+
+			if (Type == EQuestCompletionType::Dialogue)
+			{
+				bIsCompletable = true;
+			}
+			else if (Type == EQuestCompletionType::ItemCollection)
+			{
+				bIsCompletable = IsItemQuestCompletable(QuestID, HeldItemCounts);
+			}
+
+			if (bIsCompletable)
+			{
+				return EQuestMarkerState::Completable;
+			}
 			bHasInProgress = true;
 		}
 	}
