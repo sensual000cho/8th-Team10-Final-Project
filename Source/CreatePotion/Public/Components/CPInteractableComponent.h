@@ -25,6 +25,7 @@ public:
 	UCPInteractableComponent();
 	
 	virtual void BeginPlay() override;
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	
 	// 플레이어가 시선을 맞췄을 때 호출
 	virtual void BeginFocus(AActor* Interactor);
@@ -92,6 +93,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Interaction")
 	float GetInteractionDuration() const { return InteractionDuration; }
+	
+private:
+	void UpdateInteractionWidgetLocation(AActor* Interactor);
 
 public:
 	// 상호작용 완료 델리게이트
@@ -127,4 +131,9 @@ protected:
 private:	
 	UPROPERTY()
 	UCPInteractionComponent* InteractionComp;
+	
+	UPROPERTY()
+	TObjectPtr<AActor> FocusedInteractor;
+	
+	FVector RelativeLocation;
 };

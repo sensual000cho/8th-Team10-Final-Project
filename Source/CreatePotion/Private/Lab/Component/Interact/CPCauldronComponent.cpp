@@ -23,7 +23,8 @@ UCPCauldronComponent::UCPCauldronComponent():
 	RandomImpulseMin(2000.f),
 	RandomImpulseMax(4000.f)
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
 	InteractionPrompt = FText::FromString(TEXT("포션 만들기"));
 	bShouldShowUnavailableInteraction = true;
 }
