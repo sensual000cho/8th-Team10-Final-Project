@@ -38,6 +38,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Lab|Interaction")
 	TArray<FCPItemInstance> GetIngredientInstance() const;
 	
+	// 포션 생성 (BP 호출)
+	UFUNCTION(BlueprintCallable, Category = "Lab|Interaction")
+	bool CreatePotion();
+	
 private:
 	// 현재 가마솥이 해당 재료를 받을 수 있는지 검사
 	bool CanAcceptProp(const ACPAlchemyProp* Prop) const;

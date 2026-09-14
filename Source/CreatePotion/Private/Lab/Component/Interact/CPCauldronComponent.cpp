@@ -69,13 +69,7 @@ void UCPCauldronComponent::BeginFocus(AActor* Interactor)
 void UCPCauldronComponent::HandleInteract(AActor* Interactor)
 {
 	if (!IsValid(Interactor) || !CanInteract() || !BoundIngredientTrigger) return;
-	
-	ACPLabGameMode* LabGameMode = Cast<ACPLabGameMode>(UGameplayStatics::GetGameMode(this));
-	if (!LabGameMode || !LabGameMode->CreatePotion(GetEffectTags(), MakePotionTransform(), MakeSpawnImpulse())) return;
-	
-	IngredientInstances.Reset();
-	IngredientTags.Reset();
-	OnEffectsChanged.Broadcast();
+	Super::HandleInteract(Interactor);
 }
 
 bool UCPCauldronComponent::CanInteract() const
@@ -96,6 +90,17 @@ TArray<FGameplayTag> UCPCauldronComponent::GetEffectTags() const
 TArray<FCPItemInstance> UCPCauldronComponent::GetIngredientInstance() const
 {
 	return IngredientInstances;
+}
+
+bool UCPCauldronComponent::CreatePotion()
+{
+	ACPLabGameMode* LabGameMode = Cast<ACPLabGameMode>(UGameplayStatics::GetGameMode(this));
+	if (!LabGameMode || !LabGameMode->CreatePotion(GetEffectTags(), MakePotionTransform(), MakeSpawnImpulse())) return false;
+	
+	IngredientInstances.Reset();
+	IngredientTags.Reset();
+	OnEffectsChanged.Broadcast();
+	return true;
 }
 
 bool UCPCauldronComponent::CanAcceptProp(const ACPAlchemyProp* Prop) const

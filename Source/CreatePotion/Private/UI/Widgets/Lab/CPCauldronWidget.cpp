@@ -56,6 +56,7 @@ void UCPCauldronWidget::RefreshEffectTags()
 	UCPCauldronComponent* BoundCauldronComponent = CauldronComponent.Get();
 	if (!BoundCauldronComponent || !WidgetTree) return;
 	
+	// 효과 VB에 추가 + 가운데 정렬
 	const TArray<FGameplayTag> EffectTags = BoundCauldronComponent->GetEffectTags();
 	for (const FGameplayTag& Tag : EffectTags){
 		if (!Tag.IsValid()) continue;

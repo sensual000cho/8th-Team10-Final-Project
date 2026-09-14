@@ -25,8 +25,11 @@ protected:
 	virtual void ApplyDisplayStateColors(ECPInteractionDisplayState DisplayState) override;
 	
 private:
+	// 효과 갱신
 	UFUNCTION()
 	void RefreshEffectTags();
+	
+	// Tag Definition에 저장된 DisplayName으로 반환
 	FText GetEffectDisplayName(const FGameplayTag& EffectTag) const;
 	
 protected:	
