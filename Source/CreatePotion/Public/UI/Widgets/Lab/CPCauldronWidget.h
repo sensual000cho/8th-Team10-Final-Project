@@ -6,8 +6,8 @@
 #include "UI/Widgets/Common/Interaction/CPInteractionPromptWidget.h"
 #include "CPCauldronWidget.generated.h"
 
+class UGridPanel;
 struct FGameplayTag;
-class UVerticalBox;
 class UCPCauldronComponent;
 /**
  * 
@@ -22,6 +22,7 @@ public:
 	
 protected:
 	virtual void UnbindEvents() override;
+	virtual void ApplyDisplayStateColors(ECPInteractionDisplayState DisplayState) override;
 	
 private:
 	UFUNCTION()
@@ -30,7 +31,10 @@ private:
 	
 protected:	
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UVerticalBox> VB_EffectTags;
+	TObjectPtr<UTextBlock> Txt_CurrentEffects;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UGridPanel> GP_EffectTags;
 	
 private:
 	UPROPERTY(Transient)
