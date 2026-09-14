@@ -53,6 +53,20 @@ void UCPItemSlotWidget::UpdateSlot(const FContainerItem& ItemData)
 		// SelfHitTestInvisible은 이미지는 보이되, 마우스 클릭은 통과시키라는 설정
 		ItemIcon->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 
+		if (LiquidImage)
+		{
+			// 포션일 때(CurrentEffects 배열에 내용물이 있을 때)만 액체 이미지를 표시
+			if (ItemData.Instance.CurrentEffects.Num() > 0) 
+			{
+				LiquidImage->SetColorAndOpacity(ItemData.Instance.GetLiquidColor());
+				LiquidImage->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+			}
+			else
+			{
+				LiquidImage->SetVisibility(ESlateVisibility::Collapsed); // 일반 재료는 액체 이미지 표시 x
+			}
+		}
+
 		// 스택 텍스트
 		if (ItemData.Stacked > 1)
 		{
