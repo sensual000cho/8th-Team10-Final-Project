@@ -7,9 +7,11 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimSequence.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "NPC/CPNPCVisualComponent.h"
-#include "NPC/CPNPCMoveComponent.h"
+#include "GameInstance/Subsystem/CPCodexSubsystem.h"
+#include "NPC/Components/CPNPCVisualComponent.h"
+#include "NPC/Components/CPNPCMoveComponent.h"
 #include "NPC/CPNPCAIController.h"
+#include "Components/CPInteractableComponent.h"
 
 #if WITH_EDITOR
 #include "DrawDebugHelpers.h"
@@ -40,9 +42,16 @@ ACPBaseNPC::ACPBaseNPC()
 
 	VisualComponent = CreateDefaultSubobject<UCPNPCVisualComponent>(TEXT("VisualComponent"));
 	MoveComponent = CreateDefaultSubobject<UCPNPCMoveComponent>(TEXT("MoveComponent"));
+	InteractableComponent = CreateDefaultSubobject<UCPInteractableComponent>(TEXT("InteractableComponent"));
 
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 	AIControllerClass = ACPNPCAIController::StaticClass();
+}
+
+void ACPBaseNPC::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
 }
 
 UAbilitySystemComponent* ACPBaseNPC::GetAbilitySystemComponent() const
@@ -70,6 +79,11 @@ void ACPBaseNPC::BeginPlay()
 	Super::BeginPlay();
 
 	InitializeFromDataAsset();
+	if (InteractableComponent)
+	{
+		InteractableComponent->OnActorInteractionStarted.AddUniqueDynamic(this, &ACPBaseNPC::HandleInteractionStarted);
+		InteractableComponent->OnActorInteractionCompleted.AddUniqueDynamic(this, &ACPBaseNPC::HandleInteract);
+	}
 
 	if (IsValid(AbilitySystemComponent))
 	{
@@ -83,6 +97,17 @@ void ACPBaseNPC::BeginPlay()
 	}
 
 	CatchUpPersistentPotionEffects();
+	RefreshInteractionState();
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimer(
+			InteractionRefreshTimerHandle,
+			this,
+			&ACPBaseNPC::RefreshInteractionState,
+			InteractionRefreshInterval,
+			true
+		);
+	}
 }
 
 void ACPBaseNPC::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -90,6 +115,17 @@ void ACPBaseNPC::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	if (UCPNPCSubsystem* Subsystem = GetNPCSubsystem())
 	{
 		Subsystem->UnregisterActiveNPC(GetPotionNPCId(), this);
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(InteractionRefreshTimerHandle);
+	}
+
+	if (InteractableComponent)
+	{
+		InteractableComponent->OnActorInteractionStarted.RemoveDynamic(this, &ACPBaseNPC::HandleInteractionStarted);
+		InteractableComponent->OnActorInteractionCompleted.RemoveDynamic(this, &ACPBaseNPC::HandleInteract);
 	}
 
 	VisualDelegateMap.Empty();
@@ -113,7 +149,7 @@ void ACPBaseNPC::InitializeFromDataAsset()
 
 	if (VisualComponent)
 	{
-		VisualComponent->InitializeVisual(GetMesh(), GetCapsuleComponent(), LoadedMesh, LoadedAnim, NPCData->MeshScale, NPCData->CapsuleRadiusRatio);
+		VisualComponent->InitializeVisual(GetMesh(), GetCapsuleComponent(), LoadedMesh, NPCData->AnimClass, nullptr, NPCData->MeshScale, NPCData->CapsuleRadiusRatio);
 	}
 
 	if (NPCData->NPCName != NAME_None)
@@ -176,6 +212,50 @@ void ACPBaseNPC::SetNPCData(UCPNPCDataAsset* InNPCData)
 	NPCData = InNPCData;
 }
 
+void ACPBaseNPC::SetNPCActiveState(bool bActive)
+{
+	SetActorHiddenInGame(!bActive);
+    SetActorEnableCollision(bActive);
+    SetActorTickEnabled(bActive);
+
+    if (InteractableComponent)
+    {
+        InteractableComponent->SetInteractability(bActive);
+    }
+
+    if (UCharacterMovementComponent* MovementComp = GetCharacterMovement())
+    {
+        MovementComp->SetComponentTickEnabled(bActive);
+        if (!bActive)
+        {
+            MovementComp->StopMovementImmediately();
+        }
+    }
+    if (AAIController* AIC = Cast<AAIController>(GetController()))
+    {
+        if (bActive)
+        {
+            AIC->ResumeMove(FAIRequestID::CurrentRequest);
+        }
+        else
+        {
+            AIC->StopMovement();
+        }
+    }
+
+    if (MoveComponent)
+    {
+        if (bActive)
+        {
+            MoveComponent->StartMoving(); 
+        }
+        else
+        {
+            MoveComponent->StopMoving();
+        }
+    }
+}
+
 void ACPBaseNPC::CatchUpPersistentPotionEffects()
 {
 	UCPNPCSubsystem* Subsystem = GetNPCSubsystem();
@@ -226,16 +306,52 @@ void ACPBaseNPC::GrantPotionReactionAbilities()
 	}
 }
 
-void ACPBaseNPC::OnInteract_Implementation(AActor* Interactor) {}
-FText ACPBaseNPC::GetInteractionPrompt_Implementation() { return FText::GetEmpty(); }
-bool ACPBaseNPC::CanInteract_Implementation(AActor* Interactor) { return false; }
-FName ACPBaseNPC::GetInteractionName_Implementation()
+
+void ACPBaseNPC::HandleInteract(AActor* Interactor) {}
+
+void ACPBaseNPC::HandleInteractionStarted(AActor* Interactor)
 {
+}
+
+FText ACPBaseNPC::GetInteractionPrompt() const { return FText::GetEmpty(); }
+bool ACPBaseNPC::CanInteract(AActor* Interactor) const { return false; }
+FName ACPBaseNPC::GetInteractionName() const{
 	if (NPCData && NPCData->NPCName != NAME_None)
 	{
 		return NPCData->NPCName;
 	}
 	return GetFName();
+}
+
+void ACPBaseNPC::RegisterCodex()
+{
+	if (!NPCData) return;
+	
+	UGameInstance* GameInstance = GetGameInstance();
+	UCPCodexSubsystem* CodexSubsystem = GameInstance ? GameInstance->GetSubsystem<UCPCodexSubsystem>() : nullptr;
+	if (!CodexSubsystem) return;
+	
+	CodexSubsystem->RegisterNPCEntry(NPCData);
+}
+
+void ACPBaseNPC::RefreshInteractionState()
+{
+	if (!InteractableComponent)
+	{
+		return;
+	}
+	AActor* Interactor = nullptr;
+	if (const UWorld* World = GetWorld())
+	{
+		if (const APlayerController* PC = World->GetFirstPlayerController())
+		{
+			Interactor = PC->GetPawn();
+		}
+	}
+
+	InteractableComponent->SetInteractability(CanInteract(Interactor));
+	InteractableComponent->SetInteractionPrompt(GetInteractionPrompt());
+	InteractableComponent->SetTargetName(GetInteractionName());
 }
 
 #pragma region Route Debug

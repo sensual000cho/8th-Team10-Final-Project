@@ -3,15 +3,19 @@
 
 #include "Lab/Component/Interact/CPCauldronComponent.h"
 
+#include "Blueprint/UserWidget.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/WidgetComponent.h"
 #include "Data/CPForageableItemData.h"
 #include "Data/CPTagDefinitionTypes.h"
 #include "Engine/DataTable.h"
+#include "Engine/Engine.h"
 #include "GameMode/CPLabGameMode.h"
 #include "Kismet/GameplayStatics.h"
 #include "Lab/Actor/CPAlchemyProp.h"
 #include "Settings/CPDTSettings.h"
+#include "UI/Widgets/Lab/CPCauldronWidget.h"
 
 UCPCauldronComponent::UCPCauldronComponent(): 
 	MaxSlotCount(3), 
@@ -19,9 +23,10 @@ UCPCauldronComponent::UCPCauldronComponent():
 	RandomImpulseMin(2000.f),
 	RandomImpulseMax(4000.f)
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
 	InteractionPrompt = FText::FromString(TEXT("포션 만들기"));
-	bShowWhenUnavailable = true;
+	bShouldShowUnavailableInteraction = true;
 }
 
 void UCPCauldronComponent::BeginPlay()
@@ -49,24 +54,32 @@ void UCPCauldronComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-bool UCPCauldronComponent::ExecuteInteraction(AActor* Interactor)
+void UCPCauldronComponent::BeginFocus(AActor* Interactor)
 {
-	if (!CanExecuteInteraction(Interactor)) return false;
-	if (!BoundIngredientTrigger) return false;
+	Super::BeginFocus(Interactor);
 	
-	ACPLabGameMode* LabGameMode = Cast<ACPLabGameMode>(UGameplayStatics::GetGameMode(this));
-	if (!LabGameMode || !LabGameMode->CreatePotion(GetEffectTags(), MakePotionTransform(), MakeSpawnImpulse())) return false;
+	if (!InteractWidgetComp) return;
 	
-	IngredientInstances.Reset();
-	IngredientTags.Reset();
-	return true;
+	UUserWidget* UserWidget =InteractWidgetComp->GetUserWidgetObject();
+	if (UCPCauldronWidget* CauldronWidget = Cast<UCPCauldronWidget>(UserWidget)){
+		CauldronWidget->SetCauldronComponent(this);
+	}
 }
 
-bool UCPCauldronComponent::CanExecuteInteraction(AActor* Interactor) const
+void UCPCauldronComponent::HandleInteract(AActor* Interactor)
 {
-	if (!Super::CanExecuteInteraction(Interactor)) return false;
+	if (!IsValid(Interactor) || !CanInteract() || !BoundIngredientTrigger) return;
+	Super::HandleInteract(Interactor);
+}
 
+bool UCPCauldronComponent::CanInteract() const
+{
 	return IngredientInstances.Num() > 0;
+}
+
+bool UCPCauldronComponent::ShouldShowUnavailableInteraction() const
+{
+	return bShouldShowUnavailableInteraction;
 }
 
 TArray<FGameplayTag> UCPCauldronComponent::GetEffectTags() const
@@ -77,6 +90,17 @@ TArray<FGameplayTag> UCPCauldronComponent::GetEffectTags() const
 TArray<FCPItemInstance> UCPCauldronComponent::GetIngredientInstance() const
 {
 	return IngredientInstances;
+}
+
+bool UCPCauldronComponent::CreatePotion()
+{
+	ACPLabGameMode* LabGameMode = Cast<ACPLabGameMode>(UGameplayStatics::GetGameMode(this));
+	if (!LabGameMode || !LabGameMode->CreatePotion(GetEffectTags(), MakePotionTransform(), MakeSpawnImpulse())) return false;
+	
+	IngredientInstances.Reset();
+	IngredientTags.Reset();
+	OnEffectsChanged.Broadcast();
+	return true;
 }
 
 bool UCPCauldronComponent::CanAcceptProp(const ACPAlchemyProp* Prop) const
@@ -90,7 +114,7 @@ bool UCPCauldronComponent::CanAcceptProp(const ACPAlchemyProp* Prop) const
 void UCPCauldronComponent::ResolveTagCombinations(int32 NewTagIndex)
 {
 	// 새로운 태그 or 조합 태그로 첫번째 Tag 까지 탐색
-	while (IngredientTags.IsValidIndex(NewTagIndex)){
+	while (NewTagIndex > 0 && IngredientTags.IsValidIndex(NewTagIndex)){
 		const FGameplayTag NewTag = IngredientTags[NewTagIndex];
 		const FCPTagDefinitionRow* NewTagRow = nullptr;
 		if (!FindTagDefinitionRow(NewTag, NewTagRow) || !NewTagRow) break;
@@ -193,68 +217,23 @@ void UCPCauldronComponent::HandleIngredientOverlap(
 	IngredientInstances.Add(Ingredient);
 	if (Ingredient.SourceItemData && !Ingredient.SourceItemData->TagAxes.IsEmpty()){
 		const FGameplayTag IngredientTag = Ingredient.SourceItemData->TagAxes[0];
+		static const FGameplayTag ResetTag = FGameplayTag::RequestGameplayTag(TEXT("Potion.Effect.Reset"));
 		
-		if (IngredientTag.IsValid() && !IngredientTags.Contains(IngredientTag)){
-			IngredientTags.Add(IngredientTag);
-			ResolveTagCombinations(IngredientTags.Num() - 1);
+		if (IngredientTag.IsValid()){
+			// Reset은 다른 Tag와 같이 존재하지 않음
+			if (IngredientTag == ResetTag){
+				IngredientTags.Reset();
+			}else{
+				IngredientTags.Remove(ResetTag);
+			}
+			
+			if (!IngredientTags.Contains(IngredientTag)){
+				IngredientTags.Add(IngredientTag);
+				ResolveTagCombinations(IngredientTags.Num() - 1);
+			}
 		}
 	}
 	IngredientProp->SetActorEnableCollision(false);
 	IngredientProp->Destroy();
-	
-	DebugPrintSlots();
-}
-
-// UI 도입 or PR확인 이후 삭제
-void UCPCauldronComponent::DebugPrintSlots() const
-{
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(
-			-1,
-			3.f,
-			FColor::Yellow,
-			FString::Printf(TEXT("[가마솥] 재료 개수: %d / %d"),
-				IngredientInstances.Num(),
-				MaxSlotCount));
-	}
-
-	for (int32 Index = 0; Index < IngredientInstances.Num(); ++Index)
-	{
-		const FCPItemInstance& Ingredient = IngredientInstances[Index];
-
-		const FString ItemName = Ingredient.SourceItemData
-			? Ingredient.SourceItemData->DisplayName.ToString()
-			: TEXT("없음");
-
-		FString EffectText;
-		if (Ingredient.SourceItemData){
-			for (const FGameplayTag& EffectTag : Ingredient.SourceItemData->TagAxes)
-			{
-				if (!EffectTag.IsValid()) continue;
-
-				if (!EffectText.IsEmpty())
-				{
-					EffectText += TEXT(", ");
-				}
-
-				EffectText += EffectTag.ToString();
-			}	
-		}
-
-		const FString Message = FString::Printf(
-			TEXT("[가마솥] 슬롯 %d: %s / 효과: %s"),
-			Index,
-			*ItemName,
-			EffectText.IsEmpty() ? TEXT("없음") : *EffectText);
-
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(
-				-1,
-				3.f,
-				FColor::Cyan,
-				Message);
-		}
-	}
+	OnEffectsChanged.Broadcast();
 }

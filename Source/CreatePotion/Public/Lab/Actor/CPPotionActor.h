@@ -28,7 +28,7 @@ public:
 	ACPPotionActor();
 
 	virtual void Tick(float DeltaTime) override;
-	virtual FName GetInteractionName_Implementation() override;
+	virtual FName EvaluateTargetName_Implementation() const override;
 	virtual void InitializeFromItemData(UCPForageableItemData* ItemData, const TArray<FGameplayTag>& EffectTags = TArray<FGameplayTag>()) override;
 	
 	// Spawn Impulse 적용

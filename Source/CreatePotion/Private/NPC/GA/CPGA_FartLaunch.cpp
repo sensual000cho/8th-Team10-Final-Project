@@ -1,6 +1,6 @@
 ﻿#include "NPC/GA/CPGA_FartLaunch.h"
 #include "NPC/CPBaseNPC.h"
-#include "NPC/CPNPCVisualComponent.h"
+#include "NPC/Components/CPNPCVisualComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -21,6 +21,11 @@ void UCPGA_FartLaunch::ActivateAbility(const FGameplayAbilitySpecHandle Handle, 
 
 	ACPBaseNPC* TargetCharacter = GetValidatedOwningPotionNPC(Handle, ActorInfo, ActivationInfo);
 	if (!TargetCharacter) { return; }
+
+	if (ActorInfo->AbilitySystemComponent.IsValid())
+	{
+		ActorInfo->AbilitySystemComponent->AddLooseGameplayTag(FGameplayTag::RequestGameplayTag(FName("State.NPC.Displaced")));
+	}
 
 	bIsRagdolling = false;
 	LastMeshHitTime = 0.f;
@@ -55,7 +60,16 @@ void UCPGA_FartLaunch::ActivateAbility(const FGameplayAbilitySpecHandle Handle, 
 		{
 			if (USkeletalMeshComponent* Mesh = TargetCharacter->GetMesh())
 			{
-				Mesh->PlayAnimation(LaunchAnim, true);
+				if (UAnimInstance* AnimInst = Mesh->GetAnimInstance())
+				{
+					const float BlendInTime = 0.15f;
+					const float BlendOutTime = 0.15f;
+					AnimInst->PlaySlotAnimationAsDynamicMontage(LaunchAnim, FName("DefaultSlot"), BlendInTime, BlendOutTime, 1.0f);
+				}
+				else
+				{
+					Mesh->PlayAnimation(LaunchAnim, true);
+				}
 			}
 		}
 	}
@@ -225,11 +239,13 @@ void UCPGA_FartLaunch::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 		if (UCharacterMovementComponent* MovementComp = TargetCharacter->GetCharacterMovement())
 		{
 			MovementComp->GravityScale = OriginalGravityScale;
+			MovementComp->SetMovementMode(MOVE_Walking);
 		}
 
 		if (UCapsuleComponent* Capsule = TargetCharacter->GetCapsuleComponent())
 		{
 			Capsule->OnComponentHit.RemoveDynamic(this, &UCPGA_FartLaunch::OnCapsuleHit);
+			Capsule->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		}
 
 		if (USkeletalMeshComponent* Mesh = TargetCharacter->GetMesh())
@@ -250,6 +266,10 @@ void UCPGA_FartLaunch::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 	if (FartLaunchCueTag.IsValid() && ActorInfo && ActorInfo->AbilitySystemComponent.IsValid())
 	{
 		ActorInfo->AbilitySystemComponent->RemoveGameplayCue(FartLaunchCueTag);
+	}
+	if (ActorInfo && ActorInfo->AbilitySystemComponent.IsValid())
+	{
+		ActorInfo->AbilitySystemComponent->RemoveLooseGameplayTag(FGameplayTag::RequestGameplayTag(FName("State.NPC.Displaced")));
 	}
 
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);

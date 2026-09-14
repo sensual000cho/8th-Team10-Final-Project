@@ -6,6 +6,7 @@
 
 class USkeletalMesh;
 class UAnimSequence;
+class UTexture2D;
 
 UCLASS(BlueprintType)
 class CREATEPOTION_API UCPNPCDataAsset : public UPrimaryDataAsset
@@ -15,6 +16,12 @@ class CREATEPOTION_API UCPNPCDataAsset : public UPrimaryDataAsset
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC")
 	FName NPCName;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Codex")
+	TSoftObjectPtr<UTexture2D> CodexImage;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Codex")
+	FName CodexTextKey;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Mesh")
 	TSoftObjectPtr<USkeletalMesh> NPCMesh;
@@ -34,6 +41,9 @@ public:
 	//날아가는 애니메이션
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Animation")
 	TSoftObjectPtr<UAnimSequence> LaunchAnimation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Animation")
+	TSubclassOf<UAnimInstance> AnimClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Sound")
 	USoundBase* FartSound;

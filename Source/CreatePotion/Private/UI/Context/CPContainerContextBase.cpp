@@ -6,6 +6,8 @@
 #include "CreatePotion.h"
 #include "UI/Widgets/Common/Container/CPGridSlotWidgetBase.h"
 #include "UI/Widgets/Common/Container/CPItemSlotWidget.h"
+#include "UI/Widgets/Common/Container/Shop/CPShopPurchasePopupWidget.h"
+
 #include "Components/CPInventoryComponent.h"
 #include "Components/CPDropContainerComponent.h"
 
@@ -69,8 +71,41 @@ bool UCPContainerContextBase::HandleLeftClickOnly(UCPGridSlotWidgetBase* Clicked
 
 bool UCPContainerContextBase::HandleLeftDoubleClick(UCPGridSlotWidgetBase* ClickedSlot)
 {
-	UE_LOG(LogContainer, Log, TEXT("Left double Click"));
-	return true;
+    UE_LOG(LogContainer, Log, TEXT("Left double Click"));
+    return true;
+}
+
+bool UCPContainerContextBase::HandleCtrlLeftClick(UCPGridSlotWidgetBase* ClickedSlot)
+{
+    ACPPlayerController* PC = Cast<ACPPlayerController>(ClickedSlot->GetOwningPlayer());
+    if (!PC || !PC->CurrentInteractingContainer)
+    {
+        return false;
+    }
+
+    if (!IsSlotFromInventory(ClickedSlot, PC))
+    {
+        return false;
+    }
+
+    UCPItemSlotWidget* ItemSlot = Cast<UCPItemSlotWidget>(ClickedSlot);
+    if (!ItemSlot || !ItemSlot->CachedItemData.Instance.SourceItemData)
+    {
+        return false;
+    }
+
+    UCPItemContainerComponent* TargetContainer = PC->CurrentInteractingContainer;
+
+    if (TargetContainer->TargetContext == EUITargetContext::Shop)
+    {
+        if (UCPShopPurchasePopupWidget* Popup = PC->GetOrCreateShopPopup())
+        {
+            Popup->OpenForSale(ClickedSlot->OwnerContainer, ClickedSlot->SlotGridIndex, TargetContainer, PC->CachedInventoryComponent);
+        }
+        return true;
+    }
+
+    return ClickedSlot->OwnerContainer->AutoInsertItemToTargetContainer(ClickedSlot->SlotGridIndex, TargetContainer);
 }
 
 bool UCPContainerContextBase::HandleAltLeftClick(UCPGridSlotWidgetBase* ClickedSlot)
@@ -159,4 +194,40 @@ void UCPContainerContextBase::SpawnDroppedProp(UCPForageableItemData* ItemData, 
             SpawnedProp->InitializeFromItemData(ItemData);
         }
     }
+}
+
+bool UCPContainerContextBase::TrySellItemToShop(UCPItemContainerComponent* PlayerContainer, int32 SlotGridIndex, UCPItemContainerComponent* ShopContainer, UCPInventoryComponent* PlayerInventory) const
+{
+    if (!PlayerContainer || !ShopContainer || !PlayerInventory)
+    {
+        return false;
+    }
+
+    FContainerItem* Item = PlayerContainer->ContainerItems.FindByPredicate(
+        [SlotGridIndex](const FContainerItem& It) { return It.GridIndex == SlotGridIndex; });
+
+    if (!Item || !Item->Instance.SourceItemData)
+    {
+        return false;
+    }
+
+    UCPForageableItemData* ItemData = Item->Instance.SourceItemData;
+    int32 SellCount = Item->Stacked;             // 스택 전체를 한 번에 판매
+    int32 SellPricePerUnit = ItemData->GetSellPrice();
+
+    // 판매 전에 값 복사 (RemoveItemFromContainer가 배열 항목을 지울 수 있으므로)
+    FCPItemInstance InstanceCopy = Item->Instance;
+
+    int32 Leftover = ShopContainer->TryGetItemFromInstance(InstanceCopy, SellCount);
+    int32 ActuallySold = SellCount - Leftover;
+
+    if (ActuallySold <= 0)
+    {
+        return false; // 상점 재고 칸이 가득 차서 하나도 못 넘긴 경우
+    }
+
+    PlayerContainer->RemoveItemFromContainer(SlotGridIndex, ActuallySold);
+    PlayerInventory->TryGetMoney(SellPricePerUnit * ActuallySold);
+
+    return true;
 }

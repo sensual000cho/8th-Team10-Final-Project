@@ -12,14 +12,20 @@ class CREATEPOTION_API ACPTownNPC : public ACPQuestNPC
 	GENERATED_BODY()
 
 public:
-	virtual void OnInteract_Implementation(AActor* Interactor) override;
-	virtual bool CanInteract_Implementation(AActor* Interactor) override;
-	
+	virtual void HandleInteract(AActor* Interactor) override;
+	virtual bool CanInteract(AActor* Interactor) const override;
+
 protected:
 	virtual const TArray<FName>& GetPotionQuestIDs() const override;
+
+	virtual void OnDialogueClosed() override;
+	virtual void OnTraceFocusLost() override;
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UCPNPCDialogueWidget> DialogueWidgetClass;
+
+protected:
+	bool bWaitingForDialogueCompletion = false;
 
 };

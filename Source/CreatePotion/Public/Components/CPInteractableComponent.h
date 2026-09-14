@@ -25,16 +25,17 @@ public:
 	UCPInteractableComponent();
 	
 	virtual void BeginPlay() override;
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	
 	// 플레이어가 시선을 맞췄을 때 호출
-	void BeginFocus(AActor* Interactor);
+	virtual void BeginFocus(AActor* Interactor);
 	
 	// 플레이어가 시선을 거뒀을 때 호출
-	void EndFocus(AActor* Interactor);
+	virtual void EndFocus(AActor* Interactor);
 	
 	// 상호작용 실행
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
-	void HandleInteract(AActor* Interactor); 
+	virtual void HandleInteract(AActor* Interactor); 
 	
 	// 시간형 상호작용 실행
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
@@ -69,18 +70,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	virtual void SetInteractionDuration(float NewDuration);
 	
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void SetInteractionWidgetComponent(UWidgetComponent* InWidgetComp);
 	
 	
 	// --- Getter---
 	
 	UFUNCTION(BlueprintPure, Category = "Interaction")
-	bool CanInteract() const { return bCanInteract; }
+	virtual bool CanInteract() const { return bCanInteract; }
 	
 	UFUNCTION(BlueprintPure, Category = "Interaction")
 	ECPInteractionDisplayState GetDisplayState() const { return CachedDisplayState; }
 	
 	UFUNCTION(BlueprintPure, Category = "Interaction")
-	bool ShouldShowUnavailableInteraction() const { return bShouldShowUnavailableInteraction; }
+	virtual bool ShouldShowUnavailableInteraction() const { return bShouldShowUnavailableInteraction; }
 	
 	UFUNCTION(BlueprintPure, Category = "Interaction")
 	FName GetTargetName() const { return TargetName; }
@@ -90,6 +93,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Interaction")
 	float GetInteractionDuration() const { return InteractionDuration; }
+	
+private:
+	void UpdateInteractionWidgetLocation(AActor* Interactor);
 
 public:
 	// 상호작용 완료 델리게이트
@@ -119,10 +125,15 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Timed")
 	float InteractionDuration = 0.f;
 	
-private:
 	UPROPERTY()
 	UWidgetComponent* InteractWidgetComp;
 	
+private:	
 	UPROPERTY()
 	UCPInteractionComponent* InteractionComp;
+	
+	UPROPERTY()
+	TObjectPtr<AActor> FocusedInteractor;
+	
+	FVector RelativeLocation;
 };
