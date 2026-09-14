@@ -149,7 +149,7 @@ void ACPBaseNPC::InitializeFromDataAsset()
 
 	if (VisualComponent)
 	{
-		VisualComponent->InitializeVisual(GetMesh(), GetCapsuleComponent(), LoadedMesh, LoadedAnim, NPCData->MeshScale, NPCData->CapsuleRadiusRatio);
+		VisualComponent->InitializeVisual(GetMesh(), GetCapsuleComponent(), LoadedMesh, NPCData->AnimClass, nullptr, NPCData->MeshScale, NPCData->CapsuleRadiusRatio);
 	}
 
 	if (NPCData->NPCName != NAME_None)

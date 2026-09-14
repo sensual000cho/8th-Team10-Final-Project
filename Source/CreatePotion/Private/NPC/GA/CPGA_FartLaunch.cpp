@@ -60,7 +60,16 @@ void UCPGA_FartLaunch::ActivateAbility(const FGameplayAbilitySpecHandle Handle, 
 		{
 			if (USkeletalMeshComponent* Mesh = TargetCharacter->GetMesh())
 			{
-				Mesh->PlayAnimation(LaunchAnim, true);
+				if (UAnimInstance* AnimInst = Mesh->GetAnimInstance())
+				{
+					const float BlendInTime = 0.15f;
+					const float BlendOutTime = 0.15f;
+					AnimInst->PlaySlotAnimationAsDynamicMontage(LaunchAnim, FName("DefaultSlot"), BlendInTime, BlendOutTime, 1.0f);
+				}
+				else
+				{
+					Mesh->PlayAnimation(LaunchAnim, true);
+				}
 			}
 		}
 	}

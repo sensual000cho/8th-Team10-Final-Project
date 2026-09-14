@@ -13,11 +13,13 @@ UCPNPCVisualComponent::UCPNPCVisualComponent()
 }
 
 void UCPNPCVisualComponent::InitializeVisual(USkeletalMeshComponent* InMeshComp, UCapsuleComponent* InCapsuleComp,
-	USkeletalMesh* DefaultMesh, UAnimSequence* DefaultAnim, const FVector& BaseScale, float CapsuleRadiusRatio)
+	USkeletalMesh* DefaultMesh, TSubclassOf<UAnimInstance> InAnimClass, UAnimSequence* DefaultAnim,
+	const FVector& BaseScale, float CapsuleRadiusRatio)
 {
 	MeshComponent = InMeshComp;
 	CapsuleComponent = InCapsuleComp;
-	DefaultOriginalMesh = DefaultMesh;
+	DefaultOriginalMesh = DefaultMesh; 
+	DefaultAnimClass = InAnimClass;
 	DefaultOriginalAnim = DefaultAnim;
 	BaseMeshScale = BaseScale;
 	StoredCapsuleRadiusRatio = CapsuleRadiusRatio;
@@ -36,7 +38,12 @@ void UCPNPCVisualComponent::InitializeVisual(USkeletalMeshComponent* InMeshComp,
 			DefaultOriginalMaterials.Add(i, MeshComponent->GetMaterial(i));
 		}
 
-		if (DefaultOriginalAnim)
+		if (DefaultAnimClass)
+		{
+			MeshComponent->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+			MeshComponent->SetAnimInstanceClass(DefaultAnimClass);
+		}
+		else if (DefaultOriginalAnim)
 		{
 			MeshComponent->SetAnimationMode(EAnimationMode::AnimationSingleNode);
 			MeshComponent->PlayAnimation(DefaultOriginalAnim, true);
@@ -300,7 +307,12 @@ void UCPNPCVisualComponent::ApplyTopMesh()
 		MeshComponent->SetBoundsScale(3.0f);
 		MeshComponent->SetRelativeRotation(bIsOverridden ? FRotator::ZeroRotator : DefaultOriginalRotation);
 
-		if (TargetAnim)
+		if (DefaultAnimClass)
+		{
+			MeshComponent->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+			MeshComponent->SetAnimInstanceClass(DefaultAnimClass);
+		}
+		else if (TargetAnim)
 		{
 			MeshComponent->SetAnimationMode(EAnimationMode::AnimationSingleNode);
 			MeshComponent->PlayAnimation(TargetAnim, true);
