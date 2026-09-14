@@ -77,5 +77,6 @@ private:
 	TObjectPtr<USoundClass> BGMSoundClass;
 
 	bool bVolumeMixPushed = false;
+	uint32 VolumeMixAudioDeviceId = MAX_uint32;
 	FDelegateHandle PostLoadMapHandle;
 };

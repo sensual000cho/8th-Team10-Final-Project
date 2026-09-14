@@ -2,6 +2,7 @@
 
 #include "GameInstance/Subsystem/CPAudioSubsystem.h"
 
+#include "AudioDeviceHandle.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
@@ -100,16 +101,32 @@ void UCPAudioSubsystem::ApplyVolumeMix(UWorld* World)
 		return;
 	}
 
+	const FAudioDeviceHandle AudioDevice = World->GetAudioDevice();
+	if (!World->bAllowAudioPlayback || !AudioDevice.IsValid())
+	{
+		UE_LOG(LogCPAudio, Warning, TEXT("Volume SoundMix application deferred until audio playback is ready."));
+		return;
+	}
+
 	if (!IsValid(VolumeControlMix) || !IsValid(MasterSoundClass) || !IsValid(SFXSoundClass) || !IsValid(BGMSoundClass))
 	{
 		UE_LOG(LogCPAudio, Warning, TEXT("Volume SoundMix or required SoundClass asset is missing."));
 		return;
 	}
 
+	const uint32 AudioDeviceId = AudioDevice.GetDeviceID();
+	if (bVolumeMixPushed && VolumeMixAudioDeviceId != AudioDeviceId)
+	{
+		bVolumeMixPushed = false;
+		VolumeMixAudioDeviceId = MAX_uint32;
+	}
+
 	if (!bVolumeMixPushed)
 	{
 		UGameplayStatics::PushSoundMixModifier(World, VolumeControlMix);
 		bVolumeMixPushed = true;
+		VolumeMixAudioDeviceId = AudioDeviceId;
+		UE_LOG(LogCPAudio, Log, TEXT("Volume SoundMix pushed to audio device %u."), VolumeMixAudioDeviceId);
 	}
 
 	UGameplayStatics::SetSoundMixClassOverride(World, VolumeControlMix, MasterSoundClass, MasterVolume, 1.0f, CPAudio::VolumeFadeTime, true);
@@ -122,6 +139,7 @@ void UCPAudioSubsystem::ReleaseVolumeMix()
 	if (!bVolumeMixPushed || !IsValid(VolumeControlMix))
 	{
 		bVolumeMixPushed = false;
+		VolumeMixAudioDeviceId = MAX_uint32;
 		return;
 	}
 
@@ -129,11 +147,16 @@ void UCPAudioSubsystem::ReleaseVolumeMix()
 	{
 		if (UWorld* World = GameInstance->GetWorld(); IsAudioWorld(World))
 		{
-			UGameplayStatics::PopSoundMixModifier(World, VolumeControlMix);
+			const FAudioDeviceHandle AudioDevice = World->GetAudioDevice();
+			if (World->bAllowAudioPlayback && AudioDevice.IsValid() && AudioDevice.GetDeviceID() == VolumeMixAudioDeviceId)
+			{
+				UGameplayStatics::PopSoundMixModifier(World, VolumeControlMix);
+			}
 		}
 	}
 
 	bVolumeMixPushed = false;
+	VolumeMixAudioDeviceId = MAX_uint32;
 }
 
 bool UCPAudioSubsystem::IsAudioWorld(const UWorld* World) const
