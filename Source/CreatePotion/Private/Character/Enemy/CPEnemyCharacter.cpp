@@ -4,8 +4,11 @@
 #include "Character/Enemy/CPEnemyCharacter.h"
 
 #include "AIController.h"
+#include "AbilitySystemComponent.h"
+#include "Abilities/GameplayAbility.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
+#include "BrainComponent.h"
 #include "Character/CPHealthComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/World.h"
@@ -24,13 +27,70 @@ ACPEnemyCharacter::ACPEnemyCharacter()
     GetCharacterMovement()->bOrientRotationToMovement = true;
     GetCharacterMovement()->bUseControllerDesiredRotation = false;
     GetCharacterMovement()->RotationRate = FRotator(0.f, 360.f, 0.f);
+
+    AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+    AbilitySystemComponent->SetIsReplicated(true);
+
+    HealthComponent = CreateDefaultSubobject<UCPHealthComponent>(TEXT("HealthComponent"));
+}
+
+void ACPEnemyCharacter::BeginPlay()
+{
+    Super::BeginPlay();
+
+    AbilitySystemComponent->InitAbilityActorInfo(this, this);
+    if (HasAuthority())
+    {
+        GrantPotionReactionAbilities();
+    }
+
+    HealthComponent->OnDeath.AddUniqueDynamic(this, &ACPEnemyCharacter::HandleDeath);
 }
 
 void ACPEnemyCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+    HealthComponent->OnDeath.RemoveDynamic(this, &ACPEnemyCharacter::HandleDeath);
     CancelAttack();
 
     Super::EndPlay(EndPlayReason);
+}
+
+UAbilitySystemComponent* ACPEnemyCharacter::GetAbilitySystemComponent() const
+{
+    return AbilitySystemComponent;
+}
+
+void ACPEnemyCharacter::GrantPotionReactionAbilities()
+{
+    for (const TSubclassOf<UGameplayAbility>& AbilityClass : PotionReactionAbilities)
+    {
+        if (AbilityClass && !AbilitySystemComponent->FindAbilitySpecFromClass(AbilityClass))
+        {
+            AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(AbilityClass, 1));
+        }
+    }
+}
+
+void ACPEnemyCharacter::HandleDeath(AActor* DamageCauser)
+{
+    if (bIsDead)
+    {
+        return;
+    }
+
+    bIsDead = true;
+    CancelAttack();
+    GetCharacterMovement()->StopMovementImmediately();
+    GetCharacterMovement()->DisableMovement();
+
+    if (AAIController* AIController = Cast<AAIController>(GetController()))
+    {
+        AIController->StopMovement();
+        if (UBrainComponent* BrainComponent = AIController->GetBrainComponent())
+        {
+            BrainComponent->StopLogic(TEXT("Enemy dead"));
+        }
+    }
 }
 
 bool ACPEnemyCharacter::IsTargetInAttackReach(AActor* Target) const
@@ -40,9 +100,9 @@ bool ACPEnemyCharacter::IsTargetInAttackReach(AActor* Target) const
         return false;
     }
 
-    const UCPHealthComponent* HealthComponent = Target->FindComponentByClass<UCPHealthComponent>();
+    const UCPHealthComponent* TargetHealthComponent = Target->FindComponentByClass<UCPHealthComponent>();
 
-    if (!IsValid(HealthComponent) || HealthComponent->IsDead())
+    if (!IsValid(TargetHealthComponent) || TargetHealthComponent->IsDead())
     {
         return false;
     }
@@ -73,7 +133,7 @@ bool ACPEnemyCharacter::IsTargetInAttackReach(AActor* Target) const
 
 bool ACPEnemyCharacter::CanAttackTarget(AActor* Target) const
 {
-    if (bIsAttacking || AttackMontages.IsEmpty() || !GetWorld())
+    if (bIsDead || bIsAttacking || AttackMontages.IsEmpty() || !GetWorld())
     {
         return false;
     }
@@ -182,12 +242,12 @@ void ACPEnemyCharacter::ApplyAttackHit()
         return;
     }
 
-    UCPHealthComponent* HealthComponent = Target->FindComponentByClass<UCPHealthComponent>();
+    UCPHealthComponent* TargetHealthComponent = Target->FindComponentByClass<UCPHealthComponent>();
 
-    if (IsValid(HealthComponent))
+    if (IsValid(TargetHealthComponent))
     {
         // 피해 처리 중 이벤트가 발생할 수 있으므로 마지막에 호출
-        HealthComponent->ApplyDamage(AttackDamage, this);
+        TargetHealthComponent->ApplyDamage(AttackDamage, this);
     }
 }
 

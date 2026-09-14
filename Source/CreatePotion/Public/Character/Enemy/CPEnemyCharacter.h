@@ -3,18 +3,30 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AbilitySystemInterface.h"
 #include "GameFramework/Character.h"
 #include "CPEnemyCharacter.generated.h"
 
 class UAnimMontage;
+class UAbilitySystemComponent;
+class UCPHealthComponent;
+class UGameplayAbility;
 
 UCLASS()
-class CREATEPOTION_API ACPEnemyCharacter : public ACharacter
+class CREATEPOTION_API ACPEnemyCharacter : public ACharacter, public IAbilitySystemInterface
 {
     GENERATED_BODY()
 
 public:
     ACPEnemyCharacter();
+
+    virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
+    UFUNCTION(BlueprintPure, Category = "Enemy|State")
+    bool IsDead() const { return bIsDead; }
+
+    UFUNCTION(BlueprintPure, Category = "Enemy|State")
+    UCPHealthComponent* GetHealthComponent() const { return HealthComponent; }
 
     // 거리, 가림, 체력, 쿨타임 등을 확인
     UFUNCTION(BlueprintPure, Category = "Enemy|Attack")
@@ -40,7 +52,21 @@ public:
     }
 
 protected:
+    virtual void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+    UFUNCTION()
+    void HandleDeath(AActor* DamageCauser);
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Components")
+    TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Components")
+    TObjectPtr<UCPHealthComponent> HealthComponent;
+
+    // Enemy BP에서 포션 반응 GA를 등록한다.
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Abilities")
+    TArray<TSubclassOf<UGameplayAbility>> PotionReactionAbilities;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Attack")
     TArray<TObjectPtr<UAnimMontage>> AttackMontages;
@@ -61,6 +87,7 @@ protected:
     float AttackHalfAngle = 60.f;
 
 private:
+    void GrantPotionReactionAbilities();
     bool IsTargetInAttackReach(AActor* Target) const;
     void HandleAttackBlendingOut(UAnimMontage* Montage, bool bInterrupted);
     void HandleAttackEnded(UAnimMontage* Montage, bool bInterrupted);
@@ -72,6 +99,7 @@ private:
     bool bAttackHitConsumed = false;
     bool bAttackHitEnabled = false;
     bool bLastAttackCompletedNormally = false;
+    bool bIsDead = false;
 
     double NextAttackAllowedTime = 0.0;
     int32 RandomMontageNum = 0;
