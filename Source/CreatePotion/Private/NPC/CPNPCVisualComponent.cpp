@@ -4,6 +4,8 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "PhysicsEngine/SkeletalBodySetup.h"
+#include "NPC/CPBaseNPC.h"
+#include "Components/WidgetComponent.h"
 
 UCPNPCVisualComponent::UCPNPCVisualComponent()
 {
@@ -177,6 +179,11 @@ void UCPNPCVisualComponent::FitCapsuleToCurrentMesh()
 	}
 
 	CapsuleComponent->SetCapsuleSize(FinalRadius, FinalHalfHeight, true);
+
+	if (ACPBaseNPC* BaseNPC = Cast<ACPBaseNPC>(GetOwner()))
+	{
+		BaseNPC->UpdateOverheadWidgetsScale(CurrentScaleMultiplier);
+	}
 
 	static const FGameplayTag SlimeTag = FGameplayTag::RequestGameplayTag(FName("State.Effect.Slime"));
 	const bool bIsSlime = MeshOverrideStack.ContainsByPredicate([&](const FMeshOverrideEntry& E) {

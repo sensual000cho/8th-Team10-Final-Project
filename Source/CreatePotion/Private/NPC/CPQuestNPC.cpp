@@ -18,11 +18,34 @@ ACPQuestNPC::ACPQuestNPC() : CurrentQuestId(NAME_None)
 {
 	InteractionRefreshInterval = 0.1f;
 
+	InteractionWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractionWidget"));
+	InteractionWidget->SetupAttachment(RootComponent);
+	InteractionWidget->SetRelativeLocation(FVector(0.f, 0.f, 120.f));
+	if (const UCPUISettings* UISettings = GetDefault<UCPUISettings>())
+	{
+		InteractionWidget->SetWidgetClass(UISettings->InteractionWidgetClass.Get());
+	}
+
 	QuestMarkerWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("QuestMarkerWidget"));
 	QuestMarkerWidget->SetupAttachment(RootComponent);
 	QuestMarkerWidget->SetRelativeLocation(FVector(0.f, 0.f, 200.f));
 	QuestMarkerWidget->SetWidgetSpace(EWidgetSpace::World);
 	QuestMarkerWidget->SetTwoSided(true);
+}
+
+void ACPQuestNPC::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	if (InteractionWidget)
+	{
+		InitialInteractionWidgetLocation = InteractionWidget->GetRelativeLocation();
+	}
+
+	if (QuestMarkerWidget)
+	{
+		InitialQuestMarkerLocation = QuestMarkerWidget->GetRelativeLocation();
+	}
 }
 
 bool ACPQuestNPC::CanInteract(AActor* Interactor) const
@@ -214,6 +237,21 @@ void ACPQuestNPC::ShowResultDialogue()
 	}
 
 	ActiveDialogueWidget->InitDialogueLines(QuestID, FText::FromName(QuestData->NPCName), ReactionTexts);
+}
+
+void ACPQuestNPC::UpdateOverheadWidgetsScale(float ScaleMultiplier)
+{
+	Super::UpdateOverheadWidgetsScale(ScaleMultiplier);
+
+	if (QuestMarkerWidget)
+	{
+		QuestMarkerWidget->SetRelativeLocation(InitialQuestMarkerLocation * ScaleMultiplier);
+	}
+
+	if (InteractionWidget)
+	{
+		InteractionWidget->SetRelativeLocation(InitialInteractionWidgetLocation * ScaleMultiplier);
+	}
 }
 
 void ACPQuestNPC::BeginPlay()

@@ -12,8 +12,6 @@
 #include "NPC/CPNPCMoveComponent.h"
 #include "NPC/CPNPCAIController.h"
 #include "Components/CPInteractableComponent.h"
-#include "Components/WidgetComponent.h"
-#include "Settings/CPUISettings.h"
 
 #if WITH_EDITOR
 #include "DrawDebugHelpers.h"
@@ -46,12 +44,6 @@ ACPBaseNPC::ACPBaseNPC()
 	MoveComponent = CreateDefaultSubobject<UCPNPCMoveComponent>(TEXT("MoveComponent"));
 	InteractableComponent = CreateDefaultSubobject<UCPInteractableComponent>(TEXT("InteractableComponent"));
 
-	InteractionWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractionWidget"));
-	if (const UCPUISettings* UISettings = GetDefault<UCPUISettings>())
-	{
-		InteractionWidget->SetWidgetClass(UISettings->InteractionWidgetClass.Get());
-	}
-
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 	AIControllerClass = ACPNPCAIController::StaticClass();
 }
@@ -60,10 +52,6 @@ void ACPBaseNPC::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	if (InteractionWidget && RootComponent && !InteractionWidget->GetAttachParent())
-	{
-		InteractionWidget->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
-	}
 }
 
 UAbilitySystemComponent* ACPBaseNPC::GetAbilitySystemComponent() const
@@ -229,10 +217,6 @@ void ACPBaseNPC::SetNPCActiveState(bool bActive)
 	SetActorHiddenInGame(!bActive);
     SetActorEnableCollision(bActive);
     SetActorTickEnabled(bActive);
-    if (InteractionWidget)
-    {
-        InteractionWidget->SetVisibility(bActive);
-    }
 
     if (InteractableComponent)
     {
