@@ -84,6 +84,9 @@ public:
 	void SaveNPCMovementData(FName NPCId, const FCPNPCMovementSaveData& MovementData);
 	bool GetNPCMovementData(FName NPCId, FCPNPCMovementSaveData& OutMovementData) const;
 
+	UFUNCTION(BlueprintCallable, Category = "NPC|State")
+	void SetNPCActiveStateById(FName NPCId, bool bActive, ACPBaseNPC* IgnoreNPC = nullptr);
+
 	UPROPERTY(BlueprintAssignable, Category = "NPC|Potion")
 	FOnNPCEffectApplied OnNPCEffectApplied;
 

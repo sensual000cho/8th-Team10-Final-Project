@@ -4,7 +4,8 @@
 #include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
 #include "Components/CPInventoryComponent.h"
 #include "UI/Widgets/Common/Dialogue/CPNPCDialogueWidget.h"
-#include "NPC/CPNPCMoveComponent.h"
+#include "NPC/Components/CPNPCMoveComponent.h"
+#include "NPC/CPNPCAIController.h"
 
 void ACPTownNPC::HandleInteract(AActor* Interactor)
 {
@@ -61,6 +62,8 @@ void ACPTownNPC::HandleInteract(AActor* Interactor)
 
 					ActiveDialogueWidget->OnClosed.RemoveAll(this);
 					ActiveDialogueWidget->OnClosed.AddUObject(this, &ACPTownNPC::OnDialogueClosed);
+
+					CurrentQuestId = QuestID;
 
 					RegisterCodex();
 					FText NPCNameText = FText::FromName(QuestData->NPCName);
@@ -211,10 +214,58 @@ const TArray<FName>& ACPTownNPC::GetPotionQuestIDs() const
 
 void ACPTownNPC::OnDialogueClosed()
 {
-	Super::OnDialogueClosed();
+	ActiveDialogueWidget = nullptr;
 
-	if (MoveComponent)
+	UGameInstance* GameInstance = GetGameInstance();
+	UQuestManager* QuestManager = GameInstance ? GameInstance->GetSubsystem<UQuestManager>() : nullptr;
+
+	if (QuestManager && !CurrentQuestId.IsNone())
 	{
-		MoveComponent->StartMoving();
+		if (QuestManager->GetQuestCompletionType(CurrentQuestId) == EQuestCompletionType::Dialogue)
+		{
+			EQuestState State = QuestManager->GetQuestState(CurrentQuestId);
+
+			if (State != EQuestState::Completed)
+			{
+				bWaitingForDialogueCompletion = true;
+			}
+			else
+			{
+				bWaitingForDialogueCompletion = false;
+				CurrentQuestId = NAME_None;
+			}
+		}
 	}
+
+	if (bWaitingForDialogueCompletion)
+	{
+		bIsInteracting = true;
+		if (MoveComponent)
+		{
+			MoveComponent->StopMoving();
+		}
+		if (AAIController* AIC = Cast<AAIController>(GetController()))
+		{
+			AIC->StopMovement();
+		}
+	}
+	else
+	{
+		bIsInteracting = false;
+		if (MoveComponent)
+		{
+			MoveComponent->StartMoving();
+		}
+	}
+}
+
+void ACPTownNPC::OnTraceFocusLost()
+{
+	if (bWaitingForDialogueCompletion)
+	{
+		bIsPlayerLooking = false;
+		return;
+	}
+
+	Super::OnTraceFocusLost();
 }

@@ -62,12 +62,17 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "NPC")
 	void SetNPCData(UCPNPCDataAsset* InNPCData);
+
+	UFUNCTION(BlueprintCallable, Category = "NPC|State")
+	virtual void SetNPCActiveState(bool bActive);
 	
 	UFUNCTION(BlueprintPure, Category = "NPC|Data")
 	const UCPNPCDataAsset* GetNPCData() const { return NPCData; }
 
 	UFUNCTION(BlueprintPure, Category = "NPC")
 	FORCEINLINE UCPNPCVisualComponent* GetVisualComponent() const { return VisualComponent; }
+
+	virtual void UpdateOverheadWidgetsScale(float ScaleMultiplier) {}
 
 	// GA가 비주얼 갱신 콜백을 등록/해제
 	void RegisterVisualDelegate(FGameplayTag EffectTag, const FOnPotionVisualUpdateDelegate& Delegate);
@@ -113,9 +118,6 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
 	TObjectPtr<UCPInteractableComponent> InteractableComponent;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
-	TObjectPtr<UWidgetComponent> InteractionWidget;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Interaction", meta = (ClampMin = "0.02", Units = "s"))
 	float InteractionRefreshInterval = 0.15f;
