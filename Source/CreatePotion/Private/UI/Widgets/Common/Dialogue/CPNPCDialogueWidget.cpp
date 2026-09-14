@@ -188,7 +188,15 @@ void UCPNPCDialogueWidget::OnTypewriterTick()
         }
         else
         {
-            CreateChoiceButtons();
+            GetWorld()->GetTimerManager().ClearTimer(TypewriterTimerHandle);
+            if (DialogueLines.Num() > 0 && CurrentLineIndex < DialogueLines.Num() - 1)
+            {
+                CreateContinueButton();
+            }
+            else
+            {
+                CreateChoiceButtons();
+            }
         }
     }
 }
