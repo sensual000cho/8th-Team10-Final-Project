@@ -21,6 +21,9 @@ public class CreatePotion : ModuleRules
             "GameplayCameras",
             "DeveloperSettings",
             "Niagara",
+            "AIModule",
+            "StateTreeModule",
+            "GameplayStateTreeModule",
             "NavigationSystem"
         });
 

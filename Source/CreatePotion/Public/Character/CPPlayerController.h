@@ -7,6 +7,7 @@
 #include "GameFramework/PlayerController.h"
 #include "InputActionValue.h"
 #include "Types/CPContainerTypes.h"
+#include "Types/CPInputModeTypes.h"
 #include "CPPlayerController.generated.h"
 
 class UInputAction;
@@ -19,17 +20,11 @@ class UCPContainerMainWidget;
 class UCPContainerContextBase;
 class UCPHandHeldItemWidget;
 class UCPItemWheelWidget;
+class UCPWheelModeIndicatorWidget;
+class UCPShopPurchasePopupWidget;
 
 //디버깅용 포션생성 함수용
 class UCPForageableItemData;
-
-UENUM(BlueprintType)
-enum class EWheelInputMode : uint8
-{
-	CameraZoom,
-	PotionSelect,
-	IngredientSelect
-};
 
 UCLASS()
 class CREATEPOTION_API ACPPlayerController : public APlayerController
@@ -111,6 +106,9 @@ public:
 	// 아이템을 내려놓은 상태로 초기화 하는 함수 
 	void ResetHoldingItem();
 
+	UFUNCTION(BlueprintCallable, Category = "Debug|Shop")
+	void DebugToggleShopDirectly();
+
 private:
 	void SetContextHandlerForTargetContext(EUITargetContext InTargetContext);
 
@@ -140,6 +138,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Container|UI")
 	TSubclassOf<UCPItemWheelWidget> ItemWheelWidgetClass;
 
+	UPROPERTY(EditAnywhere, Category = "Input|Wheel")
+	TSubclassOf<class UCPWheelModeIndicatorWidget> WheelModeIndicatorWidgetClass;
+
 protected:
 	// 현재 화면에 떠 있는 외부 컨테이너 UI 인스턴스 (Lab, Storage, Shop 공용)
 	UPROPERTY()
@@ -152,12 +153,28 @@ private:
 	UPROPERTY()
 	UCPHandHeldItemWidget* HandHeldItemWidgetInstance;
 
+	UPROPERTY()
+	UCPWheelModeIndicatorWidget* WheelModeIndicatorInstance;
+
 	// 마우스 클릭으로 "현재 들고 있는 아이템"을 우클릭 등으로 취소할 경우 되돌아갈 기존 Container
 	UPROPERTY()
 	UCPItemContainerComponent* LeftClickPickedItemOriginContainer = nullptr;
 
 	// 마우스 클릭으로 "현재 들고 있는 아이템"의 기존 Index
 	int32 LeftClickPickedOriginSlotIndex = -1;
+#pragma endregion
+
+#pragma region Shop
+public:
+	UCPShopPurchasePopupWidget* GetOrCreateShopPopup();
+
+public:
+	UPROPERTY(EditAnywhere, Category = "Shop|UI")
+	TSubclassOf<UCPShopPurchasePopupWidget> ShopPopupWidgetClass;
+
+private:
+	UPROPERTY()
+	UCPShopPurchasePopupWidget* ShopPopupInstance;
 #pragma endregion
 	
 //디버깅용 포션생성
