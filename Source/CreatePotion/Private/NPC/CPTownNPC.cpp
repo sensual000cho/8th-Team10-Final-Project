@@ -139,6 +139,22 @@ void ACPTownNPC::HandleInteract(AActor* Interactor)
 				{
 					UE_LOG(LogTemp, Log, TEXT("[%s] 아이템 수집 퀘스트 [%s] 아직 조건 미충족"),
 						*QuestData->NPCName.ToString(), *QuestID.ToString());
+
+					// 신규 추가 - 조건 미충족 시 안내 대사를 대화창으로 보여줌
+					TArray<FText> HintLines;
+					HintLines.Add(QuestManager->GetSessionHintText(QuestID));
+					if (HintLines.Num() > 0 && DialogueWidgetClass)
+					{
+						ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
+						if (ActiveDialogueWidget)
+						{
+							ActiveDialogueWidget->OnClosed.RemoveAll(this);
+							ActiveDialogueWidget->OnClosed.AddUObject(this, &ACPTownNPC::OnDialogueClosed);
+
+							FText NPCNameText = FText::FromName(QuestData->NPCName);
+							ActiveDialogueWidget->InitDialogueLines(QuestID, NPCNameText, HintLines);
+						}
+					}
 				}
 			}
 			break;
