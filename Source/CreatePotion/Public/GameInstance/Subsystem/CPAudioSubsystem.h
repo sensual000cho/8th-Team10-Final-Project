@@ -23,9 +23,6 @@ class CREATEPOTION_API UCPAudioSubsystem final : public UGameInstanceSubsystem
 	GENERATED_BODY()
 
 public:
-	UCPAudioSubsystem();
-
-	virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
@@ -38,6 +35,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "CP|Audio|Volume")
 	void SetBGMVolume(float Volume);
 
+	UFUNCTION(BlueprintCallable, Category = "CP|Audio|Volume")
+	void SetUIVolume(float Volume);
+
+	UFUNCTION(BlueprintCallable, Category = "CP|Audio|Volume")
+	void SetAmbienceVolume(float Volume);
+
 	UFUNCTION(BlueprintPure, Category = "CP|Audio|Volume")
 	float GetMasterVolume() const { return MasterVolume; }
 
@@ -46,6 +49,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "CP|Audio|Volume")
 	float GetBGMVolume() const { return BGMVolume; }
+
+	UFUNCTION(BlueprintPure, Category = "CP|Audio|Volume")
+	float GetUIVolume() const { return UIVolume; }
+
+	UFUNCTION(BlueprintPure, Category = "CP|Audio|Volume")
+	float GetAmbienceVolume() const { return AmbienceVolume; }
 
 private:
 	void HandlePostLoadMap(UWorld* LoadedWorld);
@@ -64,6 +73,12 @@ private:
 	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "CP|Audio|Volume", meta = (AllowPrivateAccess = "true"))
 	float BGMVolume = 1.0f;
 
+	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "CP|Audio|Volume", meta = (AllowPrivateAccess = "true"))
+	float UIVolume = 1.0f;
+
+	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "CP|Audio|Volume", meta = (AllowPrivateAccess = "true"))
+	float AmbienceVolume = 1.0f;
+
 	UPROPERTY()
 	TObjectPtr<USoundMix> VolumeControlMix;
 
@@ -76,6 +91,13 @@ private:
 	UPROPERTY()
 	TObjectPtr<USoundClass> BGMSoundClass;
 
+	UPROPERTY()
+	TObjectPtr<USoundClass> UISoundClass;
+
+	UPROPERTY()
+	TObjectPtr<USoundClass> AmbienceSoundClass;
+
+	float VolumeFadeTime = 0.05f;
 	bool bVolumeMixPushed = false;
 	uint32 VolumeMixAudioDeviceId = MAX_uint32;
 	FDelegateHandle PostLoadMapHandle;
