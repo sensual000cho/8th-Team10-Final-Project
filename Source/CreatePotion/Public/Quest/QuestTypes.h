@@ -27,6 +27,10 @@ struct FQuestData : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerFacing")
 	FText QuestSummaryText;
 
+	// 인물 도감(Codex)용, 이 퀘스트 전체 내용을 회고하는 요약
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Codex")
+	FText CodexSummaryText;
+
 	// ===================================================================
 	// [스토리 진행 - NPC별 독립 스토리 관리용]
 	// ===================================================================
@@ -158,7 +162,8 @@ struct FConditionEvaluation
 UENUM(BlueprintType)
 enum class EQuestMarkerState : uint8
 {
-	None,          // 표시 없음
-	Available,     // 새 퀘스트 있음 (느낌표)
-	InProgress,    // 진행 중 (물음표)
+	None,          // 표시 없음 - 볼 일 없음
+	Available,     // 새 퀘스트 있음
+	InProgress,    // 진행 중이지만 아직 완료 조건 미충족
+	Completable,   // 완료 조건 충족 - 가서 완료 처리 가능
 };
