@@ -8,12 +8,10 @@
 #include "Animation/AnimSequence.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameInstance/Subsystem/CPCodexSubsystem.h"
-#include "NPC/CPNPCVisualComponent.h"
-#include "NPC/CPNPCMoveComponent.h"
+#include "NPC/Components/CPNPCVisualComponent.h"
+#include "NPC/Components/CPNPCMoveComponent.h"
 #include "NPC/CPNPCAIController.h"
 #include "Components/CPInteractableComponent.h"
-#include "Components/WidgetComponent.h"
-#include "Settings/CPUISettings.h"
 
 #if WITH_EDITOR
 #include "DrawDebugHelpers.h"
@@ -46,12 +44,6 @@ ACPBaseNPC::ACPBaseNPC()
 	MoveComponent = CreateDefaultSubobject<UCPNPCMoveComponent>(TEXT("MoveComponent"));
 	InteractableComponent = CreateDefaultSubobject<UCPInteractableComponent>(TEXT("InteractableComponent"));
 
-	InteractionWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractionWidget"));
-	if (const UCPUISettings* UISettings = GetDefault<UCPUISettings>())
-	{
-		InteractionWidget->SetWidgetClass(UISettings->InteractionWidgetClass.Get());
-	}
-
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 	AIControllerClass = ACPNPCAIController::StaticClass();
 }
@@ -60,10 +52,6 @@ void ACPBaseNPC::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	if (InteractionWidget && RootComponent && !InteractionWidget->GetAttachParent())
-	{
-		InteractionWidget->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
-	}
 }
 
 UAbilitySystemComponent* ACPBaseNPC::GetAbilitySystemComponent() const
@@ -161,7 +149,7 @@ void ACPBaseNPC::InitializeFromDataAsset()
 
 	if (VisualComponent)
 	{
-		VisualComponent->InitializeVisual(GetMesh(), GetCapsuleComponent(), LoadedMesh, LoadedAnim, NPCData->MeshScale, NPCData->CapsuleRadiusRatio);
+		VisualComponent->InitializeVisual(GetMesh(), GetCapsuleComponent(), LoadedMesh, NPCData->AnimClass, nullptr, NPCData->MeshScale, NPCData->CapsuleRadiusRatio);
 	}
 
 	if (NPCData->NPCName != NAME_None)
@@ -222,6 +210,50 @@ void ACPBaseNPC::HandlePotionEffectExpired(FGameplayTag EffectTag)
 void ACPBaseNPC::SetNPCData(UCPNPCDataAsset* InNPCData)
 {
 	NPCData = InNPCData;
+}
+
+void ACPBaseNPC::SetNPCActiveState(bool bActive)
+{
+	SetActorHiddenInGame(!bActive);
+    SetActorEnableCollision(bActive);
+    SetActorTickEnabled(bActive);
+
+    if (InteractableComponent)
+    {
+        InteractableComponent->SetInteractability(bActive);
+    }
+
+    if (UCharacterMovementComponent* MovementComp = GetCharacterMovement())
+    {
+        MovementComp->SetComponentTickEnabled(bActive);
+        if (!bActive)
+        {
+            MovementComp->StopMovementImmediately();
+        }
+    }
+    if (AAIController* AIC = Cast<AAIController>(GetController()))
+    {
+        if (bActive)
+        {
+            AIC->ResumeMove(FAIRequestID::CurrentRequest);
+        }
+        else
+        {
+            AIC->StopMovement();
+        }
+    }
+
+    if (MoveComponent)
+    {
+        if (bActive)
+        {
+            MoveComponent->StartMoving(); 
+        }
+        else
+        {
+            MoveComponent->StopMoving();
+        }
+    }
 }
 
 void ACPBaseNPC::CatchUpPersistentPotionEffects()

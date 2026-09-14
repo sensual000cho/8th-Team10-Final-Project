@@ -84,9 +84,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	TArray<FName> GetAllTrackedQuestIDs() const;
 
+
 	// 퀘스트 완료 처리 함수
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	void CompleteQuest(FName QuestID);
+
 
 	// ===================================================================
 	// [텍스트 조회 - UI 전용 참조 함수]
@@ -103,6 +105,9 @@ public:
 	// [텍스트-요약] 수락 후 퀘스트 저널에서 다시 확인할 때 보여줄 요약
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	FText GetQuestSummaryText(FName QuestID) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	FText GetCodexSummaryText(FName QuestID) const;
 
 	// 저널 UI 등에서 여러 줄 대사를 한 번에(줄바꿈 없이 이어서) 보여줄 때 사용
 	UFUNCTION(BlueprintCallable, Category = "Quest")
@@ -236,8 +241,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	void ValidateQuestTablesMatch();
 
+	// 이 NPC가 가진 퀘스트들 상태를 종합해서 마커 상태 반환 (인벤토리 확인 필요)
 	UFUNCTION(BlueprintCallable, Category = "Quest")
-	EQuestMarkerState GetMarkerStateForQuests(const TArray<FName>& QuestIDs) const;
+	EQuestMarkerState GetMarkerStateForQuests(const TArray<FName>& QuestIDs, const TMap<FName, int32>& HeldItemCounts) const;
+
+	// 아이템 수집형 퀘스트가 지금 완료 가능한 상태인지 판정 없이 조회만 함
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	bool IsItemQuestCompletable(FName QuestID, const TMap<FName, int32>& HeldItemCounts) const;
+
+	// 화면에 계속 표시할 "현재 활성 목표" 조회 - 수락 순서 중 완료 안 된 첫 번째 반환
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	FName GetActiveGoalQuestID() const;
 
 
 private:
