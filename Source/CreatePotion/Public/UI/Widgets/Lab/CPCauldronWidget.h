@@ -6,7 +6,7 @@
 #include "UI/Widgets/Common/Interaction/CPInteractionPromptWidget.h"
 #include "CPCauldronWidget.generated.h"
 
-class UGridPanel;
+class UVerticalBox;
 struct FGameplayTag;
 class UCPCauldronComponent;
 /**
@@ -34,7 +34,7 @@ protected:
 	TObjectPtr<UTextBlock> Txt_CurrentEffects;
 	
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UGridPanel> GP_EffectTags;
+	TObjectPtr<UVerticalBox> VB_EffectTags;
 	
 private:
 	UPROPERTY(Transient)

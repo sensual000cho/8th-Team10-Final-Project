@@ -4,10 +4,8 @@
 #include "UI/Widgets/Lab/CPCauldronWidget.h"
 
 #include "Blueprint/WidgetTree.h"
-#include "Components/GridPanel.h"
-#include "Components/GridSlot.h"
 #include "Components/TextBlock.h"
-#include "Components/VerticalBoxSlot.h"
+#include "Components/VerticalBox.h"
 #include "Data/CPTagDefinitionTypes.h"
 #include "Lab/Component/Interact/CPCauldronComponent.h"
 #include "Settings/CPDTSettings.h"
@@ -52,17 +50,11 @@ void UCPCauldronWidget::ApplyDisplayStateColors(ECPInteractionDisplayState Displ
 
 void UCPCauldronWidget::RefreshEffectTags()
 {
-	if (!GP_EffectTags) return;
-	GP_EffectTags->ClearChildren();
-	
-	GP_EffectTags->SetColumnFill(0, 1.f);
-	GP_EffectTags->SetColumnFill(1, 1.f);
+	if (!VB_EffectTags) return;
+	VB_EffectTags->ClearChildren();
 	
 	UCPCauldronComponent* BoundCauldronComponent = CauldronComponent.Get();
 	if (!BoundCauldronComponent || !WidgetTree) return;
-	
-	constexpr int32 ColumnCount = 2;
-	int32 DisplayIndex = 0;
 	
 	const TArray<FGameplayTag> EffectTags = BoundCauldronComponent->GetEffectTags();
 	for (const FGameplayTag& Tag : EffectTags){
@@ -72,23 +64,8 @@ void UCPCauldronWidget::RefreshEffectTags()
 		if (!EffectTextBlock) continue;
 		
 		EffectTextBlock->SetText(GetEffectDisplayName(Tag));
-		EffectTextBlock->SetJustification(ETextJustify::Left);
-		
-		UGridSlot* GridSlot = GP_EffectTags->AddChildToGrid(
-			EffectTextBlock, DisplayIndex / ColumnCount, DisplayIndex % ColumnCount);
-		
-		if (GridSlot){
-			GridSlot->SetHorizontalAlignment(HAlign_Fill);
-			GridSlot->SetVerticalAlignment(VAlign_Center);
-		}
-		
-		++DisplayIndex;
-	}
-	
-	if (UVerticalBoxSlot* VBSlot = Cast<UVerticalBoxSlot>(GP_EffectTags->Slot)){
-		VBSlot->SetPadding(FMargin(
-			0.f, GP_EffectTags->GetChildrenCount() > 0 ? 10.f : 0.f, 0.f, GP_EffectTags->GetChildrenCount() > 0 ? 10.f : 0.f)
-		);	
+		EffectTextBlock->SetJustification(ETextJustify::Center);
+		VB_EffectTags->AddChildToVerticalBox(EffectTextBlock);
 	}
 }
 
