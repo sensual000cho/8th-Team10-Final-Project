@@ -90,11 +90,11 @@ void UCPEnemyDetectionComponent::UpdateDetection()
 	
     if (HomeDistanceSquared > FMath::Square(LoseTargetRadius))
     {
-    	UE_LOG(
-			LogTemp,
-			Log,
-			TEXT("[EnemyDetection] %s: 활동 범위 이탈로 추적 해제"),
-			*GetNameSafe(EnemyPawn));
+   //  	UE_LOG(
+			// LogTemp,
+			// Log,
+			// TEXT("[EnemyDetection] %s: 활동 범위 이탈로 추적 해제"),
+			// *GetNameSafe(EnemyPawn));
     	
         TargetActor = nullptr;
         return;
@@ -142,11 +142,11 @@ void UCPEnemyDetectionComponent::UpdateDetection()
     {
     	if (!IsValid(TargetActor))
     	{
-    		UE_LOG(
-				LogTemp,
-				Log,
-				TEXT("[EnemyDetection] %s: 플레이어 발견"),
-				*GetNameSafe(EnemyPawn));
+    // 		UE_LOG(
+				// LogTemp,
+				// Log,
+				// TEXT("[EnemyDetection] %s: 플레이어 발견"),
+				// *GetNameSafe(EnemyPawn));
     	}
     	
         TargetActor = CachedPlayerPawn;

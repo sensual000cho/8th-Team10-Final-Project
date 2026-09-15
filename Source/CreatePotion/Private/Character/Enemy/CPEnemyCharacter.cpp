@@ -148,7 +148,7 @@ bool ACPEnemyCharacter::TryStartAttack(AActor* Target)
 
     AnimInstance->Montage_SetEndDelegate(EndDelegate, AttackMontages[RandomMontageNum]);
 
-    UE_LOG(LogTemp, Log, TEXT("[EnemyAttack] 공격 시작: %s"), *GetName());
+    // UE_LOG(LogTemp, Log, TEXT("[EnemyAttack] 공격 시작: %s"), *GetName());
 
     return true;
 }
@@ -168,7 +168,7 @@ void ACPEnemyCharacter::ApplyAttackHit()
     // 공격을 시작한 뒤 도망갔거나 벽(나무 등)에 가려졌는지 다시 검사
     if (!IsTargetInAttackReach(Target))
     {
-        UE_LOG(LogTemp, Log, TEXT("[EnemyAttack] 공격 빗나감: %s"), *GetName());
+        // UE_LOG(LogTemp, Log, TEXT("[EnemyAttack] 공격 빗나감: %s"), *GetName());
         return;
     }
 
