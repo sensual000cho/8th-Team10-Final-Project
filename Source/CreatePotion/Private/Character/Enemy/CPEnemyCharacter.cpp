@@ -4,10 +4,17 @@
 #include "Character/Enemy/CPEnemyCharacter.h"
 
 #include "AIController.h"
+#include "AbilitySystemComponent.h"
+#include "Abilities/GameplayAbility.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
+#include "Animation/AnimSequence.h"
+#include "BrainComponent.h"
 #include "Character/CPHealthComponent.h"
+#include "Character/Enemy/CPEnemyAttributeSet.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/SphereComponent.h"
 #include "Engine/World.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
@@ -24,13 +31,162 @@ ACPEnemyCharacter::ACPEnemyCharacter()
     GetCharacterMovement()->bOrientRotationToMovement = true;
     GetCharacterMovement()->bUseControllerDesiredRotation = false;
     GetCharacterMovement()->RotationRate = FRotator(0.f, 360.f, 0.f);
+
+    AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+    AbilitySystemComponent->SetIsReplicated(true);
+
+    EnemyAttributeSet = CreateDefaultSubobject<UCPEnemyAttributeSet>(TEXT("EnemyAttributeSet"));
+
+    DeathPhysicsSphere = CreateDefaultSubobject<USphereComponent>(TEXT("DeathPhysicsSphere"));
+    DeathPhysicsSphere->SetupAttachment(GetCapsuleComponent());
+    DeathPhysicsSphere->InitSphereRadius(GetCapsuleComponent()->GetUnscaledCapsuleRadius());
+    DeathPhysicsSphere->SetCollisionProfileName(TEXT("PhysicsActor"));
+    DeathPhysicsSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    DeathPhysicsSphere->SetEnableGravity(false);
+}
+
+void ACPEnemyCharacter::BeginPlay()
+{
+    Super::BeginPlay();
+
+    AbilitySystemComponent->InitAbilityActorInfo(this, this);
+    InitialMeshRelativeRotation = GetMesh()->GetRelativeRotation();
+    if (HasAuthority())
+    {
+        GrantPotionReactionAbilities();
+    }
+
+    HealthChangedDelegateHandle = AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCPEnemyAttributeSet::GetHealthAttribute()).AddUObject(this, &ACPEnemyCharacter::HandleHealthChanged);
 }
 
 void ACPEnemyCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+    AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCPEnemyAttributeSet::GetHealthAttribute()).Remove(HealthChangedDelegateHandle);
     CancelAttack();
 
     Super::EndPlay(EndPlayReason);
+}
+
+UAbilitySystemComponent* ACPEnemyCharacter::GetAbilitySystemComponent() const
+{
+    return AbilitySystemComponent;
+}
+
+void ACPEnemyCharacter::Landed(const FHitResult& Hit)
+{
+    LandingVelocity = GetVelocity();
+    LandingSurfaceNormal = Hit.ImpactNormal;
+    bHandlingLanding = true;
+    Super::Landed(Hit);
+    bHandlingLanding = false;
+}
+
+float ACPEnemyCharacter::GetHealth() const
+{
+    return EnemyAttributeSet->GetHealth();
+}
+
+float ACPEnemyCharacter::ApplyDamage(float DamageAmount, AActor* DamageCauser)
+{
+    if (DamageAmount <= 0.0f || bIsDead)
+    {
+        return 0.0f;
+    }
+
+    const float PreviousHealth = EnemyAttributeSet->GetHealth();
+    PendingDamageCauser = DamageCauser;
+    AbilitySystemComponent->SetNumericAttributeBase(UCPEnemyAttributeSet::GetHealthAttribute(), PreviousHealth - DamageAmount);
+    PendingDamageCauser.Reset();
+
+    return PreviousHealth - EnemyAttributeSet->GetHealth();
+}
+
+void ACPEnemyCharacter::HandleHealthChanged(const FOnAttributeChangeData& ChangeData)
+{
+    if (ChangeData.NewValue <= 0.0f)
+    {
+        HandleDeath(PendingDamageCauser.Get());
+    }
+}
+
+void ACPEnemyCharacter::GrantPotionReactionAbilities()
+{
+    for (const TSubclassOf<UGameplayAbility>& AbilityClass : PotionReactionAbilities)
+    {
+        if (AbilityClass && !AbilitySystemComponent->FindAbilitySpecFromClass(AbilityClass))
+        {
+            AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(AbilityClass, 1));
+        }
+    }
+}
+
+void ACPEnemyCharacter::HandleDeath(AActor* DamageCauser)
+{
+    if (bIsDead)
+    {
+        return;
+    }
+
+    const FVector DeathVelocity = bHandlingLanding ? LandingVelocity : GetVelocity();
+    const FVector DeathSurfaceNormal = bHandlingLanding ? LandingSurfaceNormal : FVector::UpVector;
+
+    bIsDead = true;
+    CancelAttack();
+    GetCharacterMovement()->StopMovementImmediately();
+    GetCharacterMovement()->DisableMovement();
+
+    if (AAIController* AIController = Cast<AAIController>(GetController()))
+    {
+        AIController->StopMovement();
+        if (UBrainComponent* BrainComponent = AIController->GetBrainComponent())
+        {
+            BrainComponent->StopLogic(TEXT("Enemy dead"));
+        }
+    }
+
+    PlayDeathPose();
+    StartDeathPhysics(DeathVelocity, DeathSurfaceNormal);
+    SetLifeSpan(10.0f);
+}
+
+void ACPEnemyCharacter::PlayDeathPose()
+{
+    USkeletalMeshComponent* MeshComponent = GetMesh();
+    if (!IsValid(MeshComponent))
+    {
+        return;
+    }
+
+    if (IsValid(DeathPoseAnimation))
+    {
+        MeshComponent->PlayAnimation(DeathPoseAnimation, false);
+    }
+}
+
+void ACPEnemyCharacter::StartDeathPhysics(const FVector& DeathVelocity, const FVector& SurfaceNormal)
+{
+    UCapsuleComponent* CharacterCapsule = GetCapsuleComponent();
+    USkeletalMeshComponent* MeshComponent = GetMesh();
+    const FQuat DeathSphereRotation = MeshComponent->GetComponentQuat() * InitialMeshRelativeRotation.Quaternion().Inverse();
+
+    DeathPhysicsSphere->SetWorldLocation(MeshComponent->Bounds.Origin, false, nullptr, ETeleportType::TeleportPhysics);
+    DeathPhysicsSphere->SetWorldRotation(DeathSphereRotation, false, nullptr, ETeleportType::TeleportPhysics);
+    DeathPhysicsSphere->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+    MeshComponent->AttachToComponent(DeathPhysicsSphere, FAttachmentTransformRules::KeepWorldTransform);
+    MeshComponent->SetRelativeRotation(InitialMeshRelativeRotation, false, nullptr, ETeleportType::TeleportPhysics);
+    MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    CharacterCapsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    DeathPhysicsSphere->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+    DeathPhysicsSphere->SetEnableGravity(true);
+    DeathPhysicsSphere->SetLinearDamping(1.5f);
+    DeathPhysicsSphere->SetAngularDamping(3.0f);
+    DeathPhysicsSphere->SetSimulatePhysics(true);
+    DeathPhysicsSphere->SetPhysicsLinearVelocity(DeathVelocity);
+
+    const FVector RollVelocity = FVector::VectorPlaneProject(DeathVelocity, SurfaceNormal);
+    const FVector RollAngularVelocity = FVector::CrossProduct(SurfaceNormal, RollVelocity) / DeathPhysicsSphere->GetScaledSphereRadius();
+    DeathPhysicsSphere->SetPhysicsAngularVelocityInRadians(RollAngularVelocity);
 }
 
 bool ACPEnemyCharacter::IsTargetInAttackReach(AActor* Target) const
@@ -40,9 +196,9 @@ bool ACPEnemyCharacter::IsTargetInAttackReach(AActor* Target) const
         return false;
     }
 
-    const UCPHealthComponent* HealthComponent = Target->FindComponentByClass<UCPHealthComponent>();
+    const UCPHealthComponent* TargetHealthComponent = Target->FindComponentByClass<UCPHealthComponent>();
 
-    if (!IsValid(HealthComponent) || HealthComponent->IsDead())
+    if (!IsValid(TargetHealthComponent) || TargetHealthComponent->IsDead())
     {
         return false;
     }
@@ -73,7 +229,7 @@ bool ACPEnemyCharacter::IsTargetInAttackReach(AActor* Target) const
 
 bool ACPEnemyCharacter::CanAttackTarget(AActor* Target) const
 {
-    if (bIsAttacking || AttackMontages.IsEmpty() || !GetWorld())
+    if (bIsDead || bIsAttacking || AttackMontages.IsEmpty() || !GetWorld())
     {
         return false;
     }
@@ -182,12 +338,12 @@ void ACPEnemyCharacter::ApplyAttackHit()
         return;
     }
 
-    UCPHealthComponent* HealthComponent = Target->FindComponentByClass<UCPHealthComponent>();
+    UCPHealthComponent* TargetHealthComponent = Target->FindComponentByClass<UCPHealthComponent>();
 
-    if (IsValid(HealthComponent))
+    if (IsValid(TargetHealthComponent))
     {
         // 피해 처리 중 이벤트가 발생할 수 있으므로 마지막에 호출
-        HealthComponent->ApplyDamage(AttackDamage, this);
+        TargetHealthComponent->ApplyDamage(AttackDamage, this);
     }
 }
 
