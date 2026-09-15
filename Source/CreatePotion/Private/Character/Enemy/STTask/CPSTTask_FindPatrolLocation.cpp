@@ -8,9 +8,7 @@
 #include "NavigationSystem.h"
 #include "StateTreeExecutionContext.h"
 
-EStateTreeRunStatus FCPSTTask_FindPatrolLocation::EnterState(
-	FStateTreeExecutionContext& Context,
-	const FStateTreeTransitionResult& Transition) const
+EStateTreeRunStatus FCPSTTask_FindPatrolLocation::EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
 {
 	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
 

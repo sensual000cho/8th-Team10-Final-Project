@@ -243,4 +243,80 @@ void ACPEnemyCharacter::CancelAttack()
     }
 }
 
+void ACPEnemyCharacter::RequestVictory()
+{
+    bVictoryRequested = true;
+}
 
+void ACPEnemyCharacter::ClearVictoryRequest()
+{
+    bVictoryRequested = false;
+}
+
+bool ACPEnemyCharacter::StartVictoryRequest()
+{
+    if (bIsVictoryPlaying)
+    {
+        return false;
+    }
+
+    bVictoryCompletedNormally = false;
+    ActiveVictoryMontage = nullptr;
+    
+    if (VictoryMontages.IsEmpty())
+    {
+        return false;
+    }
+
+    UAnimInstance* AnimInstance = IsValid(GetMesh()) ? GetMesh()->GetAnimInstance() : nullptr;
+
+    if (!IsValid(AnimInstance))
+    {
+        return false;
+    }
+
+    const int32 MontageIndex = FMath::RandRange(0, VictoryMontages.Num() - 1);
+    UAnimMontage* SelectedMontage = VictoryMontages[MontageIndex];
+    
+    if (!IsValid(SelectedMontage))
+    {
+        return false;
+    }
+    
+    CancelAttack();
+
+    if (AAIController* AIController = Cast<AAIController>(GetController()))
+    {
+        AIController->StopMovement();
+    }
+
+    GetCharacterMovement()->StopMovementImmediately();
+    const float PlayedLength = AnimInstance->Montage_Play(SelectedMontage);
+
+    if (PlayedLength <= 0.f)
+    {
+        return false;
+    }
+    
+    ActiveVictoryMontage = SelectedMontage;
+    bIsVictoryPlaying = true;
+
+    FOnMontageEnded EndDelegate;
+    EndDelegate.BindUObject(this, &ACPEnemyCharacter::HandleVictoryEnded);
+
+    AnimInstance->Montage_SetEndDelegate(EndDelegate, SelectedMontage);
+
+    return true;
+}
+
+void ACPEnemyCharacter::HandleVictoryEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+    if (Montage != ActiveVictoryMontage.Get())
+    {
+        return;
+    }
+    
+    bIsVictoryPlaying = false;
+    bVictoryCompletedNormally = !bInterrupted;
+    ActiveVictoryMontage = nullptr;
+}
