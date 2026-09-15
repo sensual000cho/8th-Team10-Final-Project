@@ -54,6 +54,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Potion|Bouncy")
 	FLinearColor SlimeOuterColor = FLinearColor(0.2f, 1.0f, 0.4f, 1.0f);
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Potion|Slime", meta = (ClampMin = "0.1", UIMin = "0.1"))
+	float SlimeScaleMultiplier = 1.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Move")
 	FDataTableRowHandle TargetRowHandle;
 
