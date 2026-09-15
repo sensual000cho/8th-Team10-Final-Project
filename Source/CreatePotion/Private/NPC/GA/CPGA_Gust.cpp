@@ -6,7 +6,7 @@
 
 UCPGA_Gust::UCPGA_Gust()
 {
-	EffectTag = FGameplayTag::RequestGameplayTag(FName("State.Potion.Gust"));
+	EffectTag = FGameplayTag::RequestGameplayTag(FName("State.Effect.Gust"));
 	DurationWorldMinutes = 60; 
 	Magnitude = 5.0f;         
 }
