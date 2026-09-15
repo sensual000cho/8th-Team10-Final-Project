@@ -12,6 +12,8 @@ struct FCPTagDefinitionRow;
 class ACPAlchemyProp;
 class UPrimitiveComponent;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCauldronEffectsChanged);
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class CREATEPOTION_API UCPCauldronComponent : public UCPInteractableComponent
 {
@@ -24,6 +26,7 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
 	// 상호작용
+	virtual void BeginFocus(AActor* Interactor) override;
 	virtual void HandleInteract(AActor* Interactor) override;
 	virtual bool CanInteract() const override;
 	virtual bool ShouldShowUnavailableInteraction() const override;
@@ -34,6 +37,10 @@ public:
 	
 	UFUNCTION(BlueprintPure, Category = "Lab|Interaction")
 	TArray<FCPItemInstance> GetIngredientInstance() const;
+	
+	// 포션 생성 (BP 호출)
+	UFUNCTION(BlueprintCallable, Category = "Lab|Interaction")
+	bool CreatePotion();
 	
 private:
 	// 현재 가마솥이 해당 재료를 받을 수 있는지 검사
@@ -61,9 +68,9 @@ private:
 		bool bFromSweep,
 		const FHitResult& SweepResult);
 	
-	// UI 도입 or PR확인 이후 삭제
-	UFUNCTION(BlueprintCallable, Category = "Lab|Interaction|Debug")
-	void DebugPrintSlots() const;
+public:
+	UPROPERTY(BlueprintAssignable, Category = "Lab|Interaction")
+	FOnCauldronEffectsChanged OnEffectsChanged;
 	
 private:
 	UPROPERTY(VisibleAnywhere, Category = "Lab|Interaction")

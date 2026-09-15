@@ -10,7 +10,8 @@
 
 UCPLabBellComponent::UCPLabBellComponent()
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
 	InteractionPrompt = FText::FromString(TEXT("벨 울리기"));
 	bShouldShowUnavailableInteraction = true;
 }

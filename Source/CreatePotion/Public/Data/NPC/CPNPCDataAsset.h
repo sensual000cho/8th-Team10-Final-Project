@@ -42,6 +42,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Animation")
 	TSoftObjectPtr<UAnimSequence> LaunchAnimation;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Animation")
+	TSubclassOf<UAnimInstance> AnimClass;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Sound")
 	USoundBase* FartSound;
 
