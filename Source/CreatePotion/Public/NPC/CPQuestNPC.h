@@ -15,6 +15,7 @@ class CREATEPOTION_API ACPQuestNPC : public ACPBaseNPC
 
 public:
 	ACPQuestNPC();
+	virtual void PostInitializeComponents() override;
 	virtual bool CanInteract(AActor* Interactor) const override;
 	virtual FText GetInteractionPrompt() const override;
 	virtual void HandleInteract(AActor* Interactor) override;
@@ -25,6 +26,8 @@ public:
 
 	UFUNCTION()
 	virtual void ShowResultDialogue();
+
+	virtual void UpdateOverheadWidgetsScale(float ScaleMultiplier) override;
 
 protected:
 	virtual void BeginPlay() override;
@@ -58,8 +61,17 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "NPC|Interaction")
 	bool bIsInteracting = false;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+	TObjectPtr<UWidgetComponent> InteractionWidget;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Quest|Marker")
 	TObjectPtr<UWidgetComponent> QuestMarkerWidget;
+
+	UPROPERTY(Transient)
+	FVector InitialQuestMarkerLocation = FVector::ZeroVector;
+
+	UPROPERTY(Transient)
+	FVector InitialInteractionWidgetLocation = FVector::ZeroVector;
 
 	bool bIsPlayerLooking = false;
 

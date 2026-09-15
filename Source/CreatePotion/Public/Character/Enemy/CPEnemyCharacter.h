@@ -53,11 +53,28 @@ public:
     void CancelAttack();
 
     bool IsAttacking() const { return bIsAttacking; }
-
+    
     bool DidLastAttackCompleteNormally() const
     {
         return bLastAttackCompletedNormally;
     }
+    
+    bool IsVictoryPlaying() const { return bIsVictoryPlaying; }
+    
+    bool DidVictoryCompletedNormally() const
+    {
+        return bVictoryCompletedNormally;
+    }
+    
+    bool IsVictoryRequested() const { return bVictoryRequested; }
+    
+    UFUNCTION(BlueprintCallable, Category = "Enemy|Attack")
+    void RequestVictory();
+    
+    void ClearVictoryRequest();
+    
+    UFUNCTION(BlueprintCallable, Category = "Enemy|Victory")
+    bool StartVictoryRequest();
 
 protected:
     virtual void BeginPlay() override;
@@ -83,6 +100,9 @@ protected:
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Attack")
     TArray<TObjectPtr<UAnimMontage>> AttackMontages;
+    
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Attack")
+    TArray<TObjectPtr<UAnimMontage>> VictoryMontages;
 
     // 체력이 0이 되었을 때 유지할 사망 Pose. Enemy BP에서 지정한다.
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Death")
@@ -110,6 +130,7 @@ private:
     void HandleAttackEnded(UAnimMontage* Montage, bool bInterrupted);
     void PlayDeathPose();
     void StartDeathPhysics(const FVector& DeathVelocity, const FVector& SurfaceNormal);
+    void HandleVictoryEnded(UAnimMontage* Montage, bool bInterrupted);
 
     UPROPERTY()
     TWeakObjectPtr<AActor> AttackTarget;
@@ -127,6 +148,15 @@ private:
     FVector LandingVelocity = FVector::ZeroVector;
     FVector LandingSurfaceNormal = FVector::UpVector;
     bool bHandlingLanding = false;
+
+    UPROPERTY(Transient)
+    TObjectPtr<UAnimMontage> ActiveVictoryMontage;
+
+    bool bIsVictoryPlaying = false;
+    bool bVictoryCompletedNormally = false;
+
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Enemy|Victory", meta = (AllowPrivateAccess = "true"))
+    bool bVictoryRequested = false;
 
     double NextAttackAllowedTime = 0.0;
     int32 RandomMontageNum = 0;

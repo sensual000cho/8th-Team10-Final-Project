@@ -18,6 +18,9 @@ public:
 	virtual void ShowResultDialogue() override;
 
 protected:
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
 	virtual const TArray<FName>& GetPotionQuestIDs() const override;
 
 	virtual void OnTraceFocusLost() override;

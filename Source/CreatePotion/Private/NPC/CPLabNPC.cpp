@@ -6,6 +6,7 @@
 #include "UI/Widgets/Common/Dialogue/CPNPCDialogueWidget.h"
 #include "UI/Widgets/Lab/CPLabResultWidget.h"
 #include "Settings/CPUISettings.h"
+#include "GameInstance/Subsystem/CPNPCSubsystem.h"
 
 void ACPLabNPC::HandleInteract(AActor* Interactor)
 {
@@ -110,6 +111,25 @@ void ACPLabNPC::ShowResultDialogue()
 	}
 }
 
+void ACPLabNPC::BeginPlay()
+{
+	Super::BeginPlay();
+	if (UCPNPCSubsystem* Subsystem = GetNPCSubsystem())
+	{
+		Subsystem->SetNPCActiveStateById(GetPotionNPCId(), false, this);
+	}
+}
+
+void ACPLabNPC::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (UCPNPCSubsystem* Subsystem = GetNPCSubsystem())
+	{
+		Subsystem->SetNPCActiveStateById(GetPotionNPCId(), true, this);
+	}
+
+	Super::EndPlay(EndPlayReason);
+}
+
 const TArray<FName>& ACPLabNPC::GetPotionQuestIDs() const
 {
 	static const TArray<FName> QuestIDs;
@@ -133,6 +153,9 @@ void ACPLabNPC::OnResultDialogueClosed()
 			LabGameMode->ClearPotionRequest();
 		}
 	}
-
+	if (UCPNPCSubsystem* Subsystem = GetNPCSubsystem())
+	{
+		Subsystem->SetNPCActiveStateById(GetPotionNPCId(), true, this);
+	}
 	Destroy();
 }
