@@ -57,10 +57,11 @@ void ACPResourceNodeActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 }
 
 
-void ACPResourceNodeActor::InitializeResource(const FCPResourceNodeKey& InNodeKey, UCPResourceDefinition* InDefinition)
+void ACPResourceNodeActor::InitializeResource(const FCPResourceNodeKey& InNodeKey, UCPResourceDefinition* InDefinition, int32 InHarvestMultiplier)
 {
 	NodeKey = InNodeKey;
 	ResourceDefinition = InDefinition;
+	HarvestMultiplier = FMath::Max(1, InHarvestMultiplier);
 	
 	ApplyDefinition();
 	
@@ -68,7 +69,7 @@ void ACPResourceNodeActor::InitializeResource(const FCPResourceNodeKey& InNodeKe
 	{
 		HarvestComponent->Initialize(
 			ResourceDefinition->HarvestData.HarvestedItem,
-			ResourceDefinition->HarvestData.HarvestAmount,
+			ResourceDefinition->HarvestData.HarvestAmount * HarvestMultiplier,
 			ResourceDefinition->Mesh.LoadSynchronous(),
 			DroppedItemClass
 			);
