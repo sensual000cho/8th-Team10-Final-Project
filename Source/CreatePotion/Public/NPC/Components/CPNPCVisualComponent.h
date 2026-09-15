@@ -40,11 +40,23 @@ struct FMeshOverrideEntry
 	UPROPERTY()
 	float OverrideCapsuleHalfHeight = -1.0f;
 
+	UPROPERTY()
+	bool bDisableAnimBlueprint = false;
+
 	FMeshOverrideEntry() {}
+
 	FMeshOverrideEntry(FGameplayTag InTag, USkeletalMesh* InMesh, UAnimSequence* InAnim, float InRatio, float InZOffset,
-		const FVector& InScale, float InRadius, float InHalfHeight)
-		: EffectTag(InTag), Mesh(InMesh), IdleAnim(InAnim), CapsuleRadiusRatio(InRatio), AdditionalZOffset(InZOffset),
-		MeshScale(InScale), OverrideCapsuleRadius(InRadius), OverrideCapsuleHalfHeight(InHalfHeight) {
+		const FVector& InScale, float InRadius, float InHalfHeight, bool bInDisableAnimBlueprint = false)
+		: EffectTag(InTag)
+		, Mesh(InMesh)
+		, IdleAnim(InAnim)
+		, CapsuleRadiusRatio(InRatio)
+		, AdditionalZOffset(InZOffset)
+		, MeshScale(InScale)
+		, OverrideCapsuleRadius(InRadius)
+		, OverrideCapsuleHalfHeight(InHalfHeight)
+		, bDisableAnimBlueprint(bInDisableAnimBlueprint)
+	{
 	}
 };
 
@@ -103,7 +115,8 @@ public:
 
 	// 메시 스택 관리
 	void PushMeshOverride(FGameplayTag EffectTag, USkeletalMesh* InMesh, UAnimSequence* InAnim, float InRadiusRatio = 0.3f,
-		float InZOffset = 0.0f, const FVector& InMeshScale = FVector::OneVector, float InOverrideCapsuleRadius = -1.0f, float InOverrideCapsuleHalfHeight = -1.0f);
+		float InZOffset = 0.0f, const FVector& InMeshScale = FVector::OneVector, float InOverrideCapsuleRadius = -1.0f,
+		float InOverrideCapsuleHalfHeight = -1.0f, bool bInDisableAnimBlueprint = false);
 	void PopMeshOverride(FGameplayTag EffectTag);
 
 	// 슬롯별 머티리얼 스택 관리

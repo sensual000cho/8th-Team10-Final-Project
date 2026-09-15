@@ -6,6 +6,8 @@
 #include "PhysicsEngine/SkeletalBodySetup.h"
 #include "NPC/CPBaseNPC.h"
 #include "Components/WidgetComponent.h"
+#include "GameFramework/CharacterMovementComponent.h" 
+#include "PhysicsEngine/AggregateGeom.h"
 
 UCPNPCVisualComponent::UCPNPCVisualComponent()
 {
@@ -54,12 +56,12 @@ void UCPNPCVisualComponent::InitializeVisual(USkeletalMeshComponent* InMeshComp,
 }
 
 void UCPNPCVisualComponent::PushMeshOverride(FGameplayTag EffectTag, USkeletalMesh* InMesh, UAnimSequence* InAnim, float InRadiusRatio, float InZOffset,
-	const FVector& InMeshScale, float InOverrideCapsuleRadius, float InOverrideCapsuleHalfHeight)
+	const FVector& InMeshScale, float InOverrideCapsuleRadius, float InOverrideCapsuleHalfHeight, bool bInDisableAnimBlueprint)
 {
 	if (!EffectTag.IsValid() || !InMesh) { return; }
 
 	MeshOverrideStack.RemoveAll([&](const FMeshOverrideEntry& E) { return E.EffectTag == EffectTag; });
-	MeshOverrideStack.Add(FMeshOverrideEntry(EffectTag, InMesh, InAnim, InRadiusRatio, InZOffset, InMeshScale, InOverrideCapsuleRadius, InOverrideCapsuleHalfHeight));
+	MeshOverrideStack.Add(FMeshOverrideEntry(EffectTag, InMesh, InAnim, InRadiusRatio, InZOffset, InMeshScale, InOverrideCapsuleRadius, InOverrideCapsuleHalfHeight, bInDisableAnimBlueprint));
 	ApplyTopMesh();
 }
 
@@ -141,8 +143,6 @@ void UCPNPCVisualComponent::FitCapsuleToCurrentMesh()
 	USkeletalMesh* CurrentMesh = MeshComponent->GetSkeletalMeshAsset();
 	if (!CurrentMesh) { return; }
 
-	const float OldHalfHeight = CapsuleComponent->GetScaledCapsuleHalfHeight();
-
 	float TargetRadius = -1.0f;
 	float TargetHalfHeight = -1.0f;
 	float ZOffset = 0.0f;
@@ -163,7 +163,6 @@ void UCPNPCVisualComponent::FitCapsuleToCurrentMesh()
 	const float ScaleZ = MeshComponent->GetRelativeScale3D().Z;
 	const FBoxSphereBounds MeshBounds = CurrentMesh->GetBounds();
 
-	// Giant 배율 적용
 	const float ScaledTargetHalfHeight = (TargetHalfHeight > 0.0f) ? (TargetHalfHeight * CurrentScaleMultiplier) : -1.0f;
 	const float ScaledTargetRadius = (TargetRadius > 0.0f) ? (TargetRadius * CurrentScaleMultiplier) : -1.0f;
 
@@ -176,63 +175,57 @@ void UCPNPCVisualComponent::FitCapsuleToCurrentMesh()
 		FinalHalfHeight = FinalRadius;
 	}
 
-	const float DeltaHalfHeight = FinalHalfHeight - OldHalfHeight;
-	if (AActor* OwnerActor = GetOwner())
+	CapsuleComponent->SetCapsuleSize(FinalRadius, FinalHalfHeight, true);
+	if (ACharacter* OwnerCharacter = Cast<ACharacter>(GetOwner()))
 	{
-		if (FMath::Abs(DeltaHalfHeight) > 0.1f)
+		if (UCharacterMovementComponent* MoveComp = OwnerCharacter->GetCharacterMovement())
 		{
-			OwnerActor->AddActorWorldOffset(FVector(0.f, 0.f, DeltaHalfHeight), false, nullptr, ETeleportType::TeleportPhysics);
+			MoveComp->MaxStepHeight = FMath::Min(45.0f, FinalHalfHeight * 0.5f);
+			MoveComp->bForceNextFloorCheck = true;
+			MoveComp->UpdateComponentVelocity();
+			MoveComp->SetMovementMode(MOVE_Walking);
+			MoveComp->FindFloor(OwnerCharacter->GetActorLocation(), MoveComp->CurrentFloor, false);
+			MoveComp->AdjustFloorHeight();
 		}
 	}
+	
+	if (AActor* OwnerActor = GetOwner())
+	{
+		if (UWorld* World = GetWorld())
+		{
+			FHitResult GroundHit;
+			FCollisionQueryParams Params;
+			Params.AddIgnoredActor(OwnerActor);
 
-	CapsuleComponent->SetCapsuleSize(FinalRadius, FinalHalfHeight, true);
+			const FVector ActorLoc = OwnerActor->GetActorLocation();
+			const FVector TraceStart = ActorLoc + FVector(0.f, 0.f, 200.f);
+			const FVector TraceEnd = ActorLoc - FVector(0.f, 0.f, 500.f);
+
+			if (World->LineTraceSingleByChannel(GroundHit, TraceStart, TraceEnd, ECC_WorldStatic, Params))
+			{
+				FVector NewLocation = ActorLoc;
+				NewLocation.Z = GroundHit.ImpactPoint.Z + FinalHalfHeight;
+				OwnerActor->SetActorLocation(NewLocation, false, nullptr, ETeleportType::TeleportPhysics);
+			}
+		}
+
+		if (ACharacter* OwnerCharacter = Cast<ACharacter>(OwnerActor))
+		{
+			if (UCharacterMovementComponent* MoveComp = OwnerCharacter->GetCharacterMovement())
+			{
+				MoveComp->UpdateComponentVelocity();
+				MoveComp->SetMovementMode(MOVE_Walking);
+				MoveComp->FindFloor(OwnerCharacter->GetActorLocation(), MoveComp->CurrentFloor, false);
+				MoveComp->AdjustFloorHeight();
+			}
+		}
+	}
 
 	if (ACPBaseNPC* BaseNPC = Cast<ACPBaseNPC>(GetOwner()))
 	{
 		BaseNPC->UpdateOverheadWidgetsScale(CurrentScaleMultiplier);
 	}
-
-	static const FGameplayTag SlimeTag = FGameplayTag::RequestGameplayTag(FName("State.Effect.Slime"));
-	const bool bIsSlime = MeshOverrideStack.ContainsByPredicate([&](const FMeshOverrideEntry& E) {
-		return E.EffectTag == SlimeTag;
-		});
-
-	FVector TargetRelativeLoc = FVector(0.f, 0.f, -FinalHalfHeight + (ZOffset * CurrentScaleMultiplier));
-
-	if (bIsSlime)
-	{
-		float BodyLocalCenterZ = -160.0f;
-		float BodyHalfHeight = 44.0f;
-
-		if (UPhysicsAsset* PhysAsset = CurrentMesh->GetPhysicsAsset())
-		{
-			if (PhysAsset->SkeletalBodySetups.Num() > 0)
-			{
-				if (USkeletalBodySetup* RootSetup = PhysAsset->SkeletalBodySetups[0].Get())
-				{
-					if (RootSetup->AggGeom.SphereElems.Num() > 0)
-					{
-						const FKSphereElem& S = RootSetup->AggGeom.SphereElems[0];
-						BodyLocalCenterZ = -160.0f + S.Center.Z;
-						BodyHalfHeight = S.Radius;
-					}
-					else if (RootSetup->AggGeom.SphylElems.Num() > 0)
-					{
-						const FKSphylElem& S = RootSetup->AggGeom.SphylElems[0];
-						BodyLocalCenterZ = -160.0f + S.Center.Z;
-						BodyHalfHeight = (S.Length * 0.5f) + S.Radius;
-					}
-				}
-			}
-		}
-
-		const float BasePhysicsBottomCompZ = BodyLocalCenterZ - BodyHalfHeight;
-		const float BaseHalfHeight = (TargetHalfHeight > 0.0f) ? TargetHalfHeight : (MeshBounds.BoxExtent.Z * GetCurrentBaseScale().Z);
-		const float BaseRelativeZ = -BaseHalfHeight - BasePhysicsBottomCompZ;
-
-		TargetRelativeLoc.Z = (BaseRelativeZ + ZOffset) * CurrentScaleMultiplier;
-	}
-
+	const FVector TargetRelativeLoc = FVector(0.f, 0.f, -FinalHalfHeight + (ZOffset * CurrentScaleMultiplier));
 	MeshComponent->SetRelativeLocation(TargetRelativeLoc, false, nullptr, ETeleportType::TeleportPhysics);
 }
 
@@ -291,6 +284,7 @@ void UCPNPCVisualComponent::ApplyTopMesh()
 	USkeletalMesh* TargetMesh = DefaultOriginalMesh;
 	UAnimSequence* TargetAnim = DefaultOriginalAnim;
 	bool bIsOverridden = false;
+	bool bDisableAnimBP = false;
 
 	if (MeshOverrideStack.Num() > 0)
 	{
@@ -298,6 +292,7 @@ void UCPNPCVisualComponent::ApplyTopMesh()
 		TargetMesh = Top.Mesh;
 		TargetAnim = Top.IdleAnim;
 		bIsOverridden = true;
+		bDisableAnimBP = Top.bDisableAnimBlueprint;
 	}
 
 	if (TargetMesh)
@@ -307,18 +302,20 @@ void UCPNPCVisualComponent::ApplyTopMesh()
 		MeshComponent->SetBoundsScale(3.0f);
 		MeshComponent->SetRelativeRotation(bIsOverridden ? FRotator::ZeroRotator : DefaultOriginalRotation);
 
-		if (DefaultAnimClass)
+		if (DefaultAnimClass && !bDisableAnimBP)
 		{
 			MeshComponent->SetAnimationMode(EAnimationMode::AnimationBlueprint);
 			MeshComponent->SetAnimInstanceClass(DefaultAnimClass);
 		}
-		else if (TargetAnim)
+		else if (TargetAnim && !bDisableAnimBP)
 		{
 			MeshComponent->SetAnimationMode(EAnimationMode::AnimationSingleNode);
 			MeshComponent->PlayAnimation(TargetAnim, true);
 		}
 		else
 		{
+			MeshComponent->SetAnimInstanceClass(nullptr);
+			MeshComponent->SetAnimationMode(EAnimationMode::AnimationSingleNode);
 			MeshComponent->Stop();
 		}
 
