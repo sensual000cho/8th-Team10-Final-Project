@@ -27,7 +27,7 @@ public:
 	void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
 	// 초기화
-	void InitializeResource(const FCPResourceNodeKey& InNodeKey, UCPResourceDefinition* InDefinition);
+	void InitializeResource(const FCPResourceNodeKey& InNodeKey, UCPResourceDefinition* InDefinition, int32 InHarvestMultiplier);
 	
 	// 인터랙션 델리게이트 콜백 함수
 	void HandleInteract(AActor* Interactor) override;
@@ -69,6 +69,8 @@ private:
 	TObjectPtr<UCPResourceDefinition> ResourceDefinition;
 	
 	float InspectDuration = 1.f;
+	
+	int32 HarvestMultiplier = 1;
 	
 public:
 	// 채집 몽타주

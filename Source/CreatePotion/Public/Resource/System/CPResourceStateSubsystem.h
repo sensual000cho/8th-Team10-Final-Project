@@ -23,6 +23,9 @@ public:
 	// 채집 시(Pool 반환 및 Generation 갱신)
 	void MarkHarvested(const FCPResourceNodeKey& Key, double RespawnDuration);
 	
+	// 나무 덩굴 제거 시
+	bool MarkVineCleared(const FCPResourceNodeKey& Key);
+	
 	// 리스폰 검사
 	bool IsReady(const FCPResourceNodeKey& Key) const;
 	
