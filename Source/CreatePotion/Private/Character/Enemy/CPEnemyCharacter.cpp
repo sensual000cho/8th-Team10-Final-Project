@@ -148,7 +148,7 @@ bool ACPEnemyCharacter::TryStartAttack(AActor* Target)
 
     AnimInstance->Montage_SetEndDelegate(EndDelegate, AttackMontages[RandomMontageNum]);
 
-    UE_LOG(LogTemp, Log, TEXT("[EnemyAttack] 공격 시작: %s"), *GetName());
+    // UE_LOG(LogTemp, Log, TEXT("[EnemyAttack] 공격 시작: %s"), *GetName());
 
     return true;
 }
@@ -168,7 +168,7 @@ void ACPEnemyCharacter::ApplyAttackHit()
     // 공격을 시작한 뒤 도망갔거나 벽(나무 등)에 가려졌는지 다시 검사
     if (!IsTargetInAttackReach(Target))
     {
-        UE_LOG(LogTemp, Log, TEXT("[EnemyAttack] 공격 빗나감: %s"), *GetName());
+        // UE_LOG(LogTemp, Log, TEXT("[EnemyAttack] 공격 빗나감: %s"), *GetName());
         return;
     }
 
@@ -243,4 +243,80 @@ void ACPEnemyCharacter::CancelAttack()
     }
 }
 
+void ACPEnemyCharacter::RequestVictory()
+{
+    bVictoryRequested = true;
+}
 
+void ACPEnemyCharacter::ClearVictoryRequest()
+{
+    bVictoryRequested = false;
+}
+
+bool ACPEnemyCharacter::StartVictoryRequest()
+{
+    if (bIsVictoryPlaying)
+    {
+        return false;
+    }
+
+    bVictoryCompletedNormally = false;
+    ActiveVictoryMontage = nullptr;
+    
+    if (VictoryMontages.IsEmpty())
+    {
+        return false;
+    }
+
+    UAnimInstance* AnimInstance = IsValid(GetMesh()) ? GetMesh()->GetAnimInstance() : nullptr;
+
+    if (!IsValid(AnimInstance))
+    {
+        return false;
+    }
+
+    const int32 MontageIndex = FMath::RandRange(0, VictoryMontages.Num() - 1);
+    UAnimMontage* SelectedMontage = VictoryMontages[MontageIndex];
+    
+    if (!IsValid(SelectedMontage))
+    {
+        return false;
+    }
+    
+    CancelAttack();
+
+    if (AAIController* AIController = Cast<AAIController>(GetController()))
+    {
+        AIController->StopMovement();
+    }
+
+    GetCharacterMovement()->StopMovementImmediately();
+    const float PlayedLength = AnimInstance->Montage_Play(SelectedMontage);
+
+    if (PlayedLength <= 0.f)
+    {
+        return false;
+    }
+    
+    ActiveVictoryMontage = SelectedMontage;
+    bIsVictoryPlaying = true;
+
+    FOnMontageEnded EndDelegate;
+    EndDelegate.BindUObject(this, &ACPEnemyCharacter::HandleVictoryEnded);
+
+    AnimInstance->Montage_SetEndDelegate(EndDelegate, SelectedMontage);
+
+    return true;
+}
+
+void ACPEnemyCharacter::HandleVictoryEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+    if (Montage != ActiveVictoryMontage.Get())
+    {
+        return;
+    }
+    
+    bIsVictoryPlaying = false;
+    bVictoryCompletedNormally = !bInterrupted;
+    ActiveVictoryMontage = nullptr;
+}

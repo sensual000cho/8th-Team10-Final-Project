@@ -8,9 +8,7 @@
 #include "NavigationSystem.h"
 #include "StateTreeExecutionContext.h"
 
-EStateTreeRunStatus FCPSTTask_FindPatrolLocation::EnterState(
-	FStateTreeExecutionContext& Context,
-	const FStateTreeTransitionResult& Transition) const
+EStateTreeRunStatus FCPSTTask_FindPatrolLocation::EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
 {
 	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
 
@@ -45,7 +43,7 @@ EStateTreeRunStatus FCPSTTask_FindPatrolLocation::EnterState(
 
 	InstanceData.PatrolLocation = ResultLocation.Location;
 
-	UE_LOG(LogTemp, Log, TEXT("[EnemyAI] 배회 목적지: %s"), *InstanceData.PatrolLocation.ToString());
+	// UE_LOG(LogTemp, Log, TEXT("[EnemyAI] 배회 목적지: %s"), *InstanceData.PatrolLocation.ToString());
 
 	// 목적지가 유지되도록 부모 Task는 실행 상태로 유지.
 	// 실제 이동 완료 여부는 Move To가 판단.

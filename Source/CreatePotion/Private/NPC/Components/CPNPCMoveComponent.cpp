@@ -432,7 +432,7 @@ void UCPNPCMoveComponent::OnMoveCompleted(FAIRequestID RequestID, EPathFollowing
 		WaitTime = TargetPoints[CurrentPointIndex].WaitSeconds;
 		ArrivedLocation = TargetPoints[CurrentPointIndex].Point;
 	}
-	UE_LOG(LogCPNPC, Log, TEXT("[%s] 도착 좌표: %s | 대기 시간: %.2f | 현재 인덱스: %d"),*GetNameSafe(GetOwner()), *ArrivedLocation.ToString(), WaitTime, CurrentPointIndex);
+	//UE_LOG(LogCPNPC, Log, TEXT("[%s] 도착 좌표: %s | 대기 시간: %.2f | 현재 인덱스: %d"),*GetNameSafe(GetOwner()), *ArrivedLocation.ToString(), WaitTime, CurrentPointIndex);
 
 	if (Result == EPathFollowingResult::Success)
 	{
