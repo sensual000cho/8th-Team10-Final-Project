@@ -117,6 +117,11 @@ void ACPPlayerController::SetupInputComponent()
 		{
 			EIC->BindAction(IA_CycleWheelMode, ETriggerEvent::Started, this, &ACPPlayerController::CycleWheelInputMode);
 		}
+
+		if (IA_CarryHeldProp)
+		{
+			EIC->BindAction(IA_CarryHeldProp, ETriggerEvent::Started, this, &ACPPlayerController::OnCarryHeldProp);
+		}
 	}
 }
 
@@ -290,6 +295,27 @@ void ACPPlayerController::SetContextHandlerForTargetContext(EUITargetContext InT
 		// TODO[Container] : UCPContextShop 구현 후 교체
 		CurrentContextHandler = NewObject<UCPContextInventoryOnly>(this);
 		break;
+	}
+}
+
+void ACPPlayerController::OnCarryHeldProp(const FInputActionValue& Value)
+{
+	APawn* ControlledPawn = GetPawn();
+	if (!ControlledPawn || !CachedInventoryComponent)
+	{
+		return;
+	}
+
+	UCPCarryComponent* CarryComponent = ControlledPawn->FindComponentByClass<UCPCarryComponent>();
+	if (!CarryComponent || !CarryComponent->HasHeldProp())
+	{
+		return;
+	}
+
+	if (!CarryComponent->ConsumeHeldPropToInventory(CachedInventoryComponent))
+	{
+		UE_LOG(LogContainer, Warning, TEXT("[Carry] 인벤토리 공간 부족으로 수납 실패"));
+		// TODO[Container] : false가 반환될 경우 "인벤토리가 가득 찼습니다" 알림 UI 출력
 	}
 }
 
