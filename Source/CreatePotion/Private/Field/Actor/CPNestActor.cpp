@@ -5,27 +5,24 @@
 
 ACPNestActor::ACPNestActor()
 {
-	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
-	SetRootComponent(Root);
-	
 	DropPoint = CreateDefaultSubobject<USceneComponent>(TEXT("DropPoint"));
 	DropPoint->SetupAttachment(Root);
 }
 
-void ACPNestActor::PotionReaction()
+bool ACPNestActor::PotionReaction(const FGameplayTag& EventTag, AActor* InstigatorActor)
 {
-	Super::PotionReaction();
+	Super::PotionReaction(EventTag, InstigatorActor);
 	
-	if (!DropItemData) return;
-	if (DropItemData->HarvestData.HarvestAmount <= 0) return;
-	if (!DropItemData->Mesh) return;
-	if (!DropItemData->HarvestData.HarvestedItem) return;
+	if (!DropItemData) return false;
+	if (DropItemData->HarvestData.HarvestAmount <= 0) return false;
+	if (!DropItemData->Mesh) return false;
+	if (!DropItemData->HarvestData.HarvestedItem) return false;
 	
 	UWorld* World = GetWorld();
-	if (!World) return;
+	if (!World) return false;
 	
 	UCPObjectPoolSubsystem* Pool = World->GetSubsystem<UCPObjectPoolSubsystem>();
-	if (!Pool) return;
+	if (!Pool) return false;
 	
 	AActor* AcquiredActor = Pool->AcquireActor(DroppedItemClass, {FRotator::ZeroRotator,
 		DropPoint->GetComponentLocation()});
@@ -47,9 +44,11 @@ void ACPNestActor::PotionReaction()
 	DroppedItem->StartDropMotion(DropDirection);
 	
 	Destroy();
+	
+	return true;
 }
 
 bool ACPNestActor::CanReactToTag(const FGameplayTag& EventTag) const
 {
-	return EventTag.MatchesTagExact(ReactionEventTag);
+	return Super::CanReactToTag(EventTag);
 }

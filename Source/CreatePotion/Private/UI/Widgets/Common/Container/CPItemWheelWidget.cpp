@@ -31,6 +31,12 @@ void UCPItemWheelWidget::NativeConstruct()
 	}
 }
 
+void UCPItemWheelWidget::NativeDestruct()
+{
+	GetWorld()->GetTimerManager().ClearTimer(HideTimerHandle);
+	Super::NativeDestruct();
+}
+
 void UCPItemWheelWidget::BindInventory(UCPInventoryComponent* InInventory)
 {
 	if (!InInventory || BoundInventory == InInventory)
@@ -156,7 +162,14 @@ void UCPItemWheelWidget::RefreshIcons()
 void UCPItemWheelWidget::ShowWheelTemporarily()
 {
 	GetWorld()->GetTimerManager().ClearTimer(HideTimerHandle);
-	GetWorld()->GetTimerManager().SetTimer(HideTimerHandle, this, &UCPItemWheelWidget::HideWheel, AutoHideDelay, false);
+
+	GetWorld()->GetTimerManager().SetTimer(
+		HideTimerHandle, 
+		this, 
+		&UCPItemWheelWidget::HideWheel, 
+		AutoHideDelay, 
+		false
+	);
 }
 
 void UCPItemWheelWidget::HideWheel()
@@ -191,12 +204,6 @@ bool UCPItemWheelWidget::GetFocusedPotionGridIndex(int32& OutGridIndex) const
 
 void UCPItemWheelWidget::HandleScrollInput(float ScrollDelta)
 {
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow,
-			FString::Printf(TEXT("[Wheel Mode] HandleScrollInput Called")));
-	}
-
 	if (PotionArrayIndices.Num() == 0)
 	{
 		return; // 목록이 비어있으면 할 일 없음

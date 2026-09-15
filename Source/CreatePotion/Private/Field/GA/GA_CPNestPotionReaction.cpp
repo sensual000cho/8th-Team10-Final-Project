@@ -33,7 +33,7 @@ void UGA_CPNestPotionReaction::ActivateAbility(const FGameplayAbilitySpecHandle 
 		return;
 	}
 	
-	Nest->PotionReaction();
+	Nest->PotionReaction(TriggerEventData->EventTag);
 	
 	EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
 }

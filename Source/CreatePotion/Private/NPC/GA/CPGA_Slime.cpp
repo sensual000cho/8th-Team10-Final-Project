@@ -1,6 +1,6 @@
 ﻿#include "NPC/GA/CPGA_Slime.h"
 #include "NPC/CPBaseNPC.h"
-#include "NPC/CPNPCVisualComponent.h"
+#include "NPC/Components/CPNPCVisualComponent.h"
 #include "Data/NPC/CPNPCDataAsset.h"
 #include "Materials/MaterialInstanceDynamic.h"
 

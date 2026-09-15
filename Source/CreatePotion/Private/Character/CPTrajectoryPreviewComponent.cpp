@@ -157,7 +157,7 @@ bool UCPTrajectoryPreviewComponent::CalculateTrajectory(FPredictProjectilePathRe
 		return false;
 	}
 
-	const float ThrowSpeed = ThrowAbility->GetThrowSpeed();
+	const float ThrowSpeed = ThrowAbility->GetResolvedThrowSpeed(*CarryComponent);
 	if (ThrowSpeed <= KINDA_SMALL_NUMBER)
 	{
 		return false;
