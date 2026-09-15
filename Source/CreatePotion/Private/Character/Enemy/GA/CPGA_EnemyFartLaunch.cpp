@@ -5,9 +5,7 @@
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimSequence.h"
 #include "BrainComponent.h"
-#include "Character/CPHealthComponent.h"
 #include "Character/Enemy/CPEnemyCharacter.h"
-#include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "TimerManager.h"
 
@@ -44,7 +42,7 @@ void UCPGA_EnemyFartLaunch::ActivateAbility(const FGameplayAbilitySpecHandle Han
 
 	CachedEnemy = Enemy;
 	CachedDamageCauser = TriggerEventData ? TriggerEventData->ContextHandle.GetInstigator() : nullptr;
-	bLandingCommitted = false;
+	bLandingDamageApplied = false;
 	bLaunchApplied = true;
 
 	Enemy->CancelAttack();
@@ -107,59 +105,28 @@ void UCPGA_EnemyFartLaunch::BeginFall()
 
 void UCPGA_EnemyFartLaunch::HandleLanded(const FHitResult& Hit)
 {
-	const FVector ImpactVelocity = CachedEnemy->GetVelocity();
-	CommitLandingDeath(Hit, ImpactVelocity);
+	ApplyLandingDamage();
 	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
 }
 
-void UCPGA_EnemyFartLaunch::CommitLandingDeath(const FHitResult& Hit, const FVector& ImpactVelocity)
+void UCPGA_EnemyFartLaunch::ApplyLandingDamage()
 {
 	ACPEnemyCharacter* Enemy = CachedEnemy.Get();
-	if (bLandingCommitted || !IsValid(Enemy))
+	if (bLandingDamageApplied || !IsValid(Enemy))
 	{
 		return;
 	}
 
-	bLandingCommitted = true;
+	bLandingDamageApplied = true;
 	GetWorld()->GetTimerManager().ClearTimer(VisualTumbleTimerHandle);
-
-	if (USkeletalMeshComponent* Mesh = Enemy->GetMesh())
-	{
-		if (IsValid(DeathPoseAnimation))
-		{
-			Mesh->PlayAnimation(DeathPoseAnimation, false);
-		}
-	}
-
-	if (UCPHealthComponent* HealthComponent = Enemy->GetHealthComponent())
-	{
-		HealthComponent->ApplyDamage(HealthComponent->GetCurrentHealth(), CachedDamageCauser.Get());
-	}
-
-	StartDeathRoll(Hit, ImpactVelocity);
-}
-
-void UCPGA_EnemyFartLaunch::StartDeathRoll(const FHitResult& Hit, const FVector& ImpactVelocity)
-{
-	ACPEnemyCharacter* Enemy = CachedEnemy.Get();
-	UCapsuleComponent* Capsule = Enemy->GetCapsuleComponent();
-	const FVector RollVelocity = FVector::VectorPlaneProject(ImpactVelocity, Hit.ImpactNormal);
-	const FVector RollAngularVelocity = FVector::CrossProduct(Hit.ImpactNormal, RollVelocity) / Capsule->GetScaledCapsuleRadius();
-
-	Capsule->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	Capsule->SetEnableGravity(true);
-	Capsule->SetLinearDamping(1.5f);
-	Capsule->SetAngularDamping(3.0f);
-	Capsule->SetSimulatePhysics(true);
-	Capsule->SetPhysicsLinearVelocity(RollVelocity);
-	Capsule->SetPhysicsAngularVelocityInRadians(RollAngularVelocity);
+	Enemy->ApplyDamage(1.0f, CachedDamageCauser.Get());
 }
 
 void UCPGA_EnemyFartLaunch::ApplyVisualTumble()
 {
 	ACPEnemyCharacter* Enemy = CachedEnemy.Get();
 	USkeletalMeshComponent* Mesh = IsValid(Enemy) ? Enemy->GetMesh() : nullptr;
-	if (!IsValid(Mesh) || bLandingCommitted)
+	if (!IsValid(Mesh) || bLandingDamageApplied)
 	{
 		return;
 	}

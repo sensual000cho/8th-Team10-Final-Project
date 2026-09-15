@@ -29,10 +29,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Potion|FartLaunch|Animation")
 	TObjectPtr<UAnimSequence> LaunchAnimation;
 
-	// 첫 바닥 충돌부터 유지할 사망 Pose. BP GA에서 지정한다.
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Potion|FartLaunch|Animation")
-	TObjectPtr<UAnimSequence> DeathPoseAnimation;
-
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Potion|FartLaunch|Launch", meta = (ClampMin = "0.0"))
 	float LaunchForce = 2000.0f;
 
@@ -52,8 +48,7 @@ private:
 	void HandleLanded(const FHitResult& Hit);
 
 	void BeginFall();
-	void CommitLandingDeath(const FHitResult& Hit, const FVector& ImpactVelocity);
-	void StartDeathRoll(const FHitResult& Hit, const FVector& ImpactVelocity);
+	void ApplyLandingDamage();
 	void ApplyVisualTumble();
 	void RestoreLivingState();
 
@@ -68,6 +63,6 @@ private:
 	float OriginalFallingLateralFriction = 0.0f;
 	FTimerHandle RiseTimerHandle;
 	FTimerHandle VisualTumbleTimerHandle;
-	bool bLandingCommitted = false;
+	bool bLandingDamageApplied = false;
 	bool bLaunchApplied = false;
 };
