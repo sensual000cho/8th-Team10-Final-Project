@@ -33,17 +33,37 @@ public:
     void CancelAttack();
 
     bool IsAttacking() const { return bIsAttacking; }
-
+    
     bool DidLastAttackCompleteNormally() const
     {
         return bLastAttackCompletedNormally;
     }
+    
+    bool IsVictoryPlaying() const { return bIsVictoryPlaying; }
+    
+    bool DidVictoryCompletedNormally() const
+    {
+        return bVictoryCompletedNormally;
+    }
+    
+    bool IsVictoryRequested() const { return bVictoryRequested; }
+    
+    UFUNCTION(BlueprintCallable, Category = "Enemy|Attack")
+    void RequestVictory();
+    
+    void ClearVictoryRequest();
+    
+    UFUNCTION(BlueprintCallable, Category = "Enemy|Victory")
+    bool StartVictoryRequest();
 
 protected:
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Attack")
     TArray<TObjectPtr<UAnimMontage>> AttackMontages;
+    
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Attack")
+    TArray<TObjectPtr<UAnimMontage>> VictoryMontages;
 
     // 액터 중심 사이의 3D 거리 기준(높이 포함)
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Attack", meta = (ClampMin = "1.0", Units = "cm"))
@@ -64,6 +84,7 @@ private:
     bool IsTargetInAttackReach(AActor* Target) const;
     void HandleAttackBlendingOut(UAnimMontage* Montage, bool bInterrupted);
     void HandleAttackEnded(UAnimMontage* Montage, bool bInterrupted);
+    void HandleVictoryEnded(UAnimMontage* Montage, bool bInterrupted);
 
     UPROPERTY()
     TWeakObjectPtr<AActor> AttackTarget;
@@ -72,6 +93,15 @@ private:
     bool bAttackHitConsumed = false;
     bool bAttackHitEnabled = false;
     bool bLastAttackCompletedNormally = false;
+    
+    UPROPERTY(Transient)
+    TObjectPtr<UAnimMontage> ActiveVictoryMontage;
+    
+    bool bIsVictoryPlaying = false;
+    bool bVictoryCompletedNormally = false;
+    
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Enemy|Victory", meta = (AllowPrivateAccess = "true"))
+    bool bVictoryRequested = false;
 
     double NextAttackAllowedTime = 0.0;
     int32 RandomMontageNum = 0;

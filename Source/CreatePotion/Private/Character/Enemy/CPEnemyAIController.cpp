@@ -39,7 +39,7 @@ void ACPEnemyAIController::OnPossess(APawn* InPawn)
 	// Possess한 시점의 적 위치가 활동의 시작점
 	HomeLocation = InPawn->GetActorLocation();
 
-	UE_LOG(LogTemp, Log, TEXT("[EnemyAI] Possess 완료: %s / Home: %s"), *GetNameSafe(InPawn), *HomeLocation.ToString());
+	// UE_LOG(LogTemp, Log, TEXT("[EnemyAI] Possess 완료: %s / Home: %s"), *GetNameSafe(InPawn), *HomeLocation.ToString());
 
 	TryStartStateTree();
 }
@@ -78,5 +78,5 @@ void ACPEnemyAIController::TryStartStateTree()
 	StateTreeComponent->SetStateTree(EnemyStateTree);
 	StateTreeComponent->StartLogic();
 
-	UE_LOG(LogTemp, Log, TEXT("[EnemyAI] StateTree 실행 상태: %s"), StateTreeComponent->IsRunning() ? TEXT("Running") : TEXT("Stopped"));
+	// UE_LOG(LogTemp, Log, TEXT("[EnemyAI] StateTree 실행 상태: %s"), StateTreeComponent->IsRunning() ? TEXT("Running") : TEXT("Stopped"));
 }
