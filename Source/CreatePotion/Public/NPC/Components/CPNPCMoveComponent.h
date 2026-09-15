@@ -36,6 +36,9 @@ public:
 
 	bool IsMovePaused() const { return bIsMovePaused; }
 
+	void OnDisplacementTagChanged(const FGameplayTag CallbackTag, int32 NewCount);
+	void RespawnToPreDisplaceState();
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -50,6 +53,8 @@ private:
 	void SaveMovementState();
 	FString GetCurrentLevelIdentifier() const;
 	FName GetMovementStorageKey() const;
+
+	FVector FindValidNavLocation(const FVector& InLocation) const;
 
 private:
 	UPROPERTY()
@@ -84,4 +89,8 @@ private:
 	bool bIsMovePaused = false;
 
 	FTimerHandle MoveWaitTimerHandle;
+	FVector PreDisplaceLocation = FVector::ZeroVector;
+	FRotator PreDisplaceRotation = FRotator::ZeroRotator;
+
+	bool bWasMovingBeforeDisplace = false;
 };

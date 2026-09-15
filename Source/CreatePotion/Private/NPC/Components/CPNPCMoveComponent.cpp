@@ -1,4 +1,4 @@
-﻿#include "NPC/CPNPCMoveComponent.h"
+﻿#include "NPC/Components/CPNPCMoveComponent.h"
 #include "NPC/CPBaseNPC.h"
 #include "Data/NPC/CPNPCDataAsset.h"
 #include "NavigationSystem.h"
@@ -6,6 +6,9 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "AbilitySystemComponent.h"
+#include "AbilitySystemInterface.h"
+#include "NavigationSystem.h"
 
 DEFINE_LOG_CATEGORY(LogCPNPC);
 
@@ -57,6 +60,16 @@ void UCPNPCMoveComponent::BeginPlay()
 	}
 
 	StartMoving();
+
+	if (IAbilitySystemInterface* ASI = Cast<IAbilitySystemInterface>(GetOwner()))
+	{
+		if (UAbilitySystemComponent* ASC = ASI->GetAbilitySystemComponent())
+		{
+			FGameplayTag DisplaceTag = FGameplayTag::RequestGameplayTag(FName("State.NPC.Displaced"));
+			ASC->RegisterGameplayTagEvent(DisplaceTag, EGameplayTagEventType::NewOrRemoved)
+				.AddUObject(this, &UCPNPCMoveComponent::OnDisplacementTagChanged);
+		}
+	}
 }
 
 void UCPNPCMoveComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -183,6 +196,75 @@ void UCPNPCMoveComponent::RestoreMovementState(const FCPNPCMovementSaveData& Sav
 		CurrentPointIndex);*/
 }
 
+void UCPNPCMoveComponent::OnDisplacementTagChanged(const FGameplayTag CallbackTag, int32 NewCount)
+{
+	if (NewCount == 1)
+	{
+		if (AActor* OwnerActor = GetOwner())
+		{
+			PreDisplaceLocation = OwnerActor->GetActorLocation();
+			PreDisplaceRotation = OwnerActor->GetActorRotation();
+		}
+
+		bWasMovingBeforeDisplace = (bIsMoving || (GetWorld() && GetWorld()->GetTimerManager().IsTimerActive(MoveWaitTimerHandle))) && !bIsMovePaused;
+
+		if (GetWorld())
+		{
+			GetWorld()->GetTimerManager().ClearTimer(MoveWaitTimerHandle);
+		}
+		if (AIController)
+		{
+			AIController->StopMovement();
+		}
+		bIsMoving = false;
+	}
+
+	else if (NewCount == 0)
+	{
+		RespawnToPreDisplaceState();
+	}
+}
+
+void UCPNPCMoveComponent::RespawnToPreDisplaceState()
+{
+	ACharacter* OwnerChar = Cast<ACharacter>(GetOwner());
+	if (!OwnerChar)
+	{
+		return;
+	}
+
+	FVector SafeTargetLocation = FindValidNavLocation(PreDisplaceLocation);
+
+	if (UCapsuleComponent* Capsule = OwnerChar->GetCapsuleComponent())
+	{
+		SafeTargetLocation.Z += Capsule->GetScaledCapsuleHalfHeight();
+	}
+	OwnerChar->SetActorLocationAndRotation(
+		SafeTargetLocation,
+		FRotator(0.f, PreDisplaceRotation.Yaw, 0.f),
+		false,
+		nullptr,
+		ETeleportType::TeleportPhysics
+	);
+
+	if (UCharacterMovementComponent* MoveComp = OwnerChar->GetCharacterMovement())
+	{
+		MoveComp->StopMovementImmediately();
+		MoveComp->SetMovementMode(MOVE_Walking);
+		MoveComp->FindFloor(OwnerChar->GetActorLocation(), MoveComp->CurrentFloor, false);
+		MoveComp->AdjustFloorHeight();
+	}
+	if (bWasMovingBeforeDisplace)
+	{
+		bIsMovePaused = false;
+		MoveToCurrentIndex();
+	}
+	else
+	{
+		StopMoving();
+	}
+}
+
 void UCPNPCMoveComponent::SaveMovementState()
 {
 	const FName StorageKey = GetMovementStorageKey();
@@ -292,13 +374,13 @@ void UCPNPCMoveComponent::MoveToCurrentIndex()
 		const float Dist3D = FVector::Dist(CurrentLoc, Destination);
 		const float Dist2D = FVector::Dist2D(CurrentLoc, Destination);
 
-		UE_LOG(LogCPNPC, Error, TEXT("[%s] [이동 시도] 목표: %s | 현재위치: %s | 3D거리: %.1f | 2D거리: %.1f | AcceptanceRadius: %.1f"),
+		/*UE_LOG(LogCPNPC, Error, TEXT("[%s] [이동 시도] 목표: %s | 현재위치: %s | 3D거리: %.1f | 2D거리: %.1f | AcceptanceRadius: %.1f"),
 			*GetNameSafe(OwnerActor),
 			*Destination.ToString(),
 			*CurrentLoc.ToString(),
 			Dist3D,
 			Dist2D,
-			AcceptanceRadius);
+			AcceptanceRadius);*/
 	}
 
 	EPathFollowingRequestResult::Type MoveResult = AIController->MoveToLocation(
@@ -425,4 +507,17 @@ FName UCPNPCMoveComponent::GetMovementStorageKey() const
 
 	FString LevelName = GetCurrentLevelIdentifier();
 	return FName(*FString::Printf(TEXT("%s_%s"), *BaseNPC->GetPotionNPCId().ToString(), *LevelName));
+}
+
+FVector UCPNPCMoveComponent::FindValidNavLocation(const FVector& InLocation) const
+{
+	if (UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld()))
+	{
+		FNavLocation ProjectedLocation;
+		if (NavSys->ProjectPointToNavigation(InLocation, ProjectedLocation, FVector(500.f, 500.f, 800.f)))
+		{
+			return ProjectedLocation.Location;
+		}
+	}
+	return InLocation;
 }
