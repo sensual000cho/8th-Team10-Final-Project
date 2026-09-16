@@ -3,9 +3,32 @@
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "GameplayTagContainer.h"
+#include "Data/NPC/CPNPCTargetData.h"
 #include "CPNPCSubsystem.generated.h"
 
 class ACPBaseNPC;
+
+USTRUCT(BlueprintType)
+struct FCPNPCMovementSaveData
+{
+	GENERATED_BODY()
+
+	// 레벨을 벗어날 당시의 실제 월드 좌표
+	UPROPERTY(BlueprintReadOnly)
+	FVector SavedLocation = FVector::ZeroVector;
+
+	// 레벨을 벗어날 당시의 회전값
+	UPROPERTY(BlueprintReadOnly)
+	FRotator SavedRotation = FRotator::ZeroRotator;
+
+	// 다시 진입했을 때 이동해야 할 다음 타겟 인덱스
+	UPROPERTY(BlueprintReadOnly)
+	int32 NextPointIndex = 0;
+
+	// 한 번이라도 데이터가 기록된 적이 있는지 플래그
+	UPROPERTY(BlueprintReadOnly)
+	bool bHasSavedTransform = false;
+};
 
 USTRUCT(BlueprintType)
 struct FCPActiveEffectInfo
@@ -58,6 +81,12 @@ public:
 	void RegisterActiveNPC(FName NPCId, ACPBaseNPC* NPC);
 	void UnregisterActiveNPC(FName NPCId, ACPBaseNPC* NPC);
 
+	void SaveNPCMovementData(FName NPCId, const FCPNPCMovementSaveData& MovementData);
+	bool GetNPCMovementData(FName NPCId, FCPNPCMovementSaveData& OutMovementData) const;
+
+	UFUNCTION(BlueprintCallable, Category = "NPC|State")
+	void SetNPCActiveStateById(FName NPCId, bool bActive, ACPBaseNPC* IgnoreNPC = nullptr);
+
 	UPROPERTY(BlueprintAssignable, Category = "NPC|Potion")
 	FOnNPCEffectApplied OnNPCEffectApplied;
 
@@ -74,6 +103,10 @@ private:
 
 	UPROPERTY()
 	TMap<FName, FCPNPCEffectSaveData> NPCStateRepository;
-	TMap<FName, TWeakObjectPtr<ACPBaseNPC>> ActiveNPCRegistry;
+	
+	TMap<FName, TArray<TWeakObjectPtr<ACPBaseNPC>>> ActiveNPCRegistry;
 	int64 CachedCurrentWorldMinute = 0;
+
+	UPROPERTY()
+	TMap<FName, FCPNPCMovementSaveData> NPCMovementRepository;
 };

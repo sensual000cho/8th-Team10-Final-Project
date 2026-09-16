@@ -13,14 +13,16 @@ struct FCPItemInstance
 {
 	GENERATED_BODY()
 
-	UPROPERTY(BlueprintReadOnly, Category = "Item")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
 	TObjectPtr<UCPForageableItemData> SourceItemData = nullptr;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Item")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
 	TArray<FGameplayTag> CurrentEffects;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Item")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
 	bool bIsSeed = false;
 
 	bool IsValid() const { return SourceItemData != nullptr; }
+
+	FLinearColor GetLiquidColor() const;
 };

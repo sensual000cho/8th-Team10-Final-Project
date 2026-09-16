@@ -9,6 +9,8 @@
 class UCPGridSlotWidgetBase;
 class ACPPlayerController;
 class UCPForageableItemData;
+class UCPItemContainerComponent;
+class UCPInventoryComponent;
 
 UCLASS()
 class CREATEPOTION_API UCPContainerContextBase : public UObject
@@ -20,7 +22,7 @@ public:
 
 	virtual bool HandleLeftClickOnly(UCPGridSlotWidgetBase* ClickedSlot);
 	virtual bool HandleLeftDoubleClick(UCPGridSlotWidgetBase* ClickedSlot);
-	virtual bool HandleCtrlLeftClick(UCPGridSlotWidgetBase* ClickedSlot) { return false; }
+	virtual bool HandleCtrlLeftClick(UCPGridSlotWidgetBase* ClickedSlot);
 	virtual bool HandleShiftLeftClick(UCPGridSlotWidgetBase* ClickedSlot) { return false; }
 	virtual bool HandleAltLeftClick(UCPGridSlotWidgetBase* ClickedSlot);
 
@@ -37,4 +39,6 @@ protected:
 	bool IsSlotFromInventory(UCPGridSlotWidgetBase* ClickedSlot, ACPPlayerController* PC) const;
 
 	virtual void SpawnDroppedProp(UCPForageableItemData* ItemData, int32 Count, AActor* NearActor) const;
+
+	bool TrySellItemToShop(UCPItemContainerComponent* PlayerContainer, int32 SlotGridIndex, UCPItemContainerComponent* ShopContainer, UCPInventoryComponent* PlayerInventory) const;
 };

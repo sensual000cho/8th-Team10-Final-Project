@@ -1,4 +1,6 @@
 #include "Environment/Time/CPTimeOfDayController.h"
+
+#include "NiagaraFunctionLibrary.h"
 #include "Components/DirectionalLightComponent.h"
 #include "Components/ExponentialHeightFogComponent.h"
 #include "Components/PostProcessComponent.h"
@@ -62,6 +64,11 @@ void ACPTimeOfDayController::BeginPlay()
 		&ACPTimeOfDayController::UpdateVisualTime,
 		0.1f,
 		true);
+	
+	if (EnvironmentNiagaraParameter)
+	{
+		EnvironmentNiagaraInstance = UNiagaraFunctionLibrary::GetNiagaraParameterCollection(this, EnvironmentNiagaraParameter);
+	}
 }
 
 void ACPTimeOfDayController::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -76,7 +83,15 @@ void ACPTimeOfDayController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void ACPTimeOfDayController::HandleTimeChanged(int64 NewMinutes)
 {
+	const double Difference = FMath::Abs(static_cast<double>(NewMinutes) - TargetGameMinutes);
+	
 	TargetGameMinutes = NewMinutes;
+	
+	if (Difference > 1.0)
+	{
+		VisualGameMinutes = TargetGameMinutes;
+		UpdateSunRotation(VisualGameMinutes);
+	}
 }
 
 void ACPTimeOfDayController::UpdateSunRotation(double GameMinutes)
@@ -120,11 +135,18 @@ void ACPTimeOfDayController::UpdateSunRotation(double GameMinutes)
 		
 		SkyLight->SetIntensity(SkyLightIntensity);
 	}
+	
+	if (EnvironmentNiagaraInstance && FireflyCurve)
+	{
+		const float NightFactor = FMath::Clamp(FireflyCurve->GetFloatValue(DayAlpha), 0.f, 1.f);
+		
+		EnvironmentNiagaraInstance->SetFloatParameter(TEXT("NightFactor"), NightFactor);
+	}
 }
 
 void ACPTimeOfDayController::UpdateVisualTime()
 {
-	VisualGameMinutes = FMath::FInterpConstantTo(
+	VisualGameMinutes = FMath::FInterpTo(
 		VisualGameMinutes,
 		TargetGameMinutes,
 		0.1f,

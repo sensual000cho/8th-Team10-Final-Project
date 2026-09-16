@@ -1,5 +1,6 @@
 ﻿#include "NPC/GA/CPGA_FartLaunch.h"
 #include "NPC/CPBaseNPC.h"
+#include "NPC/Components/CPNPCVisualComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -19,7 +20,12 @@ void UCPGA_FartLaunch::ActivateAbility(const FGameplayAbilitySpecHandle Handle, 
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 
 	ACPBaseNPC* TargetCharacter = GetValidatedOwningPotionNPC(Handle, ActorInfo, ActivationInfo);
-	if (!TargetCharacter) return;
+	if (!TargetCharacter) { return; }
+
+	if (ActorInfo->AbilitySystemComponent.IsValid())
+	{
+		ActorInfo->AbilitySystemComponent->AddLooseGameplayTag(FGameplayTag::RequestGameplayTag(FName("State.NPC.Displaced")));
+	}
 
 	bIsRagdolling = false;
 	LastMeshHitTime = 0.f;
@@ -48,14 +54,22 @@ void UCPGA_FartLaunch::ActivateAbility(const FGameplayAbilitySpecHandle Handle, 
 	const FVector WorldStartDir = TargetCharacter->GetActorTransform().TransformVectorNoScale(LaunchRotation.Vector());
 	TargetCharacter->LaunchCharacter(WorldStartDir * LaunchForce, true, true);
 
-	// 임시 프로토용 날아가는 애니메이션 추가
-	if (TargetCharacter->NPCData)
+	if (const UCPNPCDataAsset* NPCData = TargetCharacter->GetNPCData())
 	{
-		if (UAnimSequence* LaunchAnim = TargetCharacter->NPCData->LaunchAnimation.LoadSynchronous())
+		if (UAnimSequence* LaunchAnim = NPCData->LaunchAnimation.LoadSynchronous())
 		{
 			if (USkeletalMeshComponent* Mesh = TargetCharacter->GetMesh())
 			{
-				Mesh->PlayAnimation(LaunchAnim, true);
+				if (UAnimInstance* AnimInst = Mesh->GetAnimInstance())
+				{
+					const float BlendInTime = 0.15f;
+					const float BlendOutTime = 0.15f;
+					AnimInst->PlaySlotAnimationAsDynamicMontage(LaunchAnim, FName("DefaultSlot"), BlendInTime, BlendOutTime, 1.0f);
+				}
+				else
+				{
+					Mesh->PlayAnimation(LaunchAnim, true);
+				}
 			}
 		}
 	}
@@ -212,61 +226,39 @@ void UCPGA_FartLaunch::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 {
 	if (UWorld* World = GetWorld())
 	{
-		World->GetTimerManager().ClearTimer(DurationTimerHandle);
-		World->GetTimerManager().ClearTimer(RagdollTimerHandle);
-		World->GetTimerManager().ClearTimer(VelocityCheckTimerHandle);
-		World->GetTimerManager().ClearTimer(ThrustTimerHandle);
-		World->GetTimerManager().ClearTimer(FailsafeTimerHandle);
+		FTimerManager& TM = World->GetTimerManager();
+		TM.ClearTimer(DurationTimerHandle);
+		TM.ClearTimer(RagdollTimerHandle);
+		TM.ClearTimer(VelocityCheckTimerHandle);
+		TM.ClearTimer(ThrustTimerHandle);
+		TM.ClearTimer(FailsafeTimerHandle);
 	}
 
-	if (ActorInfo && ActorInfo->AvatarActor.IsValid())
+	if (ACPBaseNPC* TargetCharacter = (ActorInfo && ActorInfo->AvatarActor.IsValid()) ? Cast<ACPBaseNPC>(ActorInfo->AvatarActor.Get()) : nullptr)
 	{
-		if (ACPBaseNPC* TargetCharacter = Cast<ACPBaseNPC>(ActorInfo->AvatarActor.Get()))
+		if (UCharacterMovementComponent* MovementComp = TargetCharacter->GetCharacterMovement())
 		{
-			UCharacterMovementComponent* MovementComp = TargetCharacter->GetCharacterMovement();
-			UCapsuleComponent* Capsule = TargetCharacter->GetCapsuleComponent();
-			USkeletalMeshComponent* Mesh = TargetCharacter->GetMesh();
+			MovementComp->GravityScale = OriginalGravityScale;
+			MovementComp->SetMovementMode(MOVE_Walking);
+		}
 
-			if (MovementComp)
+		if (UCapsuleComponent* Capsule = TargetCharacter->GetCapsuleComponent())
+		{
+			Capsule->OnComponentHit.RemoveDynamic(this, &UCPGA_FartLaunch::OnCapsuleHit);
+			Capsule->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		}
+
+		if (USkeletalMeshComponent* Mesh = TargetCharacter->GetMesh())
+		{
+			Mesh->SetEnableGravity(true);
+			Mesh->OnComponentHit.RemoveDynamic(this, &UCPGA_FartLaunch::OnMeshHit);
+		}
+
+		if (bIsRagdolling)
+		{
+			if (UCPNPCVisualComponent* VisualComp = TargetCharacter->GetVisualComponent())
 			{
-				MovementComp->GravityScale = OriginalGravityScale;
-			}
-			if (Capsule)
-			{
-				Capsule->OnComponentHit.RemoveDynamic(this, &UCPGA_FartLaunch::OnCapsuleHit);
-			}
-			if (Mesh)
-			{
-				Mesh->SetEnableGravity(true);
-				Mesh->OnComponentHit.RemoveDynamic(this, &UCPGA_FartLaunch::OnMeshHit);
-			}
-
-			if (bIsRagdolling && Mesh && Capsule)
-			{
-				Capsule->SetWorldLocation(Mesh->GetSocketLocation(FName("pelvis")) + FVector(0.f, 0.f, Capsule->GetScaledCapsuleHalfHeight()));
-				Capsule->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-
-				Mesh->SetSimulatePhysics(false);
-				Mesh->SetUseCCD(false);
-				Mesh->SetCollisionProfileName(TEXT("CharacterMesh"));
-
-				Mesh->AttachToComponent(Capsule, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-				Mesh->SetRelativeLocation(FVector(0.f, 0.f, -Capsule->GetScaledCapsuleHalfHeight()));
-
-				if (TargetCharacter->NPCData)
-				{
-					Mesh->SetRelativeRotation(TargetCharacter->NPCData->MeshRotationOffset);
-				}
-				TargetCharacter->ReapplyActivePotionVisuals();
-			}
-
-
-			if (TargetCharacter->NPCData && Mesh)
-			{
-				if (UAnimSequence* IdleAnim = TargetCharacter->NPCData->IdleAnimation.LoadSynchronous())
-				{
-					Mesh->PlayAnimation(IdleAnim, true);
-				}
+				VisualComp->RestoreMeshTransformAfterRagdoll();
 			}
 		}
 	}
@@ -274,6 +266,10 @@ void UCPGA_FartLaunch::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 	if (FartLaunchCueTag.IsValid() && ActorInfo && ActorInfo->AbilitySystemComponent.IsValid())
 	{
 		ActorInfo->AbilitySystemComponent->RemoveGameplayCue(FartLaunchCueTag);
+	}
+	if (ActorInfo && ActorInfo->AbilitySystemComponent.IsValid())
+	{
+		ActorInfo->AbilitySystemComponent->RemoveLooseGameplayTag(FGameplayTag::RequestGameplayTag(FName("State.NPC.Displaced")));
 	}
 
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);

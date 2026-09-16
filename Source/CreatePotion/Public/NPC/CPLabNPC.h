@@ -3,11 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameMode/CPLabGameMode.h"
 #include "NPC/CPQuestNPC.h"
 #include "CPLabNPC.generated.h"
 
-class UCPLabResultWidget;
 class UCPNPCDialogueWidget;
 
 UCLASS()
@@ -15,27 +13,20 @@ class CREATEPOTION_API ACPLabNPC : public ACPQuestNPC
 {
 	GENERATED_BODY()
 public:
+	virtual void HandleInteract(AActor* Interactor) override;
+	virtual bool CanInteract(AActor* Interactor) const override;
+	virtual void ShowResultDialogue() override;
+
+protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-	virtual void OnInteract_Implementation(AActor* Interactor) override;
-	virtual bool CanInteract_Implementation(AActor* Interactor) override;
+	virtual const TArray<FName>& GetPotionQuestIDs() const override;
 
-	UFUNCTION()
-	void OpenResultWidget(AActor* Interactor);
+	virtual void OnTraceFocusLost() override;
 
-	UFUNCTION()
-	void ShowResultDialogue();
-	void HandleThrownPotionImpact(const TArray<FGameplayTag>& PotionEffectTags);
-	void OnPotionReactionTagChanged(const FGameplayTag Tag, int32 NewCount);
-
-public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
-	TSubclassOf<UCPLabResultWidget> ResultWidgetClass;
-	
 private:
-	UPROPERTY(Transient)
-	TObjectPtr<UCPLabResultWidget> ActiveResultWidget;
+	void OnResultDialogueClosed();
 
-	UPROPERTY()
-	class UCPNPCDialogueWidget* ActiveDialogueWidget;
+	bool bWaitingForPotion = false;
 };

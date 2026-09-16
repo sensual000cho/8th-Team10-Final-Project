@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-#include "GameCore/Interface/CPInteractable.h"
 #include "AbilitySystemInterface.h"
 #include "GameplayTagContainer.h"
 #include "CPBaseNPC.generated.h"
@@ -11,23 +10,36 @@ class UCPNPCDataAsset;
 class UAbilitySystemComponent;
 class UCPNPCSubsystem;
 class UCPGADataAsset;
+class UCPNPCVisualComponent;
+class UCPNPCMoveComponent;
+class UCPInteractableComponent;
+class UWidgetComponent;
 
 // (bActive: 적용/해제 여부, Magnitude: 배율/강도)
 DECLARE_DELEGATE_TwoParams(FOnPotionVisualUpdateDelegate, bool /*bActive*/, float /*Magnitude*/);
 
 UCLASS()
-class CREATEPOTION_API ACPBaseNPC : public ACharacter, public ICPInteractable, public IAbilitySystemInterface
+class CREATEPOTION_API ACPBaseNPC : public ACharacter, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
 public:
 	ACPBaseNPC();
 
-	virtual void OnInteract_Implementation(AActor* Interactor) override;
-	virtual FText GetInteractionPrompt_Implementation() override;
-	virtual bool CanInteract_Implementation(AActor* Interactor) override;
-	virtual FName GetInteractionName_Implementation() override;
+	virtual void PostInitializeComponents() override;
 
+	UFUNCTION()
+	virtual void HandleInteract(AActor* Interactor);
+
+	UFUNCTION()
+	virtual void HandleInteractionStarted(AActor* Interactor);
+
+	virtual FText GetInteractionPrompt() const;
+	virtual bool CanInteract(AActor* Interactor) const;
+	virtual FName GetInteractionName() const;
+
+	UFUNCTION(BlueprintPure, Category = "NPC|Interaction")
+	FORCEINLINE UCPInteractableComponent* GetInteractableComponent() const { return InteractableComponent; }
 	// NPC의 ASC 반환
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
@@ -45,23 +57,28 @@ public:
 	// CPNPCSubsystem이 효과 만료 시 직접 호출
 	virtual void HandlePotionEffectExpired(FGameplayTag EffectTag);
 
-	// 서브시스템에 저장된 현재 활성 효과들을 다시 조회해 비주얼에 재적용 (래그돌 복구 등)
-	UFUNCTION(BlueprintCallable, Category = "NPC|Potion")
-	void ReapplyActivePotionVisuals();
-
 	UFUNCTION(BlueprintPure, Category = "NPC")
 	FVector GetBaseMeshScale() const { return BaseMeshScale; }
 
+	UFUNCTION(BlueprintCallable, Category = "NPC")
+	void SetNPCData(UCPNPCDataAsset* InNPCData);
+
+	UFUNCTION(BlueprintCallable, Category = "NPC|State")
+	virtual void SetNPCActiveState(bool bActive);
+	
 	UFUNCTION(BlueprintPure, Category = "NPC|Data")
 	const UCPNPCDataAsset* GetNPCData() const { return NPCData; }
 
-	// NPC 캡슐 컴포넌트 반경과 높이 적용
-	UFUNCTION(BlueprintCallable, Category = "NPC")
-	void FitCapsuleToMesh(USkeletalMesh* NPCMesh);
+	UFUNCTION(BlueprintPure, Category = "NPC")
+	FORCEINLINE UCPNPCVisualComponent* GetVisualComponent() const { return VisualComponent; }
+
+	virtual void UpdateOverheadWidgetsScale(float ScaleMultiplier) {}
 
 	// GA가 비주얼 갱신 콜백을 등록/해제
 	void RegisterVisualDelegate(FGameplayTag EffectTag, const FOnPotionVisualUpdateDelegate& Delegate);
 	void UnregisterVisualDelegate(FGameplayTag EffectTag);
+
+	UCPNPCSubsystem* GetNPCSubsystem() const;
 
 protected:
 	virtual void BeginPlay() override;
@@ -78,19 +95,33 @@ protected:
 	void ApplyPotionEffectVisual(FGameplayTag EffectTag, bool bActive, float Magnitude);
 	virtual void ApplyPotionEffectVisual_Implementation(FGameplayTag EffectTag, bool bActive, float Magnitude);
 
-	UCPNPCSubsystem* GetNPCSubsystem() const;
 	void GrantPotionReactionAbilities();
+	void RegisterCodex();
 
-public:
+	UFUNCTION(BlueprintCallable, Category = "NPC|Interaction")
+	virtual void RefreshInteractionState();
+
+protected:
+	UPROPERTY(EditDefaultsOnly, Category = "GAS")
+	TObjectPtr<UCPGADataAsset> CommonAbilitySet;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UCPNPCVisualComponent> VisualComponent;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC")
 	TObjectPtr<UCPNPCDataAsset> NPCData;
 
-	UPROPERTY(EditDefaultsOnly, Category = "GAS|Potion")
-	TObjectPtr<UCPGADataAsset> CommonAbilitySet;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UCPNPCMoveComponent> MoveComponent;
 
-protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
 	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+	TObjectPtr<UCPInteractableComponent> InteractableComponent;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Interaction", meta = (ClampMin = "0.02", Units = "s"))
+	float InteractionRefreshInterval = 0.15f;
 
 	UPROPERTY()
 	FVector BaseMeshScale = FVector::OneVector;
@@ -98,4 +129,24 @@ protected:
 private:
 	// 태그별로 바인딩된 비주얼 함수 맵
 	TMap<FGameplayTag, FOnPotionVisualUpdateDelegate> VisualDelegateMap;
+
+	FTimerHandle InteractionRefreshTimerHandle;
+
+#pragma region Route Debug
+protected:
+	virtual void OnConstruction(const FTransform& Transform) override;
+#if WITH_EDITOR
+	void DrawDebugPatrolRoute();
+#endif
+	UPROPERTY(EditAnywhere, Category = "Debug")
+	bool bShowPatrolRouteInEditor = false;
+
+	UPROPERTY(EditAnywhere, Category = "Debug")
+	FColor PatrolRouteColor = FColor::Emerald;
+
+	UPROPERTY(EditAnywhere, Category = "Debug", meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "20.0"))
+	float RouteLineThickness = 10.0f;
+
+#pragma endregion Route Debug
+
 };

@@ -7,10 +7,19 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimSequence.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameInstance/Subsystem/CPCodexSubsystem.h"
+#include "NPC/Components/CPNPCVisualComponent.h"
+#include "NPC/Components/CPNPCMoveComponent.h"
+#include "NPC/CPNPCAIController.h"
+#include "Components/CPInteractableComponent.h"
+
+#if WITH_EDITOR
+#include "DrawDebugHelpers.h"
+#endif
 
 ACPBaseNPC::ACPBaseNPC()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 	if (GetCapsuleComponent())
 	{
 		GetCapsuleComponent()->SetCollisionObjectType(ECC_Pawn);
@@ -30,6 +39,19 @@ ACPBaseNPC::ACPBaseNPC()
 
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	AbilitySystemComponent->SetIsReplicated(true);
+
+	VisualComponent = CreateDefaultSubobject<UCPNPCVisualComponent>(TEXT("VisualComponent"));
+	MoveComponent = CreateDefaultSubobject<UCPNPCMoveComponent>(TEXT("MoveComponent"));
+	InteractableComponent = CreateDefaultSubobject<UCPInteractableComponent>(TEXT("InteractableComponent"));
+
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+	AIControllerClass = ACPNPCAIController::StaticClass();
+}
+
+void ACPBaseNPC::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
 }
 
 UAbilitySystemComponent* ACPBaseNPC::GetAbilitySystemComponent() const
@@ -57,6 +79,11 @@ void ACPBaseNPC::BeginPlay()
 	Super::BeginPlay();
 
 	InitializeFromDataAsset();
+	if (InteractableComponent)
+	{
+		InteractableComponent->OnActorInteractionStarted.AddUniqueDynamic(this, &ACPBaseNPC::HandleInteractionStarted);
+		InteractableComponent->OnActorInteractionCompleted.AddUniqueDynamic(this, &ACPBaseNPC::HandleInteract);
+	}
 
 	if (IsValid(AbilitySystemComponent))
 	{
@@ -70,6 +97,17 @@ void ACPBaseNPC::BeginPlay()
 	}
 
 	CatchUpPersistentPotionEffects();
+	RefreshInteractionState();
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimer(
+			InteractionRefreshTimerHandle,
+			this,
+			&ACPBaseNPC::RefreshInteractionState,
+			InteractionRefreshInterval,
+			true
+		);
+	}
 }
 
 void ACPBaseNPC::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -77,6 +115,17 @@ void ACPBaseNPC::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	if (UCPNPCSubsystem* Subsystem = GetNPCSubsystem())
 	{
 		Subsystem->UnregisterActiveNPC(GetPotionNPCId(), this);
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(InteractionRefreshTimerHandle);
+	}
+
+	if (InteractableComponent)
+	{
+		InteractableComponent->OnActorInteractionStarted.RemoveDynamic(this, &ACPBaseNPC::HandleInteractionStarted);
+		InteractableComponent->OnActorInteractionCompleted.RemoveDynamic(this, &ACPBaseNPC::HandleInteract);
 	}
 
 	VisualDelegateMap.Empty();
@@ -91,49 +140,21 @@ void ACPBaseNPC::InitializeFromDataAsset()
 	}
 
 	USkeletalMesh* LoadedMesh = NPCData->NPCMesh.LoadSynchronous();
-	if (LoadedMesh)
+	UAnimSequence* LoadedAnim = NPCData->IdleAnimation.LoadSynchronous();
+
+	if (GetMesh())
 	{
-		GetMesh()->SetSkeletalMesh(LoadedMesh);
 		GetMesh()->SetRelativeRotation(NPCData->MeshRotationOffset);
-		GetMesh()->SetRelativeScale3D(NPCData->MeshScale);
-		BaseMeshScale = NPCData->MeshScale;
-		FitCapsuleToMesh(LoadedMesh);
 	}
 
-	UAnimSequence* LoadedAnim = NPCData->IdleAnimation.LoadSynchronous();
-	if (LoadedAnim)
+	if (VisualComponent)
 	{
-		GetMesh()->SetAnimationMode(EAnimationMode::AnimationSingleNode);
-		GetMesh()->PlayAnimation(LoadedAnim, true);
+		VisualComponent->InitializeVisual(GetMesh(), GetCapsuleComponent(), LoadedMesh, NPCData->AnimClass, nullptr, NPCData->MeshScale, NPCData->CapsuleRadiusRatio);
 	}
 
 	if (NPCData->NPCName != NAME_None)
 	{
 		Tags.AddUnique(NPCData->NPCName);
-	}
-}
-
-void ACPBaseNPC::FitCapsuleToMesh(USkeletalMesh* InMesh)
-{
-	if (!InMesh || !GetMesh() || !GetCapsuleComponent())
-	{
-		return;
-	}
-
-	const float CurrentScaleZ = GetMesh()->GetRelativeScale3D().Z;
-	const FBoxSphereBounds MeshBounds = InMesh->GetBounds();
-	const float MeshHalfHeight = MeshBounds.BoxExtent.Z * CurrentScaleZ;
-	const float MeshRadius = MeshHalfHeight * (NPCData ? NPCData->CapsuleRadiusRatio : 0.3f);
-
-	const float OldHalfHeight = GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
-	const float ZOffset = MeshHalfHeight - OldHalfHeight;
-
-	GetCapsuleComponent()->SetCapsuleSize(MeshRadius, MeshHalfHeight);
-	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -MeshHalfHeight));
-
-	if (FMath::Abs(ZOffset) > KINDA_SMALL_NUMBER)
-	{
-		AddActorWorldOffset(FVector(0.f, 0.f, ZOffset), false);
 	}
 }
 
@@ -186,25 +207,56 @@ void ACPBaseNPC::HandlePotionEffectExpired(FGameplayTag EffectTag)
 	ApplyPotionEffectVisual(EffectTag, false, 1.0f);
 }
 
-void ACPBaseNPC::CatchUpPersistentPotionEffects()
+void ACPBaseNPC::SetNPCData(UCPNPCDataAsset* InNPCData)
 {
-	UCPNPCSubsystem* Subsystem = GetNPCSubsystem();
-	const FName NPCId = GetPotionNPCId();
-	if (!Subsystem || NPCId.IsNone()) return;
-
-	FCPNPCEffectSaveData SaveData;
-	if (Subsystem->GetNPCEffectData(NPCId, SaveData) && AbilitySystemComponent)
-	{
-		for (const auto& EffectPair : SaveData.ActiveEffects)
-		{
-			AbilitySystemComponent->AddLooseGameplayTag(EffectPair.Key);
-		}
-	}
-
-	ReapplyActivePotionVisuals();
+	NPCData = InNPCData;
 }
 
-void ACPBaseNPC::ReapplyActivePotionVisuals()
+void ACPBaseNPC::SetNPCActiveState(bool bActive)
+{
+	SetActorHiddenInGame(!bActive);
+    SetActorEnableCollision(bActive);
+    SetActorTickEnabled(bActive);
+
+    if (InteractableComponent)
+    {
+        InteractableComponent->SetInteractability(bActive);
+    }
+
+    if (UCharacterMovementComponent* MovementComp = GetCharacterMovement())
+    {
+        MovementComp->SetComponentTickEnabled(bActive);
+        if (!bActive)
+        {
+            MovementComp->StopMovementImmediately();
+        }
+    }
+    if (AAIController* AIC = Cast<AAIController>(GetController()))
+    {
+        if (bActive)
+        {
+            AIC->ResumeMove(FAIRequestID::CurrentRequest);
+        }
+        else
+        {
+            AIC->StopMovement();
+        }
+    }
+
+    if (MoveComponent)
+    {
+        if (bActive)
+        {
+            MoveComponent->StartMoving(); 
+        }
+        else
+        {
+            MoveComponent->StopMoving();
+        }
+    }
+}
+
+void ACPBaseNPC::CatchUpPersistentPotionEffects()
 {
 	UCPNPCSubsystem* Subsystem = GetNPCSubsystem();
 	const FName NPCId = GetPotionNPCId();
@@ -215,6 +267,10 @@ void ACPBaseNPC::ReapplyActivePotionVisuals()
 	{
 		for (const auto& EffectPair : SaveData.ActiveEffects)
 		{
+			if (AbilitySystemComponent)
+			{
+				AbilitySystemComponent->AddLooseGameplayTag(EffectPair.Key);
+			}
 			ApplyPotionEffectVisual(EffectPair.Key, true, EffectPair.Value.Magnitude);
 		}
 	}
@@ -250,11 +306,16 @@ void ACPBaseNPC::GrantPotionReactionAbilities()
 	}
 }
 
-void ACPBaseNPC::OnInteract_Implementation(AActor* Interactor) {}
-FText ACPBaseNPC::GetInteractionPrompt_Implementation() { return FText::GetEmpty(); }
-bool ACPBaseNPC::CanInteract_Implementation(AActor* Interactor) { return false; }
-FName ACPBaseNPC::GetInteractionName_Implementation()
+
+void ACPBaseNPC::HandleInteract(AActor* Interactor) {}
+
+void ACPBaseNPC::HandleInteractionStarted(AActor* Interactor)
 {
+}
+
+FText ACPBaseNPC::GetInteractionPrompt() const { return FText::GetEmpty(); }
+bool ACPBaseNPC::CanInteract(AActor* Interactor) const { return false; }
+FName ACPBaseNPC::GetInteractionName() const{
 	if (NPCData && NPCData->NPCName != NAME_None)
 	{
 		return NPCData->NPCName;
@@ -262,3 +323,130 @@ FName ACPBaseNPC::GetInteractionName_Implementation()
 	return GetFName();
 }
 
+void ACPBaseNPC::RegisterCodex()
+{
+	if (!NPCData) return;
+	
+	UGameInstance* GameInstance = GetGameInstance();
+	UCPCodexSubsystem* CodexSubsystem = GameInstance ? GameInstance->GetSubsystem<UCPCodexSubsystem>() : nullptr;
+	if (!CodexSubsystem) return;
+	
+	CodexSubsystem->RegisterNPCEntry(NPCData);
+}
+
+void ACPBaseNPC::RefreshInteractionState()
+{
+	if (!InteractableComponent)
+	{
+		return;
+	}
+	AActor* Interactor = nullptr;
+	if (const UWorld* World = GetWorld())
+	{
+		if (const APlayerController* PC = World->GetFirstPlayerController())
+		{
+			Interactor = PC->GetPawn();
+		}
+	}
+
+	InteractableComponent->SetInteractability(CanInteract(Interactor));
+	InteractableComponent->SetInteractionPrompt(GetInteractionPrompt());
+	InteractableComponent->SetTargetName(GetInteractionName());
+}
+
+#pragma region Route Debug
+
+void ACPBaseNPC::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+
+#if WITH_EDITOR
+	UWorld* World = GetWorld();
+	if (World && !World->IsGameWorld())
+	{
+		if (bShowPatrolRouteInEditor)
+		{
+			DrawDebugPatrolRoute();
+		}
+		else
+		{
+			FlushPersistentDebugLines(World);
+		}
+	}
+#endif
+}
+
+#if WITH_EDITOR
+void ACPBaseNPC::DrawDebugPatrolRoute()
+{
+	UWorld* World = GetWorld();
+	if (!World || World->IsGameWorld())
+	{
+		return;
+	}
+
+	FlushPersistentDebugLines(World);
+
+	if (!NPCData)
+	{
+		return;
+	}
+	FString CurrentLevelName;
+	if (ULevel* OwnerLevel = GetLevel())
+	{
+		CurrentLevelName = FPackageName::GetShortName(OwnerLevel->GetPackage());
+	}
+	CurrentLevelName = UWorld::RemovePIEPrefix(CurrentLevelName);
+
+	const FCPNPCRoute* SelectedRoute = nullptr;
+	if (const FCPNPCTargetRow* Row = NPCData->TargetRowHandle.GetRow<FCPNPCTargetRow>(TEXT("DrawDebugPatrolRoute")))
+	{
+		for (const FCPNPCRoute& Route : Row->Routes)
+		{
+			if (Route.TargetLevel.IsValid() || !Route.TargetLevel.IsNull())
+			{
+				if (Route.TargetLevel.GetAssetName().Equals(CurrentLevelName, ESearchCase::IgnoreCase))
+				{
+					SelectedRoute = &Route;
+					break;
+				}
+			}
+		}
+	}
+
+	if (!SelectedRoute || SelectedRoute->TargetPoints.Num() == 0)
+	{
+		return;
+	}
+
+	const TArray<FCPTargetPoint>& Points = SelectedRoute->TargetPoints;
+	const int32 NumPoints = Points.Num();
+
+	DrawDebugLine(World, GetActorLocation(), Points[0].Point, FColor::Yellow, true, -1.f, 0, RouteLineThickness);
+
+	for (int32 i = 0; i < NumPoints; ++i)
+	{
+		const FVector& CurrentPoint = Points[i].Point;
+		const float WaitTime = Points[i].WaitSeconds;
+
+		DrawDebugSphere(World, CurrentPoint, 35.0f, 16, PatrolRouteColor, true, -1.f, 0, 2.5f);
+
+		const FString PointLabel = FString::Printf(
+			TEXT("Point [%d] (%.1fs)\nWorld: (%.0f, %.0f, %.0f)"),
+			i, WaitTime, CurrentPoint.X, CurrentPoint.Y, CurrentPoint.Z
+		);
+		DrawDebugString(World, CurrentPoint + FVector(0.f, 0.f, 55.f), PointLabel, nullptr, FColor::White, -1.f, true, 1.2f);
+
+		if (i + 1 < NumPoints)
+		{
+			DrawDebugDirectionalArrow(World, CurrentPoint, Points[i + 1].Point, 70.0f, PatrolRouteColor, true, -1.f, 0, RouteLineThickness);
+		}
+		else if (SelectedRoute->bLoop && NumPoints > 1)
+		{
+			DrawDebugDirectionalArrow(World, CurrentPoint, Points[0].Point, 70.0f, FColor::Silver, true, -1.f, 0, RouteLineThickness);
+		}
+	}
+}
+#endif
+
+#pragma endregion Route Debug

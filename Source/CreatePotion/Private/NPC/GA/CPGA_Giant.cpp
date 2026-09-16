@@ -1,7 +1,6 @@
 ﻿#include "NPC/GA/CPGA_Giant.h"
 #include "NPC/CPBaseNPC.h"
-#include "Data/NPC/CPNPCDataAsset.h"
-#include "Components/SkeletalMeshComponent.h"
+#include "NPC/Components/CPNPCVisualComponent.h"
 
 UCPGA_Giant::UCPGA_Giant()
 {
@@ -13,12 +12,10 @@ UCPGA_Giant::UCPGA_Giant()
 
 void UCPGA_Giant::ApplyVisual(ACPBaseNPC* NPC, bool bActive, float InMagnitude)
 {
-	if (!NPC || !NPC->GetMesh()) return;
+	if (!NPC || !NPC->GetMesh()) { return; }
 
-	const FVector BaseScale = NPC->GetBaseMeshScale();
-	const FVector TargetScale = bActive ? (BaseScale * InMagnitude) : BaseScale;
-
-	NPC->GetMesh()->SetRelativeScale3D(TargetScale);
-	NPC->FitCapsuleToMesh(NPC->GetMesh()->GetSkeletalMeshAsset());
-
+	if (UCPNPCVisualComponent* VisualComp = NPC->GetVisualComponent())
+	{
+		VisualComp->SetScaleMultiplier(bActive ? InMagnitude : 1.0f);
+	}
 }

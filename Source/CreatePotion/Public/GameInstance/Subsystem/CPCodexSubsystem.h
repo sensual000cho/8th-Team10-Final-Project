@@ -6,10 +6,13 @@
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "CPCodexSubsystem.generated.h"
 
+class UCPNPCDataAsset;
 class UCPForageableItemData;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnForageableCodexUpdated);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnNPCCodexUpdated);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCodexItemSelected, UCPForageableItemData*, ItemData);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCodexNPCSelected, UCPNPCDataAsset*, NPCData);
 
 USTRUCT(BlueprintType)
 struct FCPForageableCodexEntry
@@ -25,6 +28,16 @@ public:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Codex")
 	int32 HarvestCount = 0;
+};
+
+USTRUCT(BlueprintType)
+struct FCPNPCCodexEntry
+{
+	GENERATED_BODY()
+	
+public:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Codex")
+	TObjectPtr<UCPNPCDataAsset> Entry = nullptr;
 };
 
 UCLASS()
@@ -44,6 +57,9 @@ public:
 	// 등록된 채집물이 있는 경우 정보를 반환, 등록 여부만 필요할 경우 ItemData만 인자로 전달
 	bool GetForageableEntry(UCPForageableItemData* ItemData, FCPForageableCodexEntry* OutForageableEntry = nullptr) const;
 	
+	UFUNCTION(BlueprintPure, Category = "Codex|NPC")
+	TArray<UCPNPCDataAsset*> GetRegisteredNPCDatas() const;
+	
 	// 도감 SubSystem에 새로운 채집물을 등록 및 채집 횟수 증가
 	UFUNCTION(BlueprintCallable, Category = "Codex|Forageable")
 	bool RecordForageableEntry(UCPForageableItemData* ItemData);
@@ -52,14 +68,26 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Codex|Forageable")
 	bool IncreaseForageableLevel(UCPForageableItemData* ItemData);
 	
+	UFUNCTION(BlueprintCallable, Category = "Codex|NPC")
+	bool RegisterNPCEntry(UCPNPCDataAsset* NPCData);
+	
 public:
 	UPROPERTY(BlueprintAssignable, Category = "Codex|Forageable")
 	FOnForageableCodexUpdated OnForageableCodexUpdated;
 	
 	UPROPERTY(BlueprintAssignable, Category = "Codex|Forageable")
 	FOnCodexItemSelected OnCodexItemSelected;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Codex|NPC")
+	FOnNPCCodexUpdated OnNPCCodexUpdated;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Codex|NPC")
+	FOnCodexNPCSelected OnCodexNPCSelected;
 
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Codex|Forageable")
 	TMap<TObjectPtr<UCPForageableItemData>, FCPForageableCodexEntry> ForageableCodexEntries;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Codex|NPC")
+	TMap<TObjectPtr<UCPNPCDataAsset>, FCPNPCCodexEntry> NPCCodexEntries;
 };

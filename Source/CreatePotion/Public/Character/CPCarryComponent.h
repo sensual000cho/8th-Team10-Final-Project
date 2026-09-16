@@ -65,6 +65,11 @@ public:
     UFUNCTION(BlueprintPure, Category = "Carry")
     ACPThrowablePropBase* GetHeldProp() const;
 
+    float GetThrowSpeedMultiplier() const;
+    void SetThrowSpeedMultiplier(float NewMultiplier);
+
+    bool ConsumeHeldPropToInventory(class UCPInventoryComponent* TargetInventory);
+
 public:
     // 현재 들고 있는 Prop이 변경되었음을 알림
     UPROPERTY(BlueprintAssignable, Category = "Carry")
@@ -101,4 +106,6 @@ private:
 
     UPROPERTY(VisibleInstanceOnly, Category = "Carry")
     TObjectPtr<ACPThrowablePropBase> HeldProp;
+
+    float ThrowSpeedMultiplier = 1.0f;
 };

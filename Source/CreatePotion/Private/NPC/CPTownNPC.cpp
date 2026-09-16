@@ -4,19 +4,22 @@
 #include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
 #include "Components/CPInventoryComponent.h"
 #include "UI/Widgets/Common/Dialogue/CPNPCDialogueWidget.h"
+#include "NPC/Components/CPNPCMoveComponent.h"
+#include "NPC/CPNPCAIController.h"
 
-void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
+void ACPTownNPC::HandleInteract(AActor* Interactor)
 {
 	if (ActiveDialogueWidget && ActiveDialogueWidget->IsInViewport())
 	{
 		return;
 	}
-	const UCPQuestNPCDataAsset* QuestData = GetQuestNPCData();
 	if (!QuestData || QuestData->TownQuestIDs.Num() == 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[%s] DA에 지정된 마을 퀘스트가 없습니다."), *GetName());
 		return;
 	}
+
+	Super::HandleInteract(Interactor);
 
 	UGameInstance* GameInstance = GetGameInstance();
 	if (!GameInstance) { return; }
@@ -56,10 +59,17 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 				ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
 				if (ActiveDialogueWidget)
 				{
+
+					ActiveDialogueWidget->OnClosed.RemoveAll(this);
+					ActiveDialogueWidget->OnClosed.AddUObject(this, &ACPTownNPC::OnDialogueClosed);
+
+					CurrentQuestId = QuestID;
+
+					RegisterCodex();
 					FText NPCNameText = FText::FromName(QuestData->NPCName);
 					// [변경] InitDialogue(FText 버전) → InitDialogueLines(TArray<FText> 버전)
 					// 여러 줄 대사를 순서대로 타이핑해서 보여주기 위해 배열을 그대로 전달
-					ActiveDialogueWidget->InitDialogueLines(false, QuestID, NPCNameText, ScriptLines);
+					ActiveDialogueWidget->InitDialogueLines(QuestID, NPCNameText, ScriptLines);
 				}
 			}
 			break;
@@ -69,16 +79,18 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 			&& QuestManager->GetQuestCompletionType(QuestID) == EQuestCompletionType::Dialogue)
 		{
 			TArray<FText> StoryLines = QuestManager->GetNPCStoryLines(QuestID);
-			if (StoryLines.Num() > 0 && DialogueWidgetClass)
+			if (StoryLines.Num() > 0 && DialogueWidgetClass && QuestManager->CompleteQuestByDialogue(QuestID))
 			{
+				CurrentQuestId = QuestID;
 				ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
 				if (ActiveDialogueWidget)
 				{
+					ActiveDialogueWidget->OnClosed.RemoveAll(this);
+					ActiveDialogueWidget->OnClosed.AddUObject(this, &ACPTownNPC::OnDialogueClosed);
+
+					RegisterCodex();
 					FText NPCNameText = FText::FromName(QuestData->NPCName);
-					// bIsWorkshopQuest를 false로 넘겨서, InitDialogueLines 내부의
-					// bCurrentIsWorkshopQuest 분기(힌트+스토리 자동조합)를 타지 않고
-					// StoryLines 배열을 있는 그대로 재생하도록 함
-					ActiveDialogueWidget->InitDialogueLines(false, QuestID, NPCNameText, StoryLines);
+					ActiveDialogueWidget->InitDialogueLines(QuestID, NPCNameText, StoryLines);
 				}
 			}
 			break;
@@ -110,11 +122,16 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 					TArray<FText> StoryLines = QuestManager->GetNPCStoryLines(QuestID);
 					if (StoryLines.Num() > 0 && DialogueWidgetClass)
 					{
+						CurrentQuestId = QuestID;
 						ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
 						if (ActiveDialogueWidget)
 						{
+							ActiveDialogueWidget->OnClosed.RemoveAll(this);
+							ActiveDialogueWidget->OnClosed.AddUObject(this, &ACPTownNPC::OnDialogueClosed);
+
+							RegisterCodex();
 							FText NPCNameText = FText::FromName(QuestData->NPCName);
-							ActiveDialogueWidget->InitDialogueLines(false, QuestID, NPCNameText, StoryLines);
+							ActiveDialogueWidget->InitDialogueLines(QuestID, NPCNameText, StoryLines);
 						}
 					}
 				}
@@ -122,6 +139,22 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 				{
 					UE_LOG(LogTemp, Log, TEXT("[%s] 아이템 수집 퀘스트 [%s] 아직 조건 미충족"),
 						*QuestData->NPCName.ToString(), *QuestID.ToString());
+
+					// 신규 추가 - 조건 미충족 시 안내 대사를 대화창으로 보여줌
+					TArray<FText> HintLines;
+					HintLines.Add(QuestManager->GetSessionHintText(QuestID));
+					if (HintLines.Num() > 0 && DialogueWidgetClass)
+					{
+						ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
+						if (ActiveDialogueWidget)
+						{
+							ActiveDialogueWidget->OnClosed.RemoveAll(this);
+							ActiveDialogueWidget->OnClosed.AddUObject(this, &ACPTownNPC::OnDialogueClosed);
+
+							FText NPCNameText = FText::FromName(QuestData->NPCName);
+							ActiveDialogueWidget->InitDialogueLines(QuestID, NPCNameText, HintLines);
+						}
+					}
 				}
 			}
 			break;
@@ -130,28 +163,26 @@ void ACPTownNPC::OnInteract_Implementation(AActor* Interactor)
 	}
 }
 
-bool ACPTownNPC::CanInteract_Implementation(AActor* Interactor)
+bool ACPTownNPC::CanInteract(AActor* Interactor) const
 {
-	const UCPQuestNPCDataAsset* QuestData = GetQuestNPCData();
 	if (!QuestData || !GetGameInstance()) { return false; }
 
 	UQuestManager* QuestManager = GetGameInstance()->GetSubsystem<UQuestManager>();
 	if (!QuestManager) { return false; }
 
-	// NPC가 가진 마을 퀘스트 중 NotAccepted 퀘스트가 있는지 검사
+	bool bCanQuestInteract = false;
+
 	for (const FName& QuestID : QuestData->TownQuestIDs)
 	{
-		if (QuestID.IsNone())
-		{
-			continue;
-		}
+		if (QuestID.IsNone()) { continue; }
 
 		EQuestState CurrentState = QuestManager->GetQuestState(QuestID);
 
 		if (CurrentState == EQuestState::NotAccepted
 			&& QuestManager->IsQuestStoryUnlocked(QuestID))
 		{
-			return true;
+			bCanQuestInteract = true;
+			break;
 		}
 
 		// Accepted 상태에서 완료 확정 대화/아이템 확인이 필요한 경우도 상호작용 가능해야 함
@@ -160,11 +191,81 @@ bool ACPTownNPC::CanInteract_Implementation(AActor* Interactor)
 			EQuestCompletionType Type = QuestManager->GetQuestCompletionType(QuestID);
 			if (Type == EQuestCompletionType::Dialogue || Type == EQuestCompletionType::ItemCollection)
 			{
-				return true;
+				bCanQuestInteract = true;
+				break;
 			}
 		}
 	}
 
+	if (bCanQuestInteract)
+	{
+		return Super::CanInteract(Interactor);
+	}
+
 	// 모든 퀘스트를 수락했다면 상호작용 불가 상태 (false)로 만듦
 	return false;
+}
+
+const TArray<FName>& ACPTownNPC::GetPotionQuestIDs() const
+{
+	static const TArray<FName> EmptyQuestIDs;
+	return QuestData ? QuestData->TownQuestIDs : EmptyQuestIDs;
+}
+
+void ACPTownNPC::OnDialogueClosed()
+{
+	ActiveDialogueWidget = nullptr;
+
+	UGameInstance* GameInstance = GetGameInstance();
+	UQuestManager* QuestManager = GameInstance ? GameInstance->GetSubsystem<UQuestManager>() : nullptr;
+
+	if (QuestManager && !CurrentQuestId.IsNone())
+	{
+		if (QuestManager->GetQuestCompletionType(CurrentQuestId) == EQuestCompletionType::Dialogue)
+		{
+			EQuestState State = QuestManager->GetQuestState(CurrentQuestId);
+
+			if (State != EQuestState::Completed)
+			{
+				bWaitingForDialogueCompletion = true;
+			}
+			else
+			{
+				bWaitingForDialogueCompletion = false;
+				CurrentQuestId = NAME_None;
+			}
+		}
+	}
+
+	if (bWaitingForDialogueCompletion)
+	{
+		bIsInteracting = true;
+		if (MoveComponent)
+		{
+			MoveComponent->StopMoving();
+		}
+		if (AAIController* AIC = Cast<AAIController>(GetController()))
+		{
+			AIC->StopMovement();
+		}
+	}
+	else
+	{
+		bIsInteracting = false;
+		if (MoveComponent)
+		{
+			MoveComponent->StartMoving();
+		}
+	}
+}
+
+void ACPTownNPC::OnTraceFocusLost()
+{
+	if (bWaitingForDialogueCompletion)
+	{
+		bIsPlayerLooking = false;
+		return;
+	}
+
+	Super::OnTraceFocusLost();
 }

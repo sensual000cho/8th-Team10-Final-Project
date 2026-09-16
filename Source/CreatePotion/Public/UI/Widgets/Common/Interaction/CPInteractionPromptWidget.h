@@ -6,9 +6,11 @@
 #include "UI/Widgets/Base/CPBaseFixedWidget.h"
 #include "CPInteractionPromptWidget.generated.h"
 
+enum class ECPInteractionDisplayState : uint8;
 class UCPInteractionComponent;
 class UTextBlock;
 class UBorder;
+class UImage;
 /**
  * 
  */
@@ -17,19 +19,19 @@ class CREATEPOTION_API UCPInteractionPromptWidget : public UCPBaseFixedWidget
 {
 	GENERATED_BODY()
 	
+public:
+	// UI 텍스트 설정
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void UpdateUI(const FText& Prompt, const FName& TargetName, ECPInteractionDisplayState DisplayState);
+
 protected:
-	virtual void BindEvents() override;
-	virtual void UnbindEvents() override;
+	void NativeConstruct() override;
 	
-	UFUNCTION()
-	void OnPromptChanged(FText Prompt, FName TargetName, ECPInteractionDisplayState DisplayState);
+	virtual void ApplyDisplayStateColors(ECPInteractionDisplayState DisplayState);
 
 protected:	
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UBorder> Border_InputKey;
-	
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> TextBlock_InputKey;
+	TObjectPtr<UImage> Image_InputKey;
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> TextBlock_ActorName;
@@ -41,13 +43,11 @@ protected:
 	UCPInteractionComponent* BoundInteractionComponent;
 	
 private:
-	FLinearColor DefaultInputKeyBackgroundColor;
-	FSlateColor DefaultInputKeyTextColor;
+	FLinearColor DefaultInputKeyColor;
 	FSlateColor DefaultActorNameTextColor;
 	FSlateColor DefaultInteractionPromptTextColor;
 
 	bool bDefaultColorsCached = false;
 	
 	void CacheDefaultColors();
-	void ApplyDisplayStateColors(ECPInteractionDisplayState DisplayState);
 };

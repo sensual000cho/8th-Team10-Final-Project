@@ -20,6 +20,27 @@ enum class EDeliveryGrade : uint8
 	Perfect   // 요구 태그 모두 존재
 };
 
+USTRUCT(BlueprintType)
+struct FCPQuestResult
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(BlueprintReadOnly, Category ="Quest|Result")
+	FName QuestId = NAME_None;
+	
+	UPROPERTY(BlueprintReadOnly, Category ="Quest|Result")
+	EDeliveryGrade DeliveryGrade = EDeliveryGrade::Fail;
+	
+	UPROPERTY(BlueprintReadOnly, Category ="Quest|Result")
+	TArray<FGameplayTag> CurrentEffects;
+	
+	UPROPERTY(BlueprintReadOnly, Category ="Quest|Result")
+	int32 RewardAmount = 0;
+	
+	UPROPERTY(BlueprintReadOnly, Category ="Quest|Result")
+	int32 TipAmount = 0;
+};
+
 UCLASS()
 class CREATEPOTION_API UQuestManager : public UGameInstanceSubsystem
 {
@@ -63,9 +84,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	TArray<FName> GetAllTrackedQuestIDs() const;
 
+
 	// 퀘스트 완료 처리 함수
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	void CompleteQuest(FName QuestID);
+
 
 	// ===================================================================
 	// [텍스트 조회 - UI 전용 참조 함수]
@@ -82,6 +105,9 @@ public:
 	// [텍스트-요약] 수락 후 퀘스트 저널에서 다시 확인할 때 보여줄 요약
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	FText GetQuestSummaryText(FName QuestID) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	FText GetCodexSummaryText(FName QuestID) const;
 
 	// 저널 UI 등에서 여러 줄 대사를 한 번에(줄바꿈 없이 이어서) 보여줄 때 사용
 	UFUNCTION(BlueprintCallable, Category = "Quest")
@@ -120,7 +146,18 @@ public:
 	// 퀘스트가 요구하는 조건과 비교, 등급을 매김
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	EDeliveryGrade TryDeliver(FName QuestID, const TArray<FGameplayTag>& PotionResult);
-
+	
+	// 퀘스트 결과 생성
+	FCPQuestResult CreateResult(FName QuestID, const TArray<FGameplayTag>& PotionResult = TArray<FGameplayTag>());
+	
+	// 퀘스트 결과 반환
+	UFUNCTION(BlueprintCallable, Category = "Quest|Result")
+	FCPQuestResult GetResult(FName QuestID) const;
+	
+	// 퀘스트 결과 초기화
+	UFUNCTION(BlueprintCallable, Category = "Quest|Result")
+	bool ClearResult();
+	
 	// 조건 하나하나에 대한 세부 판정 (태그정답/태그오답)
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	TArray<FConditionEvaluation> EvaluateConditions(FName QuestID, const TArray<FGameplayTag>& PotionResult) const;
@@ -204,8 +241,24 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	void ValidateQuestTablesMatch();
 
+	// 이 NPC가 가진 퀘스트들 상태를 종합해서 마커 상태 반환 (인벤토리 확인 필요)
 	UFUNCTION(BlueprintCallable, Category = "Quest")
-	EQuestMarkerState GetMarkerStateForQuests(const TArray<FName>& QuestIDs) const;
+	EQuestMarkerState GetMarkerStateForQuests(const TArray<FName>& QuestIDs, const TMap<FName, int32>& HeldItemCounts) const;
+
+	// 아이템 수집형 퀘스트가 지금 완료 가능한 상태인지 판정 없이 조회만 함
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	bool IsItemQuestCompletable(FName QuestID, const TMap<FName, int32>& HeldItemCounts) const;
+
+	// 화면에 계속 표시할 "현재 활성 목표" 조회 - 수락 순서 중 완료 안 된 첫 번째 반환
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	FName GetActiveGoalQuestID() const;
+
+	//특정 퀘스트를 고정해서 항상 목표 UI에 표시
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	void SetPinnedQuest(FName QuestID);
+
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	FName GetPinnedQuest() const;
 
 
 private:
@@ -224,6 +277,10 @@ private:
 	// NPC별 스토리 진행 단계 저장소 (NPCId → 현재 단계, 기록 없으면 0)
 	UPROPERTY()
 	TMap<FName, int32> NPCStoryStages;
+	
+	// 마지막 퀘스트 결과
+	UPROPERTY()
+	FCPQuestResult QuestResult;
 
 
 	//퀘스트 정답 일치하는지 확인
@@ -232,6 +289,9 @@ private:
 
 	// 반응 텍스트 배열에서 랜덤으로 하나 뽑는 내부 헬퍼 (빈 배열이면 빈 텍스트 반환)
 	FText PickRandomReaction(const TArray<FText>& Reactions) const;
+
+	UPROPERTY()
+	FName PinnedQuestID;
 
 protected:
 	// Subsystem 생성 시 자동 호출됨. QuestScriptTable/QuestAnswerTable을 자동으로 찾아 연결함.

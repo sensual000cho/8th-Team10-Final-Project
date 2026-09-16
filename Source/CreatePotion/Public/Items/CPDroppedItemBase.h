@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameCore/Interface/CPInteractable.h"
+#include "CPBaseInteractableActor.h"
 #include "GameCore/Interface/CPPoolable.h"
 #include "GameFramework/Actor.h"
 #include "CPDroppedItemBase.generated.h"
@@ -11,24 +11,21 @@ class UTimelineComponent;
 class UProjectileMovementComponent;
 class USphereComponent;
 class UCPForageableItemData;
+class UWidgetComponent;
 
 // 바닥에 떨구는 아이템 베이스 액터
 UCLASS()
-class CREATEPOTION_API ACPDroppedItemBase : public AActor, public ICPInteractable, public ICPPoolable
+class CREATEPOTION_API ACPDroppedItemBase : public ACPBaseInteractableActor, public ICPPoolable
 {
 	GENERATED_BODY()
 	
 public:	
 	ACPDroppedItemBase();
 	
-	// 상호작용 인터페이스 관련
-	virtual void OnInteract_Implementation(AActor* Interactor) override;
+	// 초기화
 	
-	virtual FText GetInteractionPrompt_Implementation() override;
-	
-	virtual FName GetInteractionName_Implementation() override;
-	
-	virtual bool CanInteract_Implementation(AActor* Interactor) override;
+	// 상호작용 컴포넌트 관련
+	void HandleInteract(AActor* Interactor) override;
 	
 	// 오브젝트 풀링 인터페이스 관련
 	virtual void OnAcquireFromPool_Implementation() override;
@@ -42,7 +39,7 @@ public:
 	void StartDropMotion(const FVector& DropDirection);
 	
 protected:
-	virtual void BeginPlay() override;
+	void BeginPlay() override;
 	
 private:
 	UFUNCTION()
@@ -84,10 +81,10 @@ private:
 	float DroppedScale = 0.8f;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Drop")
-	float DropHorizontalSpeed = 100.f;
+	float DropHorizontalSpeed = 300.f;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Drop")
-	float DropVerticalSpeed = 100.f;
+	float DropVerticalSpeed = 300.f;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Hover")
 	float HoverHeight = 20.f;

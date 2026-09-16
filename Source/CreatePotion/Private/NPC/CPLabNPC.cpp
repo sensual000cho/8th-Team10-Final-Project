@@ -6,33 +6,22 @@
 #include "UI/Widgets/Common/Dialogue/CPNPCDialogueWidget.h"
 #include "UI/Widgets/Lab/CPLabResultWidget.h"
 #include "Settings/CPUISettings.h"
-#include "AbilitySystemComponent.h"
+#include "GameInstance/Subsystem/CPNPCSubsystem.h"
 
-void ACPLabNPC::BeginPlay()
-{
-	Super::BeginPlay();
-
-	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
-	{
-		FGameplayTag ReactionTag = FGameplayTag::RequestGameplayTag(FName("State.Reaction.Potion"));
-		ASC->RegisterGameplayTagEvent(ReactionTag, EGameplayTagEventType::NewOrRemoved).AddUObject(this, &ACPLabNPC::OnPotionReactionTagChanged);
-	}
-}
-
-void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
+void ACPLabNPC::HandleInteract(AActor* Interactor)
 {
 	if (ActiveDialogueWidget && ActiveDialogueWidget->IsInViewport())
 	{
 		return;
 	}
 
-	const UCPQuestNPCDataAsset* QuestData = GetQuestNPCData();
 	if (!QuestData || QuestData->LabQuestIDs.Num() == 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[%s] DA에 지정된 공방 퀘스트가 없습니다."), *GetName());
 		return;
 	}
-
+	bWaitingForPotion = true;
+	Super::HandleInteract(Interactor);
 	UGameInstance* GameInstance = GetGameInstance();
 	if (!GameInstance) { return; }
 
@@ -40,17 +29,16 @@ void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 	UCPUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UCPUIManagerSubsystem>();
 	if (!QuestManager || !UIManager) { return; }
 
-	UWorld* World = GetWorld();
-	ACPLabGameMode* LabGameMode = World? World->GetAuthGameMode<ACPLabGameMode>() : nullptr;
-	if (LabGameMode){
-		const FCPPotionDeliveryResult DeliveryResult = LabGameMode->GetPotionDeliveryResult();
-		
-		if (!DeliveryResult.QuestId.IsNone()){
+	for (const FName& QuestID : QuestData->LabQuestIDs) {
+		if (QuestID.IsNone()) continue;
+
+		const FCPQuestResult QuestResult = QuestManager->GetResult(QuestID);
+		if (!QuestResult.QuestId.IsNone()) {
 			ShowResultDialogue();
 			return;
 		}
 	}
-	
+
 	const UCPUISettings* UISettings = GetDefault<UCPUISettings>();
 	UClass* DialogueWidgetClass = UISettings ? UISettings->NPCDialogueWidgetClass.LoadSynchronous() : nullptr;
 	if (!DialogueWidgetClass) { return; }
@@ -67,173 +55,107 @@ void ACPLabNPC::OnInteract_Implementation(AActor* Interactor)
 
 		if (ActiveDialogueWidget)
 		{
+			ActiveDialogueWidget->OnClosed.RemoveAll(this);
+			ActiveDialogueWidget->OnClosed.AddUObject(this, &ACPLabNPC::OnDialogueClosed);
+
+			RegisterCodex();
 			FText NPCNameText = FText::FromName(QuestData->NPCName);
 			TArray<FText> DialogueLines;
 			DialogueLines.Add(FirstHint);
 
-			ActiveDialogueWidget->InitDialogueLines(true, QuestID, NPCNameText, DialogueLines, this);
+			ActiveDialogueWidget->InitDialogueLines(QuestID, NPCNameText, DialogueLines);
 		}
 
 		break;
 	}
 }
 
-bool ACPLabNPC::CanInteract_Implementation(AActor* Interactor)
+bool ACPLabNPC::CanInteract(AActor* Interactor) const
 {
-	const UCPQuestNPCDataAsset* QuestData = GetQuestNPCData();
 	if (!QuestData || QuestData->LabQuestIDs.IsEmpty() || !GetGameInstance()) { return false; }
 
 	UQuestManager* QuestManager = GetGameInstance()->GetSubsystem<UQuestManager>();
 	if (!QuestManager) { return false; }
 
-	FName QuestID = QuestData->LabQuestIDs[0];
-	if (QuestID.IsNone()) { return false; }
-
-	return QuestManager->GetQuestState(QuestID) == EQuestState::Accepted;
-}
-
-void ACPLabNPC::OpenResultWidget(AActor* Interactor)
-{
-	UGameInstance* GameInstance = GetGameInstance();
-	if (!GameInstance) return;
-
-	UWorld* World = GetWorld();
-	if (!World) return;
-
-	UCPUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UCPUIManagerSubsystem>();
-	ACPLabGameMode* LabGameMode = Cast<ACPLabGameMode>(World->GetAuthGameMode());
-	if (!UIManager || !LabGameMode || !ResultWidgetClass) return;
-
-	const FName QuestId = LabGameMode->GetActiveRequestId();
-	if (QuestId.IsNone()) return;
-
-	const FCPPotionDeliveryResult DeliveryResult = LabGameMode->GetPotionDeliveryResult();
-	if (DeliveryResult.QuestId.IsNone()) return;
-
-	UCPLabResultWidget* ResultWidget = Cast<UCPLabResultWidget>(UIManager->PushWidget(ResultWidgetClass));
-	if (!ResultWidget) return;
-
-	if (!ResultWidget->InitializeResult())
+	bool bCanQuestInteract = false;
+	for (const FName& QuestID : QuestData->LabQuestIDs)
 	{
-		ResultWidget->RequestClose();
-		return;
+		if (QuestID.IsNone()) { continue; }
+		const FCPQuestResult QuestResult = QuestManager->GetResult(QuestID);
+		if (!QuestResult.QuestId.IsNone())
+		{
+			bCanQuestInteract = true;
+			break;
+		}
+		if (QuestManager->GetQuestState(QuestID) == EQuestState::Accepted)
+		{
+			bCanQuestInteract = true;
+			break;
+		}
 	}
 
-	LabGameMode->ClearPotionRequest();
-	ActiveResultWidget = ResultWidget;
+	if (bCanQuestInteract)
+	{
+		return Super::CanInteract(Interactor);
+	}
 
-	Destroy();
+	return false;
 }
 
 void ACPLabNPC::ShowResultDialogue()
 {
-	UWorld* World = GetWorld();
-	ACPLabGameMode* LabGameMode = World ? World->GetAuthGameMode<ACPLabGameMode>() : nullptr;
-	if (!LabGameMode) return;
-	
-	const FCPPotionDeliveryResult DeliveryResult = LabGameMode->GetPotionDeliveryResult();
-	if (DeliveryResult.QuestId.IsNone()) return;
+	Super::ShowResultDialogue();
 
-	const UCPQuestNPCDataAsset* QuestData = GetQuestNPCData();
-	if (!QuestData) return;
-
-	UGameInstance* GameInstance = GetGameInstance();
-	if (!GameInstance) return;
-
-	UCPUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UCPUIManagerSubsystem>();
-	UQuestManager* QuestManager = GameInstance->GetSubsystem<UQuestManager>();
-	const UCPUISettings* UISettings = GetDefault<UCPUISettings>();
-	UClass* DialogueWidgetClass = UISettings ? UISettings->NPCDialogueWidgetClass.LoadSynchronous() : nullptr;
-
-	if (!UIManager || !QuestManager || !DialogueWidgetClass) return;
-
-	const FName QuestId = DeliveryResult.QuestId;
-
-	ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
-	if (!ActiveDialogueWidget) return;
-
-	FText NPCNameText = FText::FromName(QuestData->NPCName);
-	TArray<FConditionEvaluation> Evaluations = QuestManager->EvaluateConditions(QuestId, DeliveryResult.CurrentEffects);
-
-	FConditionEvaluation SelectedEval;
-	bool bFoundEval = false;
-
-	if (DeliveryResult.DeliveryGrade == EDeliveryGrade::Perfect)
-	{
-		for (const FConditionEvaluation& Eval : Evaluations)
-		{
-			if (Eval.Result == EConditionMatchResult::Correct)
-			{
-				SelectedEval = Eval;
-				bFoundEval = true;
-				break;
-			}
-		}
+	if (ActiveDialogueWidget) {
+		ActiveDialogueWidget->OnClosed.AddUObject(this, &ACPLabNPC::OnResultDialogueClosed);
 	}
-	else
-	{
-		for (const FConditionEvaluation& Eval : Evaluations)
-		{
-			if (Eval.Result == EConditionMatchResult::WrongTag)
-			{
-				SelectedEval = Eval;
-				bFoundEval = true;
-				break;
-			}
-		}
-	}
-
-	FText ReactionText;
-	if (bFoundEval)
-	{
-		ReactionText = QuestManager->GetReactionText(QuestId, SelectedEval);
-	}
-
-	ActiveDialogueWidget->InitResultDialogue(
-		false,
-		QuestId,
-		NPCNameText,
-		ReactionText,
-		this,
-		nullptr);
 }
 
-void ACPLabNPC::HandleThrownPotionImpact(const TArray<FGameplayTag>& PotionEffectTags)
+void ACPLabNPC::BeginPlay()
 {
-	const UCPQuestNPCDataAsset* QuestData = GetQuestNPCData();
-	if (PotionEffectTags.IsEmpty() || !QuestData || QuestData->LabQuestIDs.IsEmpty()) return;
-
-	UGameInstance* GameInstance = GetGameInstance();
-	UWorld* World = GetWorld();
-	if (!GameInstance || !World) return;
-
-	UQuestManager* QuestManager = GameInstance->GetSubsystem<UQuestManager>();
-	UCPUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UCPUIManagerSubsystem>();
-	ACPLabGameMode* LabGameMode = Cast<ACPLabGameMode>(World->GetAuthGameMode());
-
-	const UCPUISettings* UISettings = GetDefault<UCPUISettings>();
-	UClass* DialogueWidgetClass = UISettings ? UISettings->NPCDialogueWidgetClass.LoadSynchronous() : nullptr;
-
-	if (!QuestManager || !UIManager || !LabGameMode || !DialogueWidgetClass) return;
-
-	const FName QuestId = LabGameMode->GetActiveRequestId();
-	if (QuestId.IsNone() || !QuestData->LabQuestIDs.Contains(QuestId)) return;
-	if (QuestManager->GetQuestState(QuestId) != EQuestState::Accepted) return;
-
-	LabGameMode->GetPotionDeliveryResult(PotionEffectTags);
+	Super::BeginPlay();
+	if (UCPNPCSubsystem* Subsystem = GetNPCSubsystem())
+	{
+		Subsystem->SetNPCActiveStateById(GetPotionNPCId(), false, this);
+	}
 }
 
-void ACPLabNPC::OnPotionReactionTagChanged(const FGameplayTag Tag, int32 NewCount)
+void ACPLabNPC::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (NewCount != 0) return;
-	
-	UWorld* World = GetWorld();
-	ACPLabGameMode* LabGameMode = World ? World->GetAuthGameMode<ACPLabGameMode>() : nullptr;
-	if (!LabGameMode) return;
-	
-	const FCPPotionDeliveryResult DeliveryResult = LabGameMode->GetPotionDeliveryResult();
-	
-	if (!DeliveryResult.QuestId.IsNone()){
-		ShowResultDialogue();
+	if (UCPNPCSubsystem* Subsystem = GetNPCSubsystem())
+	{
+		Subsystem->SetNPCActiveStateById(GetPotionNPCId(), true, this);
 	}
+
+	Super::EndPlay(EndPlayReason);
+}
+
+const TArray<FName>& ACPLabNPC::GetPotionQuestIDs() const
+{
+	static const TArray<FName> QuestIDs;
+	return QuestData ? QuestData->LabQuestIDs : QuestIDs;
+}
+
+void ACPLabNPC::OnTraceFocusLost()
+{
+	if (bWaitingForPotion)
+	{
+		bIsPlayerLooking = false;
+		return;
+	}
+	Super::OnTraceFocusLost();
+}
+
+void ACPLabNPC::OnResultDialogueClosed()
+{
+	if (UWorld* World = GetWorld()) {
+		if (ACPLabGameMode* LabGameMode = Cast<ACPLabGameMode>(World->GetAuthGameMode())) {
+			LabGameMode->ClearPotionRequest();
+		}
+	}
+	if (UCPNPCSubsystem* Subsystem = GetNPCSubsystem())
+	{
+		Subsystem->SetNPCActiveStateById(GetPotionNPCId(), true, this);
+	}
+	Destroy();
 }

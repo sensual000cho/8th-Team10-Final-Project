@@ -2,6 +2,7 @@
 
 #include "UI/Widgets/Common/Container/CPItemWheelWidget.h"
 #include "Components/Image.h"
+#include "Components/PanelWidget.h"
 
 #include "CreatePotion.h"
 #include "Components/CPInventoryComponent.h"
@@ -11,23 +12,50 @@ void UCPItemWheelWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	// 루트는 항상 Visible로 유지 (휠 입력을 계속 받아야 하므로)
+	// 루트는 항상 Visible로 유지 (= 휠 입력을 계속 감지)
 	SetVisibility(ESlateVisibility::Visible);
 
-	// 평소엔 아이콘만 안 보이게
-	if (PrevIcon)
+	SetSlotVisible(Left2Icon, Left2Liquid, false);
+	SetSlotVisible(Left1Icon, Left1Liquid, false);
+	SetSlotVisible(FocusIcon, FocusLiquid, false);
+	SetSlotVisible(Right1Icon, Right1Liquid, false);
+	SetSlotVisible(Right2Icon, Right2Liquid, false);
+}
+
+void UCPItemWheelWidget::NativeDestruct()
+{
+	GetWorld()->GetTimerManager().ClearTimer(HideTimerHandle);
+	Super::NativeDestruct();
+}
+
+void UCPItemWheelWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	if (PendingDirection == 0 || !IconRow)
 	{
-		PrevIcon->SetVisibility(ESlateVisibility::Collapsed);
+		return;
 	}
 
-	if (FocusIcon)
-	{
-		FocusIcon->SetVisibility(ESlateVisibility::Collapsed);
-	}
+	SlideProgress += InDeltaTime * SlideSpeed;
 
-	if (NextIcon)
+	if (SlideProgress >= 1.0f)
 	{
-		NextIcon->SetVisibility(ESlateVisibility::Collapsed);
+		int32 Count = PotionArrayIndices.Num();
+		FocusedListIndex = (FocusedListIndex + PendingDirection + Count) % Count;
+
+		PendingDirection = 0;
+		SlideProgress = 0.f;
+		IconRow->SetRenderTranslation(FVector2D::ZeroVector);
+
+		RefreshIcons();
+	}
+	else
+	{
+		float CurrentOffsetX = -PendingDirection * SlotStride * SlideProgress;
+		IconRow->SetRenderTranslation(FVector2D(CurrentOffsetX, 0.f));
+
+		UpdateSlotScales(SlideProgress);
 	}
 }
 
@@ -88,92 +116,128 @@ void UCPItemWheelWidget::RefreshPotionList()
 
 void UCPItemWheelWidget::RefreshIcons()
 {
-	UE_LOG(LogContainer, Warning, TEXT("[ItemWheel] RefreshIcons 호출, PotionCount=%d, FocusedIdx=%d"),
-		PotionArrayIndices.Num(), FocusedListIndex);
-
 	if (!BoundInventory || PotionArrayIndices.Num() == 0)
 	{
-		if (PrevIcon)
-		{
-			PrevIcon->SetVisibility(ESlateVisibility::Collapsed);
-		}
-
-		if (FocusIcon)
-		{
-			FocusIcon->SetVisibility(ESlateVisibility::Collapsed);
-		}
-
-		if (NextIcon)
-		{
-			NextIcon->SetVisibility(ESlateVisibility::Collapsed);
-		}
-
+		SetSlotVisible(Left2Icon, Left2Liquid, false);
+		SetSlotVisible(Left1Icon, Left1Liquid, false);
+		SetSlotVisible(FocusIcon, FocusLiquid, false);
+		SetSlotVisible(Right1Icon, Right1Liquid, false);
+		SetSlotVisible(Right2Icon, Right2Liquid, false);
 		return;
 	}
 
 	int32 Count = PotionArrayIndices.Num();
 
-	auto SetIconFromArrayIndex = [this](UImage* IconWidget, int32 ContainerArrayIdx, float Alpha)
+	auto SetIcon = [this, Count](UImage* IconWidget, UImage* LiquidWidget, int32 Offset, float Alpha)
 		{
-			if (!IconWidget) return;
+			int32 Idx = (FocusedListIndex + Offset + Count * 10) % Count;		// 음수 방지
+			const FContainerItem& Item = BoundInventory->ContainerItems[PotionArrayIndices[Idx]];
 
-			const FContainerItem& Item = BoundInventory->ContainerItems[ContainerArrayIdx];
-			UTexture2D* LoadedTexture = Item.Instance.SourceItemData->Icon.LoadSynchronous();
-			if (LoadedTexture)
+			if (UTexture2D* LoadedTexture = Item.Instance.SourceItemData->Icon.LoadSynchronous())
 			{
 				IconWidget->SetBrushFromTexture(LoadedTexture);
 			}
 			IconWidget->SetColorAndOpacity(FLinearColor(1.f, 1.f, 1.f, Alpha));
 			IconWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+
+			float FinalScale = GetTargetScaleForOffset(Offset);
+			IconWidget->SetRenderScale(FVector2D(FinalScale, FinalScale));
+
+			if (LiquidWidget)
+			{
+				FLinearColor LiquidColor = Item.Instance.GetLiquidColor();
+				LiquidColor.A = Alpha;
+				LiquidWidget->SetColorAndOpacity(LiquidColor);
+				LiquidWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+				LiquidWidget->SetRenderScale(FVector2D(FinalScale, FinalScale));
+			}
 		};
 
-	// 포커스 아이콘 (항상 존재 - 목록이 비어있지 않은 이상)
-	SetIconFromArrayIndex(FocusIcon, PotionArrayIndices[FocusedListIndex], 1.0f);
+	SetIcon(FocusIcon, FocusLiquid, 0, 1.0f);
 
-	// 이전/다음 - 포션이 1개뿐이면 이웃이 자기 자신과 같아지므로 숨김 처리
 	if (Count > 1)
 	{
-		int32 PrevListIdx = (FocusedListIndex - 1 + Count) % Count;
-		int32 NextListIdx = (FocusedListIndex + 1) % Count;
-
-		SetIconFromArrayIndex(PrevIcon, PotionArrayIndices[PrevListIdx], NearIconAlpha);
-		SetIconFromArrayIndex(NextIcon, PotionArrayIndices[NextListIdx], NearIconAlpha);
+		SetIcon(Left1Icon, Left1Liquid, -1, NearIconAlpha);
+		SetIcon(Right1Icon, Right1Liquid, 1, NearIconAlpha);
 	}
 	else
 	{
-		if (PrevIcon)
-		{
-			PrevIcon->SetVisibility(ESlateVisibility::Collapsed);
-		}
+		SetSlotVisible(Left1Icon, Left1Liquid, false);
+		SetSlotVisible(Right1Icon, Right1Liquid, false);
+	}
 
-		if (NextIcon)
-		{
-			NextIcon->SetVisibility(ESlateVisibility::Collapsed);
-		}
+	if (Count > 3)
+	{
+		SetIcon(Left2Icon, Left2Liquid, -2, FarIconAlpha);
+		SetIcon(Right2Icon, Right2Liquid, 2, FarIconAlpha);
+	}
+	else
+	{
+		SetSlotVisible(Left2Icon, Left2Liquid, false);
+		SetSlotVisible(Right2Icon, Right2Liquid, false);
 	}
 }
 
 void UCPItemWheelWidget::ShowWheelTemporarily()
 {
 	GetWorld()->GetTimerManager().ClearTimer(HideTimerHandle);
-	GetWorld()->GetTimerManager().SetTimer(HideTimerHandle, this, &UCPItemWheelWidget::HideWheel, AutoHideDelay, false);
+
+	GetWorld()->GetTimerManager().SetTimer(
+		HideTimerHandle,
+		this,
+		&UCPItemWheelWidget::HideWheel,
+		AutoHideDelay,
+		false
+	);
 }
 
 void UCPItemWheelWidget::HideWheel()
 {
-	if (PrevIcon)
-	{
-		PrevIcon->SetVisibility(ESlateVisibility::Collapsed);
-	}
+	SetSlotVisible(Left2Icon, Left2Liquid, false);
+	SetSlotVisible(Left1Icon, Left1Liquid, false);
+	SetSlotVisible(FocusIcon, FocusLiquid, false);
+	SetSlotVisible(Right1Icon, Right1Liquid, false);
+	SetSlotVisible(Right2Icon, Right2Liquid, false);
+}
 
-	if (FocusIcon)
-	{
-		FocusIcon->SetVisibility(ESlateVisibility::Collapsed);
-	}
+void UCPItemWheelWidget::SetSlotVisible(UImage* IconWidget, UImage* LiquidWidget, bool bVisible)
+{
+	ESlateVisibility NewVis = bVisible ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed;
+	if (IconWidget) IconWidget->SetVisibility(NewVis);
+	if (LiquidWidget) LiquidWidget->SetVisibility(NewVis);
+}
 
-	if (NextIcon)
+void UCPItemWheelWidget::UpdateSlotScales(float Progress)
+{
+	auto ApplyScale = [this, Progress](UImage* IconWidget, UImage* LiquidWidget, int32 CurrentOffset)
+		{
+			int32 NextOffset = CurrentOffset - PendingDirection;
+			float FromScale = GetTargetScaleForOffset(CurrentOffset);
+			float ToScale = GetTargetScaleForOffset(NextOffset);
+			float Scale = FMath::Lerp(FromScale, ToScale, Progress);
+
+			if (IconWidget) IconWidget->SetRenderScale(FVector2D(Scale, Scale));
+			if (LiquidWidget) LiquidWidget->SetRenderScale(FVector2D(Scale, Scale));
+		};
+
+	ApplyScale(Left2Icon, Left2Liquid, -2);
+	ApplyScale(Left1Icon, Left1Liquid, -1);
+	ApplyScale(FocusIcon, FocusLiquid, 0);
+	ApplyScale(Right1Icon, Right1Liquid, 1);
+	ApplyScale(Right2Icon, Right2Liquid, 2);
+}
+
+float UCPItemWheelWidget::GetTargetScaleForOffset(int32 Offset) const
+{
+	switch (Offset)
 	{
-		NextIcon->SetVisibility(ESlateVisibility::Collapsed);
+	case 0:  
+		return FocusScale;
+	case -1:
+	case 1:  
+		return NearScale;
+	default: 
+		return FarScale;
 	}
 }
 
@@ -191,22 +255,13 @@ bool UCPItemWheelWidget::GetFocusedPotionGridIndex(int32& OutGridIndex) const
 
 void UCPItemWheelWidget::HandleScrollInput(float ScrollDelta)
 {
-	if (GEngine)
+	if (PotionArrayIndices.Num() == 0 || PendingDirection != 0)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow,
-			FString::Printf(TEXT("[Wheel Mode] HandleScrollInput Called")));
+		return; // 이미 슬라이드 애니메이션 진행 중이면 새 입력 무시 (연타 방지)
 	}
 
-	if (PotionArrayIndices.Num() == 0)
-	{
-		return; // 목록이 비어있으면 할 일 없음
-	}
+	PendingDirection = (ScrollDelta > 0.f) ? 1 : -1;
+	SlideProgress = 0.f;
 
-	int32 Direction = (ScrollDelta > 0.f) ? -1 : 1;
-
-	int32 Count = PotionArrayIndices.Num();
-	FocusedListIndex = (FocusedListIndex + Direction + Count) % Count;
-
-	RefreshIcons();
 	ShowWheelTemporarily();
 }
