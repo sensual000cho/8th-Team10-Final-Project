@@ -253,6 +253,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	FName GetActiveGoalQuestID() const;
 
+	//특정 퀘스트를 고정해서 항상 목표 UI에 표시
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	void SetPinnedQuest(FName QuestID);
+
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	FName GetPinnedQuest() const;
+
 
 private:
 	// 퀘스트별 현재 진행 상태 저장소 (QuestID → 상태)
@@ -282,6 +289,9 @@ private:
 
 	// 반응 텍스트 배열에서 랜덤으로 하나 뽑는 내부 헬퍼 (빈 배열이면 빈 텍스트 반환)
 	FText PickRandomReaction(const TArray<FText>& Reactions) const;
+
+	UPROPERTY()
+	FName PinnedQuestID;
 
 protected:
 	// Subsystem 생성 시 자동 호출됨. QuestScriptTable/QuestAnswerTable을 자동으로 찾아 연결함.
