@@ -78,6 +78,8 @@ public:
 	void RegisterVisualDelegate(FGameplayTag EffectTag, const FOnPotionVisualUpdateDelegate& Delegate);
 	void UnregisterVisualDelegate(FGameplayTag EffectTag);
 
+	UCPNPCSubsystem* GetNPCSubsystem() const;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -93,7 +95,6 @@ protected:
 	void ApplyPotionEffectVisual(FGameplayTag EffectTag, bool bActive, float Magnitude);
 	virtual void ApplyPotionEffectVisual_Implementation(FGameplayTag EffectTag, bool bActive, float Magnitude);
 
-	UCPNPCSubsystem* GetNPCSubsystem() const;
 	void GrantPotionReactionAbilities();
 	void RegisterCodex();
 

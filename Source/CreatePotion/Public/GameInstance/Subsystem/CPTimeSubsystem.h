@@ -33,15 +33,21 @@ public:
 	int64 GetTotalWorldMinutes() const;
 	ECPTimePhase GetCurrentPhase() const;
 	
-	void AdvanceTime(int64 Amount);
-	
-	void StartTime();
-	void PauseTime();
-	void ResumeTime();
-
 	FOnTimeChanged OnTimeChanged;
 	FOnDayChanged OnDayChanged;
 	FOnTimePhaseChanged OnTimePhaseChanged;
+	
+	UFUNCTION(BlueprintCallable)
+	void AdvanceTime(int64 Amount);
+	
+	UFUNCTION(BlueprintCallable)
+	void StartTime();
+	
+	UFUNCTION(BlueprintCallable)
+	void PauseTime();
+	
+	UFUNCTION(BlueprintCallable)
+	void ResumeTime();
 	
 private:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;

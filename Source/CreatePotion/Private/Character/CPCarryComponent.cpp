@@ -3,6 +3,7 @@
 #include "Character/CPCarryComponent.h"
 
 #include "Lab/Actor/CPThrowablePropBase.h"
+#include "Components/CPInventoryComponent.h"
 
 UCPCarryComponent::UCPCarryComponent()  
     : ReplacementDropTraceUpDistance(100.f),
@@ -213,6 +214,34 @@ float UCPCarryComponent::GetThrowSpeedMultiplier() const
 void UCPCarryComponent::SetThrowSpeedMultiplier(float NewMultiplier)
 {
     ThrowSpeedMultiplier = FMath::Max(NewMultiplier, 0.0f);
+}
+
+bool UCPCarryComponent::ConsumeHeldPropToInventory(UCPInventoryComponent* TargetInventory)
+{
+    ACPThrowablePropBase* PropToStow = GetHeldProp();
+    if (!IsValid(PropToStow) || !TargetInventory)
+    {
+        return false;
+    }
+
+    // Destroy 전에 값을 복사해두기
+    FCPItemInstance InstanceCopy = PropToStow->GetWorkingIngredient();
+    if (!InstanceCopy.IsValid())
+    {
+        return false;
+    }
+
+    int32 Leftover = TargetInventory->TryGetItemFromInstance(InstanceCopy, 1);
+    if (Leftover > 0)
+    {
+        // false일 경우 인벤토리 공간 부족 - 수납 실패, 계속 들고 있는 상태 유지
+        return false;
+    }
+
+    SetHeldProp(nullptr);
+    PropToStow->Destroy();
+
+    return true;
 }
 
 FVector UCPCarryComponent::MakeReplacementDropLocation(const ACPThrowablePropBase* PreviousHeldProp, const ACPThrowablePropBase* NewProp) const
