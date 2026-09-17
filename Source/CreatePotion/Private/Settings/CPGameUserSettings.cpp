@@ -6,7 +6,6 @@
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "GameInstance/Subsystem/CPAudioSubsystem.h"
-#include "Misc/ConfigCacheIni.h"
 
 void UCPGameUserSettings::ApplyNonResolutionSettings()
 {
