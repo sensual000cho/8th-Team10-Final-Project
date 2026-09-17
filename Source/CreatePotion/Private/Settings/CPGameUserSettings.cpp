@@ -6,6 +6,7 @@
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "GameInstance/Subsystem/CPAudioSubsystem.h"
+#include "Misc/ConfigCacheIni.h"
 
 void UCPGameUserSettings::ApplyNonResolutionSettings()
 {
@@ -71,8 +72,20 @@ void UCPGameUserSettings::ApplyAudioSettings() const
 
 void UCPGameUserSettings::ApplyAndSaveAudioSettings()
 {
+	ClampAudioVolumes();
 	ApplyAudioSettings();
-	SaveSettings();
+
+	FSaveConfigContext SaveContext;
+	SaveContext.Filename = GGameUserSettingsIni;
+	SaveContext.bAllowCopyToDefaultObject = false;
+	SaveContext.PropertyNames = {
+		GET_MEMBER_NAME_CHECKED(UCPGameUserSettings, MasterVolume),
+		GET_MEMBER_NAME_CHECKED(UCPGameUserSettings, SFXVolume),
+		GET_MEMBER_NAME_CHECKED(UCPGameUserSettings, BGMVolume),
+		GET_MEMBER_NAME_CHECKED(UCPGameUserSettings, UIVolume),
+		GET_MEMBER_NAME_CHECKED(UCPGameUserSettings, AmbienceVolume)
+	};
+	SaveConfig(SaveContext);
 }
 
 void UCPGameUserSettings::SetMasterVolume(float Volume)
