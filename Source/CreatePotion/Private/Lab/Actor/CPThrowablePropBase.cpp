@@ -7,6 +7,8 @@
 #include "Components/StaticMeshComponent.h"
 #include "GameFramework/Pawn.h"
 #include "TimerManager.h"
+#include "Data/CPForageableItemData.h"
+#include "Lab/Component/Interact/CPThrowableComponent.h"
 
 ACPThrowablePropBase::ACPThrowablePropBase()
 {
@@ -14,6 +16,9 @@ ACPThrowablePropBase::ACPThrowablePropBase()
 
     StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
     SetRootComponent(StaticMeshComponent);
+    
+    InteractableComponent = CreateDefaultSubobject<UCPThrowableComponent>(TEXT("Interactable"));
+    InteractableComponent->SetupAttachment(StaticMeshComponent);
 }
 
 void ACPThrowablePropBase::BeginPlay()
@@ -43,45 +48,16 @@ void ACPThrowablePropBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
     Super::EndPlay(EndPlayReason);
 }
 
-void ACPThrowablePropBase::HandleInteract(AActor* Interactor)
-{
-    if (!IsValid(Interactor) || !CanBePickedUp()) return;
-    
-    // Ability System 탐색
-    UAbilitySystemComponent* AbilitySystem = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Interactor);
-    if (!IsValid(AbilitySystem)) return;
-    
-    // 들기, 던지기 GAS 연결
-    static const FGameplayTag PickupEventTag = FGameplayTag::RequestGameplayTag(FName(TEXT("Event.Carry.Pickup")));
-    FGameplayEventData EventData;
-    EventData.EventTag = PickupEventTag;
-    EventData.Instigator = Interactor;
-    EventData.Target = this;
-    
-    AbilitySystem->HandleGameplayEvent(PickupEventTag, &EventData);
-}
-
-bool ACPThrowablePropBase::EvaluateInteractability_Implementation() const
-{
-    return CanBePickedUp();
-}
-
-FName ACPThrowablePropBase::EvaluateTargetName_Implementation() const
-{
-    return FName(TEXT("Prop"));
-}
-
-FText ACPThrowablePropBase::EvaluateInteractionPrompt_Implementation() const
-{
-    return FText::FromString(TEXT("들기"));
-}
-
 void ACPThrowablePropBase::InitializeFromItemData(UCPForageableItemData* ItemData, const TArray<FGameplayTag>& EffectTags)
 {
     WorkingIngredient = FCPItemInstance{};
     WorkingIngredient.SourceItemData = ItemData;
     WorkingIngredient.CurrentEffects = EffectTags;
-    CheckInteractionConditions();
+    
+    if (IsValid(InteractableComponent)){
+        const FName DisplayName = IsValid(ItemData) ? FName(*ItemData->DisplayName.ToString()) : NAME_None;
+        InteractableComponent->SetTargetName(DisplayName);
+    }
 }
 
 const FCPItemInstance& ACPThrowablePropBase::GetWorkingIngredient() const
@@ -294,7 +270,10 @@ void ACPThrowablePropBase::SetPropState(ECPThrowablePropState NewState)
 {
     if (PropState == NewState) return;
     PropState = NewState;
-    CheckInteractionConditions();
+    
+    if (IsValid(InteractableComponent)){
+        InteractableComponent->RefreshUI();
+    }
 }
 
 void ACPThrowablePropBase::StartRestCheck()
