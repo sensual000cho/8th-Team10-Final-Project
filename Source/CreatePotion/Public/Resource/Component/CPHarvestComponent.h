@@ -1,39 +1,39 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Components/ActorComponent.h"
+#include "Components/CPInteractableComponent.h"
+#include "Resource/CPResourceType.h"
 #include "CPHarvestComponent.generated.h"
 
 
-class ACPDroppedItemBase;
+class UCPResourceDefinition;
+struct FCPResourceNodeKey;
 class UCPForageableItemData;
 
 // 채집물 / 농작물용 수확 컴포넌트
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class CREATEPOTION_API UCPHarvestComponent : public UActorComponent
+class CREATEPOTION_API UCPHarvestComponent : public UCPInteractableComponent
 {
 	GENERATED_BODY()
 
 public:	
+	// Life Cycle
 	UCPHarvestComponent();
 
-	void Initialize(
-		UCPForageableItemData* InItemData,
-		int32 InAmount,
-		UStaticMesh* InDroppedItemMesh,
-		TSubclassOf<ACPDroppedItemBase> InDroppedItemClass);
+	void Initialize(const FCPResourceNodeKey& InNodeKey, UCPResourceDefinition* InDefinition, int32 InHarvestMultiplier);
 	
-	bool TryHarvest(AActor* Interactor);
+	virtual void BeginFocus(AActor* Interactor) override;
+	virtual bool CanInteract() const override;
+	virtual void BeginTimeInteraction(AActor* Interactor) override;
+	virtual bool TryInteract(AActor* Interactor) override;
 	
 private:
 	UPROPERTY(Transient)
-	TObjectPtr<UCPForageableItemData> ItemData;
+	TObjectPtr<UCPResourceDefinition> ResourceDefinition;
 	
-	UPROPERTY(Transient)
-	TObjectPtr<UStaticMesh> DroppedItemMesh;
+	FCPResourceNodeKey NodeKey;
+	int32 HarvestMultiplier = 1;
 	
-	UPROPERTY(Transient)
-	TSubclassOf<ACPDroppedItemBase> DroppedItemClass;
-	
-	int32 Amount = 0;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Resource|Animation")
+	TObjectPtr<UAnimMontage> HarvestMontage;
 };

@@ -1,12 +1,9 @@
 #include "Items/CPDroppedItemBase.h"
 
-#include "Components/CPInteractableComponent.h"
-#include "Components/CPInventoryComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/TimelineComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "GameFramework/RotatingMovementComponent.h"
-#include "Resource/System/CPObjectPoolSubsystem.h"
 
 ACPDroppedItemBase::ACPDroppedItemBase()
 {
@@ -45,27 +42,6 @@ ACPDroppedItemBase::ACPDroppedItemBase()
 	RotatingMovement->bAutoActivate = false;
 }
 
-void ACPDroppedItemBase::HandleInteract(AActor* Interactor)
-{
-	Super::HandleInteract(Interactor);
-	
-	UCPInventoryComponent* Inventory = Interactor->FindComponentByClass<UCPInventoryComponent>();
-	if (!Inventory) return;
-	
-	Inventory->TryGetItemFromData(ItemData, Amount);
-	
-	UCPObjectPoolSubsystem* Pool = GetWorld()->GetSubsystem<UCPObjectPoolSubsystem>();
-	if (Pool)
-	{
-		Pool->ReleaseActor(this);
-	}
-
-	else
-	{
-		Destroy();
-	}
-}
-
 void ACPDroppedItemBase::OnAcquireFromPool_Implementation()
 {
 	SetActorHiddenInGame(false);
@@ -73,8 +49,6 @@ void ACPDroppedItemBase::OnAcquireFromPool_Implementation()
 	
 	Mesh->SetHiddenInGame(false, true);
 	Mesh->SetVisibility(true, true);
-	
-	InteractableComponent->SetInteractability(true);
 }
 
 void ACPDroppedItemBase::OnReleaseToPool_Implementation()
@@ -85,10 +59,6 @@ void ACPDroppedItemBase::OnReleaseToPool_Implementation()
 	ItemData = nullptr;
 	Amount = 0;
 	
-	if (InteractableComponent)
-	{
-		InteractableComponent->SetInteractability(false);
-	}
 	DropMovement->StopMovementImmediately();
 	DropMovement->Deactivate();
 	
@@ -107,13 +77,6 @@ void ACPDroppedItemBase::Initialize(UCPForageableItemData* InItemData, int32 InA
 	Amount = InAmount;
 	Mesh->SetStaticMesh(InMesh);
 	
-	if (InteractableComponent)
-	{
-		const bool bValid = ItemData != nullptr && Amount > 0;
-		InteractableComponent->SetInteractability(bValid);
-		InteractableComponent->SetTargetName(ItemData ? FName(*ItemData->DisplayName.ToString()) : NAME_None);
-		InteractableComponent->SetInteractionPrompt(FText::FromString(TEXT("줍기")));
-	}
 }
 
 void ACPDroppedItemBase::StartDropMotion(const FVector& DropDirection)
