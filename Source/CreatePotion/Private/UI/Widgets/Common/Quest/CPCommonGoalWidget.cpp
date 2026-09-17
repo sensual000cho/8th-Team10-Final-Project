@@ -49,16 +49,11 @@ void UCPCommonGoalWidget::UpdateGoalDisplay()
 
 	if (ActiveQuestID.IsNone())
 	{
-		if (TextBlock_GoalTitle)
-		{
-			TextBlock_GoalTitle->SetText(FText::FromString(TEXT("현재 목표")));
-		}
-		if (TextBlock_GoalText)
-		{
-			TextBlock_GoalText->SetText(FText::FromString(TEXT("진행 중인 목표가 없습니다.")));
-		}
+		SetVisibility(ESlateVisibility::Collapsed);
 		return;
 	}
+
+	SetVisibility(ESlateVisibility::Visible);
 
 	if (TextBlock_GoalTitle)
 	{

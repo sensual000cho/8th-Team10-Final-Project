@@ -112,7 +112,11 @@ public:
 private:
 	void SetContextHandlerForTargetContext(EUITargetContext InTargetContext);
 
+	void OnCarryHeldProp(const FInputActionValue& Value);
 
+protected:
+	UPROPERTY(EditAnywhere, Category = "Input|Carry")
+	UInputAction* IA_CarryHeldProp;
 
 public:
 	// 현재 상호작용 중인 컨테이너

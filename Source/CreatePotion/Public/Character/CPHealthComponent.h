@@ -30,6 +30,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Health")
 	bool IsDead() const { return CurrentHealth <= 0.f; }
 	
+	UFUNCTION(BlueprintCallable, Category = "Health")
+	void RestoreFullHealth();
+	
 	// UI 체력 표시 갱신용
 	UPROPERTY(BlueprintAssignable, Category = "Health|Event")
 	FCPOnHealthChanged OnHealthChanged;
@@ -44,6 +47,8 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Health", meta = (AllowPrivateAccess = "true", ClampMin = "1.0"))
@@ -52,4 +57,22 @@ private:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Health", meta = (AllowPrivateAccess = "true"))
 	float  CurrentHealth = 40.f;
 	
+	// 피격이 없으면 10초 뒤 피회복
+	UPROPERTY(EditDefaultsOnly, Category = "Health|Regen", meta = (ClampMin = "0.01", Units = "s"))
+	float RegenDelay = 10.f;
+	// 피회복 주기(초)
+	UPROPERTY(EditDefaultsOnly, Category = "Health|Regen", meta = (ClampMin = "0.01", Units = "s"))
+	float RegenInterval = 1.f;
+	// 회복량
+	UPROPERTY(EditDefaultsOnly, Category = "Health|Regen", meta = (ClampMin = "0.0"))
+	float RegenAmount = 10.f;
+	
+	// 피격 시 회복 대기(10초)
+	void RestartHealthRegen();
+	// 회복 중단
+	void StopHealthRegen();
+	// 체력 회복
+	void RegenerateHealth();
+
+	FTimerHandle HealthRegenTimerHandle;
 };

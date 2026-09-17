@@ -74,9 +74,11 @@ void UCPGA_Slime::ApplyVisual(ACPBaseNPC* NPC, bool bActive, float InMagnitude)
 	UCPNPCVisualComponent* VisualComp = NPC->GetVisualComponent();
 	if (!VisualComp) { return; }
 
-
 	if (bActive)
 	{
+		const UCPNPCDataAsset* Data = NPC->GetNPCData();
+		const float ScaleMultiplier = (Data && Data->SlimeScaleMultiplier > 0.0f) ? Data->SlimeScaleMultiplier : 1.0f;
+
 		if (SlimeBaseMaterial)
 		{
 			if (!IsValid(CachedSlimeBaseMID))
@@ -86,15 +88,10 @@ void UCPGA_Slime::ApplyVisual(ACPBaseNPC* NPC, bool bActive, float InMagnitude)
 
 			if (CachedSlimeBaseMID)
 			{
-				if (const UCPNPCDataAsset* Data = NPC->GetNPCData())
+				if (Data)
 				{
 					CachedSlimeBaseMID->SetVectorParameterValue(InnerColorParamName, Data->SlimeInnerColor);
 					CachedSlimeBaseMID->SetVectorParameterValue(OuterColorParamName, Data->SlimeOuterColor);
-					UE_LOG(LogTemp, Warning, TEXT("[SlimeVisual] DataAsset: %s | InnerColor: %s | OuterColor: %s | MID: %s"),
-						Data ? *Data->GetName() : TEXT("NULL"),
-						Data ? *Data->SlimeInnerColor.ToString() : TEXT("N/A"),
-						Data ? *Data->SlimeOuterColor.ToString() : TEXT("N/A"),
-						CachedSlimeBaseMID ? TEXT("Valid") : TEXT("NULL"));
 				}
 
 				VisualComp->PushMaterialOverride(0, EffectTag, CachedSlimeBaseMID);
@@ -106,10 +103,11 @@ void UCPGA_Slime::ApplyVisual(ACPBaseNPC* NPC, bool bActive, float InMagnitude)
 			SlimeMesh,
 			nullptr,
 			0.3f,
-			MeshZOffset,
-			FVector::OneVector,
-			CapsuleRadius,
-			CapsuleHalfHeight
+			MeshZOffset * ScaleMultiplier,
+			FVector(ScaleMultiplier),
+			CapsuleRadius * ScaleMultiplier,
+			CapsuleHalfHeight * ScaleMultiplier,
+			true
 		);
 	}
 	else

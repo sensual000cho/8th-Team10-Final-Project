@@ -28,6 +28,8 @@ protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+
 private:
 	UFUNCTION()
 	void OnInventoryUpdated();
@@ -40,6 +42,8 @@ private:
 
 	UFUNCTION()
 	void HideWheel();
+
+	void SetSlotVisible(UImage* IconWidget, UImage* LiquidWidget, bool bVisible);
 
 private:
 	UPROPERTY()
@@ -60,13 +64,63 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "ItemWheel", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float NearIconAlpha = 0.4f;
 
+	UPROPERTY(EditDefaultsOnly, Category = "ItemWheel", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float FarIconAlpha = 0.2f;
+
 	UPROPERTY(meta = (BindWidget))
-	UImage* PrevIcon;
+	UImage* Left2Icon;
+	UPROPERTY(meta = (BindWidgetOptional))
+	UImage* Left2Liquid;
+
+	UPROPERTY(meta = (BindWidget))
+	UImage* Left1Icon;
+	UPROPERTY(meta = (BindWidgetOptional))
+	UImage* Left1Liquid;
 
 	UPROPERTY(meta = (BindWidget))
 	UImage* FocusIcon;
+	UPROPERTY(meta = (BindWidgetOptional))
+	UImage* FocusLiquid;
 
 	UPROPERTY(meta = (BindWidget))
-	UImage* NextIcon;
+	UImage* Right1Icon;
+	UPROPERTY(meta = (BindWidgetOptional))
+	UImage* Right1Liquid;
 
+	UPROPERTY(meta = (BindWidget))
+	UImage* Right2Icon;
+	UPROPERTY(meta = (BindWidgetOptional))
+	UImage* Right2Liquid;
+
+#pragma region Sliding
+private:
+	void UpdateSlotScales(float Progress);
+
+	float GetTargetScaleForOffset(int32 Offset) const;
+
+protected:
+	UPROPERTY(meta = (BindWidget))
+	UPanelWidget* IconRow;
+
+private:
+	UPROPERTY(EditDefaultsOnly, Category = "ItemWheel|Animation")
+	float FocusScale = 1.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "ItemWheel|Animation")
+	float NearScale = 0.33f; // Left1/Right1
+
+	UPROPERTY(EditDefaultsOnly, Category = "ItemWheel|Animation")
+	float FarScale = 0.25f;  // Left2/Right2
+
+	UPROPERTY(EditDefaultsOnly, Category = "ItemWheel|Animation")
+	float SlideSpeed = 5.f;
+
+	// 아이콘 한 칸의 실제 폭(패딩 포함), IconRow 안 슬롯 간격과 일치시켜야 함
+	UPROPERTY(EditDefaultsOnly, Category = "ItemWheel|Animation")
+	float SlotStride = 90.f; 
+
+	int32 PendingDirection = 0;
+
+	float SlideProgress = 0.f;
+#pragma endregion
 };

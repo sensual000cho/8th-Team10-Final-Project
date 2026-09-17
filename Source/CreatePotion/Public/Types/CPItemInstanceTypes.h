@@ -23,4 +23,6 @@ struct FCPItemInstance
 	bool bIsSeed = false;
 
 	bool IsValid() const { return SourceItemData != nullptr; }
+
+	FLinearColor GetLiquidColor() const;
 };
