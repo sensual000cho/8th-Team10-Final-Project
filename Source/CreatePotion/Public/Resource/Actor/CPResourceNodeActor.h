@@ -48,9 +48,6 @@ private:
 	
 	// 채집
 	void Harvest(AActor* Interactor);
-	
-	// 조사
-	void Inspect(AActor* Interactor);
 
 private:
 	UPROPERTY(VisibleAnywhere, Category = "Component")
@@ -61,9 +58,6 @@ private:
 	
 	UPROPERTY(VisibleInstanceOnly, Category = "Resource")
 	FCPResourceNodeKey NodeKey;
-	
-	UPROPERTY(EditDefaultsOnly, Category = "Resource")
-	TSubclassOf<ACPDroppedItemBase> DroppedItemClass;
 	
 	UPROPERTY(Transient)
 	TObjectPtr<UCPResourceDefinition> ResourceDefinition;
@@ -76,8 +70,4 @@ public:
 	// 채집 몽타주
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Resource|Animation")
 	TObjectPtr<UAnimMontage> HarvestMontage;
-	
-	// 조사 몽타주
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Resource|Animation")
-	TObjectPtr<UAnimMontage> InspectMontage;
 };
