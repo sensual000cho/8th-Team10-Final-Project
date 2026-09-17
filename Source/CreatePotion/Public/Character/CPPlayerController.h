@@ -22,6 +22,7 @@ class UCPHandHeldItemWidget;
 class UCPItemWheelWidget;
 class UCPWheelModeIndicatorWidget;
 class UCPShopPurchasePopupWidget;
+class UCPItemDetailPopupWidget;
 
 //디버깅용 포션생성 함수용
 class UCPForageableItemData;
@@ -179,6 +180,19 @@ public:
 private:
 	UPROPERTY()
 	UCPShopPurchasePopupWidget* ShopPopupInstance;
+#pragma endregion
+
+#pragma region DetailWidget
+public:
+	UCPItemDetailPopupWidget* GetOrCreateItemDetailPopup();
+
+public:
+	UPROPERTY(EditAnywhere, Category = "Container|UI")
+	TSubclassOf<UCPItemDetailPopupWidget> ItemDetailPopupWidgetClass;
+
+private:
+	UPROPERTY()
+	UCPItemDetailPopupWidget* ItemDetailPopupInstance;
 #pragma endregion
 	
 //디버깅용 포션생성

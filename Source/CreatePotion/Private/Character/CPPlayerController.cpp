@@ -18,6 +18,7 @@
 #include "UI/Widgets/Common/Container/CPItemWheelWidget.h"
 #include "UI/Widgets/Common/Container/CPWheelModeIndicatorWidget.h"
 #include "UI/Widgets/Common/Container/Shop/CPShopPurchasePopupWidget.h"
+#include "UI/Widgets/Common/Container/CPItemDetailPopupWidget.h"
 
 #include "Components/CPItemContainerComponent.h"
 #include "Components/CPInventoryComponent.h"
@@ -437,6 +438,22 @@ UCPShopPurchasePopupWidget* ACPPlayerController::GetOrCreateShopPopup()
 		}
 	}
 	return ShopPopupInstance;
+}
+#pragma endregion
+
+#pragma region DetailWidget
+
+UCPItemDetailPopupWidget* ACPPlayerController::GetOrCreateItemDetailPopup()
+{
+	if (!ItemDetailPopupInstance && ItemDetailPopupWidgetClass)
+	{
+		ItemDetailPopupInstance = CreateWidget<UCPItemDetailPopupWidget>(this, ItemDetailPopupWidgetClass);
+		if (ItemDetailPopupInstance)
+		{
+			ItemDetailPopupInstance->AddToViewport(150);
+		}
+	}
+	return ItemDetailPopupInstance;
 }
 
 #pragma endregion
