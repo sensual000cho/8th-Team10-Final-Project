@@ -7,6 +7,7 @@
 #include "UI/Widgets/Common/Container/CPGridSlotWidgetBase.h"
 #include "UI/Widgets/Common/Container/CPItemSlotWidget.h"
 #include "UI/Widgets/Common/Container/Shop/CPShopPurchasePopupWidget.h"
+#include "UI/Widgets/Common/Container/CPItemDetailPopupWidget.h"
 
 #include "Components/CPInventoryComponent.h"
 #include "Components/CPDropContainerComponent.h"
@@ -230,4 +231,27 @@ bool UCPContainerContextBase::TrySellItemToShop(UCPItemContainerComponent* Playe
     PlayerInventory->TryGetMoney(SellPricePerUnit * ActuallySold);
 
     return true;
+}
+
+bool UCPContainerContextBase::HandleShowItemDetail(UCPGridSlotWidgetBase* ClickedSlot) const
+{
+    ACPPlayerController* PC = Cast<ACPPlayerController>(ClickedSlot->GetOwningPlayer());
+    if (!PC)
+    {
+        return false;
+    }
+
+    UCPItemSlotWidget* ItemSlot = Cast<UCPItemSlotWidget>(ClickedSlot);
+    if (!ItemSlot || !ItemSlot->CachedItemData.Instance.IsValid())
+    {
+        return false; // 빈 슬롯이면 표시할 게 없음
+    }
+
+    if (UCPItemDetailPopupWidget* Popup = PC->GetOrCreateItemDetailPopup())
+    {
+        Popup->ShowDetail(ItemSlot->CachedItemData.Instance);
+        return true;
+    }
+
+    return false;
 }

@@ -41,4 +41,6 @@ protected:
 	virtual void SpawnDroppedProp(UCPForageableItemData* ItemData, int32 Count, AActor* NearActor) const;
 
 	bool TrySellItemToShop(UCPItemContainerComponent* PlayerContainer, int32 SlotGridIndex, UCPItemContainerComponent* ShopContainer, UCPInventoryComponent* PlayerInventory) const;
+
+	bool HandleShowItemDetail(UCPGridSlotWidgetBase* ClickedSlot) const;	// 우클릭, 마우스 오버
 };
