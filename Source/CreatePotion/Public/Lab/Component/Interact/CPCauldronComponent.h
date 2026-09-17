@@ -27,9 +27,8 @@ public:
 	
 	// 상호작용
 	virtual void BeginFocus(AActor* Interactor) override;
-	virtual void HandleInteract(AActor* Interactor) override;
+	virtual bool TryInteract(AActor* Interactor) override;
 	virtual bool CanInteract() const override;
-	virtual bool ShouldShowUnavailableInteraction() const override;
 	
 	// Getter
 	UFUNCTION(BlueprintPure, Category = "Lab|Interaction")
@@ -41,6 +40,10 @@ public:
 	// 포션 생성 (BP 호출)
 	UFUNCTION(BlueprintCallable, Category = "Lab|Interaction")
 	bool CreatePotion();
+	
+	//가마솥 상호작용 연출 시작
+	UFUNCTION(BlueprintImplementableEvent, Category = "Lab|Interaction", meta = (DisplayName = "On Cauldron Interact"))
+	void K2_OnCauldronInteracted(AActor* Interactor);
 	
 private:
 	// 현재 가마솥이 해당 재료를 받을 수 있는지 검사

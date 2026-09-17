@@ -10,22 +10,20 @@
 
 UCPLabBellComponent::UCPLabBellComponent()
 {
-	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.bStartWithTickEnabled = false;
 	InteractionPrompt = FText::FromString(TEXT("벨 울리기"));
-	bShouldShowUnavailableInteraction = true;
 }
 
-void UCPLabBellComponent::HandleInteract(AActor* Interactor)
+bool UCPLabBellComponent::TryInteract(AActor* Interactor)
 {
-	if (!IsValid(Interactor) || !CanInteract()) return;
+	if (!Super::TryInteract(Interactor) || !IsValid(Interactor)) return false;
 	
 	// Request 선택 UI 호출
 	UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
 	UCPUIManagerSubsystem* UIManager = GameInstance ? GameInstance->GetSubsystem<UCPUIManagerSubsystem>() : nullptr;
-	if (!UIManager || !QuestSelectWidgetClass) return;
+	if (!UIManager || !QuestSelectWidgetClass) return false;
 	
 	UIManager->PushWidget(QuestSelectWidgetClass);
+	return true;
 }
 
 bool UCPLabBellComponent::CanInteract() const
@@ -34,9 +32,4 @@ bool UCPLabBellComponent::CanInteract() const
 	const ACPLabGameMode* LabGameMode = World ? World->GetAuthGameMode<ACPLabGameMode>() : nullptr;
 
 	return LabGameMode && !LabGameMode->IsActiveRequest();
-}
-
-bool UCPLabBellComponent::ShouldShowUnavailableInteraction() const
-{
-	return bShouldShowUnavailableInteraction;
 }
