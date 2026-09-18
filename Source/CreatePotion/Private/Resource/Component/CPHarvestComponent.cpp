@@ -34,11 +34,7 @@ void UCPHarvestComponent::Initialize(const FCPResourceNodeKey& InNodeKey, UCPRes
 void UCPHarvestComponent::BeginFocus(AActor* Interactor)
 {
 	if (IsValid(ResourceDefinition) && IsValid(ResourceDefinition->HarvestData.HarvestedItem)){
-		const UGameInstance* GI = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
-		const UCPCodexSubsystem* CodexSubsystem = GI ? GI->GetSubsystem<UCPCodexSubsystem>() : nullptr;
-		const bool bIsDiscovered = CodexSubsystem && CodexSubsystem->GetForageableEntry(ResourceDefinition->HarvestData.HarvestedItem);
-		
-		InteractionPrompt = bIsDiscovered ? FText::FromString(TEXT("채집하기")) : FText::FromString(TEXT("조사하기"));
+		InteractionPrompt = FText::FromString(TEXT("채집하기"));
 	}
 	
 	Super::BeginFocus(Interactor);
