@@ -682,3 +682,25 @@ FName UQuestManager::GetPinnedQuest() const
 {
 	return PinnedQuestID;
 }
+
+FText UQuestManager::GetItemProgressText(FName QuestID, const TMap<FName, int32>& HeldItemCounts) const
+{
+	FQuestAnswerData* Answer = FindAnswerData(QuestID);
+	if (!Answer || Answer->RequiredItemIDs.Num() == 0) return FText::GetEmpty();
+
+	TArray<FString> Lines;
+	for (int32 i = 0; i < Answer->RequiredItemIDs.Num(); ++i)
+	{
+		const FName& ItemID = Answer->RequiredItemIDs[i];
+		const int32* HeldCount = HeldItemCounts.Find(ItemID);
+		int32 Held = HeldCount ? *HeldCount : 0;
+
+		FString HintName = Answer->RequiredItemHintNames.IsValidIndex(i)
+			? Answer->RequiredItemHintNames[i].ToString()
+			: TEXT("재료");
+
+		Lines.Add(FString::Printf(TEXT("%s: %d / %d"), *HintName, Held, Answer->RequiredItemCount));
+	}
+
+	return FText::FromString(FString::Join(Lines, TEXT("\n")));
+}
