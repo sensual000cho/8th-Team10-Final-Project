@@ -23,10 +23,7 @@ UCPCauldronComponent::UCPCauldronComponent():
 	RandomImpulseMin(2000.f),
 	RandomImpulseMax(4000.f)
 {
-	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.bStartWithTickEnabled = false;
 	InteractionPrompt = FText::FromString(TEXT("포션 만들기"));
-	bShouldShowUnavailableInteraction = true;
 }
 
 void UCPCauldronComponent::BeginPlay()
@@ -58,28 +55,26 @@ void UCPCauldronComponent::BeginFocus(AActor* Interactor)
 {
 	Super::BeginFocus(Interactor);
 	
-	if (!InteractWidgetComp) return;
+	if (!InteractionWidgetComp) return;
 	
-	UUserWidget* UserWidget =InteractWidgetComp->GetUserWidgetObject();
+	UUserWidget* UserWidget =InteractionWidgetComp->GetUserWidgetObject();
 	if (UCPCauldronWidget* CauldronWidget = Cast<UCPCauldronWidget>(UserWidget)){
 		CauldronWidget->SetCauldronComponent(this);
 	}
 }
 
-void UCPCauldronComponent::HandleInteract(AActor* Interactor)
+bool UCPCauldronComponent::TryInteract(AActor* Interactor)
 {
-	if (!IsValid(Interactor) || !CanInteract() || !BoundIngredientTrigger) return;
-	Super::HandleInteract(Interactor);
+	if (!Super::TryInteract(Interactor)) return false;
+	if (!IsValid(Interactor) || !BoundIngredientTrigger) return false;
+	
+	OnCauldronInteracted.Broadcast();
+	return true;
 }
 
 bool UCPCauldronComponent::CanInteract() const
 {
 	return IngredientInstances.Num() > 0;
-}
-
-bool UCPCauldronComponent::ShouldShowUnavailableInteraction() const
-{
-	return bShouldShowUnavailableInteraction;
 }
 
 TArray<FGameplayTag> UCPCauldronComponent::GetEffectTags() const

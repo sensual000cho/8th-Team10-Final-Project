@@ -6,6 +6,7 @@
 #include "GameFramework/Pawn.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "NPC/CPQuestNPC.h"
+#include "NPC/CPAnimalNPC.h"
 
 UCPPotionImpactComponent::UCPPotionImpactComponent()
 {
@@ -87,6 +88,10 @@ void UCPPotionImpactComponent::ResolvePotionEffectArea(const FHitResult& HitResu
 		
 		if (ACPQuestNPC* LabNPC = Cast<ACPQuestNPC>(TargetActor)){
 			LabNPC->HandleThrownPotionImpact(PotionEffectTags);
+		}
+
+		if (ACPAnimalNPC* AnimalNPC = Cast<ACPAnimalNPC>(TargetActor)) {
+			AnimalNPC->HandleThrownPotionImpact(PotionEffectTags);
 		}
 		
 		UAbilitySystemComponent* TargetAbilitySystem = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
