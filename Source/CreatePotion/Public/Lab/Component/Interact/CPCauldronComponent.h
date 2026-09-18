@@ -12,6 +12,7 @@ struct FCPTagDefinitionRow;
 class ACPAlchemyProp;
 class UPrimitiveComponent;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCauldronInteracted);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCauldronEffectsChanged);
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -41,10 +42,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Lab|Interaction")
 	bool CreatePotion();
 	
-	//가마솥 상호작용 연출 시작
-	UFUNCTION(BlueprintImplementableEvent, Category = "Lab|Interaction", meta = (DisplayName = "On Cauldron Interact"))
-	void K2_OnCauldronInteracted(AActor* Interactor);
-	
 private:
 	// 현재 가마솥이 해당 재료를 받을 수 있는지 검사
 	bool CanAcceptProp(const ACPAlchemyProp* Prop) const;
@@ -72,6 +69,9 @@ private:
 		const FHitResult& SweepResult);
 	
 public:
+	UPROPERTY(BlueprintAssignable, Category = "Lab|Interaction")
+	FOnCauldronInteracted OnCauldronInteracted;
+	
 	UPROPERTY(BlueprintAssignable, Category = "Lab|Interaction")
 	FOnCauldronEffectsChanged OnEffectsChanged;
 	

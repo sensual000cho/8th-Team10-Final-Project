@@ -34,6 +34,6 @@ private:
 	FCPResourceNodeKey NodeKey;
 	int32 HarvestMultiplier = 1;
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Resource|Animation")
+	UPROPERTY(EditDefaultsOnly, Category = "Resource|Animation")
 	TObjectPtr<UAnimMontage> HarvestMontage;
 };

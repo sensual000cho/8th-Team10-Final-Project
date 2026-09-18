@@ -19,24 +19,29 @@ void UCPInteractableComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	if (InteractionWidgetComp) return;
 	AActor* Owner = GetOwner();
 	if (!IsValid(Owner)) return;
 	
 	InteractionWidgetComp = NewObject<UWidgetComponent>(Owner, TEXT("InteractionWidget"));
-	if (!InteractionWidgetComp) return;
+	if (!IsValid(InteractionWidgetComp)) return;
 	
-	InteractionWidgetComp->RegisterComponent();
 	Owner->AddInstanceComponent(InteractionWidgetComp);
 	
-	InteractionWidgetComp->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
+	InteractionWidgetComp->SetupAttachment(this);
 	InteractionWidgetComp->SetRelativeLocation(FVector::ZeroVector);
-	
-	if (const UCPUISettings* UISettings = GetDefault<UCPUISettings>()){
-		InteractionWidgetComp->SetWidgetClass(UISettings->InteractionWidgetClass.LoadSynchronous());
+	InteractionWidgetComp->SetWidgetSpace(EWidgetSpace::Screen);
+
+	UClass* WidgetClass = InteractionWidgetClass.Get();
+	if (!WidgetClass){
+		if (const UCPUISettings* UISettings = GetDefault<UCPUISettings>()){
+			WidgetClass = UISettings->InteractionWidgetClass.LoadSynchronous();
+		}
 	}
+	InteractionWidgetComp->SetWidgetClass(WidgetClass);
+
 	InteractionWidgetComp->SetVisibility(false);
 	InteractionWidgetComp->SetHiddenInGame(true);
+	InteractionWidgetComp->RegisterComponent();
 }
 
 void UCPInteractableComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -67,14 +72,6 @@ void UCPInteractableComponent::BeginFocus(AActor* Interactor)
 		InteractionWidgetComp->SetVisibility(true);
 		InteractionWidgetComp->SetHiddenInGame(false);
 		RefreshUI();
-		
-		UE_LOG(LogTemp, Warning, TEXT("[Success] 위젯 켬! 위젯 이름: %s, 현재 보임 상태: %d"), 
-			   *InteractionWidgetComp->GetName(), InteractionWidgetComp->IsVisible());
-	
-		if (InteractionWidgetComp->GetUserWidgetObject() == nullptr)
-		{
-			UE_LOG(LogTemp, Error, TEXT("[%s]컴포넌트는 있지만, 내부 위젯 객체(UserWidget)가 생성되지 않았습니다!"), *GetName());
-		}
 	}
 }
 
@@ -84,11 +81,9 @@ void UCPInteractableComponent::EndFocus(AActor* Interactor)
 	SetComponentTickEnabled(false);
 	PrimaryComponentTick.SetTickFunctionEnable(false);
 	
-	if (InteractionWidgetComp)
-	{
+	if (InteractionWidgetComp){
 		InteractionWidgetComp->SetVisibility(false);
 	}
-	UE_LOG(LogTemp, Warning, TEXT("[InteractableComponent]위젯 꺼짐!"))
 }
 
 bool UCPInteractableComponent::CanInteract() const 
@@ -131,8 +126,8 @@ void UCPInteractableComponent::UpdateWidgetLocation(AActor* Interactor)
 	
 	if (!IsValid(Camera) || !IsValid(Owner)) return;
 	
-	const FVector WidgetOffset = GetRelativeLocation();
 	const FVector AnchorLocation = Owner->GetActorLocation();
+	const FVector WidgetOffset = Owner->GetActorQuat().UnrotateVector(GetComponentLocation() - AnchorLocation);
 	const FVector WidgetLocation = 
 		AnchorLocation 
 		+ Camera->GetForwardVector() * WidgetOffset.X 

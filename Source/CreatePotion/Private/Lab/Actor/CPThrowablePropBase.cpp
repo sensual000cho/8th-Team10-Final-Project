@@ -17,7 +17,7 @@ ACPThrowablePropBase::ACPThrowablePropBase()
     StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
     SetRootComponent(StaticMeshComponent);
     
-    InteractableComponent = CreateDefaultSubobject<UCPThrowableComponent>(TEXT("Interactable"));
+    InteractableComponent = CreateDefaultSubobject<UCPThrowableComponent>(TEXT("InteractableComponent"));
     InteractableComponent->SetupAttachment(StaticMeshComponent);
 }
 

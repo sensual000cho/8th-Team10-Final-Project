@@ -61,15 +61,9 @@ protected:
 	
 	bool bIsFocused = false;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
-	TObjectPtr<UWidgetComponent> InteractionWidget;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Quest|Marker")
 	TObjectPtr<UWidgetComponent> QuestMarkerWidget;
 
 	UPROPERTY(Transient)
 	FVector InitialQuestMarkerLocation = FVector::ZeroVector;
-
-	UPROPERTY(Transient)
-	FVector InitialInteractionWidgetLocation = FVector::ZeroVector;
 };

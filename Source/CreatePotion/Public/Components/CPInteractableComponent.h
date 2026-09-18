@@ -7,6 +7,7 @@
 #include "CPInteractableComponent.generated.h"
 
 enum class ECPInteractionDisplayState : uint8;
+class UUserWidget;
 class UWidgetComponent;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -65,6 +66,9 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Timed")
 	float InteractionDuration = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI", meta = (DisplayName = "Widget Class"))
+	TSubclassOf<UUserWidget> InteractionWidgetClass;
 	
 	UPROPERTY(Transient)
 	TObjectPtr<UWidgetComponent> InteractionWidgetComp;

@@ -18,14 +18,6 @@ ACPQuestNPC::ACPQuestNPC() : CurrentQuestId(NAME_None)
 {
 	InteractableComponent = CreateDefaultSubobject<UCPNPCComponent>(TEXT("InteractableComponent"));
 	InteractableComponent->SetupAttachment(RootComponent);
-	
-	InteractionWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractionWidget"));
-	InteractionWidget->SetupAttachment(RootComponent);
-	InteractionWidget->SetRelativeLocation(FVector(0.f, 0.f, 120.f));
-	if (const UCPUISettings* UISettings = GetDefault<UCPUISettings>())
-	{
-		InteractionWidget->SetWidgetClass(UISettings->InteractionWidgetClass.Get());
-	}
 
 	QuestMarkerWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("QuestMarkerWidget"));
 	QuestMarkerWidget->SetupAttachment(RootComponent);
@@ -38,13 +30,7 @@ void ACPQuestNPC::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	if (InteractionWidget)
-	{
-		InitialInteractionWidgetLocation = InteractionWidget->GetRelativeLocation();
-	}
-
-	if (QuestMarkerWidget)
-	{
+	if (QuestMarkerWidget){
 		InitialQuestMarkerLocation = QuestMarkerWidget->GetRelativeLocation();
 	}
 }
@@ -196,15 +182,8 @@ void ACPQuestNPC::ShowResultDialogue()
 void ACPQuestNPC::UpdateOverheadWidgetsScale(float ScaleMultiplier)
 {
 	Super::UpdateOverheadWidgetsScale(ScaleMultiplier);
-
-	if (QuestMarkerWidget)
-	{
+	if (QuestMarkerWidget){
 		QuestMarkerWidget->SetRelativeLocation(InitialQuestMarkerLocation * ScaleMultiplier);
-	}
-
-	if (InteractionWidget)
-	{
-		InteractionWidget->SetRelativeLocation(InitialInteractionWidgetLocation * ScaleMultiplier);
 	}
 }
 

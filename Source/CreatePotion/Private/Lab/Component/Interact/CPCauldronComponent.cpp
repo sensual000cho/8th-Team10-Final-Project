@@ -68,7 +68,7 @@ bool UCPCauldronComponent::TryInteract(AActor* Interactor)
 	if (!Super::TryInteract(Interactor)) return false;
 	if (!IsValid(Interactor) || !BoundIngredientTrigger) return false;
 	
-	K2_OnCauldronInteracted(Interactor);
+	OnCauldronInteracted.Broadcast();
 	return true;
 }
 
