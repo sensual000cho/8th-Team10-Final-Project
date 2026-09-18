@@ -17,23 +17,13 @@ class CREATEPOTION_API UCPHarvestComponent : public UActorComponent
 public:	
 	UCPHarvestComponent();
 
-	void Initialize(
-		UCPForageableItemData* InItemData,
-		int32 InAmount,
-		UStaticMesh* InDroppedItemMesh,
-		TSubclassOf<ACPDroppedItemBase> InDroppedItemClass);
+	void Initialize(UCPForageableItemData* InItemData, int32 InAmount);
 	
 	bool TryHarvest(AActor* Interactor);
 	
 private:
 	UPROPERTY(Transient)
 	TObjectPtr<UCPForageableItemData> ItemData;
-	
-	UPROPERTY(Transient)
-	TObjectPtr<UStaticMesh> DroppedItemMesh;
-	
-	UPROPERTY(Transient)
-	TSubclassOf<ACPDroppedItemBase> DroppedItemClass;
 	
 	int32 Amount = 0;
 };
