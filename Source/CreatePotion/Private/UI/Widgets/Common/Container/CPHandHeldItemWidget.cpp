@@ -9,7 +9,7 @@
 #include "UI/Widgets/Common/Container/CPContainerGridWidget.h"
 #include "Components/CPItemContainerComponent.h"
 #include "Data/CPForageableItemData.h"
-#include "Settings/CPContainerUISettings.h"
+#include "Settings/CPContainerSettings.h"
 
 void UCPHandHeldItemWidget::TryBindHandContainer(UCPItemContainerComponent* InHandContainer)
 {
@@ -50,7 +50,7 @@ void UCPHandHeldItemWidget::OnHandContainerUpdated()
 
 	if (RootSizeBox)
 	{
-		const UCPContainerUISettings* Settings = GetDefault<UCPContainerUISettings>();
+		const UCPContainerSettings* Settings = GetDefault<UCPContainerSettings>();
 
 		float SizeX = (ItemW * Settings->SlotSize) + FMath::Max(0, (ItemW - 1)) * Settings->SlotPadding;
 		float SizeY = (ItemH * Settings->SlotSize) + FMath::Max(0, (ItemH - 1)) * Settings->SlotPadding;
@@ -95,6 +95,6 @@ void UCPHandHeldItemWidget::UpdatePositionToMouse()
 
 float UCPHandHeldItemWidget::CalcCellCenterOffset() const
 {
-	const UCPContainerUISettings* Settings = GetDefault<UCPContainerUISettings>();
+	const UCPContainerSettings* Settings = GetDefault<UCPContainerSettings>();
 	return Settings->SlotSize * 0.5f;
 }
