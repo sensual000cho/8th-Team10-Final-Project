@@ -26,6 +26,8 @@ public:
 
 protected:
 	void NativeConstruct() override;
+	
+	virtual void ApplyDisplayStateColors(ECPInteractionDisplayState DisplayState);
 
 protected:	
 	UPROPERTY(meta = (BindWidget))
@@ -48,5 +50,4 @@ private:
 	bool bDefaultColorsCached = false;
 	
 	void CacheDefaultColors();
-	void ApplyDisplayStateColors(ECPInteractionDisplayState DisplayState);
 };

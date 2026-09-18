@@ -26,5 +26,5 @@ private:
 	TObjectPtr<ACharacter> Player;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Damaged", meta = (AllowPrivateAccess))
-	FVector KnockbackStrength = FVector(300.f, 300.f, 0.f);
+	FVector KnockbackStrength = FVector(400.f, 400.f, 0.f);
 };

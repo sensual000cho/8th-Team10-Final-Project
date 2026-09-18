@@ -68,6 +68,8 @@ public:
     float GetThrowSpeedMultiplier() const;
     void SetThrowSpeedMultiplier(float NewMultiplier);
 
+    bool ConsumeHeldPropToInventory(class UCPInventoryComponent* TargetInventory);
+
 public:
     // 현재 들고 있는 Prop이 변경되었음을 알림
     UPROPERTY(BlueprintAssignable, Category = "Carry")
