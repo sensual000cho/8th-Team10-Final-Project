@@ -10,6 +10,9 @@ ACPStoryActor::ACPStoryActor()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
+	DefaultRoot = CreateDefaultSubobject<USceneComponent>(TEXT("DefaultSceneRoot"));
+	RootComponent = DefaultRoot;
+
 	InteractableComponent = CreateDefaultSubobject<UCPInteractableComponent>(TEXT("InteractableComponent"));
 }
 
@@ -51,4 +54,3 @@ void ACPStoryActor::HandleInteract(AActor* Interactor)
 		}
 	}
 }
-

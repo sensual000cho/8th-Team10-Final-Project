@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Components/SceneComponent.h"
 #include "CPStoryActor.generated.h"
 
 class UCPNPCDialogueWidget;
@@ -25,10 +26,12 @@ protected:
 	void HandleInteract(AActor* Interactor);
 
 public:
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	TObjectPtr<USceneComponent> DefaultRoot;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Lore")
 	FText DisplayName;
 
-	// 여러 번 읽어도 항상 같은 내용, 퀘스트 시스템과 무관
 	UPROPERTY(EditDefaultsOnly, Category = "Lore")
 	TArray<FText> LoreLines;
 
