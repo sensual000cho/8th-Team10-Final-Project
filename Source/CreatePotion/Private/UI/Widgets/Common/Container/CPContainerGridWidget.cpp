@@ -11,7 +11,7 @@
 #include "UI/Widgets/Common/Container/CPItemSlotWidget.h"
 #include "UI/Widgets/Common/Container/CPBlankGridSlotWidget.h"
 #include "Components/CPItemContainerComponent.h"
-#include "Settings/CPContainerUISettings.h"
+#include "Settings/CPContainerSettings.h"
 
 void UCPContainerGridWidget::InitializeGrid(UCPItemContainerComponent* TargetContainer)
 {
@@ -25,7 +25,7 @@ void UCPContainerGridWidget::InitializeGrid(UCPItemContainerComponent* TargetCon
 
 	ItemGrid->ClearChildren();
 
-	const UCPContainerUISettings* Settings = GetDefault<UCPContainerUISettings>();
+	const UCPContainerSettings* Settings = GetDefault<UCPContainerSettings>();
 	float SlotSize = Settings->SlotSize;
 	float SlotPadding = Settings->SlotPadding;
 
@@ -121,7 +121,7 @@ void UCPContainerGridWidget::UpdateGrid(const TArray<FContainerItem>& ContainerI
 			int32 ItemW = Item.bIsRotated ? Item.Instance.SourceItemData->ContainerSizeY : Item.Instance.SourceItemData->ContainerSizeX;
 			int32 ItemH = Item.bIsRotated ? Item.Instance.SourceItemData->ContainerSizeX : Item.Instance.SourceItemData->ContainerSizeY;
 
-			const UCPContainerUISettings* Settings = GetDefault<UCPContainerUISettings>();
+			const UCPContainerSettings* Settings = GetDefault<UCPContainerSettings>();
 			float SlotSize = Settings->SlotSize;
 			float SlotPadding = Settings->SlotPadding;
 
