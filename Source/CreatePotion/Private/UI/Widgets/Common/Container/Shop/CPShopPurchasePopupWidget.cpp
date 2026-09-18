@@ -87,11 +87,17 @@ void UCPShopPurchasePopupWidget::OnQuantityTextCommitted(const FText& NewText, E
 
 void UCPShopPurchasePopupWidget::OpenForPurchase(UCPItemContainerComponent* InShopContainer, int32 InGridIndex, UCPInventoryComponent* InPlayerInventory)
 {
-	if (!InShopContainer || !InPlayerInventory) return;
+	if (!InShopContainer || !InPlayerInventory)
+	{
+		return;
+	}
 
 	FContainerItem* ShopItem = InShopContainer->ContainerItems.FindByPredicate(
 		[InGridIndex](const FContainerItem& It) { return It.GridIndex == InGridIndex; });
-	if (!ShopItem || !ShopItem->Instance.SourceItemData) return;
+	if (!ShopItem || !ShopItem->Instance.SourceItemData)
+	{
+		return;
+	}
 
 	CurrentMode = EShopPopupMode::Buy;
 	ShopContainer = InShopContainer;
@@ -100,7 +106,10 @@ void UCPShopPurchasePopupWidget::OpenForPurchase(UCPItemContainerComponent* InSh
 	PlayerContainerForSale = nullptr;
 	CurrentQuantity = 1;
 
-	if (ModeTitleText) ModeTitleText->SetText(FText::FromString(TEXT("구매하기")));
+	if (ModeTitleText)
+	{
+		ModeTitleText->SetText(FText::FromString(TEXT("구매하기")));
+	}
 
 	if (QuantitySlider)
 	{
@@ -122,11 +131,17 @@ void UCPShopPurchasePopupWidget::OpenForPurchase(UCPItemContainerComponent* InSh
 
 void UCPShopPurchasePopupWidget::OpenForSale(UCPItemContainerComponent* InPlayerContainer, int32 InGridIndex, UCPItemContainerComponent* InShopContainer, UCPInventoryComponent* InPlayerInventory)
 {
-	if (!InPlayerContainer || !InShopContainer || !InPlayerInventory) return;
+	if (!InPlayerContainer || !InShopContainer || !InPlayerInventory)
+	{
+		return;
+	}
 
 	FContainerItem* PlayerItem = InPlayerContainer->ContainerItems.FindByPredicate(
 		[InGridIndex](const FContainerItem& It) { return It.GridIndex == InGridIndex; });
-	if (!PlayerItem || !PlayerItem->Instance.SourceItemData) return;
+	if (!PlayerItem || !PlayerItem->Instance.SourceItemData)
+	{
+		return;
+	}
 
 	CurrentMode = EShopPopupMode::Sell;
 	PlayerContainerForSale = InPlayerContainer;
@@ -135,7 +150,10 @@ void UCPShopPurchasePopupWidget::OpenForSale(UCPItemContainerComponent* InPlayer
 	PlayerInventory = InPlayerInventory;
 	CurrentQuantity = 1;
 
-	if (ModeTitleText) ModeTitleText->SetText(FText::FromString(TEXT("판매하기")));
+	if (ModeTitleText)
+	{
+		ModeTitleText->SetText(FText::FromString(TEXT("판매하기")));
+	}
 
 	if (QuantitySlider)
 	{
@@ -153,6 +171,11 @@ void UCPShopPurchasePopupWidget::OpenForSale(UCPItemContainerComponent* InPlayer
 
 	SetVisibility(ESlateVisibility::Visible);
 	RefreshDisplay();
+
+	if (CachedUIManager)
+	{
+		CachedUIManager->PlayWidgetSound(OpenSound);
+	}
 }
 
 void UCPShopPurchasePopupWidget::OnQuantityChanged(float NewValue)
@@ -256,6 +279,11 @@ void UCPShopPurchasePopupWidget::OnCancelClicked()
 
 void UCPShopPurchasePopupWidget::ClosePopup()
 {
+	if (CachedUIManager)
+	{
+		CachedUIManager->PlayWidgetSound(CloseSound);
+	}
+
 	SetVisibility(ESlateVisibility::Collapsed);
 	ShopContainer = nullptr;
 	PlayerInventory = nullptr;
