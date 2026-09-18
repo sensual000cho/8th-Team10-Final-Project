@@ -42,13 +42,6 @@ void ACPTutorialActor::BeginPlay()
 		}
 	}
 
-	if (InteractableComponent)
-	{
-		InteractableComponent->SetInteractionPrompt(FText::FromString(TEXT("F : 읽기")));
-		InteractableComponent->SetTargetName(FName("TutorialNote"));
-		InteractableComponent->OnActorInteractionCompleted.AddUniqueDynamic(this, &ACPTutorialActor::HandleInteract);
-	}
-
 	RefreshInteractability();
 
 	if (UWorld* World = GetWorld())
@@ -61,10 +54,6 @@ void ACPTutorialActor::BeginPlay()
 
 void ACPTutorialActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (InteractableComponent)
-	{
-		InteractableComponent->OnActorInteractionCompleted.RemoveDynamic(this, &ACPTutorialActor::HandleInteract);
-	}
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(InteractionRefreshTimerHandle);
@@ -79,7 +68,6 @@ void ACPTutorialActor::RefreshInteractability()
 	UQuestManager* QuestManager = GetGameInstance() ? GetGameInstance()->GetSubsystem<UQuestManager>() : nullptr;
 	if (!QuestManager)
 	{
-		InteractableComponent->SetInteractability(false);
 		return;
 	}
 
@@ -96,7 +84,7 @@ void ACPTutorialActor::RefreshInteractability()
 		bCanInteract = (Type == EQuestCompletionType::Dialogue || Type == EQuestCompletionType::ItemCollection);
 	}
 
-	InteractableComponent->SetInteractability(bCanInteract);
+	
 }
 
 void ACPTutorialActor::HandleInteract(AActor* Interactor)

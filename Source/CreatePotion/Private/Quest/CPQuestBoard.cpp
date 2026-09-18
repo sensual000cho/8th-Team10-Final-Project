@@ -19,23 +19,10 @@ ACPQuestBoard::ACPQuestBoard()
 void ACPQuestBoard::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if (InteractableComponent)
-	{
-		InteractableComponent->SetInteractability(true);
-		InteractableComponent->SetInteractionPrompt(FText::FromString(TEXT("F : 의뢰 확인하기")));
-		InteractableComponent->SetTargetName(FName("QuestBoard"));
-		InteractableComponent->OnActorInteractionCompleted.AddUniqueDynamic(this, &ACPQuestBoard::HandleInteract);
-	}
 }
 
 void ACPQuestBoard::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (InteractableComponent)
-	{
-		InteractableComponent->OnActorInteractionCompleted.RemoveDynamic(this, &ACPQuestBoard::HandleInteract);
-	}
-
 	Super::EndPlay(EndPlayReason);
 }
 

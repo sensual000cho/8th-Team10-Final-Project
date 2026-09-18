@@ -19,23 +19,10 @@ ACPStoryActor::ACPStoryActor()
 void ACPStoryActor::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if (InteractableComponent)
-	{
-		InteractableComponent->SetInteractability(true);
-		InteractableComponent->SetInteractionPrompt(FText::FromString(TEXT("F : 읽기")));
-		InteractableComponent->SetTargetName(FName("StoryText"));
-		InteractableComponent->OnActorInteractionCompleted.AddUniqueDynamic(this, &ACPStoryActor::HandleInteract);
-	}
 }
 
 void ACPStoryActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (InteractableComponent)
-	{
-		InteractableComponent->OnActorInteractionCompleted.RemoveDynamic(this, &ACPStoryActor::HandleInteract);
-	}
-
 	Super::EndPlay(EndPlayReason);
 }
 
