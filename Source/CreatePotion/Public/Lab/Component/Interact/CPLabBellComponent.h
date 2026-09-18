@@ -17,9 +17,8 @@ public:
 	UCPLabBellComponent();
 	
 	// Interact
-	virtual void HandleInteract(AActor* Interactor) override;
+	virtual bool TryInteract(AActor* Interactor) override;
 	virtual bool CanInteract() const override;
-	virtual bool ShouldShowUnavailableInteraction() const override;
 	
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "UI")

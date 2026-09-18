@@ -17,4 +17,7 @@ public:
 	// [공방 전용] 담당할 공방 퀘스트 ID 목록
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Quest")
 	TArray<FName> LabQuestIDs;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Quest")
+	TArray<FName> QuestIDs;
 };

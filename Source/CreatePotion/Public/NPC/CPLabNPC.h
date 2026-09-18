@@ -13,20 +13,12 @@ class CREATEPOTION_API ACPLabNPC : public ACPQuestNPC
 {
 	GENERATED_BODY()
 public:
-	virtual void HandleInteract(AActor* Interactor) override;
-	virtual bool CanInteract(AActor* Interactor) const override;
 	virtual void ShowResultDialogue() override;
 
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-	virtual const TArray<FName>& GetPotionQuestIDs() const override;
-
-	virtual void OnTraceFocusLost() override;
-
 private:
 	void OnResultDialogueClosed();
-
-	bool bWaitingForPotion = false;
 };
