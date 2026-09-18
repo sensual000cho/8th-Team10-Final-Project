@@ -5,6 +5,7 @@
 #include "Engine/LocalPlayer.h"
 #include "CreatePotion.h"   // 로그용 헤더
 
+#include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
 #include "GameInstance/Subsystem/CPContainerSubsystem.h"
 #include "UI/Widgets/Common/Container/CPContainerMainWidget.h"
 
@@ -87,11 +88,8 @@ void UCPInventoryComponent::TryBindInput()
 
 void UCPInventoryComponent::ToggleInventoryUI()
 {
-	UE_LOG(LogTemp, Warning, TEXT("[Inventory] Toggle"));
-
 	if (!InventoryUIInstance)
 	{
-		UE_LOG(LogTemp, Error, TEXT("[Inventory] UI Instance를 찾을 수 없음"));
 		return;
 	}
 
@@ -106,6 +104,12 @@ void UCPInventoryComponent::ToggleInventoryUI()
 	{
 		InventoryUIInstance->SetVisibility(ESlateVisibility::Visible);
 
+
+		if (InventoryUIInstance->CachedUIManager)
+		{
+			InventoryUIInstance->CachedUIManager->PlayWidgetSound(InventoryUIInstance->OpenSound);
+		}
+
 		PC->bShowMouseCursor = true;
 		FInputModeGameAndUI InputMode;
 		InputMode.SetWidgetToFocus(InventoryUIInstance->TakeWidget());
@@ -115,6 +119,11 @@ void UCPInventoryComponent::ToggleInventoryUI()
 	else
 	{
 		InventoryUIInstance->SetVisibility(ESlateVisibility::Collapsed);
+
+		if (InventoryUIInstance->CachedUIManager)
+		{
+			InventoryUIInstance->CachedUIManager->PlayWidgetSound(InventoryUIInstance->CloseSound);
+		}
 
 		PC->bShowMouseCursor = false;
 		FInputModeGameOnly InputMode;
