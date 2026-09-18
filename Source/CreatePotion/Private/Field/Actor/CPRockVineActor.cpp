@@ -1,6 +1,8 @@
 #include "Field/Actor/CPRockVineActor.h"
 #include "AbilitySystemComponent.h"
 #include "NiagaraComponent.h"
+#include "Resource/System/CPObjectPoolSubsystem.h"
+#include "Resource/System/CPResourceStateSubsystem.h"
 
 ACPRockVineActor::ACPRockVineActor()
 {
@@ -71,6 +73,49 @@ bool ACPRockVineActor::PotionReaction(const FGameplayTag& EventTag, AActor* Inst
 bool ACPRockVineActor::CanReactToTag(const FGameplayTag& EventTag) const
 {
 	return Super::CanReactToTag(EventTag);
+}
+
+void ACPRockVineActor::Initialize(const FCPResourceNodeKey& InNodeKey)
+{
+	NodeKey = InNodeKey;
+	
+	ResetRuntimeState();
+}
+
+void ACPRockVineActor::OnAcquireFromPool_Implementation()
+{
+	SetActorHiddenInGame(false);
+	SetActorEnableCollision(true);
+	
+	ResetRuntimeState();
+}
+
+void ACPRockVineActor::OnReleaseToPool_Implementation()
+{
+	bIsScaleTransitioning = false;
+	SetActorTickEnabled(false);
+	SetHeatFXActive(false);
+	SetActorEnableCollision(false);
+	SetActorHiddenInGame(true);
+	
+	NodeKey = FCPResourceNodeKey();
+}
+
+void ACPRockVineActor::ResetRuntimeState()
+{
+	bIsScaleTransitioning = false;
+	
+	ScaleTransitionElapsed = 0.f;
+	ScaleTransitionDuration = 0.f;
+	
+	ScaleTransitionStart.Reset();
+	ScaleTransitionTarget.Reset();
+	
+	SetActorTickEnabled(false);
+	SetHeatFXActive(false);
+	
+	SetOriginalScaleImmediately();
+	SetVinesEnabled(true);
 }
 
 void ACPRockVineActor::BeginPlay()
@@ -150,6 +195,13 @@ void ACPRockVineActor::OnHeatStateChanged(const FGameplayTag Tag, int32 NewCount
 	}
 	
 	SetHeatFXActive(false);
+	
+	if (NodeKey.IsValid())
+	{
+		HandleVineDestroyed();
+		
+		return;
+	}
 	
 	ApplyRespawnEffect();
 }
@@ -271,4 +323,25 @@ void ACPRockVineActor::ApplyRespawnEffect()
 	FGameplayEffectContextHandle Context = AbilitySystemComponent->MakeEffectContext();
 	
 	AbilitySystemComponent->ApplyGameplayEffectToSelf(EffectCDO, 1.f, Context);
+}
+
+void ACPRockVineActor::HandleVineDestroyed()
+{
+	if (NodeKey.IsValid())
+	{
+		UGameInstance* GI = GetGameInstance();
+		if (!GI) return;
+		
+		UCPResourceStateSubsystem* StateSubsystem = GI->GetSubsystem<UCPResourceStateSubsystem>();
+		if (!StateSubsystem) return;
+		
+		StateSubsystem->MarkVineCleared(NodeKey);
+		
+		UCPObjectPoolSubsystem* Pool = GetWorld()->GetSubsystem<UCPObjectPoolSubsystem>();
+		if (!Pool) return;
+		
+		Pool->ReleaseActor(this);
+	}
+	
+	// 스포너에서 생성되지 않은 경우(오브젝트 풀링X인 경우)
 }

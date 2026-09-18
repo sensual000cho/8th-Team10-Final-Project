@@ -62,6 +62,7 @@ float UCPHealthComponent::ApplyDamage(float DamageAmount, AActor* DamageCauser)
 	else if (AppliedDamage > 0.f)
 	{
 		OnDamaged.Broadcast(AppliedDamage, DamageCauser);
+		OnHealthChanged.Broadcast(CurrentHealth, MaxHealth);
 	}
 
 	return AppliedDamage;

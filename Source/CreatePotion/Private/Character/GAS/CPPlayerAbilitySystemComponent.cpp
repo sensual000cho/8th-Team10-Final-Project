@@ -24,13 +24,13 @@ void UCPPlayerAbilitySystemComponent::InitializeAbilitySystem()
 
 	if (!IsValid(OwningActor))
 	{
-		UE_LOG(LogTemp, Error, TEXT("[PlayerASC] OwningActor가 유효하지 않습니다."));
+		// UE_LOG(LogTemp, Error, TEXT("[PlayerASC] OwningActor가 유효하지 않습니다."));
 		return;
 	}
 
 	InitAbilityActorInfo(OwningActor, OwningActor);
 
-	UE_LOG(LogTemp, Log, TEXT("[PlayerASC] ActorInfo 초기화 완료: %s"), *GetNameSafe(OwningActor));
+	// UE_LOG(LogTemp, Log, TEXT("[PlayerASC] ActorInfo 초기화 완료: %s"), *GetNameSafe(OwningActor));
 
 	if (OwningActor->HasAuthority())
 	{
@@ -68,7 +68,7 @@ void UCPPlayerAbilitySystemComponent::GrantStartupAbilities()
 
 		GiveAbility(AbilitySpec);
 
-		UE_LOG(LogTemp, Log, TEXT("[PlayerASC] Startup Ability 부여: %s"), *GetNameSafe(AbilityClass));
+		// UE_LOG(LogTemp, Log, TEXT("[PlayerASC] Startup Ability 부여: %s"), *GetNameSafe(AbilityClass));
 	}
 }
 

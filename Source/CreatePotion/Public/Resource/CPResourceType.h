@@ -64,6 +64,9 @@ public:
 	// 레벨 전환 시 이전의 위치 정보를 저장하기 위한 값
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	int32 Generation = 0;
+	
+	// 덩굴이 없어졌는가
+	bool bVineCleared = false;
 };
 
 // 채집 대상 데이터

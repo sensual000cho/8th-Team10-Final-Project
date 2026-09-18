@@ -41,6 +41,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "CP|Audio|Volume")
 	void SetAmbienceVolume(float Volume);
 
+	void ApplyVolumeSettings(float InMasterVolume, float InSFXVolume, float InBGMVolume, float InUIVolume, float InAmbienceVolume);
+
 	UFUNCTION(BlueprintPure, Category = "CP|Audio|Volume")
 	float GetMasterVolume() const { return MasterVolume; }
 
