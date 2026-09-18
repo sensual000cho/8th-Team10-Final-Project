@@ -12,9 +12,7 @@
 
 #include "EnhancedInputSubsystems.h"	// IMC 바인딩
 #include "EnhancedInputComponent.h"		// IA 바인딩
-#include "Chaos/PBDSuspensionConstraintData.h"
 #include "Components/CPInteractableComponent.h"
-#include "Items/CPBaseInteractableActor.h"
 
 // 에디터에서 콘솔창에 cp.Debug.Interaction를 입력해서 Debug On/Off 가능
 // cp.Debug.Interaction 1 --> Debug On
@@ -105,7 +103,7 @@ void UCPInteractionComponent::PerformTrace()
 {
 	if (!IsValid(Camera) || !IsValid(GetOwner()))
     {
-        ClearCurrentTarget();
+		UpdateCurrentTarget(nullptr);
         return;
     }
 
@@ -113,7 +111,7 @@ void UCPInteractionComponent::PerformTrace()
 
     if (!IsValid(World) || TraceDistance <= 0.f || InteractionSweepRadius <= 0.f)
     {
-        ClearCurrentTarget();
+    	UpdateCurrentTarget(nullptr);
         return;
     }
 
@@ -142,7 +140,7 @@ void UCPInteractionComponent::PerformTrace()
 
     if (DirectionToAim.IsNearlyZero())
     {
-        ClearCurrentTarget();
+    	UpdateCurrentTarget(nullptr);
         return;
     }
 
@@ -172,9 +170,8 @@ void UCPInteractionComponent::PerformTrace()
         QueryParams
     );
 
-	ECPInteractionDisplayState BestDisplayState = ECPInteractionDisplayState::Hidden;
-
-	AActor* BestTarget = bHasInteractionHits ? SelectBestInteractionTarget(InteractionHits, CameraStart, CameraForward, BestDisplayState) : nullptr;
+	AActor* BestTarget = bHasInteractionHits 
+		? SelectBestInteractionTarget(InteractionHits, CameraStart, CameraForward) : nullptr;
 
 #if ENABLE_DRAW_DEBUG
     if (CVarDebugInteraction.GetValueOnGameThread())
@@ -257,26 +254,13 @@ void UCPInteractionComponent::PerformTrace()
     }
 #endif
 
-	UpdateCurrentTarget(BestTarget, BestDisplayState);
-}
-
-void UCPInteractionComponent::ClearCurrentTarget()
-{
-	UpdateCurrentTarget(nullptr, ECPInteractionDisplayState::Hidden);
+	UpdateCurrentTarget(BestTarget);
 }
 
 void UCPInteractionComponent::TryInteract()
 {
 	// 시간형 상호작용 실행중엔 상호작용 Try 하지 않음
-	if (InteractingTarget.IsValid())
-	{
-		return;
-	}
-	
-	if (!CurrentTarget.IsValid())
-	{
-		return;
-	}
+	if (InteractingTarget.IsValid() || !CurrentTarget.IsValid()) return;
 
 	AActor* Target = CurrentTarget.Get();
 	AActor* Interactor = GetOwner();
@@ -292,10 +276,9 @@ void UCPInteractionComponent::TryInteract()
 		return;
 	}
 	
-	// 시간형 인터페이스가 없으면 일반 상호작용 실행
-	InteractableComp->HandleInteract(Interactor);
-	RefreshCurrentTargetPresentation();
-	
+	// 시간형 상호작용이 아니면 즉시 실행
+	InteractableComp->TryInteract(Interactor);
+	UpdateCurrentTarget(CurrentTarget.Get());
 }
 
 void UCPInteractionComponent::StartTimedInteraction(AActor* Target, float Duration)
@@ -325,9 +308,8 @@ void UCPInteractionComponent::StartTimedInteraction(AActor* Target, float Durati
 
 	// AnimBP를 Release 상태로 변경
 	OnInteractionAlignmentStarted.Broadcast();
-
 	OnInteractionProgressChanged.Broadcast(0.f);
-	RefreshCurrentTargetPresentation();
+	UpdateCurrentTarget(CurrentTarget.Get());
 
 	// 이 타이머는 회전하지 않고 유효성만 검사
 	World->GetTimerManager().SetTimer(
@@ -368,10 +350,7 @@ void UCPInteractionComponent::UpdateTimedInteraction()
 void UCPInteractionComponent::CompleteTimedInteraction()
 {
 	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return;
-	}
+	if (!World) return;
 
 	World->GetTimerManager().ClearTimer(InteractionAlignmentTimerHandle);
 	World->GetTimerManager().ClearTimer(InteractionTimerHandle);
@@ -389,21 +368,25 @@ void UCPInteractionComponent::CompleteTimedInteraction()
 	bTimedInteractionAligning = false;
 	InteractionAlignmentElapsedTime = 0.f;
 
-	UCPInteractableComponent* InteractableComp = Target->FindComponentByClass<UCPInteractableComponent>();
-	if (!IsValid(Target) || !IsValid(InteractableComp))
-	{
+	if (!IsValid(Target)){
 		OnInteractionProgressChanged.Broadcast(0.f);
 		OnInteractionCancelled.Broadcast();
-		RefreshCurrentTargetPresentation();
+		UpdateCurrentTarget(CurrentTarget.Get());
+		return;
+	}
+	
+	UCPInteractableComponent* InteractableComp = Target->FindComponentByClass<UCPInteractableComponent>();
+	if (!IsValid(InteractableComp)){
+		OnInteractionProgressChanged.Broadcast(0.f);
+		OnInteractionCancelled.Broadcast();
+		UpdateCurrentTarget(CurrentTarget.Get());
 		return;
 	}
 
-	// 시간이 끝나면 기존 OnInteract 호출
-	//ICPInteractable::Execute_OnInteract(Target, Interactor);
-	InteractableComp->HandleInteract(Interactor);
-	
+	// 시간이 끝나면 상호작용 호출
+	InteractableComp->TryInteract(Interactor);
 	OnInteractionCompleted.Broadcast();
-	RefreshCurrentTargetPresentation();
+	InteractableComp->RefreshUI();
 }
 
 void UCPInteractionComponent::BeginTimedInteraction()
@@ -436,10 +419,8 @@ void UCPInteractionComponent::BeginTimedInteraction()
 	OnInteractionProgressChanged.Broadcast(0.f);
 
 	// 여기에서 처음으로 조사/채집 몽타주 실행
-	InteractableComp->HandleInteractionStarted(Interactor);
-	
-	RefreshCurrentTargetPresentation();
-
+	InteractableComp->BeginTimeInteraction(Interactor);
+	UpdateCurrentTarget(CurrentTarget.Get());
 	World->GetTimerManager().SetTimer(
 		InteractionTimerHandle,
 		this,
@@ -493,143 +474,60 @@ void UCPInteractionComponent::SetActorHighlight(AActor* Target, bool bHighlighte
 	
 }
 
-void UCPInteractionComponent::RefreshCurrentTargetPresentation()
+AActor* UCPInteractionComponent::SelectBestInteractionTarget(const TArray<FHitResult>& InteractionHits, const FVector& CameraLocation, const FVector& CameraForward) const
 {
-	
-	AActor* Target = CurrentTarget.Get();
-	if (!IsValid(Target)) return;
-	
-	AActor* Interactor = GetOwner();
-	UCPInteractableComponent* InteractableComp = Target->FindComponentByClass<UCPInteractableComponent>();
-	
-	if (!IsValid(Interactor) || !IsValid(InteractableComp))
-	{
-		ClearCurrentTarget();
-		return;
-	}
-
-	const ECPInteractionDisplayState NewDisplayState = ResolveInteractionDisplayState(Target, Interactor);
-
-	if (NewDisplayState == ECPInteractionDisplayState::Hidden)
-	{
-		ClearCurrentTarget();
-		return;
-	}
-
-	// Enabled -> Disable 등으로 바뀌면 Update.
-	if (CurrentDisplayState != NewDisplayState)
-	{
-		UpdateCurrentTarget(Target, NewDisplayState);
-		return;
-	}
-
-	InteractableComp->RefreshUI();
-}
-
-AActor* UCPInteractionComponent::SelectBestInteractionTarget(const TArray<FHitResult>& InteractionHits, const FVector& CameraLocation, const FVector& CameraForward, ECPInteractionDisplayState& OutDisplayState) const
-{
-    OutDisplayState = ECPInteractionDisplayState::Hidden;
-
     AActor* OwnerActor = GetOwner();
 
-    if (!IsValid(OwnerActor))
-    {
-        return nullptr;
-    }
+    if (!IsValid(OwnerActor)) return nullptr;
 
-    AActor* BestEnabledTarget = nullptr;
-    AActor* BestDisabledTarget = nullptr;
-
-    float BestEnabledScore = -BIG_NUMBER;
-    float BestDisabledScore = -BIG_NUMBER;
+	AActor* BestEnabledTarget = nullptr;
+	AActor* BestDisabledTarget = nullptr;
+	
+	float BestEnabledScore = -BIG_NUMBER;
+	float BestDisabledScore = -BIG_NUMBER;
 
     TSet<AActor*> ProcessedActors;
 
-    for (const FHitResult& InteractionHit : InteractionHits)
-    {
-        AActor* Candidate = InteractionHit.GetActor();
+    for (const FHitResult& InteractionHit : InteractionHits){
+	    AActor* Candidate = InteractionHit.GetActor();
+    	if (!IsValid(Candidate) || Candidate == OwnerActor || ProcessedActors.Contains(Candidate)) continue;
 
-        if (!IsValid(Candidate) || Candidate == OwnerActor || ProcessedActors.Contains(Candidate))
-        {
-            continue;
-        }
+    	ProcessedActors.Add(Candidate);
+    	
+    	UCPInteractableComponent* InteractableComponent = Candidate->FindComponentByClass<UCPInteractableComponent>();
+    	if (!IsValid(InteractableComponent)) continue;
 
-        ProcessedActors.Add(Candidate);
+    	const FVector TargetLocation = GetInteractionFocusLocation(Candidate);
+    	const FVector DirectionToTarget = (TargetLocation - CameraLocation).GetSafeNormal();
 
-        const ECPInteractionDisplayState CandidateDisplayState = ResolveInteractionDisplayState(Candidate, OwnerActor);
+    	if (DirectionToTarget.IsNearlyZero()) continue;
 
-        if (CandidateDisplayState == ECPInteractionDisplayState::Hidden)
-        {
-            continue;
-        }
+    	const float CameraAlignment = FVector::DotProduct(CameraForward, DirectionToTarget);
 
-        const FVector TargetLocation = GetInteractionFocusLocation(Candidate);
-        const FVector DirectionToTarget = (TargetLocation - CameraLocation).GetSafeNormal();
+    	if (CameraAlignment < MinimumCameraAlignment) continue;
+    	if (!HasLineOfSightToTarget(Candidate, CameraLocation, TargetLocation)) continue;
 
-        if (DirectionToTarget.IsNearlyZero())
-        {
-            continue;
-        }
+    	float CandidateScore = CalculateInteractionScore(InteractionHit, TargetLocation, CameraLocation, CameraForward);
 
-        const float CameraAlignment = FVector::DotProduct(CameraForward, DirectionToTarget);
+    	if (CurrentTarget.Get() == Candidate){
+    		CandidateScore += CurrentTargetScoreBonus;
+    	}
 
-        if (CameraAlignment < MinimumCameraAlignment)
-        {
-            continue;
-        }
-
-        if (!HasLineOfSightToTarget(Candidate, CameraLocation, TargetLocation))
-        {
-            continue;
-        }
-
-        float CandidateScore = CalculateInteractionScore(
-            InteractionHit,
-            TargetLocation,
-            CameraLocation,
-            CameraForward
-        );
-
-        if (CurrentTarget.Get() == Candidate)
-        {
-            CandidateScore += CurrentTargetScoreBonus;
-        }
-
-        if (CandidateDisplayState == ECPInteractionDisplayState::Enabled)
-        {
-            if (CandidateScore > BestEnabledScore)
-            {
-                BestEnabledScore = CandidateScore;
-                BestEnabledTarget = Candidate;
-            }
-
-            continue;
-        }
-
-        if (CandidateDisplayState == ECPInteractionDisplayState::Disabled)
-        {
-            if (CandidateScore > BestDisabledScore)
-            {
-                BestDisabledScore = CandidateScore;
-                BestDisabledTarget = Candidate;
-            }
-        }
+    	if (InteractableComponent->CanInteract()){
+    		if (CandidateScore > BestEnabledScore){
+    			BestEnabledScore = CandidateScore;
+    			BestEnabledTarget = Candidate;
+    		}
+    		continue;
+    	}
+    	
+    	if (CandidateScore > BestDisabledScore){
+    		BestDisabledScore = CandidateScore;
+    		BestDisabledTarget = Candidate;
+    	}
     }
-
-    // 상호작용 가능한 대상이 항상 Disabled 대상보다 우선.
-    if (IsValid(BestEnabledTarget))
-    {
-        OutDisplayState = ECPInteractionDisplayState::Enabled;
-        return BestEnabledTarget;
-    }
-
-    if (IsValid(BestDisabledTarget))
-    {
-        OutDisplayState = ECPInteractionDisplayState::Disabled;
-        return BestDisabledTarget;
-    }
-
-    return nullptr;
+	
+    return IsValid(BestEnabledTarget) ? BestEnabledTarget : BestDisabledTarget;
 }
 
 FVector UCPInteractionComponent::GetInteractionFocusLocation(const AActor* Target) const
@@ -704,82 +602,38 @@ float UCPInteractionComponent::CalculateInteractionScore(const FHitResult& HitRe
 	return AlignmentScore * AlignmentScoreWeight + DistanceScore * DistanceScoreWeight;
 }
 
-void UCPInteractionComponent::UpdateCurrentTarget(AActor* NewTarget, ECPInteractionDisplayState NewDisplayState)
+void UCPInteractionComponent::UpdateCurrentTarget(AActor* NewTarget)
 {
-	if (!IsValid(NewTarget) || NewDisplayState == ECPInteractionDisplayState::Hidden)
-	{
+	if (!IsValid(NewTarget)){
 		NewTarget = nullptr;
-		NewDisplayState = ECPInteractionDisplayState::Hidden;
 	}
-
-	const bool bSameTarget = CurrentTarget.Get() == NewTarget;
-	const bool bSameDisplayState = CurrentDisplayState == NewDisplayState;
-
-	if (bSameTarget && bSameDisplayState)
-	{
+	
+	if (CurrentTarget.Get() == NewTarget){
+		if (!IsValid(NewTarget)) return;
+		
+		UCPInteractableComponent* CurrentComp = NewTarget->FindComponentByClass<UCPInteractableComponent>();
+		if (!IsValid(CurrentComp)) return;
+		
+		CurrentComp->RefreshUI();
 		return;
 	}
-
+	
 	if (AActor* PreviousTarget = CurrentTarget.Get())
 	{
 		SetActorHighlight(PreviousTarget, false);
-		if (UCPInteractableComponent* PrevComp = PreviousTarget->FindComponentByClass<UCPInteractableComponent>())
-		{
+		if (UCPInteractableComponent* PrevComp = PreviousTarget->FindComponentByClass<UCPInteractableComponent>()){
 			PrevComp->EndFocus(GetOwner());
 		}
 	}
 
 	CurrentTarget = NewTarget;
-	CurrentDisplayState = NewDisplayState;
-	
-	if (!IsValid(NewTarget))
-	{
-		return;
-	}
+	if (!IsValid(NewTarget)) return;
 	
 	UCPInteractableComponent* NewComp = NewTarget->FindComponentByClass<UCPInteractableComponent>();
 	if (!IsValid(NewComp)) return;
 	
-	if (CurrentDisplayState == ECPInteractionDisplayState::Enabled ||
-		CurrentDisplayState == ECPInteractionDisplayState::Disabled)
-	{
-		SetActorHighlight(NewTarget, true);
-		
-		if (ACPBaseInteractableActor* TargetActor = Cast<ACPBaseInteractableActor>(NewTarget))
-		{
-			TargetActor->CheckInteractionConditions();
-		}
-		
-		NewComp->SetDisplayState(NewDisplayState);
-		NewComp->RefreshUI();
-		NewComp->BeginFocus(GetOwner());
-	}
-	
-}
-
-ECPInteractionDisplayState UCPInteractionComponent::ResolveInteractionDisplayState(AActor* Target, AActor* Interactor) const
-{
-	if (!IsValid(Target) || !IsValid(Interactor))
-	{
-		return ECPInteractionDisplayState::Hidden;
-	}
-	
-	if (UCPInteractableComponent* InteractableComp = Target->FindComponentByClass<UCPInteractableComponent>())
-	{
-		if (InteractableComp->CanInteract())
-		{
-			return ECPInteractionDisplayState::Enabled;	
-		}
-		else
-		{
-			if (InteractableComp->ShouldShowUnavailableInteraction())
-			{
-				return ECPInteractionDisplayState::Disabled;
-			}
-		}
-	}
-	
-	return ECPInteractionDisplayState::Hidden;
+	SetActorHighlight(NewTarget, true);
+	NewComp->BeginFocus(GetOwner());
 }
 
 bool UCPInteractionComponent::HasInteractorMoved() const
@@ -824,8 +678,7 @@ void UCPInteractionComponent::CancelTimedInteraction()
 
 	OnInteractionProgressChanged.Broadcast(0.f);
 	OnInteractionCancelled.Broadcast();
-
-	RefreshCurrentTargetPresentation();
+	UpdateCurrentTarget(CurrentTarget.Get());
 }
 
 FRotator UCPInteractionComponent::MakeInteractionFacingRotation(const AActor* Target) const

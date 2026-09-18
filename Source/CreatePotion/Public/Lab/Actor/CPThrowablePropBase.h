@@ -3,10 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Items/CPBaseInteractableActor.h"
+#include "GameFramework/Actor.h"
 #include "Types/CPItemInstanceTypes.h"
 #include "CPThrowablePropBase.generated.h"
 
+class UCPThrowableComponent;
 class UCPForageableItemData;
 class USceneComponent;
 class UStaticMeshComponent;
@@ -22,7 +23,7 @@ enum class ECPThrowablePropState : uint8
 };
 
 UCLASS(Abstract)
-class CREATEPOTION_API ACPThrowablePropBase : public ACPBaseInteractableActor
+class CREATEPOTION_API ACPThrowablePropBase : public AActor
 {
     GENERATED_BODY()
 
@@ -31,11 +32,6 @@ public:
 
     virtual void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-
-    virtual void HandleInteract(AActor* Interactor) override;
-    virtual bool EvaluateInteractability_Implementation() const override;
-    virtual FName EvaluateTargetName_Implementation() const override;
-    virtual FText EvaluateInteractionPrompt_Implementation() const override;
     
     virtual void InitializeFromItemData(UCPForageableItemData* ItemData, const TArray<FGameplayTag>& EffectTags = TArray<FGameplayTag>());
     const FCPItemInstance& GetWorkingIngredient() const;
@@ -81,6 +77,9 @@ protected:
     void HandleMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& HitResult);
 
 protected:
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+    TObjectPtr<UCPThrowableComponent> InteractableComponent;
+    
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Prop")
     TObjectPtr<UStaticMeshComponent> StaticMeshComponent;
 
