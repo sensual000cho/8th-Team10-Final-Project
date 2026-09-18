@@ -7,6 +7,7 @@
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 #include "Settings/CPAudioSettings.h"
+#include "Settings/CPGameUserSettings.h"
 #include "Sound/SoundClass.h"
 #include "Sound/SoundMix.h"
 #include "UObject/UObjectGlobals.h"
@@ -27,7 +28,15 @@ void UCPAudioSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	VolumeFadeTime = FMath::Max(AudioSettings->VolumeFadeTime, 0.0f);
 
 	PostLoadMapHandle = FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &ThisClass::HandlePostLoadMap);
-	ApplyVolumeMixForCurrentWorld();
+
+	if (const UCPGameUserSettings* UserSettings = UCPGameUserSettings::GetCPGameUserSettings())
+	{
+		ApplyVolumeSettings(UserSettings->GetMasterVolume(), UserSettings->GetSFXVolume(), UserSettings->GetBGMVolume(), UserSettings->GetUIVolume(), UserSettings->GetAmbienceVolume());
+	}
+	else
+	{
+		ApplyVolumeMixForCurrentWorld();
+	}
 }
 
 void UCPAudioSubsystem::Deinitialize()
@@ -70,6 +79,16 @@ void UCPAudioSubsystem::SetUIVolume(float Volume)
 void UCPAudioSubsystem::SetAmbienceVolume(float Volume)
 {
 	AmbienceVolume = FMath::Clamp(Volume, 0.0f, 1.0f);
+	ApplyVolumeMixForCurrentWorld();
+}
+
+void UCPAudioSubsystem::ApplyVolumeSettings(float InMasterVolume, float InSFXVolume, float InBGMVolume, float InUIVolume, float InAmbienceVolume)
+{
+	MasterVolume = FMath::Clamp(InMasterVolume, 0.0f, 1.0f);
+	SFXVolume = FMath::Clamp(InSFXVolume, 0.0f, 1.0f);
+	BGMVolume = FMath::Clamp(InBGMVolume, 0.0f, 1.0f);
+	UIVolume = FMath::Clamp(InUIVolume, 0.0f, 1.0f);
+	AmbienceVolume = FMath::Clamp(InAmbienceVolume, 0.0f, 1.0f);
 	ApplyVolumeMixForCurrentWorld();
 }
 
