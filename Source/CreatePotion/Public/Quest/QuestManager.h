@@ -227,6 +227,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	void GetRequiredItemInfo(FName QuestID, TArray<FName>& OutItemIDs, int32& OutRequiredCount) const;
 
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	FText GetItemProgressText(FName QuestID, const TMap<FName, int32>& HeldItemCounts) const;
+
 	// 퀘스트가 찾아야 하는 대상 식별자 조회
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	FName GetTargetIdentifier(FName QuestID) const;
