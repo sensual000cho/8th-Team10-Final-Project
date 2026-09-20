@@ -1,7 +1,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "CPBaseInteractableActor.h"
 #include "GameCore/Interface/CPPoolable.h"
 #include "GameFramework/Actor.h"
 #include "CPDroppedItemBase.generated.h"
@@ -15,18 +14,12 @@ class UWidgetComponent;
 
 // 바닥에 떨구는 아이템 베이스 액터
 UCLASS()
-class CREATEPOTION_API ACPDroppedItemBase : public ACPBaseInteractableActor, public ICPPoolable
+class CREATEPOTION_API ACPDroppedItemBase : public AActor, public ICPPoolable
 {
 	GENERATED_BODY()
 	
 public:	
 	ACPDroppedItemBase();
-	
-	// 초기화
-	
-	// 상호작용 컴포넌트 관련
-	void HandleInteract(AActor* Interactor) override;
-	
 	// 오브젝트 풀링 인터페이스 관련
 	virtual void OnAcquireFromPool_Implementation() override;
 	

@@ -7,9 +7,7 @@
 #include "CPInteractionPromptWidget.generated.h"
 
 enum class ECPInteractionDisplayState : uint8;
-class UCPInteractionComponent;
 class UTextBlock;
-class UBorder;
 class UImage;
 /**
  * 
@@ -38,9 +36,6 @@ protected:
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> TextBlock_InteractionPrompt;
-	
-	UPROPERTY()
-	UCPInteractionComponent* BoundInteractionComponent;
 	
 private:
 	FLinearColor DefaultInputKeyColor;
