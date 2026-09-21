@@ -24,6 +24,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "ItemWheel")
 	void HandleScrollInput(float ScrollDelta);
 
+	bool TryScrollAndPickNextFocus(float ScrollDelta, int32& OutGridIndex);
+
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;

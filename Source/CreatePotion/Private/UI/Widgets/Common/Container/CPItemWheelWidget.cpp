@@ -265,3 +265,25 @@ void UCPItemWheelWidget::HandleScrollInput(float ScrollDelta)
 
 	ShowWheelTemporarily();
 }
+
+bool UCPItemWheelWidget::TryScrollAndPickNextFocus(float ScrollDelta, int32& OutGridIndex)
+{
+	if (PotionArrayIndices.Num() == 0 || PendingDirection != 0)
+	{
+		return false; // 이미 슬라이드 진행 중이면 무시 (연타 방지)
+	}
+
+	int32 Direction = (ScrollDelta > 0.f) ? 1 : -1;
+	int32 Count = PotionArrayIndices.Num();
+	int32 NextListIndex = (FocusedListIndex + Direction + Count) % Count;
+
+	// 애니메이션은 기존 HandleScrollInput과 동일하게 시작
+	PendingDirection = Direction;
+	SlideProgress = 0.f;
+	ShowWheelTemporarily();
+
+	// 애니메이션 완료를 기다리지 않고 "이동할 목표"의 GridIndex를 미리 계산해서 반환
+	int32 ArrayIdx = PotionArrayIndices[NextListIndex];
+	OutGridIndex = BoundInventory->ContainerItems[ArrayIdx].GridIndex;
+	return true;
+}
