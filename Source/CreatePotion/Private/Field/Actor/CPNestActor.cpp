@@ -14,8 +14,11 @@ bool ACPNestActor::PotionReaction(const FGameplayTag& EventTag, AActor* Instigat
 	Super::PotionReaction(EventTag, InstigatorActor);
 	
 	if (!DropItemData) return false;
+
 	if (DropItemData->HarvestData.HarvestAmount <= 0) return false;
+
 	if (!DropItemData->Mesh) return false;
+
 	if (!DropItemData->HarvestData.HarvestedItem) return false;
 	
 	UWorld* World = GetWorld();
@@ -46,9 +49,4 @@ bool ACPNestActor::PotionReaction(const FGameplayTag& EventTag, AActor* Instigat
 	Destroy();
 	
 	return true;
-}
-
-bool ACPNestActor::CanReactToTag(const FGameplayTag& EventTag) const
-{
-	return Super::CanReactToTag(EventTag);
 }

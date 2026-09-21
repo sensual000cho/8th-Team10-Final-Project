@@ -70,11 +70,6 @@ bool ACPRockVineActor::PotionReaction(const FGameplayTag& EventTag, AActor* Inst
 	return Super::PotionReaction(EventTag, InstigatorActor);
 }
 
-bool ACPRockVineActor::CanReactToTag(const FGameplayTag& EventTag) const
-{
-	return Super::CanReactToTag(EventTag);
-}
-
 void ACPRockVineActor::Initialize(const FCPResourceNodeKey& InNodeKey)
 {
 	NodeKey = InNodeKey;
