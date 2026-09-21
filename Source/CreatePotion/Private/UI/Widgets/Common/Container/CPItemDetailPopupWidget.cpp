@@ -17,11 +17,9 @@ void UCPItemDetailPopupWidget::NativeTick(const FGeometry& MyGeometry, float InD
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
 
-	// 보이는 동안 마우스를 따라다님
 	if (GetVisibility() != ESlateVisibility::Collapsed)
 	{
-		FVector2D MousePos = UWidgetLayoutLibrary::GetMousePositionOnViewport(this);
-		SetPositionInViewport(MousePos + FVector2D(20.f, 20.f), false); // 커서에 가려지지 않게 살짝 오프셋
+		UpdatePositionToMouse();
 	}
 }
 
@@ -61,6 +59,14 @@ void UCPItemDetailPopupWidget::ShowDetail(const FCPItemInstance& Instance)
 
 	SetAlignmentInViewport(FVector2D(0.f, 0.f));
 	SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+
+	UpdatePositionToMouse();
+}
+
+void UCPItemDetailPopupWidget::UpdatePositionToMouse()
+{
+	FVector2D MousePos = UWidgetLayoutLibrary::GetMousePositionOnViewport(this);
+	SetPositionInViewport(MousePos + FVector2D(20.f, 20.f), false);
 }
 
 void UCPItemDetailPopupWidget::HideDetail()

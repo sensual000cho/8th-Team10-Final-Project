@@ -24,6 +24,9 @@ protected:
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override; // 추가 - 보이는 동안 마우스를 따라다님
 
 private:
+	void UpdatePositionToMouse();
+
+private:
 	UPROPERTY(EditDefaultsOnly, Category = "ItemDetail")
 	float AutoHideDelay = 10.0f;
 
