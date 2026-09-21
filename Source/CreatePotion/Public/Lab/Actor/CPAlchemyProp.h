@@ -17,8 +17,6 @@ public:
 	ACPAlchemyProp();
 
 	virtual void Tick(float DeltaSeconds) override;
-	
-	virtual FName EvaluateTargetName_Implementation() const override;
 
 protected:
 	virtual void BeginPlay() override;

@@ -32,14 +32,6 @@ void UCPLabCarriedIngredientWidget::BindEvents()
 
 void UCPLabCarriedIngredientWidget::UnbindEvents()
 {
-	if (BoundInteractionComponent.IsValid())
-	{
-		BoundInteractionComponent->OnPromptChanged.RemoveDynamic(
-			this,
-			&UCPLabCarriedIngredientWidget::HandleInteractionFocusChanged);
-	}
-
-	BoundInteractionComponent.Reset();
 	HeldProp.Reset();
 
 	if (IsValid(BoundCarryComponent))

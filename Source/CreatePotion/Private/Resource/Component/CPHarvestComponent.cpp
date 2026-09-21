@@ -1,39 +1,92 @@
 #include "Resource/Component/CPHarvestComponent.h"
+
 #include "Components/CPInventoryComponent.h"
-#include "Items/CPDroppedItemBase.h"
+#include "Data/CPResourceDefinition.h"
+#include "GameInstance/Subsystem/CPCodexSubsystem.h"
 #include "Resource/System/CPObjectPoolSubsystem.h"
+#include "Resource/System/CPResourceStateSubsystem.h"
 
 UCPHarvestComponent::UCPHarvestComponent()
 {
-	PrimaryComponentTick.bCanEverTick = false;
 }
 
-void UCPHarvestComponent::Initialize(UCPForageableItemData* InItemData, int32 InAmount)
+void UCPHarvestComponent::Initialize(const FCPResourceNodeKey& InNodeKey, UCPResourceDefinition* InDefinition,
+                                     int32 InHarvestMultiplier)
 {
-	ItemData = InItemData;
-	Amount = InAmount;
+	NodeKey = InNodeKey;
+	ResourceDefinition = InDefinition;
+	HarvestMultiplier = FMath::Max(1, InHarvestMultiplier);
+	
+	if (!IsValid(ResourceDefinition) || !IsValid(ResourceDefinition->HarvestData.HarvestedItem)){
+		TargetName = NAME_None;
+		InteractionPrompt = FText::GetEmpty();
+		InteractionDuration = 0.f;
+		RefreshUI();
+		return;
+	}
+	
+	TargetName = FName(*ResourceDefinition->HarvestData.HarvestedItem->DisplayName.ToString());
+	InteractionDuration = ResourceDefinition->HarvestData.HarvestDuration;
+
+	RefreshUI();
 }
 
-bool UCPHarvestComponent::TryHarvest(AActor* Interactor)
+void UCPHarvestComponent::BeginFocus(AActor* Interactor)
 {
-	if (!Interactor) return false;
+	if (IsValid(ResourceDefinition) && IsValid(ResourceDefinition->HarvestData.HarvestedItem)){
+		InteractionPrompt = FText::FromString(TEXT("채집하기"));
+	}
 	
-	AActor* Owner = GetOwner();
-	if (!Owner) return false;
+	Super::BeginFocus(Interactor);
+}
+
+bool UCPHarvestComponent::CanInteract() const
+{
+	return IsValid(ResourceDefinition) 
+		&& IsValid(ResourceDefinition->HarvestData.HarvestedItem) 
+		&& ResourceDefinition->HarvestData.HarvestAmount * HarvestMultiplier > 0;
+}
+
+void UCPHarvestComponent::BeginTimeInteraction(AActor* Interactor)
+{
+	Super::BeginTimeInteraction(Interactor);
 	
-	if (!ItemData) return false;
-	if (Amount <= 0) return false;
+	if (!IsValid(Interactor) || !CanInteract()) return;
 	
-	UWorld* World = GetWorld();
-	if (!World) return false;
+	USkeletalMeshComponent* CharacterMesh = Interactor->FindComponentByClass<USkeletalMeshComponent>();
+	UAnimInstance* AnimInstance = IsValid(CharacterMesh) ? CharacterMesh->GetAnimInstance() : nullptr;
+	if (!IsValid(AnimInstance) || !IsValid(HarvestMontage)) return;
 	
-	UCPObjectPoolSubsystem* Pool = World->GetSubsystem<UCPObjectPoolSubsystem>();
-	if (!Pool) return false;
+	AnimInstance->Montage_Play(HarvestMontage);
+}
+
+bool UCPHarvestComponent::TryInteract(AActor* Interactor)
+{
+	if (!Super::TryInteract(Interactor) || !CanInteract() || !IsValid(Interactor)) return false;
+	
+	UGameInstance* GI = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+	if (!GI) return false;
+	
+	UCPCodexSubsystem* CodexSubsystem = GI->GetSubsystem<UCPCodexSubsystem>();
+	if (CodexSubsystem){
+		CodexSubsystem->RecordForageableEntry(ResourceDefinition->HarvestData.HarvestedItem);
+	}
 	
 	UCPInventoryComponent* Inventory = Interactor->FindComponentByClass<UCPInventoryComponent>();
 	if (!Inventory) return false;
 	
-	Inventory->TryGetItemFromData(ItemData, Amount);
+	const int32 Amount = ResourceDefinition->HarvestData.HarvestAmount * HarvestMultiplier;
+	const int32 LeftOverCount = Inventory->TryGetItemFromData(ResourceDefinition->HarvestData.HarvestedItem, Amount);
+	if (LeftOverCount != 0) return false;
+	
+	UCPResourceStateSubsystem* StateSubsystem = GI->GetSubsystem<UCPResourceStateSubsystem>();
+	if (!StateSubsystem) return false;
+	
+	StateSubsystem->MarkHarvested(NodeKey, ResourceDefinition->RespawnDuration);
+	UCPObjectPoolSubsystem* Pool = GetWorld() ? GetWorld()->GetSubsystem<UCPObjectPoolSubsystem>() : nullptr;
+	if (Pool){
+		Pool->ReleaseActor(GetOwner());
+	}
 	
 	return true;
 }

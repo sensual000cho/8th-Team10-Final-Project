@@ -14,8 +14,6 @@ enum class ECPInteractionDisplayState : uint8
 	Enabled   // 정상 UI, 노란 하이라이트
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnPromptChanged, FText, Prompt, FName, TargetName, ECPInteractionDisplayState, DisplayState);
-
 // 상호작용 프로그레스 델리게이트
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInteractionProgressChanged, float, Progress);
 
@@ -42,10 +40,6 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
 	void TryInteract();
-	
-	// PromptWidget
-	UPROPERTY(BlueprintAssignable)
-	FOnPromptChanged OnPromptChanged;
 	
 	// ProgressBar, PlayerBP
 	UPROPERTY(BlueprintAssignable)
@@ -130,15 +124,13 @@ private:
 	void PerformTrace(); // 타이머로 주기 실행
 	
 	// 상호작용 보완 함수들
-	AActor* SelectBestInteractionTarget(const TArray<FHitResult>& InteractionHits, const FVector& CameraLocation, const FVector& CameraForward, ECPInteractionDisplayState& OutDisplayState) const;
-	ECPInteractionDisplayState ResolveInteractionDisplayState(AActor* Target, AActor* Interactor) const;
+	AActor* SelectBestInteractionTarget(const TArray<FHitResult>& InteractionHits, const FVector& CameraLocation, const FVector& CameraForward) const;
 	
 	FVector GetInteractionFocusLocation(const AActor* Target) const;
 	bool HasLineOfSightToTarget(const AActor* Target, const FVector& CameraLocation, const FVector& TargetLocation) const;
 	float CalculateInteractionScore(const FHitResult& HitResult, const FVector& TargetLocation, const FVector& CameraLocation, const FVector& CameraForward) const;
 	
-	void UpdateCurrentTarget(AActor* NewTarget, ECPInteractionDisplayState NewDisplayState);
-	void ClearCurrentTarget();
+	void UpdateCurrentTarget(AActor* NewTarget);
 	
 	// --- Timed Interaction ---
 	void StartTimedInteraction(AActor* Target, float Duration);
@@ -154,9 +146,6 @@ private:
 	
 	// --- 상호작용 대상 Highlight ---
 	void SetActorHighlight(AActor* Target, bool bHighlighted);
-	
-	// UI Refresh 함수
-	void RefreshCurrentTargetPresentation();
 	
 	// 상호작용 취소 함수
 	void CancelTimedInteraction();
@@ -202,10 +191,6 @@ private:
 	// 현재 조준 중인 대상
 	UPROPERTY()
 	TWeakObjectPtr<AActor> CurrentTarget;
-	
-	// 현재 Display 상태
-	UPROPERTY(VisibleInstanceOnly, Category = "Interaction")
-	ECPInteractionDisplayState CurrentDisplayState = ECPInteractionDisplayState::Hidden;
 	
 	// 현재 시간형 상호작용 중인 대상
 	UPROPERTY()
