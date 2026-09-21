@@ -35,16 +35,10 @@ class CREATEPOTION_API ACPPlayerController : public APlayerController
 public:
 	friend class UCPContainerContextBase;	// private 멤버 변수에 접근할 수 있도록
 
-#pragma region MouseWheel
-	UFUNCTION(BlueprintCallable, Category = "Input|Mode")
-	void SetWheelInputMode(EWheelInputMode NewMode);
-
-	UFUNCTION(BlueprintCallable, Category = "Input|Mode")
-	void CycleWheelInputMode();
-
+#pragma region Wheel
 private:
 	void OnItemWheelScroll(const FInputActionValue& Value);
-	void OnEquipFocusedItem(const FInputActionValue& Value);
+	void EquipItemAtGridIndex(int32 GridIndex);
 
 public:
 	UPROPERTY(EditAnywhere, Category = "Input|Wheel")
@@ -53,18 +47,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Input|Wheel")
 	UInputAction* IA_EquipFocusedItem; // 휠 클릭
 
-	UPROPERTY(EditAnywhere, Category = "Input|Wheel")
-	UInputAction* IA_CycleWheelMode;
-
 protected:
 	UPROPERTY(EditAnywhere, Category = "Input|Wheel")
 	UInputMappingContext* IMC_PotionWheel;
-
-	UPROPERTY(EditAnywhere, Category = "Input|Wheel")
-	UInputMappingContext* IMC_IngredientWheel;
-
-private:
-	EWheelInputMode CurrentWheelMode = EWheelInputMode::CameraZoom;
 #pragma endregion
 
 protected:
@@ -142,10 +127,6 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Container|UI")
 	TSubclassOf<UCPItemWheelWidget> ItemWheelWidgetClass;
-
-	UPROPERTY(EditAnywhere, Category = "Input|Wheel")
-	TSubclassOf<class UCPWheelModeIndicatorWidget> WheelModeIndicatorWidgetClass;
-
 protected:
 	// 현재 화면에 떠 있는 외부 컨테이너 UI 인스턴스 (Lab, Storage, Shop 공용)
 	UPROPERTY()
@@ -157,9 +138,6 @@ private:
 
 	UPROPERTY()
 	UCPHandHeldItemWidget* HandHeldItemWidgetInstance;
-
-	UPROPERTY()
-	UCPWheelModeIndicatorWidget* WheelModeIndicatorInstance;
 
 	// 마우스 클릭으로 "현재 들고 있는 아이템"을 우클릭 등으로 취소할 경우 되돌아갈 기존 Container
 	UPROPERTY()

@@ -12,14 +12,13 @@
 #include "NPC/Components/CPShopContainerComponent.h"
 
 #include "CreatePotion.h"   // 로그용 헤더
+#include "Character/CPCarryComponent.h"
 #include "UI/Widgets/Common/Container/CPContainerMainWidget.h"
 #include "UI/Widgets/Common/Container/CPContainerGridWidget.h"
 #include "UI/Widgets/Common/Container/CPHandHeldItemWidget.h"
 #include "UI/Widgets/Common/Container/CPItemWheelWidget.h"
-#include "UI/Widgets/Common/Container/CPWheelModeIndicatorWidget.h"
 #include "UI/Widgets/Common/Container/Shop/CPShopPurchasePopupWidget.h"
 #include "UI/Widgets/Common/Container/CPItemDetailPopupWidget.h"
-
 #include "Components/CPItemContainerComponent.h"
 #include "Components/CPInventoryComponent.h"
 #include "Components/CPHandItemContainerComponent.h"
@@ -28,55 +27,6 @@
 //디버그용 포션 Spawn 용 include
 #include "Character/CPCarryComponent.h"
 #include "Lab/Actor/CPPotionActor.h"
-
-
-void ACPPlayerController::SetWheelInputMode(EWheelInputMode NewMode)
-{
-	if (CurrentWheelMode == NewMode)
-	{
-		return;
-	}
-
-	UEnhancedInputLocalPlayerSubsystem* Subsystem =
-		ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
-	if (!Subsystem)
-	{
-		return;
-	}
-
-	// 이전에 켜져 있던 전용 IMC만 끔 (캐릭터 BP가 등록한 기본 줌 IMC는 절대 건드리지 않음)
-	if (CurrentWheelMode == EWheelInputMode::PotionSelect && IMC_PotionWheel)
-	{
-		Subsystem->RemoveMappingContext(IMC_PotionWheel);
-	}
-	else if (CurrentWheelMode == EWheelInputMode::IngredientSelect && IMC_IngredientWheel)
-	{
-		Subsystem->RemoveMappingContext(IMC_IngredientWheel);
-	}
-
-	CurrentWheelMode = NewMode;
-
-	// 새 모드의 전용 IMC를 더 높은 우선순위로 등록
-	if (NewMode == EWheelInputMode::PotionSelect && IMC_PotionWheel)
-	{
-		Subsystem->AddMappingContext(IMC_PotionWheel, 10); // 캐릭터 IMC보다 높게
-	}
-	else if (NewMode == EWheelInputMode::IngredientSelect && IMC_IngredientWheel)
-	{
-		Subsystem->AddMappingContext(IMC_IngredientWheel, 10);
-	}
-}
-
-void ACPPlayerController::CycleWheelInputMode()
-{
-	uint8 NextModeValue = (static_cast<uint8>(CurrentWheelMode) + 1) % 3;
-	SetWheelInputMode(static_cast<EWheelInputMode>(NextModeValue));
-
-	if (WheelModeIndicatorInstance)
-	{
-		WheelModeIndicatorInstance->ShowMode(CurrentWheelMode);
-	}
-}
 
 void ACPPlayerController::BeginPlay()
 {
@@ -99,6 +49,11 @@ void ACPPlayerController::SetupInputComponent()
 			{
 				Subsystem->AddMappingContext(CurrentContext, 0);
 			}
+
+			if (IMC_PotionWheel)
+			{
+				Subsystem->AddMappingContext(IMC_PotionWheel, 10);
+			}
 		}
 	}
 
@@ -107,16 +62,6 @@ void ACPPlayerController::SetupInputComponent()
 		if (IA_ScrollItem)
 		{
 			EIC->BindAction(IA_ScrollItem, ETriggerEvent::Triggered, this, &ACPPlayerController::OnItemWheelScroll);
-		}
-
-		if (IA_EquipFocusedItem)
-		{
-			EIC->BindAction(IA_EquipFocusedItem, ETriggerEvent::Started, this, &ACPPlayerController::OnEquipFocusedItem);
-		}
-
-		if (IA_CycleWheelMode)
-		{
-			EIC->BindAction(IA_CycleWheelMode, ETriggerEvent::Started, this, &ACPPlayerController::CycleWheelInputMode);
 		}
 
 		if (IA_CarryHeldProp)
@@ -128,28 +73,29 @@ void ACPPlayerController::SetupInputComponent()
 
 void ACPPlayerController::OnItemWheelScroll(const FInputActionValue& Value)
 {
-	if (ItemWheelWidgetInstance)
-	{
-		ItemWheelWidgetInstance->HandleScrollInput(Value.Get<float>());
-	}
-}
-
-void ACPPlayerController::OnEquipFocusedItem(const FInputActionValue& Value)
-{
-	if (!ItemWheelWidgetInstance || !CachedInventoryComponent)
+	if (!ItemWheelWidgetInstance)
 	{
 		return;
 	}
 
-	int32 FocusedGridIndex;
-	if (!ItemWheelWidgetInstance->GetFocusedPotionGridIndex(FocusedGridIndex))
+	int32 TargetGridIndex;
+	if (!ItemWheelWidgetInstance->TryScrollAndPickNextFocus(Value.Get<float>(), TargetGridIndex))
 	{
-		return; // 휠에 아무것도 없으면 할 일 없음
+		return; // 슬라이드 진행 중이거나 포션이 없으면 아무 것도 안 함
 	}
 
-	// GridIndex로 실제 아이템 데이터 찾기
+	EquipItemAtGridIndex(TargetGridIndex);
+}
+
+void ACPPlayerController::EquipItemAtGridIndex(int32 GridIndex)
+{
+	if (!CachedInventoryComponent)
+	{
+		return;
+	}
+
 	FContainerItem* FoundItem = CachedInventoryComponent->ContainerItems.FindByPredicate(
-		[FocusedGridIndex](const FContainerItem& It) { return It.GridIndex == FocusedGridIndex; });
+		[GridIndex](const FContainerItem& It) { return It.GridIndex == GridIndex; });
 
 	if (!FoundItem || !FoundItem->Instance.SourceItemData)
 	{
@@ -164,9 +110,19 @@ void ACPPlayerController::OnEquipFocusedItem(const FInputActionValue& Value)
 	}
 
 	UCPCarryComponent* CarryComponent = ControlledPawn->FindComponentByClass<UCPCarryComponent>();
-	if (!CarryComponent || CarryComponent->HasHeldProp())
+	if (!CarryComponent)
 	{
-		return; // 이미 손에 뭔가 들고 있으면 장착 불가
+		return;
+	}
+
+	if (CarryComponent->HasHeldProp())
+	{
+		if (!CarryComponent->ConsumeHeldPropToInventory(CachedInventoryComponent))
+		{
+			// TODO[Container] : 인벤토리 공간이 없어서 되돌리기 자체가 실패하면 새 장착도 포기
+			UE_LOG(LogContainer, Warning, TEXT("[ItemWheel] 인벤토리 공간 부족으로 기존 포션 수납 실패, 교체 취소"));
+			return;
+		}
 	}
 
 	UCPForageableItemData* PotionData = FoundItem->Instance.SourceItemData;
@@ -194,8 +150,7 @@ void ACPPlayerController::OnEquipFocusedItem(const FInputActionValue& Value)
 		return;
 	}
 
-	// 장착 성공했으니 인벤토리에서 1개 차감
-	CachedInventoryComponent->RemoveItemFromContainer(FocusedGridIndex, 1);
+	CachedInventoryComponent->RemoveItemFromContainer(GridIndex, 1);
 }
 
 // TODO[Container] : 추후 멀티플레이 확장시 Dedicated Server 환경에서 Client들은 실행이 되지 않음
@@ -246,20 +201,6 @@ void ACPPlayerController::SetPawn(APawn* InPawn)
 
 			UE_LOG(LogContainer, Log, TEXT("아이템 집기 컴포넌트 캐싱 및 UI 바인딩 완료"));
 		}
-
-		if (WheelModeIndicatorWidgetClass && !WheelModeIndicatorInstance)
-		{
-			WheelModeIndicatorInstance = CreateWidget<UCPWheelModeIndicatorWidget>(this, WheelModeIndicatorWidgetClass);
-			if (WheelModeIndicatorInstance)
-			{
-				WheelModeIndicatorInstance->AddToViewport();
-			}
-		}
-		else
-		{
-			UE_LOG(LogContainer, Log, TEXT("아이템 선택 모드 UI 바인딩 실패"));
-		}
-
 	}
 	else
 	{
