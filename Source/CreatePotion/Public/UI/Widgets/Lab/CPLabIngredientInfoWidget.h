@@ -9,11 +9,9 @@
 #include "CPLabIngredientInfoWidget.generated.h"
 
 class UCPForageableItemData;
-class UCPLabIngredientEffectRowWidget;
 class ACPThrowablePropBase;
 class UImage;
 class UTextBlock;
-class UVerticalBox;
 
 // 재료 하나를 표시하는 공용 기반 위젯이다.
 // 재료 렌더링과 Prop 변경 감지만 담당하며, 데이터 출처와 표시/숨김 정책은 자식이 결정한다.
@@ -30,9 +28,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Lab|UI|Ingredient")
 	void ClearObservedIngredient();
-
-	UFUNCTION(BlueprintCallable, Category = "Lab|UI|Ingredient")
-	void ClearPreviewEffects();
 
 	UFUNCTION(BlueprintCallable, Category = "Lab|UI|Ingredient")
 	void ClearIngredientInfo();
@@ -56,12 +51,6 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> Image_MaterialIcon;
 
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UVerticalBox> VerticalBox_EffectRows;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lab|UI|Ingredient")
-	TSubclassOf<UCPLabIngredientEffectRowWidget> EffectRowWidgetClass;
-
 	// 운반 카드처럼 위젯은 남아 있지만 재료가 없는 상태에서 표시할 문구다.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lab|UI|Ingredient")
 	FText EmptyIngredientText = FText::FromString(TEXT("비어 있음"));
@@ -75,7 +64,6 @@ private:
 
 	void RefreshWidget();
 	void RefreshEmptyState();
-	void RebuildEffectRows();
 	FText GetEffectDisplayName(const FGameplayTag& EffectTag) const;
 
 	UPROPERTY(Transient)

@@ -1,7 +1,6 @@
 #include "UI/Widgets/Lab/CPLabCarriedIngredientWidget.h"
 
 #include "Character/CPCarryComponent.h"
-#include "Character/CPInteractionComponent.h"
 #include "GameFramework/Pawn.h"
 #include "Lab/Actor/CPThrowablePropBase.h"
 
@@ -32,8 +31,6 @@ void UCPLabCarriedIngredientWidget::BindEvents()
 
 void UCPLabCarriedIngredientWidget::UnbindEvents()
 {
-	HeldProp.Reset();
-
 	if (IsValid(BoundCarryComponent))
 	{
 		BoundCarryComponent->OnHeldPropChanged.RemoveDynamic(
@@ -52,43 +49,9 @@ void UCPLabCarriedIngredientWidget::HandlePropChanged(ACPThrowablePropBase* Prop
 	{
 		SetVisibility(ESlateVisibility::HitTestInvisible);
 		SetIngredientProp(Prop);
-		BindPreviewProp(Prop);
-		ClearPreviewEffects();
 		return;
 	}
 
-	HeldProp.Reset();
 	ClearObservedIngredient();
-	ClearPreviewEffects();
 	SetVisibility(ESlateVisibility::Collapsed);
-}
-
-void UCPLabCarriedIngredientWidget::HandleInteractionFocusChanged(FText Prompt, FName TargetName, ECPInteractionDisplayState DisplayState)
-{
-	(void)Prompt;
-	(void)TargetName;
-
-	AActor* TargetActor = BoundInteractionComponent.IsValid()
-		? BoundInteractionComponent->GetCurrentTarget()
-		: nullptr;
-
-	if (IsValid(TargetActor))
-	{
-		ClearPreviewEffects();
-	}
-}
-
-void UCPLabCarriedIngredientWidget::HandlePreviewIngredientChanged()
-{
-	ClearPreviewEffects();
-}
-
-void UCPLabCarriedIngredientWidget::BindPreviewProp(ACPThrowablePropBase* Prop)
-{
-	if (HeldProp.Get() == Prop) return;
-
-	HeldProp.Reset();
-	if (!IsValid(Prop)) return;
-
-	HeldProp = Prop;
 }

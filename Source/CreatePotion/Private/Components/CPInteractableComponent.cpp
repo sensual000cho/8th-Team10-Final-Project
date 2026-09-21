@@ -130,8 +130,8 @@ void UCPInteractableComponent::UpdateWidgetLocation(AActor* Interactor)
 	const FVector WidgetOffset = Owner->GetActorQuat().UnrotateVector(GetComponentLocation() - AnchorLocation);
 	const FVector WidgetLocation = 
 		AnchorLocation 
-		+ Camera->GetForwardVector() * WidgetOffset.X 
-		+ Camera->GetRightVector() * WidgetOffset.Y 
+		+ Camera->GetRightVector() * WidgetOffset.X 
+		+ Camera->GetForwardVector() * WidgetOffset.Y 
 		+ Camera->GetUpVector() * WidgetOffset.Z;
 	
 	InteractionWidgetComp->SetWorldLocation(WidgetLocation);
