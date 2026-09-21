@@ -71,6 +71,20 @@ void ACPPlayerController::SetupInputComponent()
 	}
 }
 
+#pragma region PotionThrow
+void ACPPlayerController::ConsumeHeldPotionCharge()
+{
+	if (CachedInventoryComponent && CurrentlyHeldPotionOriginIndex != -1)
+	{
+		CachedInventoryComponent->RemoveItemFromContainer(CurrentlyHeldPotionOriginIndex, 1);
+	}
+
+	CurrentlyHeldPotionInstance = FCPItemInstance();
+	CurrentlyHeldPotionOriginIndex = -1;
+	bCurrentHeldItemIsFromInventory = false;
+}
+#pragma endregion
+
 void ACPPlayerController::OnItemWheelScroll(const FInputActionValue& Value)
 {
 	if (!ItemWheelWidgetInstance)
@@ -115,13 +129,14 @@ void ACPPlayerController::EquipItemAtGridIndex(int32 GridIndex)
 		return;
 	}
 
+	// 이미 들고 있으면 - 이번엔 "인벤토리로 되돌릴" 필요가 없음 (애초에 차감 안 했으니까)
+	// 그냥 손에 든 액터만 파괴하고 넘어가면 됨
 	if (CarryComponent->HasHeldProp())
 	{
-		if (!CarryComponent->ConsumeHeldPropToInventory(CachedInventoryComponent))
+		if (ACPThrowablePropBase* PrevProp = CarryComponent->GetHeldProp())
 		{
-			// TODO[Container] : 인벤토리 공간이 없어서 되돌리기 자체가 실패하면 새 장착도 포기
-			UE_LOG(LogContainer, Warning, TEXT("[ItemWheel] 인벤토리 공간 부족으로 기존 포션 수납 실패, 교체 취소"));
-			return;
+			CarryComponent->DetachProp(PrevProp, PrevProp->GetActorLocation()); // 참조만 해제
+			PrevProp->Destroy(); // 인벤토리엔 원래 아이템이 그대로 있으니, 손에 있던 액터만 지움
 		}
 	}
 
@@ -150,7 +165,10 @@ void ACPPlayerController::EquipItemAtGridIndex(int32 GridIndex)
 		return;
 	}
 
-	CachedInventoryComponent->RemoveItemFromContainer(GridIndex, 1);
+	// 인벤토리에서 차감은 하지 않고 "지금 이걸 들고 있다"는 정보만 저장
+	CurrentlyHeldPotionInstance = FoundItem->Instance;
+	CurrentlyHeldPotionOriginIndex = GridIndex;
+	bCurrentHeldItemIsFromInventory = true;
 }
 
 // TODO[Container] : 추후 멀티플레이 확장시 Dedicated Server 환경에서 Client들은 실행이 되지 않음
@@ -254,11 +272,27 @@ void ACPPlayerController::OnCarryHeldProp(const FInputActionValue& Value)
 		return;
 	}
 
-	if (!CarryComponent->ConsumeHeldPropToInventory(CachedInventoryComponent))
+	if (bCurrentHeldItemIsFromInventory)
 	{
-		UE_LOG(LogContainer, Warning, TEXT("[Carry] 인벤토리 공간 부족으로 수납 실패"));
-		// TODO[Container] : false가 반환될 경우 "인벤토리가 가득 찼습니다" 알림 UI 출력
+		// 포션 : 인벤토리에 원본이 그대로 있으니 손만 비움 (차감 취소, 장착 취소)
+		if (ACPThrowablePropBase* Prop = CarryComponent->GetHeldProp())
+		{
+			CarryComponent->DetachProp(Prop, Prop->GetActorLocation());
+			Prop->Destroy();
+		}
+		CurrentlyHeldPotionInstance = FCPItemInstance();
+		CurrentlyHeldPotionOriginIndex = -1;
 	}
+	else
+	{
+		// 월드에서 주운 재료 : 인벤토리에 새로 추가
+		if (!CarryComponent->ConsumeHeldPropToInventory(CachedInventoryComponent))
+		{
+			UE_LOG(LogContainer, Warning, TEXT("[Carry] 인벤토리 공간 부족으로 수납 실패"));
+		}
+	}
+
+	bCurrentHeldItemIsFromInventory = false;
 }
 
 void ACPPlayerController::OpenExternalContainerUI(UCPItemContainerComponent* InTargetContainer)

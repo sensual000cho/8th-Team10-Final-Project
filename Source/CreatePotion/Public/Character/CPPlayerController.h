@@ -7,7 +7,6 @@
 #include "GameFramework/PlayerController.h"
 #include "InputActionValue.h"
 #include "Types/CPContainerTypes.h"
-#include "Types/CPInputModeTypes.h"
 #include "CPPlayerController.generated.h"
 
 class UInputAction;
@@ -35,6 +34,13 @@ class CREATEPOTION_API ACPPlayerController : public APlayerController
 public:
 	friend class UCPContainerContextBase;	// private 멤버 변수에 접근할 수 있도록
 
+
+#pragma region PotionThrow
+public:
+	void ConsumeHeldPotionCharge();
+
+#pragma endregion
+
 #pragma region Wheel
 private:
 	void OnItemWheelScroll(const FInputActionValue& Value);
@@ -50,6 +56,14 @@ public:
 protected:
 	UPROPERTY(EditAnywhere, Category = "Input|Wheel")
 	UInputMappingContext* IMC_PotionWheel;
+
+private:
+	UPROPERTY()
+	FCPItemInstance CurrentlyHeldPotionInstance;
+
+	int32 CurrentlyHeldPotionOriginIndex = -1;
+
+	bool bCurrentHeldItemIsFromInventory = false;
 #pragma endregion
 
 protected:
