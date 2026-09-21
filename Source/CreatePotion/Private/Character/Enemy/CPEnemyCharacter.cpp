@@ -61,6 +61,7 @@ void ACPEnemyCharacter::BeginPlay()
 
 void ACPEnemyCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+    AbilitySystemComponent->CancelAllAbilities();
     AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCPEnemyAttributeSet::GetHealthAttribute()).Remove(HealthChangedDelegateHandle);
     CancelAttack();
 
@@ -84,6 +85,50 @@ void ACPEnemyCharacter::Landed(const FHitResult& Hit)
 float ACPEnemyCharacter::GetHealth() const
 {
     return EnemyAttributeSet->GetHealth();
+}
+
+void ACPEnemyCharacter::InitializeSlimeSplit(const ACPEnemyCharacter& SourceEnemy, float ScaleMultiplier)
+{
+    const float SourceHealth = SourceEnemy.GetHealth();
+    const bool bIsClone = this != &SourceEnemy;
+    const float PreviousHalfHeight = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+    // 복제본은 원본의 일시적인 Giant 배율을 제외한 분열 크기로 시작한다.
+    const float SourceGiantScale = bIsClone ? SourceEnemy.GiantScaleMultiplier : 1.0f;
+    const FVector SplitScale = SourceEnemy.GetActorScale3D() * ScaleMultiplier / SourceGiantScale;
+    SlimeSplitCount = SourceEnemy.SlimeSplitCount + 1;
+    // 중심 간 3D 거리 판정이므로 분열해도 공격 사거리는 원본 값을 유지한다.
+    AttackRange = SourceEnemy.AttackRange;
+    GetCharacterMovement()->MaxStepHeight = SourceEnemy.GetCharacterMovement()->MaxStepHeight * ScaleMultiplier / SourceGiantScale;
+
+    // Capsule, Mesh, 부착된 사망 물리 구체를 함께 줄이고 경로 탐색 크기도 갱신한다.
+    SetActorScale3D(SplitScale);
+    if (bIsClone && SourceGiantScale != 1.0f)
+    {
+        AddActorWorldOffset(FVector::UpVector * (GetCapsuleComponent()->GetScaledCapsuleHalfHeight() - PreviousHalfHeight), false);
+    }
+    UpdateNavAgent();
+    if (bIsClone)
+    {
+        AbilitySystemComponent->SetNumericAttributeBase(UCPEnemyAttributeSet::GetHealthAttribute(), SourceHealth);
+    }
+}
+
+void ACPEnemyCharacter::SetGiantMultipliers(float ScaleMultiplier, float SpeedMultiplier, float ImpulseMultiplier)
+{
+    const float PreviousHalfHeight = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+    const float ScaleRatio = ScaleMultiplier / GiantScaleMultiplier;
+    SetActorScale3D(GetActorScale3D() * ScaleRatio);
+    GetCharacterMovement()->MaxStepHeight *= ScaleRatio;
+    GetCharacterMovement()->MaxWalkSpeed *= SpeedMultiplier / GiantSpeedMultiplier;
+    GiantScaleMultiplier = ScaleMultiplier;
+    GiantSpeedMultiplier = SpeedMultiplier;
+    AttackImpulseMultiplier = ImpulseMultiplier;
+    UpdateNavAgent();
+
+    // 발밑 높이를 유지하고 엔진의 기본 Teleport 충돌 보정만 사용한다.
+    const FVector AdjustedLocation = GetActorLocation() + FVector::UpVector * (GetCapsuleComponent()->GetScaledCapsuleHalfHeight() - PreviousHalfHeight);
+    TeleportTo(AdjustedLocation, GetActorRotation(), false, false);
+    GetCharacterMovement()->bForceNextFloorCheck = true;
 }
 
 float ACPEnemyCharacter::ApplyDamage(float DamageAmount, AActor* DamageCauser)
@@ -131,6 +176,8 @@ void ACPEnemyCharacter::HandleDeath(AActor* DamageCauser)
     const FVector DeathSurfaceNormal = bHandlingLanding ? LandingSurfaceNormal : FVector::UpVector;
 
     bIsDead = true;
+    // 물리 구체와 Mesh가 분리되기 전에 Giant를 해제한다.
+    OnEnemyDying.Broadcast();
     CancelAttack();
     GetCharacterMovement()->StopMovementImmediately();
     GetCharacterMovement()->DisableMovement();
@@ -206,7 +253,7 @@ bool ACPEnemyCharacter::IsTargetInAttackReach(AActor* Target) const
     // 높이가 다른 대상까지 공격하지 않도록 3D 거리 사용
     const float DistanceSquared = FVector::DistSquared(GetActorLocation(), Target->GetActorLocation());
 
-    if (DistanceSquared > FMath::Square(AttackRange))
+    if (DistanceSquared > FMath::Square(GetEffectiveAttackRange()))
     {
         return false;
     }
