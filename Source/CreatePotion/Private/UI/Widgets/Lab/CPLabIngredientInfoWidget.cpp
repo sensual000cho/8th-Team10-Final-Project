@@ -4,13 +4,11 @@
 
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
-#include "Components/VerticalBox.h"
 #include "Data/CPForageableItemData.h"
 #include "Data/CPTagDefinitionTypes.h"
 #include "Engine/Texture2D.h"
 #include "Lab/Actor/CPThrowablePropBase.h"
 #include "Settings/CPDTSettings.h"
-#include "UI/Widgets/Lab/CPLabIngredientEffectRowWidget.h"
 
 void UCPLabIngredientInfoWidget::NativeConstruct()
 {
@@ -84,11 +82,6 @@ void UCPLabIngredientInfoWidget::UnbindEvents()
 	Super::UnbindEvents();
 }
 
-void UCPLabIngredientInfoWidget::ClearPreviewEffects()
-{
-	RebuildEffectRows();
-}
-
 void UCPLabIngredientInfoWidget::ClearIngredientInfo()
 {
 	ClearObservedIngredient();
@@ -117,7 +110,24 @@ void UCPLabIngredientInfoWidget::RefreshWidget()
 
 	if (Text_MaterialName)
 	{
-		Text_MaterialName->SetText(ItemData->DisplayName);
+		FText MaterialName = ItemData->DisplayName;
+		
+		// CurrentEffects가 존재하면 포션으로 판단
+		if (!Ingredient.CurrentEffects.IsEmpty()){
+			TArray<FText> PotionTagNames;
+			PotionTagNames.Reserve(Ingredient.CurrentEffects.Num()+1);
+			
+			// 저장된 태그 순서 사용
+			for (const FGameplayTag& EffectTag : Ingredient.CurrentEffects){
+				if (!EffectTag.IsValid()) continue;
+				PotionTagNames.Add(GetEffectDisplayName(EffectTag));
+			}
+			PotionTagNames.Add(ItemData->DisplayName);
+			
+			MaterialName = FText::Join(FText::FromString(TEXT(" ")), PotionTagNames);
+		}
+		// 마지막에는 DA의 이름 사용
+		Text_MaterialName->SetText(MaterialName);
 	}
 
 	if (Image_MaterialIcon)
@@ -127,8 +137,6 @@ void UCPLabIngredientInfoWidget::RefreshWidget()
 		Image_MaterialIcon->SetVisibility(
 			IconTexture ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 	}
-
-	RebuildEffectRows();
 }
 
 void UCPLabIngredientInfoWidget::RefreshEmptyState()
@@ -142,37 +150,6 @@ void UCPLabIngredientInfoWidget::RefreshEmptyState()
 	{
 		Image_MaterialIcon->SetBrushFromTexture(nullptr);
 		Image_MaterialIcon->SetVisibility(ESlateVisibility::Collapsed);
-	}
-
-	if (VerticalBox_EffectRows)
-	{
-		VerticalBox_EffectRows->ClearChildren();
-	}
-}
-
-void UCPLabIngredientInfoWidget::RebuildEffectRows()
-{
-	if (!VerticalBox_EffectRows) return;
-
-	VerticalBox_EffectRows->ClearChildren();
-
-	const UCPForageableItemData* ItemData = Ingredient.SourceItemData.Get();
-	if (!ItemData || !EffectRowWidgetClass) return;
-	
-	const TArray<FGameplayTag>& DisplayEffectTags = 
-		Ingredient.CurrentEffects.IsEmpty() ? ItemData->TagAxes : Ingredient.CurrentEffects;
-	
-	// 재료의 현재 효과를 기반으로 Tag 구성
-	for (const FGameplayTag& EffectTag : DisplayEffectTags){
-		if (!EffectTag.IsValid()) continue;
-		
-		UCPLabIngredientEffectRowWidget* EffectRow = 
-			CreateWidget<UCPLabIngredientEffectRowWidget>(GetOwningPlayer(), EffectRowWidgetClass);
-		if (!EffectRow) continue;
-		
-		EffectRow->SetEffectData(GetEffectDisplayName(EffectTag));
-		
-		VerticalBox_EffectRows->AddChildToVerticalBox(EffectRow);
 	}
 }
 

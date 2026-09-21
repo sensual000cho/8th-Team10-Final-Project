@@ -18,7 +18,7 @@
 #include "UI/Widgets/Lab/CPCauldronWidget.h"
 
 UCPCauldronComponent::UCPCauldronComponent(): 
-	MaxSlotCount(3), 
+	MaxSlotCount(4), 
 	UpImpulse(5000.f), 
 	RandomImpulseMin(2000.f),
 	RandomImpulseMax(4000.f)
@@ -90,7 +90,16 @@ TArray<FCPItemInstance> UCPCauldronComponent::GetIngredientInstance() const
 bool UCPCauldronComponent::CreatePotion()
 {
 	ACPLabGameMode* LabGameMode = Cast<ACPLabGameMode>(UGameplayStatics::GetGameMode(this));
-	if (!LabGameMode || !LabGameMode->CreatePotion(GetEffectTags(), MakePotionTransform(), MakeSpawnImpulse())) return false;
+	if (!LabGameMode) return false;
+	
+	const int32 PotionCount = IngredientInstances.Num();
+	const TArray<FGameplayTag> EffectTags = GetEffectTags();
+	const FTransform SpawnTransform = MakePotionTransform();
+	
+	// 매 포션마다 무작위 방향 적용
+	for (int32 idx = 0; idx < PotionCount; ++idx){
+		if (!LabGameMode->CreatePotion(EffectTags, SpawnTransform, MakeSpawnImpulse())) return false;
+	}
 	
 	IngredientInstances.Reset();
 	IngredientTags.Reset();

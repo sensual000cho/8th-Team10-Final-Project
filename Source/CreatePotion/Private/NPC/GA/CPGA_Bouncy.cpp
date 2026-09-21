@@ -38,7 +38,7 @@ void UCPGA_Bouncy::ApplyVisual(ACPBaseNPC* NPC, bool bActive, float InMagnitude)
 				CachedBouncyMID->SetVectorParameterValue(OuterColorParamName, Data->SlimeOuterColor);
 			}
 
-			VisualComp->PushMaterialOverride(0, EffectTag, CachedBouncyMID);
+			VisualComp->PushMaterialOverride(0, EffectTag, CachedBouncyMID, 10);
 		}
 	}
 	else

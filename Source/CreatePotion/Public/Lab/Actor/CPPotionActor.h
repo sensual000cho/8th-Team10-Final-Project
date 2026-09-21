@@ -51,8 +51,14 @@ protected:
 	// BP에서 Effect 관련 나이아가라, 사운드 등 구현
 	UFUNCTION(BlueprintImplementableEvent, Category = "Potion|Impact", meta = (DisplayName = "On Potion Exploded"))
 	void K2_OnPotionExploded(const FHitResult& HitResult);
+	
+private:
+	void EnableSpawnCollision();
 
 private:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Potion|Spawn", meta = (AllowPrivateAccess = "true", Units = "s"))
+	float CollisionDisabledDuration;
+	
 	// 포션 Impact Component
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Potion|Impact", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UCPPotionImpactComponent> PotionImpactComponent;

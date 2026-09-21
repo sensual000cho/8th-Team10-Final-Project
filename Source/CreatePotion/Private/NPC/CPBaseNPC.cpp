@@ -11,6 +11,7 @@
 #include "NPC/CPNPCAIController.h"
 #include "NPC/Components/CPNPCVisualComponent.h"
 #include "NPC/Components/CPNPCMoveComponent.h"
+#include "Character/CPInteractionComponent.h"
 
 #if WITH_EDITOR
 #include "DrawDebugHelpers.h"
@@ -44,6 +45,37 @@ ACPBaseNPC::ACPBaseNPC()
 
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 	AIControllerClass = ACPNPCAIController::StaticClass();
+}
+
+void ACPBaseNPC::SetHighlight_Implementation(bool bHighlighted)
+{
+	USkeletalMeshComponent* MainMesh = GetMesh();
+	if (!MainMesh) { return; }
+
+	if (bHighlighted)
+	{
+		if (UWorld* World = GetWorld())
+		{
+			if (APlayerController* PC = World->GetFirstPlayerController())
+			{
+				if (APawn* Pawn = PC->GetPawn())
+				{
+					if (UCPInteractionComponent* InteractionComp = Pawn->FindComponentByClass<UCPInteractionComponent>())
+					{
+						FProperty* Prop = UCPInteractionComponent::StaticClass()->FindPropertyByName(TEXT("HighlightMaterial"));
+						if (FObjectProperty* ObjProp = CastField<FObjectProperty>(Prop))
+						{
+							UMaterialInterface* HighlightMat = Cast<UMaterialInterface>(ObjProp->GetObjectPropertyValue_InContainer(InteractionComp));
+							MainMesh->SetOverlayMaterial(HighlightMat);
+							return;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	MainMesh->SetOverlayMaterial(nullptr);
 }
 
 void ACPBaseNPC::PostInitializeComponents()
@@ -110,7 +142,6 @@ void ACPBaseNPC::InitializeFromDataAsset()
 	}
 
 	USkeletalMesh* LoadedMesh = NPCData->NPCMesh.LoadSynchronous();
-	UAnimSequence* LoadedAnim = NPCData->IdleAnimation.LoadSynchronous();
 
 	if (GetMesh())
 	{
@@ -119,7 +150,7 @@ void ACPBaseNPC::InitializeFromDataAsset()
 
 	if (VisualComponent)
 	{
-		VisualComponent->InitializeVisual(GetMesh(), GetCapsuleComponent(), LoadedMesh, NPCData->AnimClass, nullptr, NPCData->MeshScale, NPCData->CapsuleRadiusRatio);
+		VisualComponent->InitializeVisual(GetMesh(), GetCapsuleComponent(), LoadedMesh, NPCData->AnimClass, NPCData->MeshScale, NPCData->CapsuleRadiusRatio);
 	}
 
 	if (NPCData->NPCName != NAME_None)
