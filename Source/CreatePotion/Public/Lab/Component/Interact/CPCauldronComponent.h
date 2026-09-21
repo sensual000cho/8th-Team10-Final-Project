@@ -12,6 +12,7 @@ struct FCPTagDefinitionRow;
 class ACPAlchemyProp;
 class UPrimitiveComponent;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCauldronInteracted);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCauldronEffectsChanged);
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -27,9 +28,8 @@ public:
 	
 	// 상호작용
 	virtual void BeginFocus(AActor* Interactor) override;
-	virtual void HandleInteract(AActor* Interactor) override;
+	virtual bool TryInteract(AActor* Interactor) override;
 	virtual bool CanInteract() const override;
-	virtual bool ShouldShowUnavailableInteraction() const override;
 	
 	// Getter
 	UFUNCTION(BlueprintPure, Category = "Lab|Interaction")
@@ -69,6 +69,9 @@ private:
 		const FHitResult& SweepResult);
 	
 public:
+	UPROPERTY(BlueprintAssignable, Category = "Lab|Interaction")
+	FOnCauldronInteracted OnCauldronInteracted;
+	
 	UPROPERTY(BlueprintAssignable, Category = "Lab|Interaction")
 	FOnCauldronEffectsChanged OnEffectsChanged;
 	
