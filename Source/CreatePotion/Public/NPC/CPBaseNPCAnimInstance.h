@@ -22,6 +22,9 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Movement")
 	bool bShouldMove = false;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement|Scale")
+	float GiantSpeedDivisor = 3.0f;
+
 private:
 	UPROPERTY()
 	TObjectPtr<APawn> OwnerPawn;

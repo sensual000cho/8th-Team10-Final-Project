@@ -4,6 +4,7 @@
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
 #include "GameplayTagContainer.h"
+#include "GameCore/Interface/CPHighlightable.h"
 #include "CPBaseNPC.generated.h"
 
 class UCPNPCDataAsset;
@@ -17,13 +18,14 @@ class UCPNPCMoveComponent;
 DECLARE_DELEGATE_TwoParams(FOnPotionVisualUpdateDelegate, bool /*bActive*/, float /*Magnitude*/);
 
 UCLASS()
-class CREATEPOTION_API ACPBaseNPC : public ACharacter, public IAbilitySystemInterface
+class CREATEPOTION_API ACPBaseNPC : public ACharacter, public IAbilitySystemInterface, public ICPHighlightable
 {
 	GENERATED_BODY()
 
 public:
 	ACPBaseNPC();
 
+	virtual void SetHighlight_Implementation(bool bHighlighted) override;
 	virtual void PostInitializeComponents() override;
 
 	// NPC의 ASC 반환
