@@ -4,6 +4,7 @@
 #include "Components/TimelineComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "GameFramework/RotatingMovementComponent.h"
+#include "Items/Components/CPEggInteractableComponent.h"
 
 ACPDroppedItemBase::ACPDroppedItemBase()
 {
@@ -23,6 +24,9 @@ ACPDroppedItemBase::ACPDroppedItemBase()
 	Mesh->SetupAttachment(VisualRoot);
 	Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Mesh->SetRelativeScale3D(FVector(DroppedScale));
+	
+	InteractableComponent = CreateDefaultSubobject<UCPEggInteractableComponent>(TEXT("InteractableComponent"));
+	InteractableComponent->SetupAttachment(SphereCollision);
 	
 	// 드랍 관련 설정
 	DropMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("DropMovement"));
@@ -77,6 +81,10 @@ void ACPDroppedItemBase::Initialize(UCPForageableItemData* InItemData, int32 InA
 	Amount = InAmount;
 	Mesh->SetStaticMesh(InMesh);
 	
+	if (InteractableComponent)
+	{
+		InteractableComponent->Initialize(ItemData, Amount);
+	}
 }
 
 void ACPDroppedItemBase::StartDropMotion(const FVector& DropDirection)
