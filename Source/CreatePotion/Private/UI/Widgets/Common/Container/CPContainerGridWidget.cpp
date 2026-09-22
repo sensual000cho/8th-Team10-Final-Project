@@ -5,13 +5,26 @@
 #include "Components/UniformGridSlot.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
-#include "Components/SizeBox.h"		// 사이즈 조절
+#include "Components/SizeBox.h"
+#include "Components/Overlay.h"
 
 #include "CreatePotion.h"   // 로그용 헤더
 #include "UI/Widgets/Common/Container/CPItemSlotWidget.h"
 #include "UI/Widgets/Common/Container/CPBlankGridSlotWidget.h"
 #include "Components/CPItemContainerComponent.h"
 #include "Settings/CPContainerSettings.h"
+
+void UCPContainerGridWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+
+	if (RootOverlay)
+	{
+		RootOverlay->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	}
+}
 
 void UCPContainerGridWidget::InitializeGrid(UCPItemContainerComponent* TargetContainer)
 {
