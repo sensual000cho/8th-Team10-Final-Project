@@ -16,6 +16,8 @@ UCLASS()
 class CREATEPOTION_API UCPContainerContextBase : public UObject
 {
 	GENERATED_BODY()
+
+	friend class ACPPlayerController;
 	
 public:
 	// TODO : 마우스 오버레이 시 기능( 아이템 설명 UI 출력 등 )
