@@ -1,6 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-#include "NPC/GA/CPGA_Reset.h"
+﻿#include "NPC/GA/CPGA_Reset.h"
 #include "NPC/CPBaseNPC.h"
 #include "AbilitySystemComponent.h"
 #include "GameInstance/Subsystem/CPNPCSubsystem.h"
@@ -8,8 +6,7 @@
 
 UCPGA_Reset::UCPGA_Reset()
 {
-	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
-	ActivationBlockedTags.Reset();
+	ImmunityTag = FGameplayTag::RequestGameplayTag(FName("Immunity.Potion.Reset"));
 }
 
 void UCPGA_Reset::ActivateAbility(
