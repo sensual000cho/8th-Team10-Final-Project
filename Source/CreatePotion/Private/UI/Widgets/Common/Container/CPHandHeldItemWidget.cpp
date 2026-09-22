@@ -64,6 +64,19 @@ void UCPHandHeldItemWidget::OnHandContainerUpdated()
 		ItemIcon->SetBrushFromTexture(LoadedTexture);
 	}
 
+	if (LiquidImage)
+	{
+		if (Held.Instance.CurrentEffects.Num() > 0)
+		{
+			LiquidImage->SetColorAndOpacity(Held.Instance.GetLiquidColor());
+			LiquidImage->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+		}
+		else
+		{
+			LiquidImage->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+
 	if (StackText)
 	{
 		if (Held.Stacked > 1)

@@ -41,6 +41,9 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	UImage* ItemIcon;
 
+	UPROPERTY(meta = (BindWidgetOptional))
+	UImage* LiquidImage;
+
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* StackText;
 };
