@@ -7,6 +7,7 @@
 #include "CPItemWheelWidget.generated.h"
 
 class UImage;
+class UCanvasPanel;
 class UCPInventoryComponent;
 
 UCLASS()
@@ -68,6 +69,9 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "ItemWheel", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float FarIconAlpha = 0.2f;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	UCanvasPanel* RootCanvas;
 
 	UPROPERTY(meta = (BindWidget))
 	UImage* Left2Icon;

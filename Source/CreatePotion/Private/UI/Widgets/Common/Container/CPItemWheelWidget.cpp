@@ -2,6 +2,7 @@
 
 #include "UI/Widgets/Common/Container/CPItemWheelWidget.h"
 #include "Components/Image.h"
+#include "Components/CanvasPanel.h"
 #include "Components/PanelWidget.h"
 
 #include "CreatePotion.h"
@@ -12,8 +13,14 @@ void UCPItemWheelWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	// 루트는 항상 Visible로 유지 (= 휠 입력을 계속 감지)
-	SetVisibility(ESlateVisibility::Visible);
+	// Enhanced Input을 통해 기능이 작동하므로 Visibility를 
+	// "클릭을 안 받지만, 화면엔 보임"의 HitTestInvisible로 설정
+	if (RootCanvas)
+	{
+		RootCanvas->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	}
+
+	SetVisibility(ESlateVisibility::HitTestInvisible);
 
 	SetSlotVisible(Left2Icon, Left2Liquid, false);
 	SetSlotVisible(Left1Icon, Left1Liquid, false);
