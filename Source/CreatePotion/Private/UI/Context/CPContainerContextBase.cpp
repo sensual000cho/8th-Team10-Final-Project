@@ -38,9 +38,6 @@ bool UCPContainerContextBase::HandleLeftClickOnly(UCPGridSlotWidgetBase* Clicked
         FContainerItem PoppedItem;
         if (ClickedSlot->OwnerContainer->PopItemFromContainer(ClickedSlot->SlotGridIndex, PoppedItem))
         {
-            UE_LOG(LogContainer, Warning, TEXT("[Pick] 집기 성공: %s, Hand 컨테이너 개수: %d"),
-                *PoppedItem.Instance.SourceItemData->DisplayName.ToString(), PC->LeftClickPickedContainer->ContainerItems.Num());
-
             PoppedItem.GridIndex = 0; // Hand 컨테이너는 1칸만 존재
             PC->LeftClickPickedContainer->ContainerItems.Add(PoppedItem);
             PC->LeftClickPickedContainer->OnContainerUpdated.Broadcast();
@@ -48,6 +45,12 @@ bool UCPContainerContextBase::HandleLeftClickOnly(UCPGridSlotWidgetBase* Clicked
             // 취소 시 되돌아갈 기존 Container의 종류와 index 정보 저장
             PC->LeftClickPickedItemOriginContainer = ClickedSlot->OwnerContainer;
             PC->LeftClickPickedOriginSlotIndex = ClickedSlot->SlotGridIndex;
+
+            // 집는 순간 열려있던 상세정보 UI가 있다면 닫음
+            if (UCPItemDetailPopupWidget* Popup = PC->GetOrCreateItemDetailPopup())
+            {
+                Popup->HideDetail();
+            }
         }
 
         // TODO[Container] : 커서에 아이콘을 붙이는 드래그 비주얼 구현
