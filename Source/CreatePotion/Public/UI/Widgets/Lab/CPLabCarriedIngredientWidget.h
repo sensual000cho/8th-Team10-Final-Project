@@ -25,4 +25,7 @@ private:
 	// CarryComponent의 HeldProp 변경 알림을 받기 위해 런타임 동안만 보관한다.
 	UPROPERTY(Transient)
 	TObjectPtr<UCPCarryComponent> BoundCarryComponent;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> Txt_TagEffect;
 };

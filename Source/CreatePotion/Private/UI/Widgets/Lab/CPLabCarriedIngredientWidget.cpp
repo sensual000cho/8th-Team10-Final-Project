@@ -1,6 +1,8 @@
 #include "UI/Widgets/Lab/CPLabCarriedIngredientWidget.h"
 
 #include "Character/CPCarryComponent.h"
+#include "Components/TextBlock.h"
+#include "Data/CPForageableItemData.h"
 #include "GameFramework/Pawn.h"
 #include "Lab/Actor/CPThrowablePropBase.h"
 
@@ -49,6 +51,22 @@ void UCPLabCarriedIngredientWidget::HandlePropChanged(ACPThrowablePropBase* Prop
 	{
 		SetVisibility(ESlateVisibility::HitTestInvisible);
 		SetIngredientProp(Prop);
+		
+		Txt_TagEffect->SetVisibility(ESlateVisibility::Collapsed);
+		
+		// 재료의 효과 태그를 가져옴
+		const FCPItemInstance& WorkingIngredient = Prop->GetWorkingIngredient();
+		if (!WorkingIngredient.CurrentEffects.IsEmpty()) return;
+		
+		const UCPForageableItemData* ItemData = WorkingIngredient.SourceItemData.Get();
+		if (!ItemData) return;
+
+		const FGameplayTag& TagEffect = ItemData->TagAxes[0];
+		if (!TagEffect.IsValid()) return;
+		
+		// 효과 태그를 보여줌
+		Txt_TagEffect->SetText(GetEffectDisplayName(TagEffect));
+		Txt_TagEffect->SetVisibility(ESlateVisibility::HitTestInvisible);
 		return;
 	}
 
