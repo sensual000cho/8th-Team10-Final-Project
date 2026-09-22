@@ -15,6 +15,8 @@
 #include "Data/CPForageableItemData.h"
 #include "Lab/Actor/CPAlchemyProp.h"
 
+#include "Subsystems/Level/DropItemWorldSubsystem.h"
+
 bool UCPContainerContextBase::HandleLeftClickOnly(UCPGridSlotWidgetBase* ClickedSlot)
 {
     ACPPlayerController* PC = Cast<ACPPlayerController>(ClickedSlot->GetOwningPlayer());
@@ -22,7 +24,6 @@ bool UCPContainerContextBase::HandleLeftClickOnly(UCPGridSlotWidgetBase* Clicked
     {
         return false;
     }
-
 
     if (!PC->IsHoldingItem()) // 무언가 들고 있는게 없으면
     {
@@ -51,15 +52,35 @@ bool UCPContainerContextBase::HandleLeftClickOnly(UCPGridSlotWidgetBase* Clicked
             {
                 Popup->HideDetail();
             }
+
+            if (!PC->bShowMouseCursor)
+            {
+                PC->bShowMouseCursor = true;
+                PC->SetInputMode(FInputModeGameAndUI());
+            }
         }
 
-        // TODO[Container] : 커서에 아이콘을 붙이는 드래그 비주얼 구현
         return true;
     }
     else // 무언가 들고 있었으면
     {
-        bool bIsPlacedAll = ClickedSlot->OwnerContainer->TryPlaceHoldingItem(
-            PC->LeftClickPickedContainer, ClickedSlot->ClickedGridIndex);
+        if (ClickedSlot->OwnerContainer->TargetContext == EUITargetContext::Drop) // Drop 컨테이너일 경우
+        {
+            FContainerItem HeldItem = PC->LeftClickPickedContainer->ContainerItems[0];
+
+            if (HeldItem.Instance.SourceItemData)
+            {
+                for (int32 i = 0; i < HeldItem.Stacked; ++i)
+                {
+                    SpawnDroppedProp(HeldItem.Instance.SourceItemData, 1, PC->GetPawn());
+                }
+            }
+
+            PC->ResetHoldingItem();
+            return true;
+        }
+
+        bool bIsPlacedAll = ClickedSlot->OwnerContainer->TryPlaceHoldingItem(PC->LeftClickPickedContainer, ClickedSlot->ClickedGridIndex);
         // 기존 아이템과 스왑 또는 배치하는 함수
 
         // 다 내려놓았을 땐 PC의 "현재 들고 있는 정보"를 초기화
@@ -68,7 +89,6 @@ bool UCPContainerContextBase::HandleLeftClickOnly(UCPGridSlotWidgetBase* Clicked
             PC->ResetHoldingItem();
         }
 
-        // TODO: 마우스 커서를 원래대로 복구하는 로직 위치 (하드웨어 커서 복구 또는 커서 위젯 숨기기)
         return true;
     }
 }
@@ -196,6 +216,12 @@ void UCPContainerContextBase::SpawnDroppedProp(UCPForageableItemData* ItemData, 
         if (ACPAlchemyProp* SpawnedProp = World->SpawnActor<ACPAlchemyProp>(PropClass, SpawnLoc, FRotator::ZeroRotator))
         {
             SpawnedProp->InitializeFromItemData(ItemData);
+
+            // TODO[Container] : 아이템을 버렸을 때 자동 수거 기능을 활성화 할 지 여부 미정
+            // if (UDropItemWorldSubsystem* DropSubsystem = World->GetSubsystem<UDropItemWorldSubsystem>())
+            // {
+            //     DropSubsystem->RegisterDroppedProp(SpawnedProp);
+            // }
         }
     }
 }
