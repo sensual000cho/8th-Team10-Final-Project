@@ -176,12 +176,21 @@ void UCPItemSlotWidget::NativeOnMouseEnter(const FGeometry& InGeometry, const FP
 		return; // 빈 슬롯이면 표시할 게 없음
 	}
 
-	if (ACPPlayerController* PC = Cast<ACPPlayerController>(GetOwningPlayer()))
+	ACPPlayerController* PC = Cast<ACPPlayerController>(GetOwningPlayer());
+	if (!PC)
 	{
-		if (UCPItemDetailPopupWidget* Popup = PC->GetOrCreateItemDetailPopup())
-		{
-			Popup->ShowDetail(CachedItemData.Instance);
-		}
+		return;
+	}
+
+	// 뭔가를 들고 있는(Holding 중인) 상태에서는 상세정보 UI를 띄우지 않음
+	if (PC->IsHoldingItem())
+	{
+		return;
+	}
+
+	if (UCPItemDetailPopupWidget* Popup = PC->GetOrCreateItemDetailPopup())
+	{
+		Popup->ShowDetail(CachedItemData.Instance);
 	}
 }
 
