@@ -4,12 +4,29 @@
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "Components/SizeBox.h"
+#include "Components/Overlay.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 
 #include "UI/Widgets/Common/Container/CPContainerGridWidget.h"
 #include "Components/CPItemContainerComponent.h"
 #include "Data/CPForageableItemData.h"
 #include "Settings/CPContainerSettings.h"
+
+void UCPHandHeldItemWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+	SetVisibility(ESlateVisibility::HitTestInvisible);
+
+	if (RootSizeBox)
+	{
+		RootSizeBox->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	}
+
+	if (RootOverlay)
+	{
+		RootOverlay->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	}
+}
 
 void UCPHandHeldItemWidget::TryBindHandContainer(UCPItemContainerComponent* InHandContainer)
 {
