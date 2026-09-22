@@ -13,16 +13,19 @@
 
 #include "CreatePotion.h"   // 로그용 헤더
 #include "Character/CPCarryComponent.h"
+#include "Components/CPItemContainerComponent.h"
+#include "Components/CPInventoryComponent.h"
+#include "Components/CPHandItemContainerComponent.h"
+#include "Components/CPDropContainerComponent.h"
+
+#include "UI/Context/CPContextInventoryOnly.h"
 #include "UI/Widgets/Common/Container/CPContainerMainWidget.h"
 #include "UI/Widgets/Common/Container/CPContainerGridWidget.h"
 #include "UI/Widgets/Common/Container/CPHandHeldItemWidget.h"
 #include "UI/Widgets/Common/Container/CPItemWheelWidget.h"
 #include "UI/Widgets/Common/Container/Shop/CPShopPurchasePopupWidget.h"
 #include "UI/Widgets/Common/Container/CPItemDetailPopupWidget.h"
-#include "Components/CPItemContainerComponent.h"
-#include "Components/CPInventoryComponent.h"
-#include "Components/CPHandItemContainerComponent.h"
-#include "UI/Context/CPContextInventoryOnly.h"
+#include "UI/Widgets/Common/Container/CPDropZoneWidget.h"
 
 //디버그용 포션 Spawn 용 include
 #include "Character/CPCarryComponent.h"
@@ -129,14 +132,13 @@ void ACPPlayerController::EquipItemAtGridIndex(int32 GridIndex)
 		return;
 	}
 
-	// 이미 들고 있으면 - 이번엔 "인벤토리로 되돌릴" 필요가 없음 (애초에 차감 안 했으니까)
-	// 그냥 손에 든 액터만 파괴하고 넘어가면 됨
+	// 그냥 손에 든 액터만 파괴
 	if (CarryComponent->HasHeldProp())
 	{
 		if (ACPThrowablePropBase* PrevProp = CarryComponent->GetHeldProp())
 		{
 			CarryComponent->DetachProp(PrevProp, PrevProp->GetActorLocation()); // 참조만 해제
-			PrevProp->Destroy(); // 인벤토리엔 원래 아이템이 그대로 있으니, 손에 있던 액터만 지움
+			PrevProp->Destroy(); // 인벤토리엔 원래 아이템이 그대로 있으니 손에 있던 액터만 파괴
 		}
 	}
 
@@ -178,34 +180,22 @@ void ACPPlayerController::SetPawn(APawn* InPawn)
 
 	if (InPawn)
 	{
-		// 폰에 성공적으로 빙의되었을 때, 딱 한 번만 찾아서 캐싱
+		// 폰에 성공적으로 빙의되었을 때, 한 번만 찾아서 캐싱
 		CachedInventoryComponent = InPawn->FindComponentByClass<UCPInventoryComponent>();
 		LeftClickPickedContainer = InPawn->FindComponentByClass<UCPHandItemContainerComponent>();
+		DropContainer = InPawn->FindComponentByClass<UCPDropContainerComponent>();
 
 		// TODO[Container] : 레벨 전환시 자동 수거 기능을 구현하려면
 		// 레벨에 배치된 별도의 Actor(또는 GameMode, GameState 등 레벨 단위로 바뀌는 객체)에 구현해야함
-
-		if (CachedInventoryComponent)
-		{
-			UE_LOG(LogContainer, Log, TEXT("인벤토리 컴포넌트 캐싱 완료"));
-		}
 
 		if (ItemWheelWidgetClass && !ItemWheelWidgetInstance)
 		{
 			ItemWheelWidgetInstance = CreateWidget<UCPItemWheelWidget>(this, ItemWheelWidgetClass);
 			if (ItemWheelWidgetInstance)
 			{
-				ItemWheelWidgetInstance->AddToViewport();
-				UE_LOG(LogContainer, Warning, TEXT("[ItemWheel] AddToViewport 호출됨, IsInViewport=%d"), ItemWheelWidgetInstance->IsInViewport());
+				ItemWheelWidgetInstance->AddToViewport(-1);	// Visibility가 HitTestInvisible이라 영향 x
 				ItemWheelWidgetInstance->BindInventory(CachedInventoryComponent);
 			}
-
-			UE_LOG(LogContainer, Log, TEXT("아이템 휠 스크롤 UI 바인딩 완료"));
-		}
-		else
-		{
-			UE_LOG(LogContainer, Error, TEXT("[ItemWheel] 위젯 생성 실패: Inventory=%d, Class=%d, AlreadyExists=%d"),
-				CachedInventoryComponent != nullptr, ItemWheelWidgetClass != nullptr, ItemWheelWidgetInstance != nullptr);
 		}
 
 		if (LeftClickPickedContainer && HandHeldItemWidgetClass && !HandHeldItemWidgetInstance)
@@ -216,8 +206,17 @@ void ACPPlayerController::SetPawn(APawn* InPawn)
 				HandHeldItemWidgetInstance->AddToViewport(100); // 다른 UI보다 항상 위에 그려지도록
 				HandHeldItemWidgetInstance->TryBindHandContainer(LeftClickPickedContainer);
 			}
+		}
 
-			UE_LOG(LogContainer, Log, TEXT("아이템 집기 컴포넌트 캐싱 및 UI 바인딩 완료"));
+		if (DropZoneWidgetClass && !DropZoneWidgetInstance)
+		{
+			DropZoneWidgetInstance = CreateWidget<UCPDropZoneWidget>(this, DropZoneWidgetClass);
+			if (DropZoneWidgetInstance)
+			{
+				DropZoneWidgetInstance->OwnerContainer = DropContainer;
+				DropZoneWidgetInstance->SlotGridIndex = 0;
+				DropZoneWidgetInstance->AddToViewport(20);	
+			}
 		}
 	}
 	else
@@ -321,7 +320,7 @@ void ACPPlayerController::OpenExternalContainerUI(UCPItemContainerComponent* InT
 		return;
 	}
 
-	CurrentContainerUIInstance->AddToViewport();
+	CurrentContainerUIInstance->AddToViewport(20);
 	CurrentContainerUIInstance->BindContainer(InTargetContainer);
 	CurrentInteractingContainer = InTargetContainer;
 
@@ -547,6 +546,4 @@ void ACPPlayerController::SpawnDebugPotion(const TArray<FGameplayTag>& EffectTag
 		Potion->Destroy();
 	}
 }
-
-
 #pragma endregion

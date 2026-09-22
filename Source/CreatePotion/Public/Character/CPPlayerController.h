@@ -15,13 +15,17 @@ class UInputMappingContext;
 class UCPItemContainerComponent;
 class UCPInventoryComponent;
 class UCPHandItemContainerComponent;
-class UCPContainerMainWidget;
+class UCPDropContainerComponent;
+
 class UCPContainerContextBase;
+
+class UCPContainerMainWidget;
 class UCPHandHeldItemWidget;
 class UCPItemWheelWidget;
 class UCPWheelModeIndicatorWidget;
 class UCPShopPurchasePopupWidget;
 class UCPItemDetailPopupWidget;
+class UCPDropZoneWidget;
 
 //디버깅용 포션생성 함수용
 class UCPForageableItemData;
@@ -34,11 +38,41 @@ class CREATEPOTION_API ACPPlayerController : public APlayerController
 public:
 	friend class UCPContainerContextBase;	// private 멤버 변수에 접근할 수 있도록
 
+protected:
+
+	/** Input Mapping Contexts */
+	UPROPERTY(EditAnywhere, Category = "Input|Input Mappings")
+	TArray<UInputMappingContext*> DefaultMappingContexts;
+
+	/** Gameplay initialization */
+	virtual void BeginPlay() override;
+
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+	/** Input mapping context setup */
+	virtual void SetupInputComponent() override;
+
+	// 폰 빙의가 변경될 때 엔진이 자동으로 호출해주는 함수
+	// TODO[Container] : 추후 멀티플레이 확장시 Dedicated Server 환경에서 Client들은 실행이 되지 않음
+	virtual void SetPawn(APawn* InPawn) override;
+
+#pragma region DropItem
+public:
+	UPROPERTY(EditAnywhere, Category = "Container|UI")
+	TSubclassOf<UCPDropZoneWidget> DropZoneWidgetClass;
+
+	UPROPERTY()
+	UCPDropContainerComponent* DropContainer;
+
+private:
+	UPROPERTY()
+	UCPDropZoneWidget* DropZoneWidgetInstance;
+
+#pragma endregion
 
 #pragma region PotionThrow
 public:
 	void ConsumeHeldPotionCharge();
-
 #pragma endregion
 
 #pragma region Wheel
@@ -65,24 +99,6 @@ private:
 
 	bool bCurrentHeldItemIsFromInventory = false;
 #pragma endregion
-
-protected:
-
-	/** Input Mapping Contexts */
-	UPROPERTY(EditAnywhere, Category = "Input|Input Mappings")
-	TArray<UInputMappingContext*> DefaultMappingContexts;
-
-	/** Gameplay initialization */
-	virtual void BeginPlay() override;
-
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-
-	/** Input mapping context setup */
-	virtual void SetupInputComponent() override;
-
-	// 폰 빙의가 변경될 때 엔진이 자동으로 호출해주는 함수
-	// TODO[Container] : 추후 멀티플레이 확장시 Dedicated Server 환경에서 Client들은 실행이 되지 않음
-	virtual void SetPawn(APawn* InPawn) override;
 
 #pragma region Container
 public:
