@@ -34,7 +34,7 @@ void UCPInventoryComponent::BeginPlay()
 			InventoryUIInstance = CreateWidget<UCPContainerMainWidget>(PC, InventoryUIClass);
 			if (InventoryUIInstance)
 			{
-				InventoryUIInstance->AddToViewport();
+				InventoryUIInstance->AddToViewport(20);
 				InventoryUIInstance->BindContainer(this); // 데이터 씌운 후 자신을 바인딩
 				InventoryUIInstance->SetVisibility(ESlateVisibility::Collapsed);
 			}
@@ -69,7 +69,6 @@ void UCPInventoryComponent::TryBindInput()
 
 			// 바인딩 성공시 타이머 즉시 종료
 			GetWorld()->GetTimerManager().ClearTimer(InputBindingTimerHandle);
-			UE_LOG(LogContainer, Log, TEXT("[Inventory] 입력 바인딩 성공"));
 		}
 	}
 	else
@@ -81,7 +80,6 @@ void UCPInventoryComponent::TryBindInput()
 		if (BindRetryCount >= 50)
 		{
 			GetWorld()->GetTimerManager().ClearTimer(InputBindingTimerHandle);
-			UE_LOG(LogTemp, Warning, TEXT("[Inventory] 입력 바인딩 포기"));
 		}
 	}
 }
@@ -102,8 +100,7 @@ void UCPInventoryComponent::ToggleInventoryUI()
 	if (InventoryUIInstance->GetVisibility() == ESlateVisibility::Collapsed ||
 		InventoryUIInstance->GetVisibility() == ESlateVisibility::Hidden)
 	{
-		InventoryUIInstance->SetVisibility(ESlateVisibility::Visible);
-
+		InventoryUIInstance->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 
 		if (InventoryUIInstance->CachedUIManager)
 		{
