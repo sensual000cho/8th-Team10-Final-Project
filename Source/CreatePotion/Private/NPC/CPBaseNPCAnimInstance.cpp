@@ -1,6 +1,8 @@
 ﻿#include "NPC/CPBaseNPCAnimInstance.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "NPC/Components/CPNPCVisualComponent.h"
+#include "NPC/CPBaseNPC.h"
 
 void UCPBaseNPCAnimInstance::NativeInitializeAnimation()
 {
@@ -23,12 +25,28 @@ void UCPBaseNPCAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	if (!OwnerPawn)
 	{
 		OwnerPawn = TryGetPawnOwner();
-		if (OwnerPawn)
-		{
-			MovementComponent = Cast<ACharacter>(OwnerPawn) ? Cast<ACharacter>(OwnerPawn)->GetCharacterMovement() : nullptr;
-		}
 		if (!OwnerPawn) return;
 	}
-	GroundSpeed = OwnerPawn->GetVelocity().Size2D();
-	bShouldMove = (GroundSpeed > 3.0f);
+
+	const float RawSpeed = OwnerPawn->GetVelocity().Size2D();
+	bShouldMove = (RawSpeed > 3.0f);
+
+	float Multiplier = 1.0f;
+	if (ACPBaseNPC* BaseNPC = Cast<ACPBaseNPC>(OwnerPawn))
+	{
+		if (UCPNPCVisualComponent* VisualComp = BaseNPC->GetVisualComponent())
+		{
+			Multiplier = VisualComp->GetCurrentScaleMultiplier();
+		}
+	}
+
+	if (Multiplier >= 2.0f)
+	{
+		const float SafeDivisor = FMath::Max(0.1f, GiantSpeedDivisor);
+		GroundSpeed = RawSpeed / SafeDivisor;
+	}
+	else
+	{
+		GroundSpeed = RawSpeed;
+	}
 }
