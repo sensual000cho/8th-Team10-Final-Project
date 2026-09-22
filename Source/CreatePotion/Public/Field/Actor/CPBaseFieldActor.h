@@ -20,8 +20,6 @@ public:
 	
 	UFUNCTION(BlueprintCallable)
 	virtual bool PotionReaction(const FGameplayTag& EventTag, AActor* InstigatorActor = nullptr);
-	
-	virtual bool CanReactToTag(const FGameplayTag& EventTag) const;
 
 protected:
 	virtual void BeginPlay() override;
@@ -31,10 +29,6 @@ protected:
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<USceneComponent> Root;
-	
-	// 반응할 태그들
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Reaction")
-	FGameplayTagContainer ReactionEventTags;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
 	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
