@@ -5,6 +5,7 @@
 #include "GameFramework/Actor.h"
 #include "CPDroppedItemBase.generated.h"
 
+class UCPEggInteractableComponent;
 class URotatingMovementComponent;
 class UTimelineComponent;
 class UProjectileMovementComponent;
@@ -57,6 +58,9 @@ private:
 	
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UStaticMeshComponent> Mesh;
+	
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<UCPEggInteractableComponent> InteractableComponent;
 	
 	UPROPERTY(VisibleAnywhere, Category = "Drop")
 	TObjectPtr<UProjectileMovementComponent> DropMovement;

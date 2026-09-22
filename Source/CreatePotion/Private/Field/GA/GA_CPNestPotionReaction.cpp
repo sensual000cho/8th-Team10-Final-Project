@@ -26,7 +26,7 @@ void UGA_CPNestPotionReaction::ActivateAbility(const FGameplayAbilitySpecHandle 
 	
 	ACPNestActor* Nest = Cast<ACPNestActor>(ActorInfo->AvatarActor.Get());
 	
-	if (!Nest || !Nest->CanReactToTag(TriggerEventData->EventTag))
+	if (!Nest)
 	{
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		
