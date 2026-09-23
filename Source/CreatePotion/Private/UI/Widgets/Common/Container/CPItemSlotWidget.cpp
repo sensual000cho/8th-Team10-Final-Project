@@ -35,9 +35,12 @@ void UCPItemSlotWidget::NativeDestruct()
 {
 	if (ACPPlayerController* PC = Cast<ACPPlayerController>(GetOwningPlayer()))
 	{
-		if (UCPItemDetailPopupWidget* Popup = PC->GetOrCreateItemDetailPopup())
+		if (UCPItemDetailPopupWidget* Popup = PC->JustGetItemDetailPopup())
 		{
-			Popup->HideDetail();
+			if (IsValid(Popup))
+			{
+				Popup->HideDetail();
+			}
 		}
 	}
 
