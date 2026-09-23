@@ -43,8 +43,38 @@ TArray<UCPForageableItemData*> UCPCodexSubsystem::GetRegisteredForageableItems()
 	return Items;
 }
 
+UCPForageableItemData* UCPCodexSubsystem::FindRegisteredItemByTag(const FGameplayTag& Tag) const
+{
+	if (!Tag.IsValid()) return nullptr;
+	
+	for (const TPair<TObjectPtr<UCPForageableItemData>, FCPForageableCodexEntry>& Pair : ForageableCodexEntries){
+		UCPForageableItemData* ItemData = Pair.Key.Get();
+		if (!ItemData || ItemData->TagAxes[0] != Tag) continue;
+		return ItemData;
+	}
+	return nullptr;
+}
+
+bool UCPCodexSubsystem::DiscoverTag(FGameplayTag Tag)
+{
+	if (!Tag.IsValid()) return false;
+	if (const bool* TagState = DiscoveredTags.Find(Tag)){
+		if (*TagState) return false;
+	}
+	
+	DiscoveredTags.Add(Tag, true);
+	OnForageableCodexUpdated.Broadcast();
+	return true;
+}
+
+bool UCPCodexSubsystem::IsTagDiscovered(FGameplayTag Tag) const
+{
+	const bool* TagState = DiscoveredTags.Find(Tag);
+	return TagState && *TagState;
+}
+
 bool UCPCodexSubsystem::GetForageableEntry(UCPForageableItemData* ItemData, 
-	FCPForageableCodexEntry* OutForageableEntry) const
+                                           FCPForageableCodexEntry* OutForageableEntry) const
 {
 	if (!ItemData) return false;
 	
@@ -81,6 +111,8 @@ TArray<UCPNPCDataAsset*> UCPCodexSubsystem::GetRegisteredNPCDatas() const
 bool UCPCodexSubsystem::RecordForageableEntry(UCPForageableItemData* ItemData)
 {
 	if (!ItemData) return false;
+	
+	DiscoveredTags.Add(ItemData->TagAxes[0], true);
 	
 	// 등록이 되어 있는 경우 채집 횟수 증가
 	if (FCPForageableCodexEntry* CodexEntry = ForageableCodexEntries.Find(ItemData)){
