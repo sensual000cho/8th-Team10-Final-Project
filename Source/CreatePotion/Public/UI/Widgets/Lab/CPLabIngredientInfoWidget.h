@@ -41,6 +41,8 @@ public:
 protected:
 	virtual void NativeConstruct() override;
 	virtual void UnbindEvents() override;
+	
+	FText GetEffectDisplayName(const FGameplayTag& EffectTag) const;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_Context;
@@ -64,7 +66,6 @@ private:
 
 	void RefreshWidget();
 	void RefreshEmptyState();
-	FText GetEffectDisplayName(const FGameplayTag& EffectTag) const;
 
 	UPROPERTY(Transient)
 	FCPItemInstance Ingredient;

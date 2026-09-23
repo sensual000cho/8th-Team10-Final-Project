@@ -30,7 +30,6 @@ public:
 	
 	virtual void Tick(float DeltaSeconds) override;
 	virtual bool PotionReaction(const FGameplayTag& EventTag, AActor* InstigatorActor = nullptr) override;
-	virtual bool CanReactToTag(const FGameplayTag& EventTag) const override;
 	
 	void Initialize(const FCPResourceNodeKey& InNodeKey);
 	

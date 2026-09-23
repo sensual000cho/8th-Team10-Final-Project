@@ -19,7 +19,6 @@ UAbilitySystemComponent* ACPBaseFieldActor::GetAbilitySystemComponent() const
 bool ACPBaseFieldActor::PotionReaction(const FGameplayTag& EventTag, AActor* InstigatorActor)
 {
 	if (!AbilitySystemComponent) return false;
-	if (!CanReactToTag(EventTag)) return false;
 	
 	FGameplayEventData EventData;
 	
@@ -29,20 +28,7 @@ bool ACPBaseFieldActor::PotionReaction(const FGameplayTag& EventTag, AActor* Ins
 	
 	const int32 ActivatedAbilityCount = AbilitySystemComponent->HandleGameplayEvent(EventTag, &EventData);
 	
-	UE_LOG(
-		LogTemp,
-		Error,
-		TEXT("Send Potion Event | Target=%s | Tag=%s"),
-		*GetNameSafe(this),
-		*EventData.EventTag.ToString()
-	);
-	
 	return ActivatedAbilityCount > 0;
-}
-
-bool ACPBaseFieldActor::CanReactToTag(const FGameplayTag& EventTag) const
-{
-	return EventTag.IsValid() && ReactionEventTags.HasTagExact(EventTag);
 }
 
 void ACPBaseFieldActor::BeginPlay()

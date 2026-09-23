@@ -82,6 +82,26 @@ void UCPLabIngredientInfoWidget::UnbindEvents()
 	Super::UnbindEvents();
 }
 
+FText UCPLabIngredientInfoWidget::GetEffectDisplayName(const FGameplayTag& EffectTag) const
+{
+	if (!EffectTag.IsValid()) return FText::GetEmpty();
+	
+	const UCPDTSettings* DTSettings = GetDefault<UCPDTSettings>();
+	UDataTable* TagDefinitionTable = DTSettings ? DTSettings->TagDefinitionTable.LoadSynchronous() : nullptr;
+	if (!TagDefinitionTable) return FText::GetEmpty();
+	
+	TArray<FCPTagDefinitionRow*> Rows;
+	TagDefinitionTable->GetAllRows<FCPTagDefinitionRow>(TEXT("EffectTagDefinition"), Rows);
+	
+	for (const FCPTagDefinitionRow* Row : Rows){
+		if (Row && Row->Tag == EffectTag) {
+			return Row->DisplayName;
+		}
+	}
+	
+	return FText::GetEmpty();
+}
+
 void UCPLabIngredientInfoWidget::ClearIngredientInfo()
 {
 	ClearObservedIngredient();
@@ -151,24 +171,4 @@ void UCPLabIngredientInfoWidget::RefreshEmptyState()
 		Image_MaterialIcon->SetBrushFromTexture(nullptr);
 		Image_MaterialIcon->SetVisibility(ESlateVisibility::Collapsed);
 	}
-}
-
-FText UCPLabIngredientInfoWidget::GetEffectDisplayName(const FGameplayTag& EffectTag) const
-{
-	if (!EffectTag.IsValid()) return FText::GetEmpty();
-	
-	const UCPDTSettings* DTSettings = GetDefault<UCPDTSettings>();
-	UDataTable* TagDefinitionTable = DTSettings ? DTSettings->TagDefinitionTable.LoadSynchronous() : nullptr;
-	if (!TagDefinitionTable) return FText::GetEmpty();
-	
-	TArray<FCPTagDefinitionRow*> Rows;
-	TagDefinitionTable->GetAllRows<FCPTagDefinitionRow>(TEXT("EffectTagDefinition"), Rows);
-	
-	for (const FCPTagDefinitionRow* Row : Rows){
-		if (Row && Row->Tag == EffectTag) {
-			return Row->DisplayName;
-		}
-	}
-	
-	return FText::GetEmpty();
 }

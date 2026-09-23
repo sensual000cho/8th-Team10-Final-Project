@@ -25,4 +25,6 @@ struct FCPItemInstance
 	bool IsValid() const { return SourceItemData != nullptr; }
 
 	FLinearColor GetLiquidColor() const;
+
+	FText GetDisplayName() const;
 };
