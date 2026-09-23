@@ -4,12 +4,29 @@
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "Components/SizeBox.h"
+#include "Components/Overlay.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 
 #include "UI/Widgets/Common/Container/CPContainerGridWidget.h"
 #include "Components/CPItemContainerComponent.h"
 #include "Data/CPForageableItemData.h"
-#include "Settings/CPContainerUISettings.h"
+#include "Settings/CPContainerSettings.h"
+
+void UCPHandHeldItemWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+	SetVisibility(ESlateVisibility::HitTestInvisible);
+
+	if (RootSizeBox)
+	{
+		RootSizeBox->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	}
+
+	if (RootOverlay)
+	{
+		RootOverlay->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	}
+}
 
 void UCPHandHeldItemWidget::TryBindHandContainer(UCPItemContainerComponent* InHandContainer)
 {
@@ -50,7 +67,7 @@ void UCPHandHeldItemWidget::OnHandContainerUpdated()
 
 	if (RootSizeBox)
 	{
-		const UCPContainerUISettings* Settings = GetDefault<UCPContainerUISettings>();
+		const UCPContainerSettings* Settings = GetDefault<UCPContainerSettings>();
 
 		float SizeX = (ItemW * Settings->SlotSize) + FMath::Max(0, (ItemW - 1)) * Settings->SlotPadding;
 		float SizeY = (ItemH * Settings->SlotSize) + FMath::Max(0, (ItemH - 1)) * Settings->SlotPadding;
@@ -62,6 +79,19 @@ void UCPHandHeldItemWidget::OnHandContainerUpdated()
 	if (LoadedTexture && ItemIcon)
 	{
 		ItemIcon->SetBrushFromTexture(LoadedTexture);
+	}
+
+	if (LiquidImage)
+	{
+		if (Held.Instance.CurrentEffects.Num() > 0)
+		{
+			LiquidImage->SetColorAndOpacity(Held.Instance.GetLiquidColor());
+			LiquidImage->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+		}
+		else
+		{
+			LiquidImage->SetVisibility(ESlateVisibility::Collapsed);
+		}
 	}
 
 	if (StackText)
@@ -95,6 +125,6 @@ void UCPHandHeldItemWidget::UpdatePositionToMouse()
 
 float UCPHandHeldItemWidget::CalcCellCenterOffset() const
 {
-	const UCPContainerUISettings* Settings = GetDefault<UCPContainerUISettings>();
+	const UCPContainerSettings* Settings = GetDefault<UCPContainerSettings>();
 	return Settings->SlotSize * 0.5f;
 }

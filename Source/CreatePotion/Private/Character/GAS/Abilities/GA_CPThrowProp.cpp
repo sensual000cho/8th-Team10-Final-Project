@@ -8,6 +8,9 @@
 #include "GameFramework/Actor.h"
 #include "GameFramework/PlayerController.h"
 
+#include "Character/CPPlayerController.h"
+#include "Components/CPInventoryComponent.h" 
+
 UGA_CPThrowProp::UGA_CPThrowProp() : ThrowSpeed(800.f), UpwardBias(0.5f)
 {
     InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
@@ -84,12 +87,17 @@ void UGA_CPThrowProp::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
     if (!bThrowSucceeded)
     {
         UE_LOG(LogTemp, Warning, TEXT("[ThrowAbility] Prop 투척 실패"));
-
         EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
         return;
     }
 
     UE_LOG(LogTemp, Log, TEXT("[ThrowAbility] Prop 투척 성공"));
+
+    // 실제로 던지기가 성공한 시점에만 인벤토리에서 미리 보류해뒀던 포션을 실제로 차감
+    if (ACPPlayerController* PC = Cast<ACPPlayerController>(ActorInfo->PlayerController.Get()))
+    {
+        PC->ConsumeHeldPotionCharge();
+    }
 
     EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
 }
