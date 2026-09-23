@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
+#include "GameplayTagContainer.h"
 #include "CPContainerContextBase.generated.h"
 
 class UCPGridSlotWidgetBase;
@@ -40,7 +41,7 @@ protected:
 	bool IsUsingInventoryOnly(ACPPlayerController* PC) const;
 	bool IsSlotFromInventory(UCPGridSlotWidgetBase* ClickedSlot, ACPPlayerController* PC) const;
 
-	virtual void SpawnDroppedProp(UCPForageableItemData* ItemData, int32 Count, AActor* NearActor) const;
+	void SpawnDroppedProp(UCPForageableItemData* ItemData, int32 Count, AActor* NearActor, const TArray<FGameplayTag>& EffectTags = TArray<FGameplayTag>()) const;
 
 	bool TrySellItemToShop(UCPItemContainerComponent* PlayerContainer, int32 SlotGridIndex, UCPItemContainerComponent* ShopContainer, UCPInventoryComponent* PlayerInventory) const;
 

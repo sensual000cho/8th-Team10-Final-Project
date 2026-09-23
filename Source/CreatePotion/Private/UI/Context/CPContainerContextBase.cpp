@@ -72,7 +72,7 @@ bool UCPContainerContextBase::HandleLeftClickOnly(UCPGridSlotWidgetBase* Clicked
             {
                 for (int32 i = 0; i < HeldItem.Stacked; ++i)
                 {
-                    SpawnDroppedProp(HeldItem.Instance.SourceItemData, 1, PC->GetPawn());
+                    SpawnDroppedProp(HeldItem.Instance.SourceItemData, 1, PC->GetPawn(), HeldItem.Instance.CurrentEffects);
                 }
             }
 
@@ -150,6 +150,7 @@ bool UCPContainerContextBase::HandleAltLeftClick(UCPGridSlotWidgetBase* ClickedS
 
     // 삭제되기 전에 미리 값으로 떠둠 (RemoveItemFromContainer가 배열 항목을 지울 수 있으므로)
     UCPForageableItemData* ItemData = ItemSlot->CachedItemData.Instance.SourceItemData;
+    TArray<FGameplayTag> EffectTags = ItemSlot->CachedItemData.Instance.CurrentEffects;
 
     // 스택 전체가 아니라 딱 1개만 차감
     if (!ClickedSlot->OwnerContainer->RemoveItemFromContainer(ClickedSlot->SlotGridIndex, 1))
@@ -158,7 +159,7 @@ bool UCPContainerContextBase::HandleAltLeftClick(UCPGridSlotWidgetBase* ClickedS
     }
 
     // TODO[Container] : 일단은 1개만 버리도록
-    SpawnDroppedProp(ItemData, 1, PC->GetPawn());
+    SpawnDroppedProp(ItemData, 1, PC->GetPawn(), EffectTags);
 
     return true;
 }
@@ -179,7 +180,7 @@ bool UCPContainerContextBase::IsSlotFromInventory(UCPGridSlotWidgetBase* Clicked
         && PC && (ClickedSlot->OwnerContainer == PC->CachedInventoryComponent);
 }
 
-void UCPContainerContextBase::SpawnDroppedProp(UCPForageableItemData* ItemData, int32 Count, AActor* NearActor) const
+void UCPContainerContextBase::SpawnDroppedProp(UCPForageableItemData* ItemData, int32 Count, AActor* NearActor, const TArray<FGameplayTag>& EffectTags) const
 {
     if (!ItemData || !NearActor || Count <= 0)
     {
@@ -187,7 +188,7 @@ void UCPContainerContextBase::SpawnDroppedProp(UCPForageableItemData* ItemData, 
     }
 
     // TSoftReference를 실제 메모리에 올리기
-    TSubclassOf<ACPAlchemyProp> PropClass = ItemData->AlchemyPropClass.LoadSynchronous();
+    TSubclassOf<ACPThrowablePropBase> PropClass = ItemData->AlchemyPropClass.LoadSynchronous();
     if (!PropClass)
     {
         UE_LOG(LogContainer, Warning, TEXT("[Drop] [%s]의 AlchemyPropClass가 설정되지 않음"),
@@ -213,9 +214,9 @@ void UCPContainerContextBase::SpawnDroppedProp(UCPForageableItemData* ItemData, 
     {
         FVector SpawnLoc = BaseLocation + FVector(FMath::RandRange(-50.f, 50.f), FMath::RandRange(-50.f, 50.f), 10.f);
 
-        if (ACPAlchemyProp* SpawnedProp = World->SpawnActor<ACPAlchemyProp>(PropClass, SpawnLoc, FRotator::ZeroRotator))
+        if (ACPThrowablePropBase* SpawnedProp = World->SpawnActor<ACPThrowablePropBase>(PropClass, SpawnLoc, FRotator::ZeroRotator))
         {
-            SpawnedProp->InitializeFromItemData(ItemData);
+            SpawnedProp->InitializeFromItemData(ItemData, EffectTags);
 
             // TODO[Container] : 아이템을 버렸을 때 자동 수거 기능을 활성화 할 지 여부 미정
             // if (UDropItemWorldSubsystem* DropSubsystem = World->GetSubsystem<UDropItemWorldSubsystem>())
