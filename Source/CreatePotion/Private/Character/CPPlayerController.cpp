@@ -215,7 +215,7 @@ void ACPPlayerController::SetPawn(APawn* InPawn)
 			{
 				DropZoneWidgetInstance->OwnerContainer = DropContainer;
 				DropZoneWidgetInstance->SlotGridIndex = 0;
-				DropZoneWidgetInstance->AddToViewport(20);	
+				DropZoneWidgetInstance->AddToViewport(-1);	
 			}
 		}
 	}
