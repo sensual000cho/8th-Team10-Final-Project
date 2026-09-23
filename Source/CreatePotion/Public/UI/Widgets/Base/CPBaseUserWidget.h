@@ -14,6 +14,8 @@ UCLASS()
 class CREATEPOTION_API UCPBaseUserWidget : public UUserWidget
 {
 	GENERATED_BODY()
+
+	friend class UCPInventoryComponent;
 	
 protected:
 	virtual void NativeConstruct() override;

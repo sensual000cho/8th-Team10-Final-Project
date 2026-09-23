@@ -7,6 +7,7 @@
 #include "CPItemWheelWidget.generated.h"
 
 class UImage;
+class UCanvasPanel;
 class UCPInventoryComponent;
 
 UCLASS()
@@ -23,6 +24,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "ItemWheel")
 	void HandleScrollInput(float ScrollDelta);
+
+	bool TryScrollAndPickNextFocus(float ScrollDelta, int32& OutGridIndex);
 
 protected:
 	virtual void NativeConstruct() override;
@@ -66,6 +69,9 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "ItemWheel", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float FarIconAlpha = 0.2f;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	UCanvasPanel* RootCanvas;
 
 	UPROPERTY(meta = (BindWidget))
 	UImage* Left2Icon;

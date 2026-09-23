@@ -5,7 +5,6 @@
 #include "CPGA_Slime.generated.h"
 
 class USkeletalMesh;
-class UAnimSequence;
 class UMaterialInterface;
 class UMaterialInstanceDynamic;
 
@@ -17,22 +16,18 @@ class CREATEPOTION_API UCPGA_Slime : public UCPGA_PersistentReactionBase
 public:
 	UCPGA_Slime();
 
-	virtual void OnGiveAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec) override;
-	virtual void OnRemoveAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec) override;
-
 protected:
 	virtual void ApplyVisual(ACPBaseNPC* NPC, bool bActive, float InMagnitude) override;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Potion|Slime")
 	TObjectPtr<USkeletalMesh> SlimeMesh;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Potion|Slime")
+	TSubclassOf<UAnimInstance> SlimeAnimClass;
+
 	// 슬라임 단독 머티리얼
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Potion|Slime")
 	TObjectPtr<UMaterialInterface> SlimeBaseMaterial;
-
-	// 슬라임 + 바운시 결합 머티리얼
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Potion|Slime")
-	TObjectPtr<UMaterialInterface> SlimeBouncyMaterial;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Potion|Slime")
 	FName InnerColorParamName = FName("SlimeInnerColor");
@@ -47,17 +42,9 @@ protected:
 	float CapsuleHalfHeight = 88.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Potion|Slime")
-	float MeshZOffset = 0.0f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Potion|Slime")
-	FGameplayTag BouncyTag;
+	FRotator SlimeRotationOffset = FRotator(0.0f, 90.0f, 0.0f);
 
 private:
 	UPROPERTY()
 	TObjectPtr<UMaterialInstanceDynamic> CachedSlimeBaseMID;
-
-	UPROPERTY()
-	TObjectPtr<UMaterialInstanceDynamic> CachedSlimeBouncyMID;
-
-	void SetupCompositeRule(ACPBaseNPC* NPC);
 };

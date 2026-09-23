@@ -49,9 +49,3 @@ void ACPAlchemyProp::Tick(float DeltaSeconds)
     const float BobbleOffset = FMath::Sin(GetGameTimeSinceCreation() * BobbleSpeed * 2.f * UE_PI) * BobbleAmplitude;
     IngredientBobblePivot->SetRelativeLocation(IngredientBobbleBaseLocation + FVector::UpVector * BobbleOffset);
 }
-
-FName ACPAlchemyProp::EvaluateTargetName_Implementation() const
-{
-    return WorkingIngredient.SourceItemData 
-        ? FName(*WorkingIngredient.SourceItemData->DisplayName.ToString()) : Super::EvaluateTargetName_Implementation();
-}

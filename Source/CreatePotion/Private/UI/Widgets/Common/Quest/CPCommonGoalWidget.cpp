@@ -5,6 +5,8 @@
 
 #include "Components/TextBlock.h"
 #include "Quest/QuestManager.h"
+#include "Kismet/GameplayStatics.h"
+#include "Components/CPInventoryComponent.h"
 
 void UCPCommonGoalWidget::NativeConstruct()
 {
@@ -18,6 +20,14 @@ void UCPCommonGoalWidget::NativeConstruct()
 		}
 	}
 
+	if (APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0))
+	{
+		if (UCPInventoryComponent* Inventory = PlayerPawn->FindComponentByClass<UCPInventoryComponent>())
+		{
+			Inventory->OnContainerUpdated.AddDynamic(this, &UCPCommonGoalWidget::HandleInventoryUpdated);
+		}
+	}
+
 	UpdateGoalDisplay();
 }
 
@@ -28,6 +38,14 @@ void UCPCommonGoalWidget::NativeDestruct()
 		if (UQuestManager* QuestManager = GI->GetSubsystem<UQuestManager>())
 		{
 			QuestManager->OnQuestUpdated.RemoveDynamic(this, &UCPCommonGoalWidget::HandleQuestUpdated);
+		}
+	}
+
+	if (APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0))
+	{
+		if (UCPInventoryComponent* Inventory = PlayerPawn->FindComponentByClass<UCPInventoryComponent>())
+		{
+			Inventory->OnContainerUpdated.RemoveDynamic(this, &UCPCommonGoalWidget::HandleInventoryUpdated);
 		}
 	}
 
@@ -59,8 +77,34 @@ void UCPCommonGoalWidget::UpdateGoalDisplay()
 	{
 		TextBlock_GoalTitle->SetText(QuestManager->GetQuestTitle(ActiveQuestID));
 	}
+
 	if (TextBlock_GoalText)
 	{
-		TextBlock_GoalText->SetText(QuestManager->GetQuestSummaryText(ActiveQuestID));
+		FText SummaryText = QuestManager->GetQuestSummaryText(ActiveQuestID);
+
+		if (QuestManager->GetQuestCompletionType(ActiveQuestID) == EQuestCompletionType::ItemCollection)
+		{
+			TMap<FName, int32> HeldItemCounts;
+			if (APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0))
+			{
+				if (UCPInventoryComponent* Inventory = PlayerPawn->FindComponentByClass<UCPInventoryComponent>())
+				{
+					HeldItemCounts = Inventory->GetItemCountsByID();
+				}
+			}
+
+			FText ProgressText = QuestManager->GetItemProgressText(ActiveQuestID, HeldItemCounts);
+			if (!ProgressText.IsEmpty())
+			{
+				SummaryText = FText::Format(FText::FromString(TEXT("{0}\n{1}")), SummaryText, ProgressText);
+			}
+		}
+
+		TextBlock_GoalText->SetText(SummaryText);
 	}
+}
+
+void UCPCommonGoalWidget::HandleInventoryUpdated()
+{
+	UpdateGoalDisplay();
 }

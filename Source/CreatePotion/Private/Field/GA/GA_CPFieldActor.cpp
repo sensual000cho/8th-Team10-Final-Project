@@ -11,7 +11,7 @@ void UGA_CPFieldActor::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
 	const FGameplayEventData* TriggerEventData)
 {
-	if (!ActorInfo || !TriggerEventData || !StateEffectClass)
+	if (!ActorInfo || !TriggerEventData)
 	{
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		
@@ -19,7 +19,7 @@ void UGA_CPFieldActor::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 	}
 	
 	ACPBaseFieldActor* FieldActor = Cast<ACPBaseFieldActor>(ActorInfo->AvatarActor.Get());
-	if (!FieldActor || !FieldActor->CanReactToTag(TriggerEventData->EventTag))
+	if (!FieldActor)
 	{
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		
@@ -34,21 +34,26 @@ void UGA_CPFieldActor::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 		return;
 	}
 	
-	FGameplayEffectContextHandle EffectContext = ASC->MakeEffectContext();
-	
-	EffectContext.AddSourceObject(this);
-	
-	FGameplayEffectSpecHandle EffectSpec =
-		ASC->MakeOutgoingSpec(StateEffectClass, GetAbilityLevel(Handle, ActorInfo), EffectContext);
-	
-	if (!EffectSpec.IsValid())
+	if (StateEffectClass)
 	{
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		FGameplayEffectContextHandle EffectContext = ASC->MakeEffectContext();
+	
+		EffectContext.AddSourceObject(this);
+	
+		FGameplayEffectSpecHandle EffectSpec =
+			ASC->MakeOutgoingSpec(StateEffectClass, GetAbilityLevel(Handle, ActorInfo), EffectContext);
+	
+		if (!EffectSpec.IsValid())
+		{
+			EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		
-		return;
+			return;
+		}
+	
+		ASC->ApplyGameplayEffectSpecToSelf(*EffectSpec.Data.Get());
 	}
 	
-	ASC->ApplyGameplayEffectSpecToSelf(*EffectSpec.Data.Get());
+	FieldActor->PotionReaction(TriggerEventData->EventTag);
 	
 	EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
 }

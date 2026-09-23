@@ -14,6 +14,7 @@
 #include "Settings/CPDTSettings.h"
 
 ACPPotionActor::ACPPotionActor():
+    CollisionDisabledDuration(0.5f),
     ColorTransitionDuration(1.f), 
     ColorHoldDuration(2.f), 
     TransitionNeutralizeStrength(0.2f), 
@@ -34,12 +35,6 @@ void ACPPotionActor::Tick(float DeltaTime)
     UpdatePotionVisual(DeltaTime);
 }
 
-FName ACPPotionActor::EvaluateTargetName_Implementation() const
-{
-    return WorkingIngredient.SourceItemData ? 
-        FName(*WorkingIngredient.SourceItemData->DisplayName.ToString()) : Super::EvaluateTargetName_Implementation();
-}
-
 void ACPPotionActor::InitializeFromItemData(UCPForageableItemData* ItemData, const TArray<FGameplayTag>& EffectTags)
 {
     Super::InitializeFromItemData(ItemData, EffectTags);
@@ -51,12 +46,18 @@ void ACPPotionActor::ApplySpawnImpulse(const FVector& SpawnImpulse)
     if (!IsValid(StaticMeshComponent)) return;
     
     StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-    StaticMeshComponent->SetGenerateOverlapEvents(true);
+    StaticMeshComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
+    StaticMeshComponent->SetGenerateOverlapEvents(false);
+    
     StaticMeshComponent->SetLinearDamping(PostImpactLinearDamping);
     StaticMeshComponent->SetAngularDamping(PostImpactAngularDamping);
     StaticMeshComponent->SetSimulatePhysics(true);
     StaticMeshComponent->WakeAllRigidBodies();
     StaticMeshComponent->AddImpulse(SpawnImpulse);
+    
+    FTimerHandle SpawnCollisionTimerHandle;
+    GetWorldTimerManager().SetTimer(
+        SpawnCollisionTimerHandle, this, &ACPPotionActor::EnableSpawnCollision, CollisionDisabledDuration, false);
     
     SetPropState(ECPThrowablePropState::Dropped);
     StartRestCheck();
@@ -244,4 +245,12 @@ void ACPPotionActor::ApplyLiquidMaterialColors() const
     DynamicLiquidMaterial->SetVectorParameterValue(TEXT("Liquid_Color01"), CurrentVisualColors.LiquidColor01);
     DynamicLiquidMaterial->SetVectorParameterValue(TEXT("Liquid_Color02"), CurrentVisualColors.LiquidColor02);
     DynamicLiquidMaterial->SetVectorParameterValue(TEXT("Surface_Color01"), CurrentVisualColors.SurfaceColor01);
+}
+
+void ACPPotionActor::EnableSpawnCollision()
+{
+    if (!IsValid(StaticMeshComponent)) return;
+    
+    StaticMeshComponent->SetCollisionResponseToAllChannels(ECR_Block);
+    StaticMeshComponent->SetGenerateOverlapEvents(true);
 }

@@ -28,7 +28,7 @@ void UCPHitReactionComponent::HitReaction(float AppliedDamage, AActor* DamageCau
 	}
 	
 	FVector Direction = (Player->GetActorLocation() - Enemy->GetActorLocation()).GetSafeNormal2D();
-	CMC->AddImpulse(Direction * KnockbackStrength, true);
+	CMC->AddImpulse(Direction * KnockbackStrength * Enemy->GetAttackImpulseMultiplier(), true);
 }
 
 

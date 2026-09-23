@@ -11,7 +11,7 @@ class UAnimSequence;
 
 /**
  * Potion.Effect.FartLaunch의 Enemy 전용 구현.
- * Mesh Ragdoll 없이 위로 상승한 뒤 착지하면 사망한다.
+ * 한 번 발사한 뒤 CharacterMovement의 중력으로 비행하며 착지하면 사망한다.
  */
 UCLASS(Blueprintable)
 class CREATEPOTION_API UCPGA_EnemyFartLaunch : public UGameplayAbility
@@ -29,16 +29,17 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Potion|FartLaunch|Animation")
 	TObjectPtr<UAnimSequence> LaunchAnimation;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Potion|FartLaunch|Launch", meta = (ClampMin = "0.0"))
+	// 폭발 순간 부여하는 초기 속도다. 이후의 상승/낙하는 중력에 맡긴다.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Potion|FartLaunch|Launch", meta = (ClampMin = "0.0", Units = "cm/s"))
 	float LaunchForce = 2000.0f;
 
-	// 이 시간 동안 중력 없이 위로 상승한 뒤 낙하한다.
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Potion|FartLaunch|Launch", meta = (ClampMin = "0.0", Units = "s"))
-	float RiseDuration = 1.5f;
+	// 수직 상향에서 벗어날 수 있는 최대 발사 각도다. 발사마다 한 번 선택한다.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Potion|FartLaunch|Launch", meta = (ClampMin = "0.0", ClampMax = "89.0", Units = "deg"))
+	float LaunchConeHalfAngle = 15.0f;
 
-	// 이동 속도에는 영향을 주지 않고 Mesh만 비틀거리게 한다.
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Potion|FartLaunch|Animation", meta = (ClampMin = "0.0", Units = "deg"))
-	float TumbleDegreesPerStep = 8.0f;
+	// 발사 시 정한 무작위 축을 중심으로 일정하게 회전한다.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Potion|FartLaunch|Animation", meta = (ClampMin = "0.0", Units = "deg/s"))
+	float SpinSpeed = 180.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Potion|FartLaunch")
 	FGameplayTag FartLaunchCueTag;
@@ -47,9 +48,10 @@ private:
 	UFUNCTION()
 	void HandleLanded(const FHitResult& Hit);
 
-	void BeginFall();
+	UFUNCTION()
+	void UpdateFlightSpin(float DeltaSeconds, FVector OldLocation, FVector OldVelocity);
+
 	void ApplyLandingDamage();
-	void ApplyVisualTumble();
 	void RestoreLivingState();
 
 	TWeakObjectPtr<ACPEnemyCharacter> CachedEnemy;
@@ -57,12 +59,11 @@ private:
 
 	TSubclassOf<UAnimInstance> OriginalAnimInstanceClass;
 	FRotator OriginalMeshRelativeRotation = FRotator::ZeroRotator;
+	// 비행 중에는 회전축을 다시 뽑지 않는다.
+	FVector SpinAxis = FVector::UpVector;
+	float SpinAngle = 0.0f;
 	EMovementMode OriginalMovementMode = MOVE_Walking;
 	uint8 OriginalCustomMovementMode = 0;
-	float OriginalGravityScale = 1.0f;
-	float OriginalFallingLateralFriction = 0.0f;
-	FTimerHandle RiseTimerHandle;
-	FTimerHandle VisualTumbleTimerHandle;
 	bool bLandingDamageApplied = false;
 	bool bLaunchApplied = false;
 };
