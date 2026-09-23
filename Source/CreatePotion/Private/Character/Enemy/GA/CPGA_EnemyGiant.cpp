@@ -8,6 +8,8 @@ UCPGA_EnemyGiant::UCPGA_EnemyGiant()
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	FGameplayTagContainer AssetTags;
 	AssetTags.AddTag(FGameplayTag::RequestGameplayTag(TEXT("Ability.Reaction.Potion")));
+	// 기존 효과 태그로 중화 대상 목록에서 이 GA를 찾는다.
+	AssetTags.AddTag(FGameplayTag::RequestGameplayTag(TEXT("State.Effect.Giant")));
 	SetAssetTags(AssetTags);
 	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(TEXT("Immunity.Potion.All")));
 	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag(TEXT("Immunity.Potion.Giant")));

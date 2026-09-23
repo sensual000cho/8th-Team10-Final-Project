@@ -1,6 +1,13 @@
 #include "Resource/System/CPResourceStateSubsystem.h"
 #include "GameInstance/Subsystem/CPTimeSubsystem.h"
 
+void UCPResourceStateSubsystem::Initialize(FSubsystemCollectionBase& Collection)
+{
+	Super::Initialize(Collection);
+	
+	SessionSeed = static_cast<int32>(FGuid::NewGuid().A & 0x7FFFFFFF);
+}
+
 FCPResourceNodeState& UCPResourceStateSubsystem::GetOrCreateState(const FCPResourceNodeKey& Key)
 {
 	return NodeStates.FindOrAdd(Key);

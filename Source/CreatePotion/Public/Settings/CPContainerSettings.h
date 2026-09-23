@@ -1,13 +1,15 @@
-﻿// CPContainerUISettings.h
+﻿// CPContainerSettings.h
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Engine/DeveloperSettings.h"
-#include "CPContainerUISettings.generated.h"
+#include "CPContainerSettings.generated.h"
 
-UCLASS(config = Game, defaultconfig, meta = (DisplayName = "CreatePotion Container UI Settings"))
-class CREATEPOTION_API UCPContainerUISettings : public UDeveloperSettings
+class USoundBase;
+
+UCLASS(config = Game, defaultconfig, meta = (DisplayName = "CreatePotion Container Settings"))
+class CREATEPOTION_API UCPContainerSettings : public UDeveloperSettings
 {
 	GENERATED_BODY()
 
@@ -17,5 +19,4 @@ public:
 
 	UPROPERTY(config, EditAnywhere, Category = "Container|UI")
 	float SlotPadding = 5.0f;
-	
 };

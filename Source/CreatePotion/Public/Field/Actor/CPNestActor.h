@@ -18,7 +18,6 @@ public:
 	ACPNestActor();
 	
 	virtual bool PotionReaction(const FGameplayTag& EventTag, AActor* InstigatorActor = nullptr) override;
-	virtual bool CanReactToTag(const FGameplayTag& EventTag) const override;
 	
 protected:
 	// 드랍 아이템 DA
