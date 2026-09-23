@@ -3,18 +3,54 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AbilitySystemInterface.h"
 #include "GameFramework/Character.h"
 #include "CPEnemyCharacter.generated.h"
 
 class UAnimMontage;
+class UAnimSequence;
+class UAbilitySystemComponent;
+class UCPEnemyAttributeSet;
+class UGameplayAbility;
+class USphereComponent;
+struct FOnAttributeChangeData;
+DECLARE_MULTICAST_DELEGATE(FCPOnEnemyDying);
 
 UCLASS()
-class CREATEPOTION_API ACPEnemyCharacter : public ACharacter
+class CREATEPOTION_API ACPEnemyCharacter : public ACharacter, public IAbilitySystemInterface
 {
     GENERATED_BODY()
 
 public:
     ACPEnemyCharacter();
+
+    virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+    virtual void Landed(const FHitResult& Hit) override;
+
+    UFUNCTION(BlueprintPure, Category = "Enemy|State")
+    bool IsDead() const { return bIsDead; }
+
+    UFUNCTION(BlueprintPure, Category = "Enemy|State")
+    float GetHealth() const;
+
+    // 원본과 복제본 모두 성공한 분열 횟수를 이어받는다.
+    UFUNCTION(BlueprintPure, Category = "Enemy|Slime")
+    int32 GetSlimeSplitCount() const { return SlimeSplitCount; }
+
+    // 체력과 분열 크기만 복사하며 AI와 공격 진행 상태는 복사하지 않는다.
+    void InitializeSlimeSplit(const ACPEnemyCharacter& SourceEnemy, float ScaleMultiplier);
+
+    // 일시적인 Giant 배율은 영구적인 분열 크기와 분리한다.
+    void SetGiantMultipliers(float ScaleMultiplier, float SpeedMultiplier, float ImpulseMultiplier);
+    float GetGiantScaleMultiplier() const { return GiantScaleMultiplier; }
+    float GetAttackImpulseMultiplier() const { return AttackImpulseMultiplier; }
+    float GetEffectiveAttackRange() const { return AttackRange * GiantScaleMultiplier; }
+
+    FCPOnEnemyDying OnEnemyDying;
+
+    // Enemy 체력을 0.0~1.0 범위에서 감소시킨다.
+    UFUNCTION(BlueprintCallable, Category = "Enemy|State")
+    float ApplyDamage(float DamageAmount, AActor* DamageCauser);
 
     // 거리, 가림, 체력, 쿨타임 등을 확인
     UFUNCTION(BlueprintPure, Category = "Enemy|Attack")
@@ -33,17 +69,60 @@ public:
     void CancelAttack();
 
     bool IsAttacking() const { return bIsAttacking; }
-
+    
     bool DidLastAttackCompleteNormally() const
     {
         return bLastAttackCompletedNormally;
     }
+    
+    bool IsVictoryPlaying() const { return bIsVictoryPlaying; }
+    
+    bool DidVictoryCompletedNormally() const
+    {
+        return bVictoryCompletedNormally;
+    }
+    
+    bool IsVictoryRequested() const { return bVictoryRequested; }
+    
+    UFUNCTION(BlueprintCallable, Category = "Enemy|Attack")
+    void RequestVictory();
+    
+    void ClearVictoryRequest();
+    
+    UFUNCTION(BlueprintCallable, Category = "Enemy|Victory")
+    bool StartVictoryRequest();
 
 protected:
+    virtual void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+    void HandleDeath(AActor* DamageCauser);
+
+    void HandleHealthChanged(const FOnAttributeChangeData& ChangeData);
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Components")
+    TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Components")
+    TObjectPtr<UCPEnemyAttributeSet> EnemyAttributeSet;
+
+    // 사망 후 Mesh를 움직이는 구형 물리 충돌체다.
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Components")
+    TObjectPtr<USphereComponent> DeathPhysicsSphere;
+
+    // Enemy BP에서 포션 반응 GA를 등록한다.
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Abilities")
+    TArray<TSubclassOf<UGameplayAbility>> PotionReactionAbilities;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Attack")
     TArray<TObjectPtr<UAnimMontage>> AttackMontages;
+    
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Attack")
+    TArray<TObjectPtr<UAnimMontage>> VictoryMontages;
+
+    // 체력이 0이 되었을 때 유지할 사망 Pose. Enemy BP에서 지정한다.
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Death")
+    TObjectPtr<UAnimSequence> DeathPoseAnimation;
 
     // 액터 중심 사이의 3D 거리 기준(높이 포함)
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Attack", meta = (ClampMin = "1.0", Units = "cm"))
@@ -61,9 +140,13 @@ protected:
     float AttackHalfAngle = 60.f;
 
 private:
+    void GrantPotionReactionAbilities();
     bool IsTargetInAttackReach(AActor* Target) const;
     void HandleAttackBlendingOut(UAnimMontage* Montage, bool bInterrupted);
     void HandleAttackEnded(UAnimMontage* Montage, bool bInterrupted);
+    void PlayDeathPose();
+    void StartDeathPhysics(const FVector& DeathVelocity, const FVector& SurfaceNormal);
+    void HandleVictoryEnded(UAnimMontage* Montage, bool bInterrupted);
 
     UPROPERTY()
     TWeakObjectPtr<AActor> AttackTarget;
@@ -72,6 +155,31 @@ private:
     bool bAttackHitConsumed = false;
     bool bAttackHitEnabled = false;
     bool bLastAttackCompletedNormally = false;
+    bool bIsDead = false;
+
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Enemy|Slime", meta = (AllowPrivateAccess = "true"))
+    int32 SlimeSplitCount = 0;
+
+    float GiantScaleMultiplier = 1.0f;
+    float GiantSpeedMultiplier = 1.0f;
+    float AttackImpulseMultiplier = 1.0f;
+
+    FDelegateHandle HealthChangedDelegateHandle;
+    TWeakObjectPtr<AActor> PendingDamageCauser;
+
+    FRotator InitialMeshRelativeRotation = FRotator::ZeroRotator;
+    FVector LandingVelocity = FVector::ZeroVector;
+    FVector LandingSurfaceNormal = FVector::UpVector;
+    bool bHandlingLanding = false;
+
+    UPROPERTY(Transient)
+    TObjectPtr<UAnimMontage> ActiveVictoryMontage;
+
+    bool bIsVictoryPlaying = false;
+    bool bVictoryCompletedNormally = false;
+
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Enemy|Victory", meta = (AllowPrivateAccess = "true"))
+    bool bVictoryRequested = false;
 
     double NextAttackAllowedTime = 0.0;
     int32 RandomMontageNum = 0;

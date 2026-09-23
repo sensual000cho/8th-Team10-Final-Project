@@ -227,6 +227,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	void GetRequiredItemInfo(FName QuestID, TArray<FName>& OutItemIDs, int32& OutRequiredCount) const;
 
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	FText GetItemProgressText(FName QuestID, const TMap<FName, int32>& HeldItemCounts) const;
+
 	// 퀘스트가 찾아야 하는 대상 식별자 조회
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	FName GetTargetIdentifier(FName QuestID) const;
@@ -252,6 +255,13 @@ public:
 	// 화면에 계속 표시할 "현재 활성 목표" 조회 - 수락 순서 중 완료 안 된 첫 번째 반환
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	FName GetActiveGoalQuestID() const;
+
+	//특정 퀘스트를 고정해서 항상 목표 UI에 표시
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	void SetPinnedQuest(FName QuestID);
+
+	UFUNCTION(BlueprintCallable, Category = "Quest")
+	FName GetPinnedQuest() const;
 
 
 private:
@@ -282,6 +292,9 @@ private:
 
 	// 반응 텍스트 배열에서 랜덤으로 하나 뽑는 내부 헬퍼 (빈 배열이면 빈 텍스트 반환)
 	FText PickRandomReaction(const TArray<FText>& Reactions) const;
+
+	UPROPERTY()
+	FName PinnedQuestID;
 
 protected:
 	// Subsystem 생성 시 자동 호출됨. QuestScriptTable/QuestAnswerTable을 자동으로 찾아 연결함.

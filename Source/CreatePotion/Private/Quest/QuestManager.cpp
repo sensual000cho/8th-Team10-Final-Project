@@ -64,26 +64,16 @@ TArray<FName> UQuestManager::GetAllTrackedQuestIDs() const
 	return QuestOrder;
 }
 
-// 신규 추가 - 화면에 계속 표시할 "현재 활성 목표" 조회
-// 수락 순서 중 아직 완료 안 된 첫 번째 퀘스트를 반환, 없으면 NAME_None
 FName UQuestManager::GetActiveGoalQuestID() const
 {
-	for (const FName& QuestID : QuestOrder)
+	// 고정된 퀘스트가 있고 아직 진행 중이면 표시
+	if (!PinnedQuestID.IsNone() && GetQuestState(PinnedQuestID) == EQuestState::Accepted)
 	{
-		if (GetQuestState(QuestID) == EQuestState::Accepted)
-		{
-			return QuestID;
-		}
+		return PinnedQuestID;
 	}
-	return NAME_None;
-}
 
-// 이 QuestID가 RandomQuestAnswerTable 소속인지 확인 (일반 테이블에 있으면 false)
-bool UQuestManager::IsRandomQuest(FName QuestID) const
-{
-	bool bIsRandom = false;
-	FindAnswerData(QuestID, &bIsRandom);
-	return bIsRandom;
+	// 고정된 게 없거나 완료됐으면 표시 안 함
+	return NAME_None;
 }
 
 // 저널 탭 분리용 - 일반 퀘스트만 필터링해서 반환
@@ -98,6 +88,13 @@ TArray<FName> UQuestManager::GetTrackedTownQuestIDs() const
 		}
 	}
 	return Result;
+}
+
+bool UQuestManager::IsRandomQuest(FName QuestID) const
+{
+	bool bIsRandom = false;
+	FindAnswerData(QuestID, &bIsRandom);
+	return bIsRandom;
 }
 
 // 저널 탭 분리용 - 랜덤 퀘스트만 필터링해서 반환
@@ -673,4 +670,37 @@ EQuestMarkerState UQuestManager::GetMarkerStateForQuests(const TArray<FName>& Qu
 	}
 
 	return bHasInProgress ? EQuestMarkerState::InProgress : EQuestMarkerState::None;
+}
+
+void UQuestManager::SetPinnedQuest(FName QuestID)
+{
+	PinnedQuestID = QuestID;
+	OnQuestUpdated.Broadcast(QuestID, GetQuestState(QuestID));
+}
+
+FName UQuestManager::GetPinnedQuest() const
+{
+	return PinnedQuestID;
+}
+
+FText UQuestManager::GetItemProgressText(FName QuestID, const TMap<FName, int32>& HeldItemCounts) const
+{
+	FQuestAnswerData* Answer = FindAnswerData(QuestID);
+	if (!Answer || Answer->RequiredItemIDs.Num() == 0) return FText::GetEmpty();
+
+	TArray<FString> Lines;
+	for (int32 i = 0; i < Answer->RequiredItemIDs.Num(); ++i)
+	{
+		const FName& ItemID = Answer->RequiredItemIDs[i];
+		const int32* HeldCount = HeldItemCounts.Find(ItemID);
+		int32 Held = HeldCount ? *HeldCount : 0;
+
+		FString HintName = Answer->RequiredItemHintNames.IsValidIndex(i)
+			? Answer->RequiredItemHintNames[i].ToString()
+			: TEXT("재료");
+
+		Lines.Add(FString::Printf(TEXT("%s: %d / %d"), *HintName, Held, Answer->RequiredItemCount));
+	}
+
+	return FText::FromString(FString::Join(Lines, TEXT("\n")));
 }

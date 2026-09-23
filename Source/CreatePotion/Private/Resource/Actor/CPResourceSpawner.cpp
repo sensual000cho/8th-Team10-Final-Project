@@ -6,6 +6,7 @@
 #include "Data/CPResourceDefinition.h"
 #include "GameInstance/Subsystem/CPTimeSubsystem.h"
 #include "Resource/System/CPObjectPoolSubsystem.h"
+#include "Field/Actor/CPRockVineActor.h"
 
 #define GROUND_CHANNEL ECC_GameTraceChannel1
 #define SPAWN_BLOCK_CHANNEL ECC_GameTraceChannel2
@@ -40,6 +41,8 @@ void ACPResourceSpawner::BeginPlay()
 		if (StateSubsystem)
 		{
 			StateSubsystem->OnResourceNodeHarvested.AddUObject(this, &ACPResourceSpawner::HandleNodeHarvested);
+			
+			SessionSeed = StateSubsystem->GetSessionSeed();
 		}
 		
 		UCPTimeSubsystem* TimeSubsystem = GI->GetSubsystem<UCPTimeSubsystem>();
@@ -175,7 +178,21 @@ void ACPResourceSpawner::SpawnSlot(int32 SlotIndex)
 	ACPResourceNodeActor* ResourceActor = Cast<ACPResourceNodeActor>(AcquiredActor);
 	if (!ResourceActor) return;
 	
-	ResourceActor->InitializeResource(Key, Definition);
+	const bool bShouldSpawnVine = ShouldSpawnVine(SlotIndex, State.Generation, Entry->VineProtectionChance);
+	if (bShouldSpawnVine && !State.bVineCleared)
+	{
+		AActor* AcquiredVine = PoolSubsystem->AcquireActor(VineActorClass, SpawnTransform);
+		if (!AcquiredVine) return;
+		
+		ACPRockVineActor* VineActor = Cast<ACPRockVineActor>(AcquiredVine);
+		if (!VineActor) return;
+		
+		VineActor->Initialize(Key);
+	}
+	
+	const int32 HarvestMultiplier = bShouldSpawnVine ? Entry->VineHarvestMultiplier : 1;
+	
+	ResourceActor->InitializeResource(Key, Definition, HarvestMultiplier);
 	PendingRespawnSlots.Add(SlotIndex);
 }
 
@@ -312,6 +329,8 @@ int32 ACPResourceSpawner::MakeSpawnSeed(int32 SlotIndex, int32 Generation, int32
 		Seed *= FNV32Prime;
 	};
 	
+	Mix(static_cast<uint32>(SessionSeed));
+	
 	Mix(SpawnerId.A);
 	Mix(SpawnerId.B);
 	Mix(SpawnerId.C);
@@ -327,5 +346,15 @@ int32 ACPResourceSpawner::MakeSpawnSeed(int32 SlotIndex, int32 Generation, int32
 FName ACPResourceSpawner::GetLevelId() const
 {
 	return FName(UGameplayStatics::GetCurrentLevelName(this, true));
+}
+
+bool ACPResourceSpawner::ShouldSpawnVine(int32 SlotIndex, int32 Generation, float VineProtectionChance) const
+{
+	if (VineProtectionChance <= 0.f) return false;
+	if (VineProtectionChance >= 1.f) return true;
+	
+	FRandomStream RandomStream(MakeSpawnSeed(SlotIndex, Generation, 3));
+	
+	return RandomStream.FRand() < VineProtectionChance;
 }
 

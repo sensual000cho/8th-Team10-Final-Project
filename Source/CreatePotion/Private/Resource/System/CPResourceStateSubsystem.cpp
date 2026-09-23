@@ -1,6 +1,13 @@
 #include "Resource/System/CPResourceStateSubsystem.h"
 #include "GameInstance/Subsystem/CPTimeSubsystem.h"
 
+void UCPResourceStateSubsystem::Initialize(FSubsystemCollectionBase& Collection)
+{
+	Super::Initialize(Collection);
+	
+	SessionSeed = static_cast<int32>(FGuid::NewGuid().A & 0x7FFFFFFF);
+}
+
 FCPResourceNodeState& UCPResourceStateSubsystem::GetOrCreateState(const FCPResourceNodeKey& Key)
 {
 	return NodeStates.FindOrAdd(Key);
@@ -24,8 +31,22 @@ void UCPResourceStateSubsystem::MarkHarvested(const FCPResourceNodeKey& Key, dou
 	++State.Generation;
 	
 	State.RespawnAt = TimeSubsystem->GetTotalWorldMinutes() + RespawnDuration;
+	State.bVineCleared = false;
 	
 	OnResourceNodeHarvested.Broadcast(Key);
+}
+
+bool UCPResourceStateSubsystem::MarkVineCleared(const FCPResourceNodeKey& Key)
+{
+	if (!Key.IsValid()) return false;
+	
+	FCPResourceNodeState& State = NodeStates.FindOrAdd(Key);
+	
+	if (State.bVineCleared) return false;
+	
+	State.bVineCleared = true;
+	
+	return true;
 }
 
 bool UCPResourceStateSubsystem::IsReady(const FCPResourceNodeKey& Key) const

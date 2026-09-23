@@ -4,6 +4,8 @@
 #include "GameFramework/Actor.h"
 #include "CPTimeOfDayController.generated.h"
 
+class UNiagaraParameterCollectionInstance;
+class UNiagaraParameterCollection;
 class UPostProcessComponent;
 class USkyAtmosphereComponent;
 class UExponentialHeightFogComponent;
@@ -80,6 +82,17 @@ private:
 	// 방향 조절용
 	UPROPERTY(EditAnywhere, Category = "Time Of Day")
 	float SunYaw = 0.f;
+	
+	// 반딧불이 커브
+	UPROPERTY(EditAnywhere, Category = "Time Of Day")
+	TObjectPtr<UCurveFloat> FireflyCurve;
+	
+	// 나이아가라 파라미터
+	UPROPERTY(EditAnywhere, Category = "Time Of Day")
+	TObjectPtr<UNiagaraParameterCollection> EnvironmentNiagaraParameter;
+	
+	UPROPERTY(Transient)
+	TObjectPtr<UNiagaraParameterCollectionInstance> EnvironmentNiagaraInstance;
 	
 	UPROPERTY(Transient)
 	TObjectPtr<UCPTimeSubsystem> TimeSubsystem;

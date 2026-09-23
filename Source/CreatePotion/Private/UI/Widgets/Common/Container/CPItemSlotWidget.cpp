@@ -9,6 +9,7 @@
 #include "Components/CPItemContainerComponent.h"	// CPContainerItem 구조체
 #include "Character/CPPlayerController.h"			// 상호작용하는 대상의 컨테이너를 가지고 있음
 #include "UI/Context/CPContainerContextBase.h"		// Context 분기를 처리할 클래스
+#include "UI/Widgets/Common/Container/CPItemDetailPopupWidget.h"
 
 void UCPItemSlotWidget::NativeConstruct()
 {
@@ -32,6 +33,17 @@ void UCPItemSlotWidget::NativeConstruct()
 
 void UCPItemSlotWidget::NativeDestruct()
 {
+	if (ACPPlayerController* PC = Cast<ACPPlayerController>(GetOwningPlayer()))
+	{
+		if (UCPItemDetailPopupWidget* Popup = PC->JustGetItemDetailPopup())
+		{
+			if (IsValid(Popup))
+			{
+				Popup->HideDetail();
+			}
+		}
+	}
+
 	Super::NativeDestruct();
 }
 
@@ -52,6 +64,20 @@ void UCPItemSlotWidget::UpdateSlot(const FContainerItem& ItemData)
 
 		// SelfHitTestInvisible은 이미지는 보이되, 마우스 클릭은 통과시키라는 설정
 		ItemIcon->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+
+		if (LiquidImage)
+		{
+			// 포션일 때(CurrentEffects 배열에 내용물이 있을 때)만 액체 이미지를 표시
+			if (ItemData.Instance.CurrentEffects.Num() > 0) 
+			{
+				LiquidImage->SetColorAndOpacity(ItemData.Instance.GetLiquidColor());
+				LiquidImage->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+			}
+			else
+			{
+				LiquidImage->SetVisibility(ESlateVisibility::Collapsed); // 일반 재료는 액체 이미지 표시 x
+			}
+		}
 
 		// 스택 텍스트
 		if (ItemData.Stacked > 1)
@@ -142,4 +168,44 @@ int32 UCPItemSlotWidget::GetClickedSlotGridIndex(const FGeometry& InGeometry, co
 	int32 ActualRow = OriginRow + SubRow;
 
 	return ActualRow * OwnerContainer->Columns + ActualCol;
+}
+
+void UCPItemSlotWidget::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	Super::NativeOnMouseEnter(InGeometry, InMouseEvent);
+
+	if (!CachedItemData.Instance.IsValid())
+	{
+		return; // 빈 슬롯이면 표시할 게 없음
+	}
+
+	ACPPlayerController* PC = Cast<ACPPlayerController>(GetOwningPlayer());
+	if (!PC)
+	{
+		return;
+	}
+
+	// 뭔가를 들고 있는(Holding 중인) 상태에서는 상세정보 UI를 띄우지 않음
+	if (PC->IsHoldingItem())
+	{
+		return;
+	}
+
+	if (UCPItemDetailPopupWidget* Popup = PC->GetOrCreateItemDetailPopup())
+	{
+		Popup->ShowDetail(CachedItemData.Instance);
+	}
+}
+
+void UCPItemSlotWidget::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
+{
+	Super::NativeOnMouseLeave(InMouseEvent);
+
+	if (ACPPlayerController* PC = Cast<ACPPlayerController>(GetOwningPlayer()))
+	{
+		if (UCPItemDetailPopupWidget* Popup = PC->GetOrCreateItemDetailPopup())
+		{
+			Popup->HideDetail();
+		}
+	}
 }

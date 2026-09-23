@@ -2,6 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "Field/Actor/CPBaseFieldActor.h"
+#include "GameCore/Interface/CPPoolable.h"
+#include "Resource/CPResourceType.h"
 #include "CPRockVineActor.generated.h"
 
 class UGameplayEffect;
@@ -19,7 +21,7 @@ enum class EVineScaleAnimState : uint8
 // '성장' 태그가 있는 물약 : 나무 뿌리가 자라남.
 // '뜨거움' 태그가 있는 물약 : 나무 뿌리에 불이 붙음. 일정 시간 이후 사라짐.
 UCLASS()
-class CREATEPOTION_API ACPRockVineActor : public ACPBaseFieldActor
+class CREATEPOTION_API ACPRockVineActor : public ACPBaseFieldActor, public ICPPoolable
 {
 	GENERATED_BODY()
 	
@@ -28,7 +30,12 @@ public:
 	
 	virtual void Tick(float DeltaSeconds) override;
 	virtual bool PotionReaction(const FGameplayTag& EventTag, AActor* InstigatorActor = nullptr) override;
-	virtual bool CanReactToTag(const FGameplayTag& EventTag) const override;
+	
+	void Initialize(const FCPResourceNodeKey& InNodeKey);
+	
+	// 오브젝트 풀링용
+	virtual void OnAcquireFromPool_Implementation() override;
+	virtual void OnReleaseToPool_Implementation() override;
 	
 protected:
 	virtual void BeginPlay() override;
@@ -55,6 +62,12 @@ private:
 	
 	// 재생성
 	void ApplyRespawnEffect();
+	
+	// 런타임 데이터 초기화
+	void ResetRuntimeState();
+	
+	// 삭제 시 처리
+	void HandleVineDestroyed();
 	
 protected:
 	// 바위 메시 컴포넌트
@@ -121,4 +134,7 @@ private:
 	float ScaleTransitionElapsed = 0.f;
 	float ScaleTransitionDuration = 0.f;
 	bool bIsScaleTransitioning = false;
+	
+	// 채집물 감싸는 덩굴이라면,
+	FCPResourceNodeKey NodeKey;
 };

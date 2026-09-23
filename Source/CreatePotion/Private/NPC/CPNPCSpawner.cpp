@@ -33,7 +33,7 @@ bool ACPNPCSpawner::SpawnNPC(FName QuestID)
 	const FNPCSpawnConfig* FoundConfig = nullptr;
 	for (const FNPCSpawnConfig& Config : NPCSpawnConfigArray)
 	{
-		if (Config.NPCData && Config.NPCData->LabQuestIDs.Contains(QuestID))
+		if (Config.NPCData && Config.NPCData->QuestIDs.Contains(QuestID))
 		{
 			FoundConfig = &Config;
 			break;

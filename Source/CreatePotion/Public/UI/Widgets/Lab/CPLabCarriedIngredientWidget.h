@@ -6,7 +6,6 @@
 
 class UCPCarryComponent;
 class ACPThrowablePropBase;
-class UCPInteractionComponent;
 
 // 플레이어가 현재 운반 중인 재료를 보여주는 고정 HUD 카드다.
 UCLASS()
@@ -23,21 +22,10 @@ private:
 	UFUNCTION()
 	void HandlePropChanged(ACPThrowablePropBase* Prop);
 
-	UFUNCTION()
-	void HandleInteractionFocusChanged(FText Prompt, FName TargetName, ECPInteractionDisplayState DisplayState);
-
-	UFUNCTION()
-	void HandlePreviewIngredientChanged();
-
-	void BindPreviewProp(ACPThrowablePropBase* Prop);
-
 	// CarryComponent의 HeldProp 변경 알림을 받기 위해 런타임 동안만 보관한다.
 	UPROPERTY(Transient)
 	TObjectPtr<UCPCarryComponent> BoundCarryComponent;
-
-	UPROPERTY(Transient)
-	TWeakObjectPtr<UCPInteractionComponent> BoundInteractionComponent;
-
-	UPROPERTY(Transient)
-	TWeakObjectPtr<ACPThrowablePropBase> HeldProp;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> Txt_TagEffect;
 };
