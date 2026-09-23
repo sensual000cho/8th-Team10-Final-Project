@@ -8,6 +8,7 @@
 #include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
 #include "GameInstance/Subsystem/CPContainerSubsystem.h"
 #include "UI/Widgets/Common/Container/CPContainerMainWidget.h"
+#include "Components/CPHandItemContainerComponent.h"
 
 UCPInventoryComponent::UCPInventoryComponent()
 {
@@ -185,6 +186,9 @@ int32 UCPInventoryComponent::TryGetItemFromData(UCPForageableItemData* InItemDat
 
 void UCPInventoryComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	// 일단 손에 무언가를 들고 있을 경우를 대비해서 인벤토리에 저장
+	ReturnHeldItemToInventory();
+
 	if (UGameInstance* GI = GetWorld()->GetGameInstance())
 	{
 		if (UCPContainerSubsystem* ContainerSubsystem = GI->GetSubsystem<UCPContainerSubsystem>())
@@ -196,6 +200,41 @@ void UCPInventoryComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	GetWorld()->GetTimerManager().ClearTimer(InputBindingTimerHandle);
 
 	Super::EndPlay(EndPlayReason);
+}
+
+void UCPInventoryComponent::ReturnHeldItemToInventory()
+{
+	AActor* Owner = GetOwner();
+	if (!Owner)
+	{
+		return;
+	}
+
+	UCPHandItemContainerComponent* HandContainer = Owner->FindComponentByClass<UCPHandItemContainerComponent>();
+	if (!HandContainer || HandContainer->ContainerItems.Num() == 0)
+	{
+		return; // 손에 든 게 없으면 아무 것도 안함
+	}
+
+	// 레벨 전환때 안전하게 UI 갱신 델리게이트를 끊기
+	OnContainerUpdated.Clear();
+
+	for (const FContainerItem& Held : HandContainer->ContainerItems)
+	{
+		if (!Held.Instance.IsValid())
+		{
+			continue;
+		}
+
+		int32 Leftover = TryGetItemFromInstance(Held.Instance, Held.Stacked);
+		if (Leftover > 0)
+		{
+			UE_LOG(LogContainer, Warning, TEXT("[Inventory] 레벨 전환 중 인벤토리 공간 부족, [%s] %d개 유실"),
+				*Held.Instance.GetDisplayName().ToString(), Leftover);
+		}
+	}
+
+	HandContainer->ContainerItems.Empty(); // Broadcast 없이 비우기만
 }
 
 bool UCPInventoryComponent::TryGetMoney(int32 InAmount)
