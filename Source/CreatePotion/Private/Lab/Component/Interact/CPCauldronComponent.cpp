@@ -11,6 +11,7 @@
 #include "Data/CPTagDefinitionTypes.h"
 #include "Engine/DataTable.h"
 #include "Engine/Engine.h"
+#include "GameInstance/Subsystem/CPCodexSubsystem.h"
 #include "GameMode/CPLabGameMode.h"
 #include "Kismet/GameplayStatics.h"
 #include "Lab/Actor/CPAlchemyProp.h"
@@ -101,8 +102,19 @@ bool UCPCauldronComponent::CreatePotion()
 		if (!LabGameMode->CreatePotion(EffectTags, SpawnTransform, MakeSpawnImpulse())) return false;
 	}
 	
+	UWorld* World = GetWorld();
+	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+	UCPCodexSubsystem* CodexSubsystem = GameInstance ? GameInstance->GetSubsystem<UCPCodexSubsystem>() : nullptr;
+	
+	if (CodexSubsystem){
+		for (const FGameplayTag& ResultTag : CombinedTags){
+			CodexSubsystem->DiscoverTag(ResultTag);
+		}
+	}
+	
 	IngredientInstances.Reset();
 	IngredientTags.Reset();
+	CombinedTags.Reset();
 	OnEffectsChanged.Broadcast();
 	return true;
 }
@@ -134,6 +146,8 @@ void UCPCauldronComponent::ResolveTagCombinations(int32 NewTagIndex)
 				if (Combination.OtherTag != CandidateTag || !Combination.ResultTag.IsValid()) continue;
 				
 				const FGameplayTag ResultTag = Combination.ResultTag;
+				
+				CombinedTags.AddUnique(ResultTag);
 				
 				// 조합 태그 제거
 				IngredientTags.RemoveAt(NewTagIndex);
