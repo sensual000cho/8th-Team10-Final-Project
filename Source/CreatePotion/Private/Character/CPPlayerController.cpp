@@ -328,12 +328,22 @@ void ACPPlayerController::OpenExternalContainerUI(UCPItemContainerComponent* InT
 	SetInputMode(FInputModeGameAndUI());
 
 	SetContextHandlerForTargetContext(InTargetContainer->TargetContext);
+
+	if (UCPUIManagerSubsystem* UIManager = GetGameInstance()->GetSubsystem<UCPUIManagerSubsystem>())
+	{
+		UIManager->PlayWidgetSound(CurrentContainerUIInstance->OpenSound);
+	}
 }
 
 void ACPPlayerController::CloseExternalContainerUI()
 {
 	if (CurrentContainerUIInstance)
 	{
+		if (UCPUIManagerSubsystem* UIManager = GetGameInstance()->GetSubsystem<UCPUIManagerSubsystem>())
+		{
+			UIManager->PlayWidgetSound(CurrentContainerUIInstance->CloseSound);
+		}
+
 		CurrentContainerUIInstance->RemoveFromParent();
 		CurrentContainerUIInstance = nullptr;
 	}
