@@ -206,6 +206,10 @@ private:
 //디버깅용 포션생성
 #pragma region DebugPotionHotkeys
 public:
+	// BP에서 지정한 효과의 포션을 손에 생성한다.
+	UFUNCTION(BlueprintCallable, Category = "Debug|Potion Hotkeys")
+	void SpawnDebugPotion(UPARAM(meta = (Categories = "Potion.Effect")) const TArray<FGameplayTag>& EffectTags);
+
 	UFUNCTION(BlueprintCallable, Category = "Debug|Potion Hotkeys")
 	void DebugSpawnFartLaunchPotion();
 
@@ -228,6 +232,5 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Debug|Potion Hotkeys")
 	TObjectPtr<UCPForageableItemData> DebugPotionData;
 
-	void SpawnDebugPotion(const TArray<FGameplayTag>& EffectTags);
 #pragma endregion
 };

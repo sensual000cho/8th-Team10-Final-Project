@@ -21,6 +21,8 @@ UGA_CPPlayerGiant::UGA_CPPlayerGiant()
 
 	FGameplayTagContainer InitialAssetTags;
 	InitialAssetTags.AddTag(FGameplayTag::RequestGameplayTag(FName(TEXT("Ability.Reaction.Potion"))));
+	// 기존 효과 태그로 중화 대상 목록에서 이 GA를 찾는다.
+	InitialAssetTags.AddTag(FGameplayTag::RequestGameplayTag(TEXT("State.Effect.Giant")));
 	SetAssetTags(InitialAssetTags);
 
 	EffectTag = FGameplayTag::RequestGameplayTag(FName(TEXT("State.Effect.Giant")));
