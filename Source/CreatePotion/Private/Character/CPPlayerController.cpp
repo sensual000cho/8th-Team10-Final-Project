@@ -413,7 +413,7 @@ void ACPPlayerController::DebugToggleShopDirectly()
 
 UCPShopPurchasePopupWidget* ACPPlayerController::GetOrCreateShopPopup()
 {
-	if (!ShopPopupInstance && ShopPopupWidgetClass)
+	if (!IsValid(ShopPopupInstance) && ShopPopupWidgetClass)
 	{
 		ShopPopupInstance = CreateWidget<UCPShopPurchasePopupWidget>(this, ShopPopupWidgetClass);
 		if (ShopPopupInstance)
@@ -429,7 +429,7 @@ UCPShopPurchasePopupWidget* ACPPlayerController::GetOrCreateShopPopup()
 
 UCPItemDetailPopupWidget* ACPPlayerController::GetOrCreateItemDetailPopup()
 {
-	if (!ItemDetailPopupInstance && ItemDetailPopupWidgetClass)
+	if (!IsValid(ItemDetailPopupInstance) && ItemDetailPopupWidgetClass)
 	{
 		ItemDetailPopupInstance = CreateWidget<UCPItemDetailPopupWidget>(this, ItemDetailPopupWidgetClass);
 		if (ItemDetailPopupInstance)

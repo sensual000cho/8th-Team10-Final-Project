@@ -181,6 +181,8 @@ private:
 public:
 	UCPShopPurchasePopupWidget* GetOrCreateShopPopup();
 
+	UCPShopPurchasePopupWidget* JustGetShopPopup() const { return ShopPopupInstance; }
+
 public:
 	UPROPERTY(EditAnywhere, Category = "Shop|UI")
 	TSubclassOf<UCPShopPurchasePopupWidget> ShopPopupWidgetClass;
@@ -193,6 +195,8 @@ private:
 #pragma region DetailWidget
 public:
 	UCPItemDetailPopupWidget* GetOrCreateItemDetailPopup();
+
+	UCPItemDetailPopupWidget* JustGetItemDetailPopup() const { return ItemDetailPopupInstance; }
 
 public:
 	UPROPERTY(EditAnywhere, Category = "Container|UI")
