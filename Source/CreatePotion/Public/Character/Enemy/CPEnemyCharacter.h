@@ -14,6 +14,7 @@ class UCPEnemyAttributeSet;
 class UGameplayAbility;
 class USphereComponent;
 struct FOnAttributeChangeData;
+DECLARE_MULTICAST_DELEGATE(FCPOnEnemyDying);
 
 UCLASS()
 class CREATEPOTION_API ACPEnemyCharacter : public ACharacter, public IAbilitySystemInterface
@@ -31,6 +32,21 @@ public:
 
     UFUNCTION(BlueprintPure, Category = "Enemy|State")
     float GetHealth() const;
+
+    // 원본과 복제본 모두 성공한 분열 횟수를 이어받는다.
+    UFUNCTION(BlueprintPure, Category = "Enemy|Slime")
+    int32 GetSlimeSplitCount() const { return SlimeSplitCount; }
+
+    // 체력과 분열 크기만 복사하며 AI와 공격 진행 상태는 복사하지 않는다.
+    void InitializeSlimeSplit(const ACPEnemyCharacter& SourceEnemy, float ScaleMultiplier);
+
+    // 일시적인 Giant 배율은 영구적인 분열 크기와 분리한다.
+    void SetGiantMultipliers(float ScaleMultiplier, float SpeedMultiplier, float ImpulseMultiplier);
+    float GetGiantScaleMultiplier() const { return GiantScaleMultiplier; }
+    float GetAttackImpulseMultiplier() const { return AttackImpulseMultiplier; }
+    float GetEffectiveAttackRange() const { return AttackRange * GiantScaleMultiplier; }
+
+    FCPOnEnemyDying OnEnemyDying;
 
     // Enemy 체력을 0.0~1.0 범위에서 감소시킨다.
     UFUNCTION(BlueprintCallable, Category = "Enemy|State")
@@ -140,6 +156,13 @@ private:
     bool bAttackHitEnabled = false;
     bool bLastAttackCompletedNormally = false;
     bool bIsDead = false;
+
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Enemy|Slime", meta = (AllowPrivateAccess = "true"))
+    int32 SlimeSplitCount = 0;
+
+    float GiantScaleMultiplier = 1.0f;
+    float GiantSpeedMultiplier = 1.0f;
+    float AttackImpulseMultiplier = 1.0f;
 
     FDelegateHandle HealthChangedDelegateHandle;
     TWeakObjectPtr<AActor> PendingDamageCauser;

@@ -43,3 +43,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual")
 	FLinearColor SurfaceColor01;
 };
+
+class CREATEPOTION_API FCPTagDefinitionLookup
+{
+public:
+	static const FCPTagDefinitionRow* FindRow(const UDataTable* Table, const FGameplayTag& Tag);
+};

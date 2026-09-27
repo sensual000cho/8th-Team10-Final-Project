@@ -110,4 +110,7 @@ private:
 	
 	// 현재 필드에서 리스폰 대기 중인 슬롯
 	TSet<int32> PendingRespawnSlots;
+	
+	// 게임 세션 시드
+	int32 SessionSeed = 0;
 };

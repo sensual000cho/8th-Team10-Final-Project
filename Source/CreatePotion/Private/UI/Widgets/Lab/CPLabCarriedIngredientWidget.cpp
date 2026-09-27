@@ -1,7 +1,8 @@
 #include "UI/Widgets/Lab/CPLabCarriedIngredientWidget.h"
 
 #include "Character/CPCarryComponent.h"
-#include "Character/CPInteractionComponent.h"
+#include "Components/TextBlock.h"
+#include "Data/CPForageableItemData.h"
 #include "GameFramework/Pawn.h"
 #include "Lab/Actor/CPThrowablePropBase.h"
 
@@ -32,8 +33,6 @@ void UCPLabCarriedIngredientWidget::BindEvents()
 
 void UCPLabCarriedIngredientWidget::UnbindEvents()
 {
-	HeldProp.Reset();
-
 	if (IsValid(BoundCarryComponent))
 	{
 		BoundCarryComponent->OnHeldPropChanged.RemoveDynamic(
@@ -52,43 +51,25 @@ void UCPLabCarriedIngredientWidget::HandlePropChanged(ACPThrowablePropBase* Prop
 	{
 		SetVisibility(ESlateVisibility::HitTestInvisible);
 		SetIngredientProp(Prop);
-		BindPreviewProp(Prop);
-		ClearPreviewEffects();
+		
+		Txt_TagEffect->SetVisibility(ESlateVisibility::Collapsed);
+		
+		// 재료의 효과 태그를 가져옴
+		const FCPItemInstance& WorkingIngredient = Prop->GetWorkingIngredient();
+		if (!WorkingIngredient.CurrentEffects.IsEmpty()) return;
+		
+		const UCPForageableItemData* ItemData = WorkingIngredient.SourceItemData.Get();
+		if (!ItemData) return;
+
+		const FGameplayTag& TagEffect = ItemData->TagAxes[0];
+		if (!TagEffect.IsValid()) return;
+		
+		// 효과 태그를 보여줌
+		Txt_TagEffect->SetText(GetEffectDisplayName(TagEffect));
+		Txt_TagEffect->SetVisibility(ESlateVisibility::HitTestInvisible);
 		return;
 	}
 
-	HeldProp.Reset();
 	ClearObservedIngredient();
-	ClearPreviewEffects();
 	SetVisibility(ESlateVisibility::Collapsed);
-}
-
-void UCPLabCarriedIngredientWidget::HandleInteractionFocusChanged(FText Prompt, FName TargetName, ECPInteractionDisplayState DisplayState)
-{
-	(void)Prompt;
-	(void)TargetName;
-
-	AActor* TargetActor = BoundInteractionComponent.IsValid()
-		? BoundInteractionComponent->GetCurrentTarget()
-		: nullptr;
-
-	if (IsValid(TargetActor))
-	{
-		ClearPreviewEffects();
-	}
-}
-
-void UCPLabCarriedIngredientWidget::HandlePreviewIngredientChanged()
-{
-	ClearPreviewEffects();
-}
-
-void UCPLabCarriedIngredientWidget::BindPreviewProp(ACPThrowablePropBase* Prop)
-{
-	if (HeldProp.Get() == Prop) return;
-
-	HeldProp.Reset();
-	if (!IsValid(Prop)) return;
-
-	HeldProp = Prop;
 }

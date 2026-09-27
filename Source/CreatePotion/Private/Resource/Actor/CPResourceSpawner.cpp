@@ -41,6 +41,8 @@ void ACPResourceSpawner::BeginPlay()
 		if (StateSubsystem)
 		{
 			StateSubsystem->OnResourceNodeHarvested.AddUObject(this, &ACPResourceSpawner::HandleNodeHarvested);
+			
+			SessionSeed = StateSubsystem->GetSessionSeed();
 		}
 		
 		UCPTimeSubsystem* TimeSubsystem = GI->GetSubsystem<UCPTimeSubsystem>();
@@ -326,6 +328,8 @@ int32 ACPResourceSpawner::MakeSpawnSeed(int32 SlotIndex, int32 Generation, int32
 		Seed ^= Value;
 		Seed *= FNV32Prime;
 	};
+	
+	Mix(static_cast<uint32>(SessionSeed));
 	
 	Mix(SpawnerId.A);
 	Mix(SpawnerId.B);

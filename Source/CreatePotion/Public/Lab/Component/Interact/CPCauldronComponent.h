@@ -81,6 +81,9 @@ private:
 	
 	UPROPERTY(VisibleAnywhere, Category = "Lab|Interaction")
 	TArray<FGameplayTag> IngredientTags;
+	
+	UPROPERTY(VisibleAnywhere, Category = "Lab|Interaction")
+	TArray<FGameplayTag> CombinedTags;
 
 	UPROPERTY(EditAnywhere, Category = "Lab|Interaction")
 	int32 MaxSlotCount;

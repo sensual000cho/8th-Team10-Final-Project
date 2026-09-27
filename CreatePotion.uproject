@@ -14,7 +14,8 @@
 				"UMG",
 				"GameplayAbilities",
 				"DeveloperSettings",
-				"CoreUObject"
+				"CoreUObject",
+				"PCG"
 			]
 		}
 	],
