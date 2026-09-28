@@ -24,4 +24,13 @@ public:
 	// 도감 상태 정보
 	UPROPERTY()
 	FCPCodexSaveData CodexData;
+	
+	UPROPERTY()
+	FName LevelName;
+	
+	UPROPERTY()
+	FVector PlayerLocation = FVector::ZeroVector;
+	
+	UPROPERTY()
+	FRotator PlayerRotation = FRotator::ZeroRotator;
 };
