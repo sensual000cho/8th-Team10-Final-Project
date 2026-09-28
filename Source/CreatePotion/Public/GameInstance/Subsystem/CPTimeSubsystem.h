@@ -33,6 +33,9 @@ public:
 	int64 GetTotalWorldMinutes() const;
 	ECPTimePhase GetCurrentPhase() const;
 	
+	// Game Save
+	void LoadSaveData(int64 SavedTotalWorldMinutes);
+	
 	FOnTimeChanged OnTimeChanged;
 	FOnDayChanged OnDayChanged;
 	FOnTimePhaseChanged OnTimePhaseChanged;

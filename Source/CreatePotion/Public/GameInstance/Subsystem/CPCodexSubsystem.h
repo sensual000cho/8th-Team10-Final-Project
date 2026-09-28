@@ -41,15 +41,31 @@ public:
 	TObjectPtr<UCPNPCDataAsset> Entry = nullptr;
 };
 
+USTRUCT(BlueprintType)
+struct FCPCodexSaveData
+{
+	GENERATED_BODY()
+	
+public:
+	UPROPERTY()
+	TArray<FCPForageableCodexEntry> ForageableEntries;
+	
+	UPROPERTY()
+	TMap<FGameplayTag, bool> DiscoveredTags;
+
+	UPROPERTY()
+	TArray<FCPNPCCodexEntry> NPCEntries;
+};
+
 UCLASS()
 class CREATEPOTION_API UCPCodexSubsystem : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
 	
 public:
-	// 등록된 전체 채집물을 반환(미사용)
-	UFUNCTION(BlueprintPure, Category = "Codex|Forageable")
-	TArray<FCPForageableCodexEntry> GetForageableCodexEntries() const;
+	// Game Save
+	FCPCodexSaveData GetSaveData() const;
+	void LoadSaveData(const FCPCodexSaveData& SaveData);
 	
 	// 등록된 전체 채집물 DA를 반환
 	UFUNCTION(BlueprintPure, Category = "Codex|Forageable")
