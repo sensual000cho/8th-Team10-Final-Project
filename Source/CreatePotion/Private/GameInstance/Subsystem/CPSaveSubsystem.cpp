@@ -9,6 +9,10 @@ void UCPSaveSubsystem::SaveGame()
 	if (!SaveData) return;
 	
 	UGameInstance* GI = GetGameInstance();
+
+	if (UCPCodexSubsystem* CodexSubsystem = GI->GetSubsystem<UCPCodexSubsystem>()){
+		SaveData->CodexData = CodexSubsystem->GetSaveData();
+	}
 	
 	//TODO: 각 서브시스템에서 데이터 수집
 	
@@ -21,6 +25,10 @@ void UCPSaveSubsystem::LoadGame()
 	if (!SaveData) return;
 	
 	UGameInstance* GI = GetGameInstance();
+	
+	if (UCPCodexSubsystem* CodexSubsystem = GI->GetSubsystem<UCPCodexSubsystem>()){
+		CodexSubsystem->LoadSaveData(SaveData->CodexData);
+	}
 	
 	//TODO: 각 서브시스템으로 데이터 로드.
 	//서브시스템 내부에서 받은 데이터를 로드하도록 구현

@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/SaveGame.h"
+#include "GameInstance/Subsystem/CPCodexSubsystem.h"
 #include "Resource/CPResourceType.h"
 #include "CPSaveGame.generated.h"
 
@@ -15,4 +16,8 @@ public:
 	// 채집물 상태 정보
 	UPROPERTY()
 	TMap<FCPResourceNodeKey, FCPResourceNodeState> NodeStates;
+	
+	// 도감 상태 정보
+	UPROPERTY()
+	FCPCodexSaveData CodexData;
 };
