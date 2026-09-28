@@ -193,7 +193,7 @@ void ACPPlayerController::SetPawn(APawn* InPawn)
 			ItemWheelWidgetInstance = CreateWidget<UCPItemWheelWidget>(this, ItemWheelWidgetClass);
 			if (ItemWheelWidgetInstance)
 			{
-				ItemWheelWidgetInstance->AddToViewport(-1);	// Visibility가 HitTestInvisible이라 영향 x
+				ItemWheelWidgetInstance->AddToViewport(-2);	// Visibility가 HitTestInvisible이라 영향 x
 				ItemWheelWidgetInstance->BindInventory(CachedInventoryComponent);
 			}
 		}
@@ -406,6 +406,31 @@ void ACPPlayerController::DebugToggleShopDirectly()
 	}
 
 	ToggleExternalContainerUI(FoundShop);
+}
+bool ACPPlayerController::BeginHoldingItem(const FContainerItem& InItem, UCPItemContainerComponent* OriginContainer, int32 OriginIndex)
+{
+	if (!LeftClickPickedContainer || IsHoldingItem() || !InItem.Instance.IsValid())
+	{
+		return false; // 이미 무언가 들고 있으면 새로 들 수 없음
+	}
+
+	FContainerItem HeldItem = InItem;
+	HeldItem.GridIndex = 0; // HandHeld 컨테이너는 1칸만 존재하므로 항상 0번 index
+
+	LeftClickPickedContainer->ContainerItems.Add(HeldItem);
+	LeftClickPickedContainer->OnContainerUpdated.Broadcast();
+
+	// 취소 시 되돌아갈 기존 Container의 종류와 index 정보 저장
+	LeftClickPickedItemOriginContainer = OriginContainer;
+	LeftClickPickedOriginSlotIndex = OriginIndex;
+
+	// 집는 순간 열려있던 상세정보 UI가 있다면 닫기
+	if (UCPItemDetailPopupWidget* Popup = JustGetItemDetailPopup())
+	{
+		Popup->HideDetail();
+	}
+
+	return true;
 }
 #pragma endregion
 
