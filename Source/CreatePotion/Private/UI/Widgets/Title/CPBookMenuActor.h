@@ -15,8 +15,6 @@ class CREATEPOTION_API ACPBookMenuActor : public ABookMenuActor
 public:
 	// Sets default values for this actor's properties
 	ACPBookMenuActor();
-
-	void SetMenuInteractable(bool bInteractable);
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

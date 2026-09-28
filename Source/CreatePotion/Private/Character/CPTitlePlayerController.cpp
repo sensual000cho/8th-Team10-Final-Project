@@ -2,6 +2,8 @@
 
 
 #include "CPTitlePlayerController.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "DelayAction.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/BookMenuComponent.h"
 #include "UI/Widgets/Title/CPBookMenuActor.h"
@@ -14,16 +16,24 @@ void ACPTitlePlayerController::BeginPlay()
 	PreTitleCamera = FindActorByTag(PreTitleCameraTag);
 	TitleCamera = FindActorByTag(TitleCameraTag);
 	
+	
 	// BookMenu 액터 캐싱
-	APawn* PlayerPawn = GetPawn();
-	if (!IsValid(PlayerPawn)) return;
-	UBookMenuComponent* BookMenuComp = PlayerPawn->FindComponentByClass<UBookMenuComponent>();
-	if (!IsValid(BookMenuComp)) return;
-	BookMenuActor =  Cast<ACPBookMenuActor>(BookMenuComp->BookMenuActor);
-	if (!IsValid(BookMenuActor))
+	if (UWorld* World = GetWorld())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("BookMenuActor가 유효하지 않습니다."));
+		World->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this]()
+		{
+			APawn* PlayerPawn = GetPawn();
+			if (!IsValid(PlayerPawn)) return;
+			UBookMenuComponent* BookMenuComp = PlayerPawn->FindComponentByClass<UBookMenuComponent>();
+			if (!IsValid(BookMenuComp)) return;
+			BookMenuActor =  Cast<ACPBookMenuActor>(BookMenuComp->BookMenuActor);
+			if (!IsValid(BookMenuActor))
+			{
+				UE_LOG(LogTemp, Warning, TEXT("BookMenuActor가 유효하지 않습니다."));
+			}		
+		}));
 	}
+	
 }
 
 void ACPTitlePlayerController::StartTitleBlend()
@@ -41,7 +51,8 @@ void ACPTitlePlayerController::StartTitleBlend()
 
 void ACPTitlePlayerController::HandleCameraBlendComplete()
 {
-	if (bMenuLocked) return;
+	UE_LOG(LogTemp, Warning, TEXT("카메라 블렌드 종료"));
+	if (!bMenuLocked) return;
 	bMenuLocked = false;
 	
 	GetWorldTimerManager().ClearTimer(FallbackTimer);
@@ -50,7 +61,6 @@ void ACPTitlePlayerController::HandleCameraBlendComplete()
 		PlayerCameraManager->OnBlendComplete().Remove(BlendHandle);
 	}
 	
-	BookMenuActor->SetMenuInteractable(true);
 }
 
 AActor* ACPTitlePlayerController::FindActorByTag(FName Tag) const

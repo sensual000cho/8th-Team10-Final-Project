@@ -11,21 +11,10 @@ ACPBookMenuActor::ACPBookMenuActor()
 	PrimaryActorTick.bCanEverTick = true;
 }
 
-void ACPBookMenuActor::SetMenuInteractable(bool bInteractable)
-{
-	if (UUserWidget* Menu = MenuWidgetComp->GetUserWidgetObject())
-	{
-		Menu->SetVisibility(bInteractable ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::HitTestInvisible);
-	}
-	
-	MenuWidgetComp->SetCollisionEnabled(bInteractable ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
-}
-
 // Called when the game starts or when spawned
 void ACPBookMenuActor::BeginPlay()
 {
 	Super::BeginPlay();
-	SetMenuInteractable(false);
 	
 }
 

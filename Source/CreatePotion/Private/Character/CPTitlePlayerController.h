@@ -51,6 +51,10 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Title")
 	float BlendTime = 2.f;
 	
+	// 메뉴 UI 상호작용 잠금여부
+	UPROPERTY(BlueprintReadOnly, Category = "Title", meta = (AllowPrivateAccess = "true"))
+	bool bMenuLocked = true;
+	
 	// 타이틀 메뉴 위젯
 	UPROPERTY()
 	TObjectPtr<UUserWidget> TitleMenu;
@@ -60,7 +64,6 @@ private:
 	
 	FDelegateHandle BlendHandle;
 	FTimerHandle FallbackTimer;
-	bool bMenuLocked = true;
 	bool bBlendStarted = false;
 	
 };
