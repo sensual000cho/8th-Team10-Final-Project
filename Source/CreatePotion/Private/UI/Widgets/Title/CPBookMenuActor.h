@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Actors/BookMenuActor.h"
 
 #include "CPBookMenuActor.generated.h"
 
