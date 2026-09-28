@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/SaveGame.h"
 #include "GameInstance/Subsystem/CPCodexSubsystem.h"
+#include "GameInstance/Subsystem/CPContainerSubsystem.h"
 #include "GameInstance/Subsystem/CPNPCSubsystem.h"
 #include "Resource/CPResourceType.h"
 #include "CPSaveGame.generated.h"
@@ -17,6 +18,10 @@ public:
 	// 시간 상태 정보
 	UPROPERTY()
 	int64 TotalWorldMinutes = 0;
+	
+	// 인벤토리 상태 정보
+	UPROPERTY()
+	FCPInventorySaveData InventoryData;
 	
 	// 채집물 상태 정보
 	UPROPERTY()
