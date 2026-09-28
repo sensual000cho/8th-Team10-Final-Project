@@ -23,6 +23,10 @@ void UCPSaveSubsystem::SaveGame()
 		SaveData->CodexData = CodexSubsystem->GetSaveData();
 	}
 	
+	if (UCPNPCSubsystem* NPCSubsystem = GI->GetSubsystem<UCPNPCSubsystem>()){
+		SaveData->NPCData = NPCSubsystem->GetSaveData();
+	}
+	
 	//TODO: 각 서브시스템에서 데이터 수집
 	
 	// 현재 레벨, 플레이어 위치, 방향 저장
@@ -52,6 +56,10 @@ void UCPSaveSubsystem::LoadGame()
 	
 	if (UCPCodexSubsystem* CodexSubsystem = GI->GetSubsystem<UCPCodexSubsystem>()){
 		CodexSubsystem->LoadSaveData(SaveData->CodexData);
+	}
+	
+	if (UCPNPCSubsystem* NPCSubsystem = GI->GetSubsystem<UCPNPCSubsystem>()){
+		NPCSubsystem->LoadSaveData(SaveData->NPCData);
 	}
 	
 	//TODO: 각 서브시스템으로 데이터 로드.

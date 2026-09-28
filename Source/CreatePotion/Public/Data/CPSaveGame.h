@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/SaveGame.h"
 #include "GameInstance/Subsystem/CPCodexSubsystem.h"
+#include "GameInstance/Subsystem/CPNPCSubsystem.h"
 #include "Resource/CPResourceType.h"
 #include "CPSaveGame.generated.h"
 
@@ -24,6 +25,10 @@ public:
 	// 도감 상태 정보
 	UPROPERTY()
 	FCPCodexSaveData CodexData;
+	
+	// NPC 상태 정보
+	UPROPERTY()
+	FCPNPCSaveData NPCData;
 	
 	UPROPERTY()
 	FName LevelName;
