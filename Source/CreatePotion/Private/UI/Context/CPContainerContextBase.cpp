@@ -39,27 +39,8 @@ bool UCPContainerContextBase::HandleLeftClickOnly(UCPGridSlotWidgetBase* Clicked
         FContainerItem PoppedItem;
         if (ClickedSlot->OwnerContainer->PopItemFromContainer(ClickedSlot->SlotGridIndex, PoppedItem))
         {
-            PoppedItem.GridIndex = 0; // Hand 컨테이너는 1칸만 존재
-            PC->LeftClickPickedContainer->ContainerItems.Add(PoppedItem);
-            PC->LeftClickPickedContainer->OnContainerUpdated.Broadcast();
-
-            // 취소 시 되돌아갈 기존 Container의 종류와 index 정보 저장
-            PC->LeftClickPickedItemOriginContainer = ClickedSlot->OwnerContainer;
-            PC->LeftClickPickedOriginSlotIndex = ClickedSlot->SlotGridIndex;
-
-            // 집는 순간 열려있던 상세정보 UI가 있다면 닫음
-            if (UCPItemDetailPopupWidget* Popup = PC->GetOrCreateItemDetailPopup())
-            {
-                Popup->HideDetail();
-            }
-
-            if (!PC->bShowMouseCursor)
-            {
-                PC->bShowMouseCursor = true;
-                PC->SetInputMode(FInputModeGameAndUI());
-            }
+            PC->BeginHoldingItem(PoppedItem, ClickedSlot->OwnerContainer, ClickedSlot->SlotGridIndex);
         }
-
         return true;
     }
     else // 무언가 들고 있었으면
@@ -130,6 +111,27 @@ bool UCPContainerContextBase::HandleCtrlLeftClick(UCPGridSlotWidgetBase* Clicked
     }
 
     return ClickedSlot->OwnerContainer->AutoInsertItemToTargetContainer(ClickedSlot->SlotGridIndex, TargetContainer);
+}
+
+bool UCPContainerContextBase::HandleShiftLeftClick(UCPGridSlotWidgetBase* ClickedSlot)
+{
+    ACPPlayerController* PC = Cast<ACPPlayerController>(ClickedSlot->GetOwningPlayer());
+    if (!PC || PC->IsHoldingItem())
+    {
+        return false; // 이미 들고 있으면 나누기 불가
+    }
+
+    UCPItemSlotWidget* ItemSlot = Cast<UCPItemSlotWidget>(ClickedSlot);
+    if (!ItemSlot || !ItemSlot->CachedItemData.Instance.IsValid() || ItemSlot->CachedItemData.Stacked < 2)
+    {
+        return false; // 빈 칸이거나 1개짜리는 나누기 기능 제외
+    }
+
+    if (UCPShopPurchasePopupWidget* Popup = PC->GetOrCreateShopPopup())
+    {
+        Popup->OpenForSplit(ClickedSlot->OwnerContainer, ClickedSlot->SlotGridIndex);
+    }
+    return true;
 }
 
 bool UCPContainerContextBase::HandleAltLeftClick(UCPGridSlotWidgetBase* ClickedSlot)
