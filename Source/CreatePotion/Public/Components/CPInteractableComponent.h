@@ -61,7 +61,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
 	FName TargetName; // 예: "약초", "주민", "보물상자"
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction", meta = (MultiLine = true))
 	FText InteractionPrompt; // 예: "채집하기", "대화하기", "열기"
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Timed")

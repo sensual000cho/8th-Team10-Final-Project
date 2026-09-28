@@ -28,7 +28,7 @@ public class CreatePotion : ModuleRules
             "PCG"
         });
 
-		PrivateDependencyModuleNames.AddRange(new string[] { });
+		PrivateDependencyModuleNames.AddRange(new string[] { "BookMenu" });
 
 		PublicIncludePaths.AddRange(new string[] {
 			"CreatePotion",
