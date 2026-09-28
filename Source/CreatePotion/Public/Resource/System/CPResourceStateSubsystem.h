@@ -19,6 +19,10 @@ public:
 	// 게임 세션 시드 Getter
 	int32 GetSessionSeed() const { return SessionSeed; }
 	
+	// 상태 저장 데이터 Getter / Setter
+	FCPResourceSaveData GetSaveData() const;
+	void LoadSaveData(const FCPResourceSaveData& SaveData);
+	
 	// 상태 Get / 없으면 생성
 	FCPResourceNodeState& GetOrCreateState(const FCPResourceNodeKey& Key);
 	

@@ -29,6 +29,7 @@
 
 //디버그용 포션 Spawn 용 include
 #include "Character/CPCarryComponent.h"
+#include "GameInstance/Subsystem/CPSaveSubsystem.h"
 #include "Lab/Actor/CPPotionActor.h"
 
 void ACPPlayerController::BeginPlay()
@@ -180,6 +181,11 @@ void ACPPlayerController::SetPawn(APawn* InPawn)
 
 	if (InPawn)
 	{
+		if (UGameInstance* GI = GetGameInstance()){
+			if (UCPSaveSubsystem* SaveSubsystem = GI->GetSubsystem<UCPSaveSubsystem>()){
+				SaveSubsystem->ApplyLoadPlayerTransform(InPawn);
+			}
+		}
 		// 폰에 성공적으로 빙의되었을 때, 한 번만 찾아서 캐싱
 		CachedInventoryComponent = InPawn->FindComponentByClass<UCPInventoryComponent>();
 		LeftClickPickedContainer = InPawn->FindComponentByClass<UCPHandItemContainerComponent>();

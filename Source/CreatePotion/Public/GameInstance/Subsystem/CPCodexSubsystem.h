@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "CPCodexSubsystem.generated.h"
 
@@ -40,19 +41,44 @@ public:
 	TObjectPtr<UCPNPCDataAsset> Entry = nullptr;
 };
 
+USTRUCT(BlueprintType)
+struct FCPCodexSaveData
+{
+	GENERATED_BODY()
+	
+public:
+	UPROPERTY()
+	TArray<FCPForageableCodexEntry> ForageableEntries;
+	
+	UPROPERTY()
+	TMap<FGameplayTag, bool> DiscoveredTags;
+
+	UPROPERTY()
+	TArray<FCPNPCCodexEntry> NPCEntries;
+};
+
 UCLASS()
 class CREATEPOTION_API UCPCodexSubsystem : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
 	
 public:
-	// 등록된 전체 채집물을 반환(미사용)
-	UFUNCTION(BlueprintPure, Category = "Codex|Forageable")
-	TArray<FCPForageableCodexEntry> GetForageableCodexEntries() const;
+	// Game Save
+	FCPCodexSaveData GetSaveData() const;
+	void LoadSaveData(const FCPCodexSaveData& SaveData);
 	
 	// 등록된 전체 채집물 DA를 반환
 	UFUNCTION(BlueprintPure, Category = "Codex|Forageable")
 	TArray<UCPForageableItemData*> GetRegisteredForageableItems() const;
+	
+	UFUNCTION(BlueprintPure, Category = "Codex|Tag")
+	UCPForageableItemData* FindRegisteredItemByTag(const FGameplayTag& Tag) const;
+	
+	UFUNCTION(BlueprintCallable, Category = "Codex|Tag")
+	bool DiscoverTag(FGameplayTag Tag);
+	
+	UFUNCTION(BlueprintPure, Category = "Codex|Tag")
+	bool IsTagDiscovered(FGameplayTag Tag) const;
 	
 	// 등록된 채집물이 있는 경우 정보를 반환, 등록 여부만 필요할 경우 ItemData만 인자로 전달
 	bool GetForageableEntry(UCPForageableItemData* ItemData, FCPForageableCodexEntry* OutForageableEntry = nullptr) const;
@@ -87,6 +113,9 @@ public:
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Codex|Forageable")
 	TMap<TObjectPtr<UCPForageableItemData>, FCPForageableCodexEntry> ForageableCodexEntries;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Codex|Tag")
+	TMap<FGameplayTag, bool> DiscoveredTags;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Codex|NPC")
 	TMap<TObjectPtr<UCPNPCDataAsset>, FCPNPCCodexEntry> NPCCodexEntries;
