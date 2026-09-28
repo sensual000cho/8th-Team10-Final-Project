@@ -11,7 +11,10 @@ class CREATEPOTION_API UCPSaveSubsystem : public UGameInstanceSubsystem
 	GENERATED_BODY()
 	
 public:
+	UFUNCTION(BlueprintCallable, Category = "Save")
 	void SaveGame();
+	
+	UFUNCTION(BlueprintCallable, Category = "Save")	
 	void LoadGame();
 	
 private:

@@ -1,5 +1,6 @@
 #include "GameInstance/Subsystem/CPSaveSubsystem.h"
 #include "Data/CPSaveGame.h"
+#include "GameInstance/Subsystem/CPTimeSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "Resource/System/CPResourceStateSubsystem.h"
 
@@ -10,6 +11,14 @@ void UCPSaveSubsystem::SaveGame()
 	
 	UGameInstance* GI = GetGameInstance();
 
+	if (UCPTimeSubsystem* TimeSubsystem = GI->GetSubsystem<UCPTimeSubsystem>()){
+		SaveData->TotalWorldMinutes = TimeSubsystem->GetTotalWorldMinutes();
+	}
+	
+	if (UCPResourceStateSubsystem* ResourceSubsystem = GI->GetSubsystem<UCPResourceStateSubsystem>()){
+		SaveData->ResourceData = ResourceSubsystem->GetSaveData();
+	}
+	
 	if (UCPCodexSubsystem* CodexSubsystem = GI->GetSubsystem<UCPCodexSubsystem>()){
 		SaveData->CodexData = CodexSubsystem->GetSaveData();
 	}
@@ -25,6 +34,14 @@ void UCPSaveSubsystem::LoadGame()
 	if (!SaveData) return;
 	
 	UGameInstance* GI = GetGameInstance();
+	
+	if (UCPTimeSubsystem* TimeSubsystem = GI->GetSubsystem<UCPTimeSubsystem>()){
+		TimeSubsystem->LoadSaveData(SaveData->TotalWorldMinutes);
+	}
+	
+	if (UCPResourceStateSubsystem* ResourceSubsystem = GI->GetSubsystem<UCPResourceStateSubsystem>()){
+		ResourceSubsystem->LoadSaveData(SaveData->ResourceData);
+	}
 	
 	if (UCPCodexSubsystem* CodexSubsystem = GI->GetSubsystem<UCPCodexSubsystem>()){
 		CodexSubsystem->LoadSaveData(SaveData->CodexData);

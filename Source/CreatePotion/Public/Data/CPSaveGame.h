@@ -13,9 +13,13 @@ class CREATEPOTION_API UCPSaveGame : public USaveGame
 	GENERATED_BODY()
 	
 public:
+	// 시간 상태 정보
+	UPROPERTY()
+	int64 TotalWorldMinutes = 0;
+	
 	// 채집물 상태 정보
 	UPROPERTY()
-	TMap<FCPResourceNodeKey, FCPResourceNodeState> NodeStates;
+	FCPResourceSaveData ResourceData;
 	
 	// 도감 상태 정보
 	UPROPERTY()
