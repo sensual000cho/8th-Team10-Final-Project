@@ -16,6 +16,7 @@ public:
 	// Sets default values for this actor's properties
 	ACPBookMenuActor();
 
+	void SetMenuInteractable(bool bInteractable);
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -23,4 +24,8 @@ protected:
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+	
+public:
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UWidgetComponent> MenuWidgetComp;
 };
