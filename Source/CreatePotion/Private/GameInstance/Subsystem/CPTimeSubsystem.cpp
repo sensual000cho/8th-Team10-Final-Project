@@ -40,6 +40,15 @@ ECPTimePhase UCPTimeSubsystem::GetCurrentPhase() const
 	}
 }
 
+void UCPTimeSubsystem::LoadSaveData(int64 SavedTotalWorldMinutes)
+{
+	TotalWorldMinutes = SavedTotalWorldMinutes;
+	
+	OnTimeChanged.Broadcast(TotalWorldMinutes);
+	OnDayChanged.Broadcast(GetCurrentDay());
+	OnTimePhaseChanged.Broadcast(GetCurrentPhase());
+}
+
 void UCPTimeSubsystem::AdvanceTime(int64 Amount)
 {
 	const int32 OldDay = GetCurrentDay();
