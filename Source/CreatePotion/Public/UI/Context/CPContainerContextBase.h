@@ -26,7 +26,7 @@ public:
 	virtual bool HandleLeftClickOnly(UCPGridSlotWidgetBase* ClickedSlot);
 	virtual bool HandleLeftDoubleClick(UCPGridSlotWidgetBase* ClickedSlot);
 	virtual bool HandleCtrlLeftClick(UCPGridSlotWidgetBase* ClickedSlot);
-	virtual bool HandleShiftLeftClick(UCPGridSlotWidgetBase* ClickedSlot) { return false; }
+	virtual bool HandleShiftLeftClick(UCPGridSlotWidgetBase* ClickedSlot);
 	virtual bool HandleAltLeftClick(UCPGridSlotWidgetBase* ClickedSlot);
 
 	virtual bool HandleRightClickOnly(UCPGridSlotWidgetBase* ClickedSlot) { return false; }

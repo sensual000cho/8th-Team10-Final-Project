@@ -27,6 +27,8 @@ public:
 
 	void OpenForSale(UCPItemContainerComponent* InPlayerContainer, int32 InGridIndex, UCPItemContainerComponent* InShopContainer, UCPInventoryComponent* InPlayerInventory);
 
+	void OpenForSplit(UCPItemContainerComponent* InSourceContainer, int32 InGridIndex);
+
 protected:
 	virtual void NativeConstruct() override;
 
@@ -41,6 +43,8 @@ private:
 
 	UFUNCTION()
 	void OnConfirmClicked();
+
+	void ChangeConfirmText();
 
 	UFUNCTION()
 	void OnCancelClicked();
@@ -92,6 +96,9 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	UButton* ConfirmButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	UTextBlock* ConfirmButtonText;
 
 	UPROPERTY(meta = (BindWidget))
 	UButton* CancelButton;

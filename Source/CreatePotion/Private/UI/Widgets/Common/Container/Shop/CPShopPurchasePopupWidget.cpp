@@ -7,9 +7,11 @@
 #include "Components/Slider.h"
 #include "Components/Button.h"
 #include "Components/Border.h"
+#include "Components/ButtonSlot.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 
 #include "CreatePotion.h"
+#include "Character/CPPlayerController.h"
 #include "Components/CPItemContainerComponent.h"
 #include "Components/CPInventoryComponent.h"
 #include "Data/CPForageableItemData.h"
@@ -25,6 +27,18 @@ void UCPShopPurchasePopupWidget::NativeConstruct()
 	if (ConfirmButton) ConfirmButton->OnClicked.AddDynamic(this, &UCPShopPurchasePopupWidget::OnConfirmClicked);
 	if (CancelButton) CancelButton->OnClicked.AddDynamic(this, &UCPShopPurchasePopupWidget::OnCancelClicked);
 	if (CloseButton) CloseButton->OnClicked.AddDynamic(this, &UCPShopPurchasePopupWidget::OnCancelClicked);
+
+	if (ConfirmButtonText)
+	{
+		ConfirmButtonText->SetJustification(ETextJustify::Center);
+
+		if (UButtonSlot* ButtonSlot = Cast<UButtonSlot>(ConfirmButtonText->Slot))
+		{
+			ButtonSlot->SetHorizontalAlignment(HAlign_Fill);
+			ButtonSlot->SetVerticalAlignment(VAlign_Center);
+			ButtonSlot->SetPadding(FMargin(0.f));
+		}
+	}
 }
 
 FReply UCPShopPurchasePopupWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
@@ -105,6 +119,7 @@ void UCPShopPurchasePopupWidget::OpenForPurchase(UCPItemContainerComponent* InSh
 	PlayerInventory = InPlayerInventory;
 	PlayerContainerForSale = nullptr;
 	CurrentQuantity = 1;
+	ChangeConfirmText();
 
 	if (ModeTitleText)
 	{
@@ -119,7 +134,10 @@ void UCPShopPurchasePopupWidget::OpenForPurchase(UCPItemContainerComponent* InSh
 		QuantitySlider->SetStepSize(1.f);
 	}
 
-	if (ErrorMessageText) ErrorMessageText->SetText(FText::GetEmpty());
+	if (ErrorMessageText)
+	{
+		ErrorMessageText->SetText(FText::GetEmpty());
+	}
 
 	SetAlignmentInViewport(FVector2D(0.f, 0.f));
 	FVector2D MousePos = UWidgetLayoutLibrary::GetMousePositionOnViewport(this);
@@ -149,6 +167,7 @@ void UCPShopPurchasePopupWidget::OpenForSale(UCPItemContainerComponent* InPlayer
 	ShopGridIndex = InGridIndex;              // 판매 대상 슬롯은 "플레이어 컨테이너 기준" 인덱스로 재사용
 	PlayerInventory = InPlayerInventory;
 	CurrentQuantity = 1;
+	ChangeConfirmText();
 
 	if (ModeTitleText)
 	{
@@ -163,7 +182,10 @@ void UCPShopPurchasePopupWidget::OpenForSale(UCPItemContainerComponent* InPlayer
 		QuantitySlider->SetStepSize(1.f);
 	}
 
-	if (ErrorMessageText) ErrorMessageText->SetText(FText::GetEmpty());
+	if (ErrorMessageText)
+	{
+		ErrorMessageText->SetText(FText::GetEmpty());
+	}
 
 	SetAlignmentInViewport(FVector2D(0.f, 0.f));
 	FVector2D MousePos = UWidgetLayoutLibrary::GetMousePositionOnViewport(this);
@@ -178,6 +200,55 @@ void UCPShopPurchasePopupWidget::OpenForSale(UCPItemContainerComponent* InPlayer
 	}
 }
 
+void UCPShopPurchasePopupWidget::OpenForSplit(UCPItemContainerComponent* InSourceContainer, int32 InGridIndex)
+{
+	if (!InSourceContainer)
+	{
+		return;
+	}
+
+	FContainerItem* Item = InSourceContainer->ContainerItems.FindByPredicate(
+		[InGridIndex](const FContainerItem& It) { return It.GridIndex == InGridIndex; });
+
+	// 2개 이상일때만 정상 동작하도록 개수 제한
+	if (!Item || !Item->Instance.IsValid() || Item->Stacked < 2)
+	{
+		return;
+	}
+
+	CurrentMode = EShopPopupMode::Split;
+	PlayerContainerForSale = InSourceContainer;
+	ShopContainer = nullptr;
+	PlayerInventory = nullptr;
+	ShopGridIndex = InGridIndex;
+	CurrentQuantity = 1;
+	ChangeConfirmText();
+
+	if (ModeTitleText)
+	{
+		ModeTitleText->SetText(FText::FromString(TEXT("나누기")));
+	}
+
+	if (QuantitySlider)
+	{
+		QuantitySlider->SetMinValue(1.f);
+		QuantitySlider->SetMaxValue(static_cast<float>(Item->Stacked - 1)); // 전부 나누는 건 집기와 같으므로 제외
+		QuantitySlider->SetValue(1.f);
+		QuantitySlider->SetStepSize(1.f);
+	}
+
+	if (ErrorMessageText)
+	{
+		ErrorMessageText->SetText(FText::GetEmpty());
+	}
+
+	SetAlignmentInViewport(FVector2D(0.f, 0.f));
+	SetPositionInViewport(UWidgetLayoutLibrary::GetMousePositionOnViewport(this), false);
+
+	SetVisibility(ESlateVisibility::Visible);
+	RefreshDisplay();
+}
+
 void UCPShopPurchasePopupWidget::OnQuantityChanged(float NewValue)
 {
 	CurrentQuantity = FMath::RoundToInt(NewValue);
@@ -187,7 +258,11 @@ void UCPShopPurchasePopupWidget::OnQuantityChanged(float NewValue)
 void UCPShopPurchasePopupWidget::RefreshDisplay()
 {
 	UCPItemContainerComponent* SourceContainer = (CurrentMode == EShopPopupMode::Buy) ? ShopContainer : PlayerContainerForSale;
-	if (!SourceContainer) return;
+	if (!SourceContainer)
+	{
+		return;
+	}
+
 
 	FContainerItem* Item = SourceContainer->ContainerItems.FindByPredicate(
 		[this](const FContainerItem& It) { return It.GridIndex == ShopGridIndex; });
@@ -208,16 +283,58 @@ void UCPShopPurchasePopupWidget::RefreshDisplay()
 		QuantityInputBox->SetText(FText::AsNumber(CurrentQuantity));
 	}
 
-	int32 UnitPrice = (CurrentMode == EShopPopupMode::Buy) ? Data->BuyPrice : Data->GetSellPrice();
-
 	if (TotalPriceText)
 	{
-		TotalPriceText->SetText(FText::AsNumber(UnitPrice * CurrentQuantity));
+		if (CurrentMode == EShopPopupMode::Split)
+		{
+			TotalPriceText->SetVisibility(ESlateVisibility::Collapsed); // Split엔 가격 적용 X
+		}
+		else
+		{
+			TotalPriceText->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+			int32 UnitPrice = (CurrentMode == EShopPopupMode::Buy) ? Data->BuyPrice : Data->GetSellPrice();
+			TotalPriceText->SetText(FText::AsNumber(UnitPrice * CurrentQuantity));
+		}
 	}
 }
 
 void UCPShopPurchasePopupWidget::OnConfirmClicked()
 {
+	if (CurrentMode == EShopPopupMode::Split)
+	{
+		ACPPlayerController* PC = Cast<ACPPlayerController>(GetOwningPlayer());
+		if (!PC || !PlayerContainerForSale) return;
+
+		if (PC->IsHoldingItem())
+		{
+			if (ErrorMessageText) ErrorMessageText->SetText(FText::FromString(TEXT("이미 아이템을 들고 있습니다.")));
+			return;
+		}
+
+		FContainerItem* Item = PlayerContainerForSale->ContainerItems.FindByPredicate(
+			[this](const FContainerItem& It) { return It.GridIndex == ShopGridIndex; });
+
+		// 팝업이 떠 있는 동안 수량이 바뀐 경우 대비
+		if (!Item || !Item->Instance.IsValid() || CurrentQuantity < 1 || CurrentQuantity >= Item->Stacked)
+		{
+			if (ErrorMessageText)
+			{
+				ErrorMessageText->SetText(FText::FromString(TEXT("나눌 수 없는 수량입니다.")));
+			}
+			return;
+		}
+
+		// 차감 전에 값 복사 (RemoveItemFromContainer가 배열을 바꿀 수 있으므로)
+		FContainerItem SplitItem = *Item;
+		SplitItem.Stacked = CurrentQuantity;
+
+		PlayerContainerForSale->RemoveItemFromContainer(ShopGridIndex, CurrentQuantity);
+		PC->BeginHoldingItem(SplitItem, PlayerContainerForSale, ShopGridIndex);
+
+		ClosePopup();
+		return;
+	}
+
 	if (CurrentMode == EShopPopupMode::Buy)
 	{
 		if (!ShopContainer || !PlayerInventory) return;
@@ -270,6 +387,38 @@ void UCPShopPurchasePopupWidget::OnConfirmClicked()
 	}
 
 	ClosePopup();
+}
+
+void UCPShopPurchasePopupWidget::ChangeConfirmText()
+{
+	FText Title;
+	FText ConfirmLabel;
+
+	switch (CurrentMode)
+	{
+	case EShopPopupMode::Buy:
+		Title = FText::FromString(TEXT("구매하기"));
+		ConfirmLabel = FText::FromString(TEXT("구매"));
+		break;
+	case EShopPopupMode::Sell:
+		Title = FText::FromString(TEXT("판매하기"));
+		ConfirmLabel = FText::FromString(TEXT("판매"));
+		break;
+	case EShopPopupMode::Split:
+		Title = FText::FromString(TEXT("나누기"));
+		ConfirmLabel = FText::FromString(TEXT("나누기"));
+		break;
+	}
+
+	if (ModeTitleText)
+	{
+		ModeTitleText->SetText(Title);
+	}
+
+	if (ConfirmButtonText)
+	{
+		ConfirmButtonText->SetText(ConfirmLabel);
+	}
 }
 
 void UCPShopPurchasePopupWidget::OnCancelClicked()

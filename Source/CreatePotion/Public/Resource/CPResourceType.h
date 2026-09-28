@@ -66,7 +66,21 @@ public:
 	int32 Generation = 0;
 	
 	// 덩굴이 없어졌는가
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	bool bVineCleared = false;
+};
+
+USTRUCT()
+struct CREATEPOTION_API FCPResourceSaveData
+{
+	GENERATED_BODY()
+	
+public:
+	UPROPERTY()
+	TMap<FCPResourceNodeKey, FCPResourceNodeState> NodeStates;
+	
+	UPROPERTY()
+	int32 SessionSeed = 0;
 };
 
 // 채집 대상 데이터

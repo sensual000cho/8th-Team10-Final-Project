@@ -5,21 +5,36 @@
 #include "Data/CPForageableItemData.h"
 #include "Data/NPC/CPNPCDataAsset.h"
 
-TArray<FCPForageableCodexEntry> UCPCodexSubsystem::GetForageableCodexEntries() const
+FCPCodexSaveData UCPCodexSubsystem::GetSaveData() const
 {
-	TArray<FCPForageableCodexEntry> CodexEntries;
-	ForageableCodexEntries.GenerateValueArray(CodexEntries);
+	FCPCodexSaveData SaveData;
 	
-	// 사전 순 정렬
-	CodexEntries.Sort([](const FCPForageableCodexEntry& A, const FCPForageableCodexEntry& B)
-	{
-		const FString AName = A.Entry->DisplayName.ToString();
-		const FString BName = B.Entry->DisplayName.ToString();
-		
-		return AName < BName;
-	});
+	ForageableCodexEntries.GenerateValueArray(SaveData.ForageableEntries);
+	SaveData.DiscoveredTags = DiscoveredTags;
+	NPCCodexEntries.GenerateValueArray(SaveData.NPCEntries);
 	
-	return CodexEntries;
+	return SaveData;
+}
+
+void UCPCodexSubsystem::LoadSaveData(const FCPCodexSaveData& SaveData)
+{
+	ForageableCodexEntries.Empty(SaveData.ForageableEntries.Num());
+	// 채집물
+	for (const FCPForageableCodexEntry& Entry : SaveData.ForageableEntries) {
+		ForageableCodexEntries.Add(Entry.Entry, Entry);
+	}
+	
+	// 발견한 태그
+	DiscoveredTags = SaveData.DiscoveredTags;
+	
+	// NPC
+	NPCCodexEntries.Empty(SaveData.NPCEntries.Num());
+	for (const FCPNPCCodexEntry& Entry : SaveData.NPCEntries) {
+		NPCCodexEntries.Add(Entry.Entry, Entry);
+	}
+	
+	OnForageableCodexUpdated.Broadcast();
+	OnNPCCodexUpdated.Broadcast();
 }
 
 TArray<UCPForageableItemData*> UCPCodexSubsystem::GetRegisteredForageableItems() const
