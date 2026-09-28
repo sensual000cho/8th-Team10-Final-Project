@@ -6,6 +6,9 @@
 #include "PhysicsEngine/SkeletalBodySetup.h"
 #include "NPC/CPBaseNPC.h"
 #include "Components/WidgetComponent.h"
+#include "GameFramework/CharacterMovementComponent.h" 
+#include "PhysicsEngine/AggregateGeom.h"
+#include "Components/StaticMeshComponent.h"
 
 UCPNPCVisualComponent::UCPNPCVisualComponent()
 {
@@ -13,14 +16,13 @@ UCPNPCVisualComponent::UCPNPCVisualComponent()
 }
 
 void UCPNPCVisualComponent::InitializeVisual(USkeletalMeshComponent* InMeshComp, UCapsuleComponent* InCapsuleComp,
-	USkeletalMesh* DefaultMesh, TSubclassOf<UAnimInstance> InAnimClass, UAnimSequence* DefaultAnim,
+	USkeletalMesh* DefaultMesh, TSubclassOf<UAnimInstance> InAnimClass,
 	const FVector& BaseScale, float CapsuleRadiusRatio)
 {
 	MeshComponent = InMeshComp;
 	CapsuleComponent = InCapsuleComp;
-	DefaultOriginalMesh = DefaultMesh; 
+	DefaultOriginalMesh = DefaultMesh;
 	DefaultAnimClass = InAnimClass;
-	DefaultOriginalAnim = DefaultAnim;
 	BaseMeshScale = BaseScale;
 	StoredCapsuleRadiusRatio = CapsuleRadiusRatio;
 
@@ -43,23 +45,18 @@ void UCPNPCVisualComponent::InitializeVisual(USkeletalMeshComponent* InMeshComp,
 			MeshComponent->SetAnimationMode(EAnimationMode::AnimationBlueprint);
 			MeshComponent->SetAnimInstanceClass(DefaultAnimClass);
 		}
-		else if (DefaultOriginalAnim)
-		{
-			MeshComponent->SetAnimationMode(EAnimationMode::AnimationSingleNode);
-			MeshComponent->PlayAnimation(DefaultOriginalAnim, true);
-		}
 
 		FitCapsuleToCurrentMesh();
 	}
 }
 
-void UCPNPCVisualComponent::PushMeshOverride(FGameplayTag EffectTag, USkeletalMesh* InMesh, UAnimSequence* InAnim, float InRadiusRatio, float InZOffset,
-	const FVector& InMeshScale, float InOverrideCapsuleRadius, float InOverrideCapsuleHalfHeight)
+void UCPNPCVisualComponent::PushMeshOverride(FGameplayTag EffectTag, USkeletalMesh* InMesh, TSubclassOf<UAnimInstance> InAnimClass, float InRadiusRatio,
+	const FVector& InMeshScale, float InOverrideCapsuleRadius, float InOverrideCapsuleHalfHeight, const FRotator& InRotationOffset)
 {
 	if (!EffectTag.IsValid() || !InMesh) { return; }
 
 	MeshOverrideStack.RemoveAll([&](const FMeshOverrideEntry& E) { return E.EffectTag == EffectTag; });
-	MeshOverrideStack.Add(FMeshOverrideEntry(EffectTag, InMesh, InAnim, InRadiusRatio, InZOffset, InMeshScale, InOverrideCapsuleRadius, InOverrideCapsuleHalfHeight));
+	MeshOverrideStack.Add(FMeshOverrideEntry(EffectTag, InMesh, InAnimClass, InRadiusRatio, InMeshScale, InOverrideCapsuleRadius, InOverrideCapsuleHalfHeight, InRotationOffset));
 	ApplyTopMesh();
 }
 
@@ -70,13 +67,21 @@ void UCPNPCVisualComponent::PopMeshOverride(FGameplayTag EffectTag)
 	ApplyTopMesh();
 }
 
-void UCPNPCVisualComponent::PushMaterialOverride(int32 SlotIndex, FGameplayTag EffectTag, UMaterialInterface* Material)
+void UCPNPCVisualComponent::PushMaterialOverride(int32 SlotIndex, FGameplayTag EffectTag, UMaterialInterface* Material, int32 Priority)
 {
 	if (!MeshComponent.IsValid() || !EffectTag.IsValid() || !Material) { return; }
 
 	FMaterialOverrideStack& StackWrapper = MaterialOverrideStackMap.FindOrAdd(SlotIndex);
 	StackWrapper.Entries.RemoveAll([&](const FMaterialOverrideEntry& E) { return E.EffectTag == EffectTag; });
-	StackWrapper.Entries.Add(FMaterialOverrideEntry(EffectTag, Material));
+	int32 InsertIdx = 0;
+	for (; InsertIdx < StackWrapper.Entries.Num(); ++InsertIdx)
+	{
+		if (StackWrapper.Entries[InsertIdx].Priority > Priority)
+		{
+			break;
+		}
+	}
+	StackWrapper.Entries.Insert(FMaterialOverrideEntry(EffectTag, Material, Priority), InsertIdx);
 	ApplyTopMaterial(SlotIndex);
 }
 
@@ -141,11 +146,8 @@ void UCPNPCVisualComponent::FitCapsuleToCurrentMesh()
 	USkeletalMesh* CurrentMesh = MeshComponent->GetSkeletalMeshAsset();
 	if (!CurrentMesh) { return; }
 
-	const float OldHalfHeight = CapsuleComponent->GetScaledCapsuleHalfHeight();
-
 	float TargetRadius = -1.0f;
 	float TargetHalfHeight = -1.0f;
-	float ZOffset = 0.0f;
 	float RadiusRatio = StoredCapsuleRadiusRatio;
 
 	if (MeshOverrideStack.Num() > 0)
@@ -153,21 +155,16 @@ void UCPNPCVisualComponent::FitCapsuleToCurrentMesh()
 		const FMeshOverrideEntry& Top = MeshOverrideStack.Last();
 		TargetRadius = Top.OverrideCapsuleRadius;
 		TargetHalfHeight = Top.OverrideCapsuleHalfHeight;
-		ZOffset = Top.AdditionalZOffset;
 		if (Top.CapsuleRadiusRatio > 0.0f)
 		{
 			RadiusRatio = Top.CapsuleRadiusRatio;
 		}
 	}
 
-	const float ScaleZ = MeshComponent->GetRelativeScale3D().Z;
-	const FBoxSphereBounds MeshBounds = CurrentMesh->GetBounds();
-
-	// Giant 배율 적용
 	const float ScaledTargetHalfHeight = (TargetHalfHeight > 0.0f) ? (TargetHalfHeight * CurrentScaleMultiplier) : -1.0f;
 	const float ScaledTargetRadius = (TargetRadius > 0.0f) ? (TargetRadius * CurrentScaleMultiplier) : -1.0f;
 
-	const float AutoHalfHeight = MeshBounds.BoxExtent.Z * ScaleZ;
+	const float AutoHalfHeight = CurrentMesh->GetBounds().BoxExtent.Z * MeshComponent->GetRelativeScale3D().Z;
 	float FinalHalfHeight = (ScaledTargetHalfHeight > 0.0f) ? ScaledTargetHalfHeight : AutoHalfHeight;
 	float FinalRadius = (ScaledTargetRadius > 0.0f) ? ScaledTargetRadius : (FinalHalfHeight * RadiusRatio);
 
@@ -176,64 +173,49 @@ void UCPNPCVisualComponent::FitCapsuleToCurrentMesh()
 		FinalHalfHeight = FinalRadius;
 	}
 
-	const float DeltaHalfHeight = FinalHalfHeight - OldHalfHeight;
-	if (AActor* OwnerActor = GetOwner())
-	{
-		if (FMath::Abs(DeltaHalfHeight) > 0.1f)
-		{
-			OwnerActor->AddActorWorldOffset(FVector(0.f, 0.f, DeltaHalfHeight), false, nullptr, ETeleportType::TeleportPhysics);
-		}
-	}
-
 	CapsuleComponent->SetCapsuleSize(FinalRadius, FinalHalfHeight, true);
 
-	if (ACPBaseNPC* BaseNPC = Cast<ACPBaseNPC>(GetOwner()))
+	AActor* OwnerActor = GetOwner();
+	if (OwnerActor)
 	{
-		BaseNPC->UpdateOverheadWidgetsScale(CurrentScaleMultiplier);
-	}
-
-	static const FGameplayTag SlimeTag = FGameplayTag::RequestGameplayTag(FName("State.Effect.Slime"));
-	const bool bIsSlime = MeshOverrideStack.ContainsByPredicate([&](const FMeshOverrideEntry& E) {
-		return E.EffectTag == SlimeTag;
-		});
-
-	FVector TargetRelativeLoc = FVector(0.f, 0.f, -FinalHalfHeight + (ZOffset * CurrentScaleMultiplier));
-
-	if (bIsSlime)
-	{
-		float BodyLocalCenterZ = -160.0f;
-		float BodyHalfHeight = 44.0f;
-
-		if (UPhysicsAsset* PhysAsset = CurrentMesh->GetPhysicsAsset())
+		if (UWorld* World = GetWorld())
 		{
-			if (PhysAsset->SkeletalBodySetups.Num() > 0)
+			FHitResult GroundHit;
+			FCollisionQueryParams Params;
+			Params.AddIgnoredActor(OwnerActor);
+
+			const FVector ActorLoc = OwnerActor->GetActorLocation();
+			const FVector TraceStart = ActorLoc + FVector(0.f, 0.f, 200.f);
+			const FVector TraceEnd = ActorLoc - FVector(0.f, 0.f, 500.f);
+
+			if (World->LineTraceSingleByChannel(GroundHit, TraceStart, TraceEnd, ECC_WorldStatic, Params))
 			{
-				if (USkeletalBodySetup* RootSetup = PhysAsset->SkeletalBodySetups[0].Get())
-				{
-					if (RootSetup->AggGeom.SphereElems.Num() > 0)
-					{
-						const FKSphereElem& S = RootSetup->AggGeom.SphereElems[0];
-						BodyLocalCenterZ = -160.0f + S.Center.Z;
-						BodyHalfHeight = S.Radius;
-					}
-					else if (RootSetup->AggGeom.SphylElems.Num() > 0)
-					{
-						const FKSphylElem& S = RootSetup->AggGeom.SphylElems[0];
-						BodyLocalCenterZ = -160.0f + S.Center.Z;
-						BodyHalfHeight = (S.Length * 0.5f) + S.Radius;
-					}
-				}
+				FVector NewLocation = ActorLoc;
+				NewLocation.Z = GroundHit.ImpactPoint.Z + FinalHalfHeight;
+				OwnerActor->SetActorLocation(NewLocation, false, nullptr, ETeleportType::TeleportPhysics);
 			}
 		}
 
-		const float BasePhysicsBottomCompZ = BodyLocalCenterZ - BodyHalfHeight;
-		const float BaseHalfHeight = (TargetHalfHeight > 0.0f) ? TargetHalfHeight : (MeshBounds.BoxExtent.Z * GetCurrentBaseScale().Z);
-		const float BaseRelativeZ = -BaseHalfHeight - BasePhysicsBottomCompZ;
+		if (ACharacter* OwnerCharacter = Cast<ACharacter>(OwnerActor))
+		{
+			if (UCharacterMovementComponent* MoveComp = OwnerCharacter->GetCharacterMovement())
+			{
+				MoveComp->MaxStepHeight = FMath::Min(45.0f, FinalHalfHeight * 0.5f);
+				MoveComp->bForceNextFloorCheck = true;
+				MoveComp->UpdateComponentVelocity();
+				MoveComp->SetMovementMode(MOVE_Walking);
+				MoveComp->FindFloor(OwnerCharacter->GetActorLocation(), MoveComp->CurrentFloor, false);
+				MoveComp->AdjustFloorHeight();
+			}
+		}
 
-		TargetRelativeLoc.Z = (BaseRelativeZ + ZOffset) * CurrentScaleMultiplier;
+		if (ACPBaseNPC* BaseNPC = Cast<ACPBaseNPC>(OwnerActor))
+		{
+			BaseNPC->UpdateOverheadWidgetsScale(CurrentScaleMultiplier);
+		}
 	}
 
-	MeshComponent->SetRelativeLocation(TargetRelativeLoc, false, nullptr, ETeleportType::TeleportPhysics);
+	MeshComponent->SetRelativeLocation(FVector(0.f, 0.f, -FinalHalfHeight), false, nullptr, ETeleportType::TeleportPhysics);
 }
 
 void UCPNPCVisualComponent::RestoreMeshTransformAfterRagdoll()
@@ -279,9 +261,45 @@ void UCPNPCVisualComponent::RestoreMeshTransformAfterRagdoll()
 	MeshComponent->RefreshBoneTransforms();
 	MeshComponent->UpdateComponentToWorld();
 }
+
 void UCPNPCVisualComponent::RefreshVisuals()
 {
 	ApplyTopMesh();
+}
+
+void UCPNPCVisualComponent::AttachSlimeAccessory(UStaticMesh* InMesh, FName SocketName, const FTransform& RelativeTransform)
+{
+	if (!InMesh || !MeshComponent.IsValid()) { return; }
+
+	if (!SlimeAccessoryComp)
+	{
+		SlimeAccessoryComp = NewObject<UStaticMeshComponent>(GetOwner(), TEXT("SlimeAccessoryComp"));
+		SlimeAccessoryComp->RegisterComponent();
+		SlimeAccessoryComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		SlimeAccessoryComp->SetCastShadow(true);
+	}
+
+	SlimeAccessoryComp->SetStaticMesh(InMesh);
+	SlimeAccessoryComp->AttachToComponent(MeshComponent.Get(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, SocketName);
+	SlimeAccessoryComp->SetRelativeTransform(RelativeTransform);
+
+	DefaultAccessoryMaterials.Empty();
+	const int32 NumMats = SlimeAccessoryComp->GetNumMaterials();
+	for (int32 i = 0; i < NumMats; ++i)
+	{
+		DefaultAccessoryMaterials.Add(i, SlimeAccessoryComp->GetMaterial(i));
+	}
+	ApplyTopMaterial(0);
+}
+
+void UCPNPCVisualComponent::DetachSlimeAccessory()
+{
+	if (SlimeAccessoryComp)
+	{
+		SlimeAccessoryComp->DestroyComponent();
+		SlimeAccessoryComp = nullptr;
+		DefaultAccessoryMaterials.Empty();
+	}
 }
 
 void UCPNPCVisualComponent::ApplyTopMesh()
@@ -289,15 +307,19 @@ void UCPNPCVisualComponent::ApplyTopMesh()
 	if (!MeshComponent.IsValid()) { return; }
 
 	USkeletalMesh* TargetMesh = DefaultOriginalMesh;
-	UAnimSequence* TargetAnim = DefaultOriginalAnim;
-	bool bIsOverridden = false;
+	TSubclassOf<UAnimInstance> TargetAnimClass = DefaultAnimClass;
+	FRotator TargetRotation = DefaultOriginalRotation;
 
 	if (MeshOverrideStack.Num() > 0)
 	{
 		const FMeshOverrideEntry& Top = MeshOverrideStack.Last();
 		TargetMesh = Top.Mesh;
-		TargetAnim = Top.IdleAnim;
-		bIsOverridden = true;
+		TargetRotation = Top.OverrideRotationOffset;
+
+		if (Top.OverrideAnimClass)
+		{
+			TargetAnimClass = Top.OverrideAnimClass;
+		}
 	}
 
 	if (TargetMesh)
@@ -305,21 +327,16 @@ void UCPNPCVisualComponent::ApplyTopMesh()
 		MeshComponent->SetSkeletalMesh(TargetMesh);
 		MeshComponent->SetRelativeScale3D(GetCurrentBaseScale() * CurrentScaleMultiplier);
 		MeshComponent->SetBoundsScale(3.0f);
-		MeshComponent->SetRelativeRotation(bIsOverridden ? FRotator::ZeroRotator : DefaultOriginalRotation);
+		MeshComponent->SetRelativeRotation(TargetRotation);
 
-		if (DefaultAnimClass)
+		if (TargetAnimClass)
 		{
 			MeshComponent->SetAnimationMode(EAnimationMode::AnimationBlueprint);
-			MeshComponent->SetAnimInstanceClass(DefaultAnimClass);
-		}
-		else if (TargetAnim)
-		{
-			MeshComponent->SetAnimationMode(EAnimationMode::AnimationSingleNode);
-			MeshComponent->PlayAnimation(TargetAnim, true);
+			MeshComponent->SetAnimInstanceClass(TargetAnimClass);
 		}
 		else
 		{
-			MeshComponent->Stop();
+			MeshComponent->SetAnimInstanceClass(nullptr);
 		}
 
 		FitCapsuleToCurrentMesh();
@@ -335,38 +352,37 @@ void UCPNPCVisualComponent::ApplyTopMaterial(int32 SlotIndex)
 {
 	if (!MeshComponent.IsValid()) { return; }
 
-	FGameplayTagContainer CurrentActiveTags;
-	for (const FMeshOverrideEntry& MeshEntry : MeshOverrideStack)
-	{
-		CurrentActiveTags.AddTag(MeshEntry.EffectTag);
-	}
-
+	UMaterialInterface* MaterialToApply = nullptr;
 	FMaterialOverrideStack* StackWrapper = MaterialOverrideStackMap.Find(SlotIndex);
-	if (StackWrapper)
-	{
-		for (const FMaterialOverrideEntry& Entry : StackWrapper->Entries)
-		{
-			CurrentActiveTags.AddTag(Entry.EffectTag);
-		}
-	}
-
-	for (const FCompositeMaterialRule& Rule : CompositeRules)
-	{
-		if (Rule.ResultMaterial && CurrentActiveTags.HasAll(Rule.RequiredTags))
-		{
-			MeshComponent->SetMaterial(SlotIndex, Rule.ResultMaterial);
-			return;
-		}
-	}
 
 	if (StackWrapper && StackWrapper->Entries.Num() > 0)
 	{
-		MeshComponent->SetMaterial(SlotIndex, StackWrapper->Entries.Last().Material);
-		return;
+		MaterialToApply = StackWrapper->Entries.Last().Material;
+	}
+	else if (TObjectPtr<UMaterialInterface>* DefMat = DefaultOriginalMaterials.Find(SlotIndex))
+	{
+		MaterialToApply = *DefMat;
 	}
 
-	if (TObjectPtr<UMaterialInterface>* DefMat = DefaultOriginalMaterials.Find(SlotIndex))
+	if (MaterialToApply)
 	{
-		MeshComponent->SetMaterial(SlotIndex, *DefMat);
+		MeshComponent->SetMaterial(SlotIndex, MaterialToApply);
+	}
+
+	if (SlimeAccessoryComp)
+	{
+		if (StackWrapper && StackWrapper->Entries.Num() > 0)
+		{
+			const FMaterialOverrideEntry& TopEntry = StackWrapper->Entries.Last();
+			if (TopEntry.Priority >= 10)
+			{
+				SlimeAccessoryComp->SetMaterial(SlotIndex, TopEntry.Material);
+				return;
+			}
+		}
+		if (TObjectPtr<UMaterialInterface>* AccDefMat = DefaultAccessoryMaterials.Find(SlotIndex))
+		{
+			SlimeAccessoryComp->SetMaterial(SlotIndex, *AccDefMat);
+		}
 	}
 }

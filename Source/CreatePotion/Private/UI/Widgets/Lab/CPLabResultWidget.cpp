@@ -1,5 +1,6 @@
 #include "UI/Widgets/Lab/CPLabResultWidget.h"
 
+#include "Components/CPInventoryComponent.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Quest/QuestManager.h"
@@ -46,6 +47,15 @@ bool UCPLabResultWidget::InitializeResult(FName QuestId)
 	
 	const FCPQuestResult Result = QuestManager->GetResult(QuestId);
 	if (!FCPLabResultUICalc::ApplyDeliveryResult(Result, this)) return false;
+	
+	// 퀘스트 완료 & 보상 있을 시 지급
+	if (Result.DeliveryGrade == EDeliveryGrade::Perfect && Result.RewardAmount > 0){
+		APlayerController* PlayerController = World->GetFirstPlayerController<APlayerController>();
+		APawn* PlayerPawn = PlayerController ? PlayerController->GetPawn() : nullptr;
+		UCPInventoryComponent* Inventory = PlayerPawn ? PlayerPawn->FindComponentByClass<UCPInventoryComponent>() : nullptr;
+		
+		if (!Inventory || !Inventory->TryGetMoney(Result.RewardAmount)) return false;
+	}
 	
 	QuestManager->ClearResult();
 	

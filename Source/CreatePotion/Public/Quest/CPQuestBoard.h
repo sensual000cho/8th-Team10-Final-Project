@@ -4,25 +4,30 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "GameCore/Interface/CPInteractable.h"
 #include "Blueprint/UserWidget.h"
 #include "CPQuestBoard.generated.h"
 
-class UUserWidget;
+class UCPInteractableComponent;
 
 UCLASS()
-class CREATEPOTION_API ACPQuestBoard : public AActor, public ICPInteractable
+class CREATEPOTION_API ACPQuestBoard : public AActor
 {
 	GENERATED_BODY()
 
 public:
 	ACPQuestBoard();
 
-	virtual void OnInteract_Implementation(AActor* Interactor) override;
-	virtual bool CanInteract_Implementation(AActor* Interactor) override;
-	virtual FText GetInteractionPrompt_Implementation() override;
+protected:
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+	UFUNCTION()
+	void HandleInteract(AActor* Interactor);
 
 public:
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UUserWidget> QuestBoardWidgetClass;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+	TObjectPtr<UCPInteractableComponent> InteractableComponent;
 };

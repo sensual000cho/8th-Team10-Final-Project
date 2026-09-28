@@ -1,30 +1,23 @@
-﻿#include "NPC/CPQuestNPC.h"
-#include "Data/NPC/CPNPCDataAsset.h"       
+﻿#include "NPC/CPQuestNPC.h" 
+
+#include "AIController.h"
 #include "Data/NPC/CPQuestNPCDataAsset.h"
 #include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
 #include "Quest/QuestManager.h"
 #include "Settings/CPUISettings.h"
 #include "UI/Widgets/Common/Dialogue/CPNPCDialogueWidget.h"
+#include "Components/WidgetComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Components/CPInventoryComponent.h"
+#include "NPC/Components/CPNPCComponent.h"
 #include "NPC/Components/CPNPCMoveComponent.h"
-#include "NPC/CPNPCAIController.h"
-#include "Character/CPInteractionComponent.h"                   
-#include "Components/WidgetComponent.h"                        
-#include "Kismet/GameplayStatics.h"                             
-#include "Components/CPInventoryComponent.h"                    
-#include "UI/Widgets/Common/Quest/CPQuestMarkerWidget.h"                 
+#include "UI/Widgets/Common/Quest/CPQuestMarkerWidget.h"
 
 
 ACPQuestNPC::ACPQuestNPC() : CurrentQuestId(NAME_None)
 {
-	InteractionRefreshInterval = 0.1f;
-
-	InteractionWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractionWidget"));
-	InteractionWidget->SetupAttachment(RootComponent);
-	InteractionWidget->SetRelativeLocation(FVector(0.f, 0.f, 120.f));
-	if (const UCPUISettings* UISettings = GetDefault<UCPUISettings>())
-	{
-		InteractionWidget->SetWidgetClass(UISettings->InteractionWidgetClass.Get());
-	}
+	InteractableComponent = CreateDefaultSubobject<UCPNPCComponent>(TEXT("InteractableComponent"));
+	InteractableComponent->SetupAttachment(RootComponent);
 
 	QuestMarkerWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("QuestMarkerWidget"));
 	QuestMarkerWidget->SetupAttachment(RootComponent);
@@ -37,20 +30,75 @@ void ACPQuestNPC::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	if (InteractionWidget)
-	{
-		InitialInteractionWidgetLocation = InteractionWidget->GetRelativeLocation();
-	}
-
-	if (QuestMarkerWidget)
-	{
+	if (QuestMarkerWidget){
 		InitialQuestMarkerLocation = QuestMarkerWidget->GetRelativeLocation();
 	}
 }
 
-bool ACPQuestNPC::CanInteract(AActor* Interactor) const
+void ACPQuestNPC::StartDialogue(AActor* Interactor)
 {
-	return true;
+	if (!IsValid(Interactor) || (ActiveDialogueWidget && ActiveDialogueWidget->IsInViewport())) return;
+	
+	UGameInstance* GameInstance = GetGameInstance();
+	UCPUIManagerSubsystem* UIManager = GameInstance ? GameInstance->GetSubsystem<UCPUIManagerSubsystem>() : nullptr;
+	const UCPUISettings* UISettings = GetDefault<UCPUISettings>();
+	UClass* DialogueWidgetClass = UISettings ? UISettings->NPCDialogueWidgetClass.LoadSynchronous() : nullptr;
+	if (!UIManager || !DialogueWidgetClass) return;
+	
+	// 표시할 Text 선택
+	TArray<FText> DialogueLines = FindDialogueLines(Interactor);
+	if (CurrentQuestId.IsNone()) return;
+
+	// Widget 띄우기
+	ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
+	if (!ActiveDialogueWidget){
+		CurrentQuestId = NAME_None;
+		return;
+	}
+	
+	// Patrol 중지
+	if (MoveComponent){
+		MoveComponent->StopMoving();
+	}
+	
+	FVector Direction = Interactor->GetActorLocation() - GetActorLocation();
+	Direction.Z = 0.0f;
+	if (!Direction.IsNearlyZero()){
+		SetActorRotation(FRotationMatrix::MakeFromX(Direction).Rotator());
+	}
+	
+	// Player에게 다가감
+	if (AAIController* AIController = Cast<AAIController>(GetController())){
+		AIController->MoveToActor(
+			Interactor,
+			StopRadius,
+			true,
+			true,
+			false,
+			nullptr,
+			true
+		);
+	}
+
+	ActiveDialogueWidget->OnClosed.RemoveAll(this);
+	ActiveDialogueWidget->OnClosed.AddUObject(this, &ACPQuestNPC::OnDialogueClosed);
+
+	RegisterCodex();
+
+	ActiveDialogueWidget->InitDialogueLines(CurrentQuestId, FText::FromName(QuestData->NPCName), DialogueLines);
+}
+
+void ACPQuestNPC::SetFocused(bool bFocused)
+{
+	bIsFocused = bFocused;
+	if (!MoveComponent || IsValid(ActiveDialogueWidget)) return;
+	
+	if (bFocused){
+		MoveComponent->StopMoving();
+		return;
+	}
+	
+	MoveComponent->StartMoving();
 }
 
 void ACPQuestNPC::Tick(float DeltaTime)
@@ -65,112 +113,6 @@ void ACPQuestNPC::Tick(float DeltaTime)
 		FVector WidgetLocation = QuestMarkerWidget->GetComponentLocation();
 		FRotator LookAtRotation = (CameraLocation - WidgetLocation).Rotation();
 		QuestMarkerWidget->SetWorldRotation(LookAtRotation);
-	}
-}
-
-FText ACPQuestNPC::GetInteractionPrompt() const
-{
-	return FText::FromString(TEXT("대화하기"));
-}
-
-void ACPQuestNPC::RefreshInteractionState()
-{
-	Super::RefreshInteractionState();
-	UpdateGazeTracking();
-}
-
-void ACPQuestNPC::UpdateGazeTracking()
-{
-	if (bIsInteracting)
-	{
-		return;
-	}
-
-	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return;
-	}
-
-	if (!MoveComponent)
-	{
-		MoveComponent = FindComponentByClass<UCPNPCMoveComponent>();
-	}
-
-	bool bLookedAtNow = false;
-	if (APlayerController* PC = World->GetFirstPlayerController())
-	{
-		if (APawn* PlayerPawn = PC->GetPawn())
-		{
-			if (UCPInteractionComponent* PlayerInteraction = PlayerPawn->FindComponentByClass<UCPInteractionComponent>())
-			{
-				bLookedAtNow = (PlayerInteraction->GetCurrentTarget() == this);
-			}
-		}
-	}
-
-	if (bLookedAtNow)
-	{
-		World->GetTimerManager().ClearTimer(TraceLostTimerHandle);
-
-		if (!bIsPlayerLooking)
-		{
-			bIsPlayerLooking = true;
-
-			if (MoveComponent)
-			{
-				MoveComponent->StopMoving();
-			}
-		}
-		return;
-	}
-
-	if (bIsPlayerLooking && !World->GetTimerManager().IsTimerActive(TraceLostTimerHandle))
-	{
-		World->GetTimerManager().SetTimer(
-			TraceLostTimerHandle,
-			this,
-			&ACPQuestNPC::OnTraceFocusLost,
-			0.5f,
-			false
-		);
-	}
-}
-
-void ACPQuestNPC::HandleInteract(AActor* Interactor)
-{
-	if (!Interactor) { return; }
-
-	bIsInteracting = true;
-
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().ClearTimer(TraceLostTimerHandle);
-	}
-
-	if (MoveComponent)
-	{
-		MoveComponent->StopMoving();
-	}
-
-	FVector Direction = Interactor->GetActorLocation() - GetActorLocation();
-	Direction.Z = 0.f;
-	if (!Direction.IsNearlyZero())
-	{
-		SetActorRotation(FRotationMatrix::MakeFromX(Direction).Rotator());
-	}
-
-	if (AAIController* AIController = Cast<AAIController>(GetController()))
-	{
-		AIController->MoveToActor(
-			Interactor,
-			StopRadius,
-			true,
-			true,
-			false,
-			nullptr,
-			true
-		);
 	}
 }
 
@@ -213,13 +155,11 @@ void ACPQuestNPC::ShowResultDialogue()
 
 	ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
 	if (!ActiveDialogueWidget) return;
-
-	bIsInteracting = true;
-	if (MoveComponent)
-	{
+	
+	if (MoveComponent){
 		MoveComponent->StopMoving();
 	}
-
+	
 	ActiveDialogueWidget->OnClosed.RemoveAll(this);
 	ActiveDialogueWidget->OnClosed.AddUObject(this, &ACPQuestNPC::OnDialogueClosed);
 
@@ -242,15 +182,8 @@ void ACPQuestNPC::ShowResultDialogue()
 void ACPQuestNPC::UpdateOverheadWidgetsScale(float ScaleMultiplier)
 {
 	Super::UpdateOverheadWidgetsScale(ScaleMultiplier);
-
-	if (QuestMarkerWidget)
-	{
+	if (QuestMarkerWidget){
 		QuestMarkerWidget->SetRelativeLocation(InitialQuestMarkerLocation * ScaleMultiplier);
-	}
-
-	if (InteractionWidget)
-	{
-		InteractionWidget->SetRelativeLocation(InitialInteractionWidgetLocation * ScaleMultiplier);
 	}
 }
 
@@ -259,7 +192,7 @@ void ACPQuestNPC::BeginPlay()
 	QuestData = Cast<UCPQuestNPCDataAsset>(NPCData);
 
 	Super::BeginPlay();
-
+	
 	if (UGameInstance* GI = GetGameInstance())
 	{
 		if (UQuestManager* QuestManager = GI->GetSubsystem<UQuestManager>())
@@ -270,12 +203,6 @@ void ACPQuestNPC::BeginPlay()
 	UpdateQuestMarker();
 }
 
-const TArray<FName>& ACPQuestNPC::GetPotionQuestIDs() const
-{
-	static const TArray<FName> QuestIDs;
-	return QuestIDs;
-}
-
 FName ACPQuestNPC::FindAcceptedQuestId() const
 {
 	if (!QuestData) return NAME_None;
@@ -284,36 +211,93 @@ FName ACPQuestNPC::FindAcceptedQuestId() const
 	UQuestManager* QuestManager = GameInstance ? GameInstance->GetSubsystem<UQuestManager>() : nullptr;
 	if (!QuestManager) return NAME_None;
 
-	for (const FName& QuestID : GetPotionQuestIDs()) {
+	for (const FName& QuestID : QuestData->QuestIDs) {
 		if (QuestID.IsNone()) continue;
 		if (QuestManager->GetQuestState(QuestID) != EQuestState::Accepted) continue;
-
+		if (QuestManager->GetQuestCompletionType(QuestID) != EQuestCompletionType::Potion) continue;
 		return QuestID;
 	}
 	return NAME_None;
 }
 
-void ACPQuestNPC::OnTraceFocusLost()
+void ACPQuestNPC::OnDialogueClosed()
 {
-	if (bIsInteracting) { return; }
-
-	bIsPlayerLooking = false;
-
-	if (MoveComponent)
-	{
+	ActiveDialogueWidget = nullptr;
+	CurrentQuestId = NAME_None;
+	
+	if (!bIsFocused && MoveComponent){
 		MoveComponent->StartMoving();
 	}
 }
 
-void ACPQuestNPC::OnDialogueClosed()
-{
-	bIsInteracting = false;
-	ActiveDialogueWidget = nullptr;
-}
-
 void ACPQuestNPC::HandleQuestUpdatedForMarker(FName QuestID, EQuestState NewState)
 {
+	if (!QuestData || !QuestData->QuestIDs.Contains(QuestID)) return;
 	UpdateQuestMarker();
+	if (InteractableComponent){
+		InteractableComponent->RefreshUI();
+	}
+}
+
+TArray<FText> ACPQuestNPC::FindDialogueLines(AActor* Interactor)
+{
+	CurrentQuestId = NAME_None;
+	if (!IsValid(Interactor) || !QuestData || QuestData->QuestIDs.IsEmpty()) return {};
+	
+	UGameInstance* GameInstance = GetGameInstance();
+	UQuestManager* QuestManager = GameInstance ? GameInstance->GetSubsystem<UQuestManager>() : nullptr;
+	if (!QuestManager) return {};
+	
+	for (const FName& QuestID : QuestData->QuestIDs){
+		if (QuestID.IsNone()) continue;
+		
+		const EQuestState State = QuestManager->GetQuestState(QuestID);
+		// 추후 해당 위치에 배치할 텍스트 추가
+		if (State == EQuestState::Completed) continue;
+		// 퀘스트 수락
+		if (State == EQuestState::NotAccepted){
+			if (!QuestManager->IsQuestStoryUnlocked(QuestID)) continue;
+			
+			CurrentQuestId = QuestID;
+			return QuestManager->GetQuestScriptLines(QuestID);
+		}
+		
+		const EQuestCompletionType CompletionType = QuestManager->GetQuestCompletionType(QuestID);
+		// 대화형 퀘스트
+		if (CompletionType == EQuestCompletionType::Dialogue){
+			TArray<FText> DialogueLines = QuestManager->GetNPCStoryLines(QuestID);
+			if (DialogueLines.IsEmpty() || !QuestManager->CompleteQuestByDialogue(QuestID)) return {};
+			
+			CurrentQuestId = QuestID;
+			return DialogueLines;
+		}
+		
+		// 아이템 수집 퀘스트
+		if (CompletionType == EQuestCompletionType::ItemCollection){
+			UCPInventoryComponent* Inventory = Interactor->FindComponentByClass<UCPInventoryComponent>();
+			if (!Inventory) return {};
+			
+			const TMap<FName, int32> HeldItems = Inventory->GetItemCountsByID();
+			if (QuestManager->TryCompleteQuestByItem(QuestID, HeldItems)){
+				TArray<FName> RequiredItemIDs;
+				int32 RequiredItemCount = 0;
+				
+				QuestManager->GetRequiredItemInfo(QuestID, RequiredItemIDs, RequiredItemCount);
+				for (const FName& RequiredItemID : RequiredItemIDs){
+					Inventory->RemoveItemByID(RequiredItemID, RequiredItemCount);
+				}
+				CurrentQuestId = QuestID;
+				return QuestManager->GetNPCStoryLines(QuestID);
+			}
+			
+			CurrentQuestId = QuestID;
+			return {QuestManager->GetSessionHintText(QuestID)};
+		}
+		
+		CurrentQuestId = QuestID;
+		return {QuestManager->GetSessionHintText(QuestID)};
+	}
+	return {};
 }
 
 void ACPQuestNPC::UpdateQuestMarker()
@@ -331,7 +315,7 @@ void ACPQuestNPC::UpdateQuestMarker()
 		}
 	}
 
-	EQuestMarkerState State = QuestManager->GetMarkerStateForQuests(GetPotionQuestIDs(), HeldItemCounts);
+	EQuestMarkerState State = QuestManager->GetMarkerStateForQuests(QuestData->QuestIDs, HeldItemCounts);
 
 	if (UCPQuestMarkerWidget* MarkerWidget = Cast<UCPQuestMarkerWidget>(QuestMarkerWidget->GetUserWidgetObject()))
 	{

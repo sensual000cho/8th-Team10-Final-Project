@@ -4,6 +4,7 @@
 #include "NPC/CPBaseNPC.h"
 #include "CPQuestNPC.generated.h"
 
+class UCPNPCComponent;
 class UCPNPCDialogueWidget;
 class UCPQuestNPCDataAsset;
 class UWidgetComponent;
@@ -16,11 +17,11 @@ class CREATEPOTION_API ACPQuestNPC : public ACPBaseNPC
 public:
 	ACPQuestNPC();
 	virtual void PostInitializeComponents() override;
-	virtual bool CanInteract(AActor* Interactor) const override;
-	virtual FText GetInteractionPrompt() const override;
-	virtual void HandleInteract(AActor* Interactor) override;
-
 	virtual void Tick(float DeltaTime) override;
+	
+	virtual void StartDialogue(AActor* Interactor);
+	
+	void SetFocused(bool bFocused);
 
 	void HandleThrownPotionImpact(const TArray<FGameplayTag>& PotionEffectTags);
 
@@ -31,20 +32,17 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-	virtual const TArray<FName>& GetPotionQuestIDs() const;
-
-	virtual void RefreshInteractionState() override;
 
 	FName FindAcceptedQuestId() const;
-	virtual void OnTraceFocusLost();
+	
 	virtual void OnDialogueClosed();
 	void UpdateQuestMarker();
 
 	UFUNCTION()
 	void HandleQuestUpdatedForMarker(FName QuestID, EQuestState NewState);
-
+	
 private:
-	void UpdateGazeTracking();
+	TArray<FText> FindDialogueLines(AActor* Interactor);
 
 protected:
 	UPROPERTY(Transient)
@@ -52,29 +50,20 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UCPNPCDialogueWidget> ActiveDialogueWidget;
-
-	FName CurrentQuestId;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Interaction")
-	float StopRadius = 80.0f;
-
-	UPROPERTY(BlueprintReadOnly, Category = "NPC|Interaction")
-	bool bIsInteracting = false;
-
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
-	TObjectPtr<UWidgetComponent> InteractionWidget;
+	TObjectPtr<UCPNPCComponent> InteractableComponent;
+
+	FName CurrentQuestId = NAME_None;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Interaction")
+	float StopRadius = 80.f;
+	
+	bool bIsFocused = false;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Quest|Marker")
 	TObjectPtr<UWidgetComponent> QuestMarkerWidget;
 
 	UPROPERTY(Transient)
 	FVector InitialQuestMarkerLocation = FVector::ZeroVector;
-
-	UPROPERTY(Transient)
-	FVector InitialInteractionWidgetLocation = FVector::ZeroVector;
-
-	bool bIsPlayerLooking = false;
-
-private:
-	FTimerHandle TraceLostTimerHandle;
 };

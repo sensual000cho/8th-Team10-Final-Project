@@ -6,6 +6,7 @@
 #include "UI/Widgets/Base/CPBaseUserWidget.h"
 #include "CPContainerGridWidget.generated.h"
 
+class UOverlay;
 class UUniformGridPanel;
 class UCPBlankGridSlotWidget;
 class UCPItemSlotWidget;
@@ -25,6 +26,9 @@ public:
 	// 아이템 배열 데이터를 받아 슬롯들의 화면을 최신화
 	UFUNCTION(BlueprintCallable, Category = "Container|Grid")
 	void UpdateGrid(const TArray<FContainerItem>& ContainerItems);
+
+protected:
+	virtual void NativeConstruct() override;
 	
 protected:
 	// 한 칸(Slot)당 생성할 슬롯 위젯
@@ -38,6 +42,9 @@ protected:
 	// 추후 다른 클래스와의 상호작용을 위해 캐싱
 	UPROPERTY()
 	UCPItemContainerComponent* CachedContainer;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	UOverlay* RootOverlay;
 
 	UPROPERTY(meta = (BindWidget))
 	UUniformGridPanel* ItemGrid;

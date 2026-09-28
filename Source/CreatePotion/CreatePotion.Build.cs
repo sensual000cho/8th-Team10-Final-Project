@@ -24,10 +24,11 @@ public class CreatePotion : ModuleRules
             "AIModule",
             "StateTreeModule",
             "GameplayStateTreeModule",
-            "NavigationSystem"
+            "NavigationSystem",
+            "PCG"
         });
 
-		PrivateDependencyModuleNames.AddRange(new string[] { });
+		PrivateDependencyModuleNames.AddRange(new string[] { "BookMenu" });
 
 		PublicIncludePaths.AddRange(new string[] {
 			"CreatePotion",

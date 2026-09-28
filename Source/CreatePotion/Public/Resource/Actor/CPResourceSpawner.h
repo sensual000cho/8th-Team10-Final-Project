@@ -5,6 +5,7 @@
 #include "Resource/CPResourceType.h"
 #include "CPResourceSpawner.generated.h"
 
+class ACPRockVineActor;
 class ACPResourceNodeActor;
 class UCPResourceDefinition;
 class UBoxComponent;
@@ -20,6 +21,12 @@ struct FCPResourceSpawnEntry
 	
 	UPROPERTY(EditAnywhere, meta = (ClampMin = "0"))
 	float Weight = 1.f;
+	
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1"))
+	float VineProtectionChance = 0.f;
+	
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "1"))
+	int32 VineHarvestMultiplier = 2;
 };
 
 UCLASS()
@@ -67,6 +74,9 @@ private:
 	
 	// 현재 스포너가 속한 레벨 Id 가져오기
 	FName GetLevelId() const;
+	
+	// 보호 덩쿨 생성 여부
+	bool ShouldSpawnVine(int32 SlotIndex, int32 Generation, float VineProtectionChance) const;
 
 private:	
 	UPROPERTY(VisibleAnywhere, Category = "Component")
@@ -78,6 +88,10 @@ private:
 	// 스폰될 채집물 클래스
 	UPROPERTY(EditDefaultsOnly, Category = "Resource")
 	TSubclassOf<ACPResourceNodeActor> ResourceNodeActorClass;
+	
+	// 덩굴 클래스
+	UPROPERTY(EditDefaultsOnly, Category = "Resource")
+	TSubclassOf<ACPRockVineActor> VineActorClass;
 	
 	UPROPERTY(EditAnywhere, Category = "Resource")
 	TArray<FCPResourceSpawnEntry> SpawnEntries;
@@ -96,4 +110,7 @@ private:
 	
 	// 현재 필드에서 리스폰 대기 중인 슬롯
 	TSet<int32> PendingRespawnSlots;
+	
+	// 게임 세션 시드
+	int32 SessionSeed = 0;
 };

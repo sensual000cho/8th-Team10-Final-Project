@@ -91,7 +91,7 @@ void UCPNPCCodexWidget::SetQuestDescription(FName QuestID)
 	
 	Txt_QuestTitle->SetText(QuestManager->GetQuestTitle(QuestID));
 	Txt_QuestTitle->SetVisibility(ESlateVisibility::Visible);
-	Txt_Description->SetText(QuestManager->GetQuestSummaryText(QuestID));
+	Txt_Description->SetText(QuestManager->GetCodexSummaryText(QuestID));
 }
 
 void UCPNPCCodexWidget::HandleQuestButtonClicked(FName QuestID)

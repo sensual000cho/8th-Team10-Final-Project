@@ -23,6 +23,9 @@ private:
 	UFUNCTION()
 	void HandleQuestUpdated(FName QuestID, EQuestState NewState);
 
+	UFUNCTION()
+	void HandleInventoryUpdated();
+
 	void UpdateGoalDisplay();
 
 protected:

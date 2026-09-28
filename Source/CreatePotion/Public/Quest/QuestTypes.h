@@ -31,6 +31,7 @@ struct FQuestData : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Codex")
 	FText CodexSummaryText;
 
+
 	// ===================================================================
 	// [스토리 진행 - NPC별 독립 스토리 관리용]
 	// ===================================================================
@@ -117,6 +118,10 @@ struct FQuestAnswerData : public FTableRowBase
 	// [ItemCollection 전용] 각 아이템당 필요한 수량
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Completion|ItemCollection")
 	int32 RequiredItemCount = 1;
+
+	// 신규 추가 - UI에 표시할 모호한 재료 이름 (RequiredItemIDs와 순서 맞춰서 입력)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Completion|ItemCollection")
+	TArray<FText> RequiredItemHintNames;
 };
 
 // ===================================================================

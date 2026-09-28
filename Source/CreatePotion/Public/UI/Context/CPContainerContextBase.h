@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
+#include "GameplayTagContainer.h"
 #include "CPContainerContextBase.generated.h"
 
 class UCPGridSlotWidgetBase;
@@ -16,6 +17,8 @@ UCLASS()
 class CREATEPOTION_API UCPContainerContextBase : public UObject
 {
 	GENERATED_BODY()
+
+	friend class ACPPlayerController;
 	
 public:
 	// TODO : 마우스 오버레이 시 기능( 아이템 설명 UI 출력 등 )
@@ -38,7 +41,9 @@ protected:
 	bool IsUsingInventoryOnly(ACPPlayerController* PC) const;
 	bool IsSlotFromInventory(UCPGridSlotWidgetBase* ClickedSlot, ACPPlayerController* PC) const;
 
-	virtual void SpawnDroppedProp(UCPForageableItemData* ItemData, int32 Count, AActor* NearActor) const;
+	void SpawnDroppedProp(UCPForageableItemData* ItemData, int32 Count, AActor* NearActor, const TArray<FGameplayTag>& EffectTags = TArray<FGameplayTag>()) const;
 
 	bool TrySellItemToShop(UCPItemContainerComponent* PlayerContainer, int32 SlotGridIndex, UCPItemContainerComponent* ShopContainer, UCPInventoryComponent* PlayerInventory) const;
+
+	bool HandleShowItemDetail(UCPGridSlotWidgetBase* ClickedSlot) const;	// 우클릭, 마우스 오버
 };
