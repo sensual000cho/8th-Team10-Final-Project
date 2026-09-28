@@ -10,6 +10,7 @@
 class UImage;
 class UTextBlock;
 class USizeBox;
+class UOverlay;
 class UCPItemContainerComponent;
 
 UCLASS()
@@ -21,6 +22,7 @@ public:
 	void TryBindHandContainer(UCPItemContainerComponent* InHandContainer);
 
 protected:
+	virtual void NativeConstruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 private:
@@ -38,8 +40,14 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	USizeBox* RootSizeBox;
 
+	UPROPERTY(meta = (BindWidgetOptional))
+	UOverlay* RootOverlay;
+
 	UPROPERTY(meta = (BindWidget))
 	UImage* ItemIcon;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	UImage* LiquidImage;
 
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* StackText;

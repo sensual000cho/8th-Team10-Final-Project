@@ -5,8 +5,10 @@
 #include "Engine/LocalPlayer.h"
 #include "CreatePotion.h"   // 로그용 헤더
 
+#include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
 #include "GameInstance/Subsystem/CPContainerSubsystem.h"
 #include "UI/Widgets/Common/Container/CPContainerMainWidget.h"
+#include "Components/CPHandItemContainerComponent.h"
 
 UCPInventoryComponent::UCPInventoryComponent()
 {
@@ -33,7 +35,7 @@ void UCPInventoryComponent::BeginPlay()
 			InventoryUIInstance = CreateWidget<UCPContainerMainWidget>(PC, InventoryUIClass);
 			if (InventoryUIInstance)
 			{
-				InventoryUIInstance->AddToViewport();
+				InventoryUIInstance->AddToViewport(20);
 				InventoryUIInstance->BindContainer(this); // 데이터 씌운 후 자신을 바인딩
 				InventoryUIInstance->SetVisibility(ESlateVisibility::Collapsed);
 			}
@@ -68,7 +70,6 @@ void UCPInventoryComponent::TryBindInput()
 
 			// 바인딩 성공시 타이머 즉시 종료
 			GetWorld()->GetTimerManager().ClearTimer(InputBindingTimerHandle);
-			UE_LOG(LogContainer, Log, TEXT("[Inventory] 입력 바인딩 성공"));
 		}
 	}
 	else
@@ -80,18 +81,14 @@ void UCPInventoryComponent::TryBindInput()
 		if (BindRetryCount >= 50)
 		{
 			GetWorld()->GetTimerManager().ClearTimer(InputBindingTimerHandle);
-			UE_LOG(LogTemp, Warning, TEXT("[Inventory] 입력 바인딩 포기"));
 		}
 	}
 }
 
 void UCPInventoryComponent::ToggleInventoryUI()
 {
-	UE_LOG(LogTemp, Warning, TEXT("[Inventory] Toggle"));
-
 	if (!InventoryUIInstance)
 	{
-		UE_LOG(LogTemp, Error, TEXT("[Inventory] UI Instance를 찾을 수 없음"));
 		return;
 	}
 
@@ -104,7 +101,12 @@ void UCPInventoryComponent::ToggleInventoryUI()
 	if (InventoryUIInstance->GetVisibility() == ESlateVisibility::Collapsed ||
 		InventoryUIInstance->GetVisibility() == ESlateVisibility::Hidden)
 	{
-		InventoryUIInstance->SetVisibility(ESlateVisibility::Visible);
+		InventoryUIInstance->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+
+		if (InventoryUIInstance->CachedUIManager)
+		{
+			InventoryUIInstance->CachedUIManager->PlayWidgetSound(InventoryUIInstance->OpenSound);
+		}
 
 		PC->bShowMouseCursor = true;
 		FInputModeGameAndUI InputMode;
@@ -115,6 +117,11 @@ void UCPInventoryComponent::ToggleInventoryUI()
 	else
 	{
 		InventoryUIInstance->SetVisibility(ESlateVisibility::Collapsed);
+
+		if (InventoryUIInstance->CachedUIManager)
+		{
+			InventoryUIInstance->CachedUIManager->PlayWidgetSound(InventoryUIInstance->CloseSound);
+		}
 
 		PC->bShowMouseCursor = false;
 		FInputModeGameOnly InputMode;
@@ -179,6 +186,9 @@ int32 UCPInventoryComponent::TryGetItemFromData(UCPForageableItemData* InItemDat
 
 void UCPInventoryComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	// 일단 손에 무언가를 들고 있을 경우를 대비해서 인벤토리에 저장
+	ReturnHeldItemToInventory();
+
 	if (UGameInstance* GI = GetWorld()->GetGameInstance())
 	{
 		if (UCPContainerSubsystem* ContainerSubsystem = GI->GetSubsystem<UCPContainerSubsystem>())
@@ -190,6 +200,41 @@ void UCPInventoryComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	GetWorld()->GetTimerManager().ClearTimer(InputBindingTimerHandle);
 
 	Super::EndPlay(EndPlayReason);
+}
+
+void UCPInventoryComponent::ReturnHeldItemToInventory()
+{
+	AActor* Owner = GetOwner();
+	if (!Owner)
+	{
+		return;
+	}
+
+	UCPHandItemContainerComponent* HandContainer = Owner->FindComponentByClass<UCPHandItemContainerComponent>();
+	if (!HandContainer || HandContainer->ContainerItems.Num() == 0)
+	{
+		return; // 손에 든 게 없으면 아무 것도 안함
+	}
+
+	// 레벨 전환때 안전하게 UI 갱신 델리게이트를 끊기
+	OnContainerUpdated.Clear();
+
+	for (const FContainerItem& Held : HandContainer->ContainerItems)
+	{
+		if (!Held.Instance.IsValid())
+		{
+			continue;
+		}
+
+		int32 Leftover = TryGetItemFromInstance(Held.Instance, Held.Stacked);
+		if (Leftover > 0)
+		{
+			UE_LOG(LogContainer, Warning, TEXT("[Inventory] 레벨 전환 중 인벤토리 공간 부족, [%s] %d개 유실"),
+				*Held.Instance.GetDisplayName().ToString(), Leftover);
+		}
+	}
+
+	HandContainer->ContainerItems.Empty(); // Broadcast 없이 비우기만
 }
 
 bool UCPInventoryComponent::TryGetMoney(int32 InAmount)

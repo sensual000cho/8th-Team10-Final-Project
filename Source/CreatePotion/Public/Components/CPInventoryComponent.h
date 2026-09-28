@@ -31,6 +31,12 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
+#pragma region HandHeldReturn
+private:
+	// 손에 들고 있던 아이템이 있고 레벨 전환 등으로 파괴될 때 인벤토리로 해당 아이템을 추가하는 함수
+	void ReturnHeldItemToInventory();
+#pragma endregion
+
 #pragma region Money
 public:
 	// 소지금을 늘림 (아이템 판매, 보상 획득 등)
