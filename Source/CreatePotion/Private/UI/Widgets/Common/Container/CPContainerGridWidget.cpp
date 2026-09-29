@@ -181,7 +181,25 @@ void UCPContainerGridWidget::UpdateGrid(const TArray<FContainerItem>& ContainerI
 
 			NewItemWidget->UpdateSlot(Item);
 			NewItemWidget->OwnerContainer = CachedContainer;
-			// NewItemWidget->CachedItemData = Item; // UpdateSlot(Item)에서 이미 처리
+			NewItemWidget->SetSlotHighlighted(Item.GridIndex == HighlightedGridIndex);
+		}
+	}
+}
+
+void UCPContainerGridWidget::SetHighlightedGridIndex(int32 InGridIndex)
+{
+	HighlightedGridIndex = InGridIndex;
+
+	if (!ItemCanvas)
+	{
+		return;
+	}
+
+	for (UWidget* Child : ItemCanvas->GetAllChildren())
+	{
+		if (UCPItemSlotWidget* ItemSlot = Cast<UCPItemSlotWidget>(Child))
+		{
+			ItemSlot->SetSlotHighlighted(ItemSlot->SlotGridIndex == HighlightedGridIndex);
 		}
 	}
 }
