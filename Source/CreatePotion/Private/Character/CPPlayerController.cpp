@@ -78,14 +78,55 @@ void ACPPlayerController::SetupInputComponent()
 #pragma region PotionThrow
 void ACPPlayerController::ConsumeHeldPotionCharge()
 {
-	if (CachedInventoryComponent && CurrentlyHeldPotionOriginIndex != -1)
+	if (CachedInventoryComponent && bCurrentHeldItemIsFromInventory && CurrentlyHeldPotionInstance.IsValid())
 	{
-		CachedInventoryComponent->RemoveItemFromContainer(CurrentlyHeldPotionOriginIndex, 1);
+		// 저장해둔 인덱스 대신 같은 포션이 들어있는 칸을 찾아서 직접 차감
+		const FContainerItem* Match = CachedInventoryComponent->ContainerItems.FindByPredicate(
+			[this](const FContainerItem& It)
+			{
+				return UCPItemContainerComponent::AreInstancesStackable(It.Instance, CurrentlyHeldPotionInstance);
+			});
+
+		if (Match)
+		{
+			CachedInventoryComponent->RemoveItemFromContainer(Match->GridIndex, 1);
+		}
 	}
 
 	CurrentlyHeldPotionInstance = FCPItemInstance();
 	CurrentlyHeldPotionOriginIndex = -1;
 	bCurrentHeldItemIsFromInventory = false;
+}
+#pragma endregion
+
+#pragma region CarryProp
+void ACPPlayerController::HandlePropAttached(ACPThrowablePropBase* Prop)
+{
+	// Q/E 장착 경로는 이미 인벤토리에 있으므로 무시
+	if (bIsEquippingFromInventory || !IsValid(Prop) || !CachedInventoryComponent)
+	{
+		return;
+	}
+
+	const FCPItemInstance& Instance = Prop->GetWorkingIngredient();
+
+	// 포션 이외의 아이템은 적용 x
+	if (!Instance.IsValid() || Instance.CurrentEffects.Num() == 0)
+	{
+		return;
+	}
+
+	int32 Leftover = CachedInventoryComponent->TryGetItemFromInstance(Instance, 1);
+	if (Leftover > 0)
+	{
+		// 인벤토리가 가득 차면 기존처럼 "필드에서 주운 것"으로 남겨둠 
+		UE_LOG(LogContainer, Warning, TEXT("[Carry] 인벤토리 공간 부족으로 주운 포션을 인벤토리에 넣지 못함"));
+		return;
+	}
+
+	// Q/E로 장착한 것과 동일하게 취급
+	CurrentlyHeldPotionInstance = Instance;
+	bCurrentHeldItemIsFromInventory = true;
 }
 #pragma endregion
 
@@ -162,7 +203,11 @@ void ACPPlayerController::EquipItemAtGridIndex(int32 GridIndex)
 
 	Potion->InitializeFromItemData(PotionData, FoundItem->Instance.CurrentEffects);
 
-	if (!CarryComponent->AttachProp(Potion))
+	bIsEquippingFromInventory = true;
+	const bool bAttached = CarryComponent->AttachProp(Potion);
+	bIsEquippingFromInventory = false;
+
+	if (!bAttached)
 	{
 		Potion->Destroy();
 		return;
@@ -193,7 +238,6 @@ void ACPPlayerController::SetPawn(APawn* InPawn)
 
 		// TODO[Container] : 레벨 전환시 자동 수거 기능을 구현하려면
 		// 레벨에 배치된 별도의 Actor(또는 GameMode, GameState 등 레벨 단위로 바뀌는 객체)에 구현해야함
-
 		if (ItemWheelWidgetClass && !ItemWheelWidgetInstance)
 		{
 			ItemWheelWidgetInstance = CreateWidget<UCPItemWheelWidget>(this, ItemWheelWidgetClass);
@@ -223,6 +267,12 @@ void ACPPlayerController::SetPawn(APawn* InPawn)
 				DropZoneWidgetInstance->SlotGridIndex = 0;
 				DropZoneWidgetInstance->AddToViewport(-1);	
 			}
+		}
+
+		if (UCPCarryComponent* CarryComponent = InPawn->FindComponentByClass<UCPCarryComponent>())
+		{
+			CarryComponent->OnPropAttached.RemoveAll(this); // Delegate 중복 구독 방지를 위해 기존 항목 제거
+			CarryComponent->OnPropAttached.AddUObject(this, &ACPPlayerController::HandlePropAttached);
 		}
 	}
 	else

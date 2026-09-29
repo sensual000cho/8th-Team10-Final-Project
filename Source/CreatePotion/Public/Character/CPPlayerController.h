@@ -75,6 +75,15 @@ public:
 	void ConsumeHeldPotionCharge();
 #pragma endregion
 
+#pragma region CarryProp
+private:
+	void HandlePropAttached(ACPThrowablePropBase* Prop);
+
+private:
+	// Q/E 장착으로 AttachProp을 호출하는 동안에만 true, 필드로부터 줍기와 구분용
+	bool bIsEquippingFromInventory = false;
+#pragma endregion
+
 #pragma region Wheel
 private:
 	void OnItemWheelScroll(const FInputActionValue& Value);
