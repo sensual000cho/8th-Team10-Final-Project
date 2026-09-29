@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "NPC/CPBaseNPC.h"
+#include "Quest/QuestTypes.h"
 #include "CPQuestNPC.generated.h"
 
 class UCPNPCComponent;
@@ -42,7 +43,7 @@ protected:
 	void HandleQuestUpdatedForMarker(FName QuestID, EQuestState NewState);
 	
 private:
-	TArray<FText> FindDialogueLines(AActor* Interactor);
+	TArray<FCPDialogueLine> FindDialogueLines(AActor* Interactor);
 
 protected:
 	UPROPERTY(Transient)

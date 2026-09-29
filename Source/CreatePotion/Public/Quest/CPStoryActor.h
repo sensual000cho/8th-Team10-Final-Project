@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Components/SceneComponent.h"
+#include "Quest/QuestTypes.h"
 #include "CPStoryActor.generated.h"
 
 class UCPNPCDialogueWidget;
@@ -33,7 +34,7 @@ public:
 	FText DisplayName;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Lore")
-	TArray<FText> LoreLines;
+	TArray<FCPDialogueLine> LoreLines;
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UCPNPCDialogueWidget> DialogueWidgetClass;

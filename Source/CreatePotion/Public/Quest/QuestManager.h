@@ -100,7 +100,7 @@ public:
 
 	// [텍스트-원문] 마을 NPC가 퀘스트를 제안할 때 하는 원문 대사
 	UFUNCTION(BlueprintCallable, Category = "Quest")
-	TArray<FText> GetQuestScriptLines(FName QuestID) const;
+	TArray<FCPDialogueLine> GetQuestScriptLines(FName QuestID) const;
 
 	// [텍스트-요약] 수락 후 퀘스트 저널에서 다시 확인할 때 보여줄 요약
 	UFUNCTION(BlueprintCallable, Category = "Quest")
@@ -135,7 +135,7 @@ public:
 
 	// 스크립트 반환용
 	UFUNCTION(BlueprintCallable, Category = "Quest")
-	TArray<FText> GetNPCStoryLines(FName QuestID) const;
+	TArray<FCPDialogueLine> GetNPCStoryLines(FName QuestID) const;
 
 
 

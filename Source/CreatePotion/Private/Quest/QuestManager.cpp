@@ -185,11 +185,11 @@ FText UQuestManager::GetQuestTitle(FName QuestID) const
 }
 
 // 마을 NPC가 퀘스트를 제안할 때 보여줄 원문 대사
-TArray<FText> UQuestManager::GetQuestScriptLines(FName QuestID) const
+TArray<FCPDialogueLine> UQuestManager::GetQuestScriptLines(FName QuestID) const
 {
-	if (!QuestScriptTable) return TArray<FText>();
+	if (!QuestScriptTable) return TArray<FCPDialogueLine>();
 	FQuestData* Quest = QuestScriptTable->FindRow<FQuestData>(QuestID, TEXT(""));
-	return Quest ? Quest->QuestScriptLines : TArray<FText>();
+	return Quest ? Quest->QuestScriptLines : TArray<FCPDialogueLine>();
 }
 
 // 퀘스트 수락 후, 저널/퀘스트 목록 UI에서 다시 확인할 때 보여줄 요약 텍스트
@@ -203,8 +203,12 @@ FText UQuestManager::GetQuestSummaryText(FName QuestID) const
 
 FText UQuestManager::GetQuestScriptTextJoined(FName QuestID) const
 {
-	TArray<FText> Lines = GetQuestScriptLines(QuestID);
-	return FText::Join(FText::FromString(TEXT("\n")), Lines);
+	TArray<FText> Texts;
+	for (const FCPDialogueLine& Line : GetQuestScriptLines(QuestID))
+	{
+		Texts.Add(Line.Text);
+	}
+	return FText::Join(FText::FromString(TEXT("\n")), Texts);
 }
 
 FText UQuestManager::GetCodexSummaryText(FName QuestID) const
@@ -248,10 +252,10 @@ void UQuestManager::SetQuestHintLevel(FName QuestID, int32 NewLevel)
 }
 
 
-TArray<FText> UQuestManager::GetNPCStoryLines(FName QuestID) const
+TArray<FCPDialogueLine> UQuestManager::GetNPCStoryLines(FName QuestID) const
 {
 	FQuestAnswerData* Answer = FindAnswerData(QuestID);
-	return Answer ? Answer->NPCStoryLines : TArray<FText>();
+	return Answer ? Answer->NPCStoryLines : TArray<FCPDialogueLine>();
 }
 
 // 퀘스트 정답 찾기 함수 - QuestAnswerTable(고유)을 먼저 찾고, 없으면 RandomQuestAnswerTable(랜덤)에서 찾음

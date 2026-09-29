@@ -3,12 +3,25 @@
 #include "CoreMinimal.h"
 #include "Engine/DataTable.h"
 #include "GameplayTagContainer.h"
+#include "Sound/SoundBase.h"
 #include "QuestTypes.generated.h"
 
 // ===================================================================
 // [DT 1: 텍스트 스크립트 (마을 퀘스트/저널용)]
 // 플레이어에게 보이는 텍스트만 담음. 판정용 데이터는 포함하지 않음.
 // ===================================================================
+USTRUCT(BlueprintType)
+struct FCPDialogueLine
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dialogue")
+	FText Text;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dialogue")
+	TSoftObjectPtr<USoundBase> Voice;
+
+};
 
 USTRUCT(BlueprintType)
 struct FQuestData : public FTableRowBase
@@ -21,7 +34,7 @@ struct FQuestData : public FTableRowBase
 
 	// 퀘스트 원문 (마을 NPC가 제안할 때 하는 대사)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerFacing")
-	TArray<FText> QuestScriptLines;
+	TArray<FCPDialogueLine> QuestScriptLines;
 
 	// 퀘스트 요약 (수락 후 저널에서 다시 확인할 때 표시)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerFacing")
@@ -92,7 +105,7 @@ struct FQuestAnswerData : public FTableRowBase
 	FText SessionHintText;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerFacing")
-	TArray<FText> NPCStoryLines;
+	TArray<FCPDialogueLine> NPCStoryLines;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hidden")
 	TArray<FQuestEffectRequirement> RequestedEffects;

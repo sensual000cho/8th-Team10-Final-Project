@@ -14,12 +14,12 @@ void UCPNPCDialogueWidget::PlayCurrentLine()
 {
     if (DialogueLines.IsValidIndex(CurrentLineIndex))
     {
-        PlayTypewriterEffect(DialogueLines[CurrentLineIndex]);
+        PlayTypewriterEffect(DialogueLines[CurrentLineIndex].Text);
     }
 }
 
 void UCPNPCDialogueWidget::InitDialogueLines(FName InQuestID, const FText& InNPCName,
-    const TArray<FText>& InDialogueLines)
+    const TArray<FCPDialogueLine>& InDialogueLines)
 {
     CurrentQuestID = InQuestID;
     DialogueLines = InDialogueLines;
@@ -246,7 +246,7 @@ void UCPNPCDialogueWidget::OnSkipAllClicked()
     if (DialogueLines.Num() > 0)
     {
         CurrentLineIndex = DialogueLines.Num() - 1;
-        FullDialogueText = DialogueLines[CurrentLineIndex].ToString();
+        FullDialogueText = DialogueLines[CurrentLineIndex].Text.ToString();
     }
 
     GetWorld()->GetTimerManager().ClearTimer(TypewriterTimerHandle);

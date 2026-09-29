@@ -102,7 +102,7 @@ void ACPTutorialActor::HandleInteract(AActor* Interactor)
 	{
 		if (!QuestManager->IsQuestStoryUnlocked(AssociatedQuestID)) return;
 
-		TArray<FText> ScriptLines = QuestManager->GetQuestScriptLines(AssociatedQuestID);
+		TArray<FCPDialogueLine> ScriptLines = QuestManager->GetQuestScriptLines(AssociatedQuestID);
 
 		UCPNPCDialogueWidget* Widget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
 		if (Widget)
@@ -121,7 +121,7 @@ void ACPTutorialActor::HandleInteract(AActor* Interactor)
 
 		if (Type == EQuestCompletionType::Dialogue)
 		{
-			TArray<FText> StoryLines = QuestManager->GetNPCStoryLines(AssociatedQuestID);
+			TArray<FCPDialogueLine> StoryLines = QuestManager->GetNPCStoryLines(AssociatedQuestID);
 			if (StoryLines.Num() > 0 && QuestManager->CompleteQuestByDialogue(AssociatedQuestID))
 			{
 				UCPNPCDialogueWidget* Widget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
@@ -150,7 +150,7 @@ void ACPTutorialActor::HandleInteract(AActor* Interactor)
 						Inventory->RemoveItemByID(ItemID, RequiredCount);
 					}
 
-					TArray<FText> StoryLines = QuestManager->GetNPCStoryLines(AssociatedQuestID);
+					TArray<FCPDialogueLine> StoryLines = QuestManager->GetNPCStoryLines(AssociatedQuestID);
 					if (StoryLines.Num() > 0)
 					{
 						UCPNPCDialogueWidget* Widget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
