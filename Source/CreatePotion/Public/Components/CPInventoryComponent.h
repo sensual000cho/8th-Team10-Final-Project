@@ -27,6 +27,8 @@ public:
 
 	virtual int32 TryGetItemFromData(UCPForageableItemData* InItemData, int32 Count) override;
 
+	UCPContainerMainWidget* GetInventoryUIInstance() const { return InventoryUIInstance; }
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
