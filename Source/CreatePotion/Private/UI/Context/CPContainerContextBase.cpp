@@ -2,6 +2,8 @@
 
 #include "UI/Context/CPContainerContextBase.h"
 #include "Character/CPPlayerController.h"
+#include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
 
 #include "CreatePotion.h"
 #include "UI/Widgets/Common/Container/CPGridSlotWidgetBase.h"
@@ -47,6 +49,10 @@ bool UCPContainerContextBase::HandleLeftClickOnly(UCPGridSlotWidgetBase* Clicked
     {
         if (ClickedSlot->OwnerContainer->TargetContext == EUITargetContext::Drop) // Drop 컨테이너일 경우
         {
+            // 변신 중에는 드랍을 차단하고 커서에 든 아이템을 유지한다.
+            const UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(PC->GetPawn());
+            if (ASC && ASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(TEXT("State.Effect.Slime")))) return true;
+
             FContainerItem HeldItem = PC->LeftClickPickedContainer->ContainerItems[0];
 
             if (HeldItem.Instance.SourceItemData)
@@ -138,6 +144,10 @@ bool UCPContainerContextBase::HandleAltLeftClick(UCPGridSlotWidgetBase* ClickedS
 {
     ACPPlayerController* PC = Cast<ACPPlayerController>(ClickedSlot->GetOwningPlayer());
     if (!PC) return false;
+
+    // 수량을 차감하기 전에 변신 상태의 드랍 입력을 차단한다.
+    const UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(PC->GetPawn());
+    if (ASC && ASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(TEXT("State.Effect.Slime")))) return true;
 
     if (!IsUsingInventoryOnly(PC))
     {
