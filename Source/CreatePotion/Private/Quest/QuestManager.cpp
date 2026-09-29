@@ -646,3 +646,22 @@ FText UQuestManager::PickRandomReaction(const TArray<FText>& Reactions) const
 	if (Reactions.Num() == 0) return FText::GetEmpty();
 	return Reactions[FMath::RandRange(0, Reactions.Num() - 1)];
 }
+
+FCPQuestSaveData UQuestManager::GetSaveData()
+{
+	FCPQuestSaveData SaveData;
+	SaveData.QuestStates = QuestStates;
+	SaveData.QuestResults = QuestOrder;
+	SaveData.NPCStoryStages = NPCStoryStages;
+	SaveData.PinnedQuestID = PinnedQuestID;
+
+	return SaveData;
+}
+
+void UQuestManager::LoadSaveData(const FCPQuestSaveData& SaveData)
+{
+	QuestStates = SaveData.QuestStates;
+	QuestOrder = SaveData.QuestResults;
+	NPCStoryStages = SaveData.NPCStoryStages;
+	PinnedQuestID = SaveData.PinnedQuestID;
+}

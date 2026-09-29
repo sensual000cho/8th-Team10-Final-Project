@@ -11,12 +11,34 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnQuestUpdated, FName, QuestID, EQ
 // 완료 보상 지급 시 방송
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRewardGranted, int32, GoldAmount);
 
+USTRUCT()
+
+struct FCPQuestSaveData
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TMap<FName, EQuestState> QuestStates;
+
+	UPROPERTY()
+	TArray<FName> QuestResults;
+
+	UPROPERTY()
+	TMap<FName, int32> NPCStoryStages;
+
+	UPROPERTY()
+	FName PinnedQuestID = NAME_None;
+};
+
 UCLASS()
 class CREATEPOTION_API UQuestManager : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
 
 public:
+	//Game Save
+	FCPQuestSaveData GetSaveData();
+	void LoadSaveData(const FCPQuestSaveData& SaveData);
 	// ===================================================================
 	// [데이터 테이블] - Initialize()에서 자동 연결
 	// ===================================================================
