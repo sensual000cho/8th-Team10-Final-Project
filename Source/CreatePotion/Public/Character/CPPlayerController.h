@@ -127,6 +127,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Debug|Shop")
 	void DebugToggleShopDirectly();
 
+	// 지정한 아이템을 HandItemContainer에 잡고 원래 위치 정보를 기록
+	bool BeginHoldingItem(const FContainerItem& InItem, UCPItemContainerComponent* OriginContainer, int32 OriginIndex);
+
 private:
 	void SetContextHandlerForTargetContext(EUITargetContext InTargetContext);
 
