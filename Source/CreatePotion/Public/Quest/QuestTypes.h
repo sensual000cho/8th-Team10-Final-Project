@@ -15,65 +15,60 @@ struct FQuestData : public FTableRowBase
 {
 	GENERATED_BODY()
 
-	// 저널 목록에서 보여줄 짧은 제목
+	// 저널 목록용 짧은 제목
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerFacing")
 	FText QuestTitle;
 
-	// 퀘스트 원문 (마을 NPC가 제안할 때 하는 대사)
+	// NPC 제안 원문 대사
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerFacing")
 	TArray<FText> QuestScriptLines;
 
-	// 퀘스트 요약 (수락 후 저널에서 다시 확인할 때 표시)
+	// 수락 후 저널 요약
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerFacing")
 	FText QuestSummaryText;
 
-	// 인물 도감(Codex)용, 이 퀘스트 전체 내용을 회고하는 요약
+	// 인물 도감 회고 요약 (랜덤 퀘스트는 미사용)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Codex")
 	FText CodexSummaryText;
 
+	// ----- 스토리 진행 (NPC별 독립 관리) -----
 
-	// ===================================================================
-	// [스토리 진행 - NPC별 독립 스토리 관리용]
-	// ===================================================================
-
-	// 이 퀘스트가 소속된 NPC 식별자 (UCPNPCDataAsset::NPCName과 일치해야 함)
+	// 소속 NPC 식별자 (UCPNPCDataAsset::NPCName과 일치해야 함)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Story")
 	FName OwningNPCId;
 
-	// 이 퀘스트가 노출되려면 해당 NPC 스토리가 최소 몇 단계여야 하는지
+	// 노출에 필요한 최소 NPC 스토리 단계
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Story")
 	int32 RequiredStoryStage = 0;
 
-	// 이 퀘스트를 완료하면 해당 NPC 스토리를 이 단계로 진행시킴 (-1이면 스토리 진행에 영향 없음)
+	// 완료 시 진행시킬 NPC 스토리 단계 (-1: 영향 없음)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Story")
 	int32 AdvanceToStage = -1;
-
 };
 
-
-
 // ===================================================================
-// [DT 2: 조건/정답 데이터 (포션 메이킹 힌트/답지)]
-// 실제 판정에 쓰이는 조건과, 세션 진입 시 보여줄 힌트 텍스트를 담음.
+// [DT 2: 조건/정답 데이터]
+// 판정 조건, 세션 힌트, 완료 방식별 데이터를 담음.
 // ===================================================================
 
-// 퀘스트가 어떤 방식으로 완료되는지 구분
+// 퀘스트 완료 방식
 UENUM(BlueprintType)
 enum class EQuestCompletionType : uint8
 {
-	Dialogue,
-	FindTarget,
-	ItemCollection,
-	Potion,
-	FieldGimmick
+	Dialogue,        // 대화로 완료 (CompleteQuestByDialogue)
+	FindTarget,      // 필드 대상 발견 (TryCompleteQuestByFindTarget)
+	ItemCollection,  // 아이템 제출 (TryCompleteQuestByItem)
+	Potion,          // 포션 납품/투척 (TryDeliver)
+	FieldGimmick     // 필드 기믹
 };
-// 퀘스트가 요구하는 효능 조건 하나 (틀 - 실제로는 배열로 여러 개 담김)
+
+// 퀘스트가 요구하는 효능 조건 하나
 USTRUCT(BlueprintType)
 struct FQuestEffectRequirement
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Condition")
 	FGameplayTag Axis;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Reaction")
@@ -94,7 +89,7 @@ struct FQuestAnswerData : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerFacing")
 	TArray<FText> NPCStoryLines;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hidden")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Judgement")
 	TArray<FQuestEffectRequirement> RequestedEffects;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Reaction")
@@ -103,24 +98,28 @@ struct FQuestAnswerData : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Reward")
 	int32 RewardGold = 100;
 
-	// 신규 추가 - 완료 방식 구분
+	// 완료 방식
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Completion")
 	EQuestCompletionType CompletionType = EQuestCompletionType::Potion;
 
-	// [FindTarget 전용] 찾아야 하는 대상의 식별자
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Completion|FindTarget")
+	// [FindTarget] 찾아야 하는 대상 식별자
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Completion|FindTarget",
+		meta = (EditCondition = "CompletionType == EQuestCompletionType::FindTarget", EditConditionHides))
 	FName TargetIdentifier;
 
-	// [ItemCollection 전용] 가져다줘야 하는 아이템 ID 목록
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Completion|ItemCollection")
+	// [ItemCollection] 제출할 아이템 ID 목록
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Completion|ItemCollection",
+		meta = (EditCondition = "CompletionType == EQuestCompletionType::ItemCollection", EditConditionHides))
 	TArray<FName> RequiredItemIDs;
 
-	// [ItemCollection 전용] 각 아이템당 필요한 수량
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Completion|ItemCollection")
+	// [ItemCollection] 아이템당 필요 수량
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Completion|ItemCollection",
+		meta = (EditCondition = "CompletionType == EQuestCompletionType::ItemCollection", EditConditionHides))
 	int32 RequiredItemCount = 1;
 
-	// 신규 추가 - UI에 표시할 모호한 재료 이름 (RequiredItemIDs와 순서 맞춰서 입력)
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Completion|ItemCollection")
+	// [ItemCollection] UI 표시용 모호한 이름 (RequiredItemIDs와 순서 일치)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Completion|ItemCollection",
+		meta = (EditCondition = "CompletionType == EQuestCompletionType::ItemCollection", EditConditionHides))
 	TArray<FText> RequiredItemHintNames;
 };
 
@@ -137,38 +136,67 @@ enum class EQuestState : uint8
 	Completed
 };
 
-// 조건 충족 결과 (납품 시 항목별 피드백용 - O/태그오답)
+// NPC 머리 위 마커 상태
+UENUM(BlueprintType)
+enum class EQuestMarkerState : uint8
+{
+	None,          // 표시 없음
+	Available,     // 새 퀘스트 있음
+	InProgress,    // 진행 중, 완료 조건 미충족
+	Completable    // 완료 조건 충족
+};
+
+// 조건별 판정 결과
 UENUM(BlueprintType)
 enum class EConditionMatchResult : uint8
 {
-	Correct,   // O - 조건 정확히 충족
-	WrongTag   // 태그오답 - 요청하지 않은 축이거나 아예 없음
+	Correct,   // 조건 정확히 충족
+	WrongTag   // 요청하지 않은 축이거나 아예 없음
 };
 
-// 조건 판정 결과 하나 (어떤 축에 대한 결과인지 + 판정 결과)
+// 조건 판정 결과 하나 (축 + 판정)
 USTRUCT(BlueprintType)
 struct FConditionEvaluation
 {
 	GENERATED_BODY()
 
-	// 어떤 축(태그)에 대한 결과인지
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Category = "Quest|Delivery")
 	FGameplayTag Axis;
 
-	// 판정 결과
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Category = "Quest|Delivery")
 	EConditionMatchResult Result = EConditionMatchResult::Correct;
 
-	// 이게 정답이 요구한 조건인지(true), 아니면 포션에 여분으로 섞인 태그인지(false)
-	UPROPERTY(BlueprintReadOnly)
+	// true: 정답이 요구한 조건 / false: 포션에 여분으로 섞인 태그
+	UPROPERTY(BlueprintReadOnly, Category = "Quest|Delivery")
 	bool bWasRequested = true;
 };
 
+// 포션 납품 판정 등급 (TryDeliver() 반환값)
 UENUM(BlueprintType)
-enum class EQuestMarkerState : uint8
+enum class EDeliveryGrade : uint8
 {
-	None,          // 표시 없음 - 볼 일 없음
-	Available,     // 새 퀘스트 있음
-	InProgress,    // 진행 중이지만 아직 완료 조건 미충족
-	Completable,   // 완료 조건 충족 - 가서 완료 처리 가능
+	Fail,     // 요구 태그 중 하나라도 누락
+	Perfect   // 요구 태그 모두 충족
+};
+
+// 퀘스트 완료 결과 (결과 UI 표시용)
+USTRUCT(BlueprintType)
+struct FCPQuestResult
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Quest|Result")
+	FName QuestId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Quest|Result")
+	EDeliveryGrade DeliveryGrade = EDeliveryGrade::Fail;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Quest|Result")
+	TArray<FGameplayTag> CurrentEffects;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Quest|Result")
+	int32 RewardAmount = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Quest|Result")
+	int32 TipAmount = 0;
 };
