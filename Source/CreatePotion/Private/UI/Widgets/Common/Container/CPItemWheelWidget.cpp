@@ -118,7 +118,7 @@ void UCPItemWheelWidget::RefreshPotionList()
 		FocusedListIndex = 0;
 	}
 
-	UE_LOG(LogContainer, Warning, TEXT("[ItemWheel] 포션 목록 갱신, 개수: %d"), PotionArrayIndices.Num());
+	BroadcastFocusedPotion();
 }
 
 void UCPItemWheelWidget::RefreshIcons()
@@ -183,6 +183,8 @@ void UCPItemWheelWidget::RefreshIcons()
 		SetSlotVisible(Left2Icon, Left2Liquid, false);
 		SetSlotVisible(Right2Icon, Right2Liquid, false);
 	}
+
+	BroadcastFocusedPotion();
 }
 
 void UCPItemWheelWidget::ShowWheelTemporarily()
@@ -212,6 +214,13 @@ void UCPItemWheelWidget::SetSlotVisible(UImage* IconWidget, UImage* LiquidWidget
 	ESlateVisibility NewVis = bVisible ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed;
 	if (IconWidget) IconWidget->SetVisibility(NewVis);
 	if (LiquidWidget) LiquidWidget->SetVisibility(NewVis);
+}
+
+void UCPItemWheelWidget::BroadcastFocusedPotion()
+{
+	int32 FocusedGridIndex = -1;
+	GetFocusedPotionGridIndex(FocusedGridIndex); // 포션이 없으면 -1
+	OnFocusedPotionChanged.Broadcast(FocusedGridIndex);
 }
 
 void UCPItemWheelWidget::UpdateSlotScales(float Progress)

@@ -77,6 +77,8 @@ bool UCPCarryComponent::AttachProp(ACPThrowablePropBase* Prop)
     }
 
     SetHeldProp(Prop);
+    OnPropAttached.Broadcast(Prop);
+
     return true;
 }
 
