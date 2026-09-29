@@ -7,7 +7,6 @@
 #include "BrainComponent.h"
 #include "Character/Enemy/CPEnemyCharacter.h"
 #include "Components/SkeletalMeshComponent.h"
-#include "TimerManager.h"
 
 UCPGA_EnemyFartLaunch::UCPGA_EnemyFartLaunch()
 {
@@ -58,17 +57,16 @@ void UCPGA_EnemyFartLaunch::ActivateAbility(const FGameplayAbilitySpecHandle Han
 	UCharacterMovementComponent* CharacterMovement = Enemy->GetCharacterMovement();
 	OriginalMovementMode = CharacterMovement->MovementMode;
 	OriginalCustomMovementMode = CharacterMovement->CustomMovementMode;
-	OriginalGravityScale = CharacterMovement->GravityScale;
-	OriginalFallingLateralFriction = CharacterMovement->FallingLateralFriction;
 	CharacterMovement->StopMovementImmediately();
-	CharacterMovement->GravityScale = 0.0f;
-	CharacterMovement->FallingLateralFriction = 0.0f;
 	CharacterMovement->SetMovementMode(MOVE_Falling);
 	Enemy->LandedDelegate.AddUniqueDynamic(this, &UCPGA_EnemyFartLaunch::HandleLanded);
 
 	USkeletalMeshComponent* Mesh = Enemy->GetMesh();
 	OriginalAnimInstanceClass = Mesh->GetAnimClass();
 	OriginalMeshRelativeRotation = Mesh->GetRelativeRotation();
+	SpinAxis = FMath::VRand();
+	SpinAngle = 0.0f;
+	Enemy->OnCharacterMovementUpdated.AddUniqueDynamic(this, &UCPGA_EnemyFartLaunch::UpdateFlightSpin);
 	if (IsValid(LaunchAnimation))
 	{
 		Mesh->PlayAnimation(LaunchAnimation, true);
@@ -79,28 +77,8 @@ void UCPGA_EnemyFartLaunch::ActivateAbility(const FGameplayAbilitySpecHandle Han
 		ActorInfo->AbilitySystemComponent->AddGameplayCue(FartLaunchCueTag);
 	}
 
-	Enemy->AddActorWorldOffset(FVector(0.0f, 0.0f, 50.0f), false);
-	Enemy->LaunchCharacter(FVector::UpVector * LaunchForce, true, true);
-
-	World->GetTimerManager().SetTimer(RiseTimerHandle, this, &UCPGA_EnemyFartLaunch::BeginFall, RiseDuration, false);
-	World->GetTimerManager().SetTimer(VisualTumbleTimerHandle, this, &UCPGA_EnemyFartLaunch::ApplyVisualTumble, 0.08f, true);
-}
-
-void UCPGA_EnemyFartLaunch::BeginFall()
-{
-	if (ACPEnemyCharacter* Enemy = CachedEnemy.Get())
-	{
-		if (UCharacterMovementComponent* CharacterMovement = Enemy->GetCharacterMovement())
-		{
-			CharacterMovement->Velocity.Z = FMath::Min(CharacterMovement->Velocity.Z, 0.0f);
-			CharacterMovement->GravityScale = OriginalGravityScale;
-		}
-	}
-
-	if (FartLaunchCueTag.IsValid() && CurrentActorInfo && CurrentActorInfo->AbilitySystemComponent.IsValid())
-	{
-		CurrentActorInfo->AbilitySystemComponent->RemoveGameplayCue(FartLaunchCueTag);
-	}
+	const FVector LaunchDirection = FMath::VRandCone(FVector::UpVector, FMath::DegreesToRadians(LaunchConeHalfAngle));
+	Enemy->LaunchCharacter(LaunchDirection * LaunchForce, true, true);
 }
 
 void UCPGA_EnemyFartLaunch::HandleLanded(const FHitResult& Hit)
@@ -118,24 +96,17 @@ void UCPGA_EnemyFartLaunch::ApplyLandingDamage()
 	}
 
 	bLandingDamageApplied = true;
-	GetWorld()->GetTimerManager().ClearTimer(VisualTumbleTimerHandle);
 	Enemy->ApplyDamage(1.0f, CachedDamageCauser.Get());
 }
 
-void UCPGA_EnemyFartLaunch::ApplyVisualTumble()
+void UCPGA_EnemyFartLaunch::UpdateFlightSpin(float DeltaSeconds, FVector OldLocation, FVector OldVelocity)
 {
 	ACPEnemyCharacter* Enemy = CachedEnemy.Get();
-	USkeletalMeshComponent* Mesh = IsValid(Enemy) ? Enemy->GetMesh() : nullptr;
-	if (!IsValid(Mesh) || bLandingDamageApplied)
-	{
-		return;
-	}
+	if (!IsValid(Enemy) || Enemy->IsDead()) return;
 
-	const FRotator TumbleDelta(
-		FMath::FRandRange(-TumbleDegreesPerStep, TumbleDegreesPerStep),
-		FMath::FRandRange(-TumbleDegreesPerStep, TumbleDegreesPerStep),
-		FMath::FRandRange(-TumbleDegreesPerStep, TumbleDegreesPerStep));
-	Mesh->AddLocalRotation(TumbleDelta);
+	SpinAngle = FMath::Fmod(SpinAngle + SpinSpeed * DeltaSeconds, 360.0f);
+	const FQuat SpinRotation(SpinAxis, FMath::DegreesToRadians(SpinAngle));
+	Enemy->GetMesh()->SetRelativeRotation(OriginalMeshRelativeRotation.Quaternion() * SpinRotation);
 }
 
 void UCPGA_EnemyFartLaunch::RestoreLivingState()
@@ -148,8 +119,6 @@ void UCPGA_EnemyFartLaunch::RestoreLivingState()
 
 	if (UCharacterMovementComponent* CharacterMovement = Enemy->GetCharacterMovement())
 	{
-		CharacterMovement->GravityScale = OriginalGravityScale;
-		CharacterMovement->FallingLateralFriction = OriginalFallingLateralFriction;
 		CharacterMovement->SetMovementMode(OriginalMovementMode, OriginalCustomMovementMode);
 	}
 
@@ -171,15 +140,10 @@ void UCPGA_EnemyFartLaunch::RestoreLivingState()
 
 void UCPGA_EnemyFartLaunch::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().ClearTimer(RiseTimerHandle);
-		World->GetTimerManager().ClearTimer(VisualTumbleTimerHandle);
-	}
-
 	if (ACPEnemyCharacter* Enemy = CachedEnemy.Get())
 	{
 		Enemy->LandedDelegate.RemoveDynamic(this, &UCPGA_EnemyFartLaunch::HandleLanded);
+		Enemy->OnCharacterMovementUpdated.RemoveDynamic(this, &UCPGA_EnemyFartLaunch::UpdateFlightSpin);
 	}
 
 	if (FartLaunchCueTag.IsValid() && ActorInfo && ActorInfo->AbilitySystemComponent.IsValid())

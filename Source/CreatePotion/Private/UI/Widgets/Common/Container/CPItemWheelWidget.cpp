@@ -2,6 +2,7 @@
 
 #include "UI/Widgets/Common/Container/CPItemWheelWidget.h"
 #include "Components/Image.h"
+#include "Components/CanvasPanel.h"
 #include "Components/PanelWidget.h"
 
 #include "CreatePotion.h"
@@ -12,8 +13,14 @@ void UCPItemWheelWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	// 루트는 항상 Visible로 유지 (= 휠 입력을 계속 감지)
-	SetVisibility(ESlateVisibility::Visible);
+	// Enhanced Input을 통해 기능이 작동하므로 Visibility를 
+	// "클릭을 안 받지만, 화면엔 보임"의 HitTestInvisible로 설정
+	if (RootCanvas)
+	{
+		RootCanvas->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	}
+
+	SetVisibility(ESlateVisibility::HitTestInvisible);
 
 	SetSlotVisible(Left2Icon, Left2Liquid, false);
 	SetSlotVisible(Left1Icon, Left1Liquid, false);
@@ -111,7 +118,7 @@ void UCPItemWheelWidget::RefreshPotionList()
 		FocusedListIndex = 0;
 	}
 
-	UE_LOG(LogContainer, Warning, TEXT("[ItemWheel] 포션 목록 갱신, 개수: %d"), PotionArrayIndices.Num());
+	BroadcastFocusedPotion();
 }
 
 void UCPItemWheelWidget::RefreshIcons()
@@ -176,6 +183,8 @@ void UCPItemWheelWidget::RefreshIcons()
 		SetSlotVisible(Left2Icon, Left2Liquid, false);
 		SetSlotVisible(Right2Icon, Right2Liquid, false);
 	}
+
+	BroadcastFocusedPotion();
 }
 
 void UCPItemWheelWidget::ShowWheelTemporarily()
@@ -205,6 +214,13 @@ void UCPItemWheelWidget::SetSlotVisible(UImage* IconWidget, UImage* LiquidWidget
 	ESlateVisibility NewVis = bVisible ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed;
 	if (IconWidget) IconWidget->SetVisibility(NewVis);
 	if (LiquidWidget) LiquidWidget->SetVisibility(NewVis);
+}
+
+void UCPItemWheelWidget::BroadcastFocusedPotion()
+{
+	int32 FocusedGridIndex = -1;
+	GetFocusedPotionGridIndex(FocusedGridIndex); // 포션이 없으면 -1
+	OnFocusedPotionChanged.Broadcast(FocusedGridIndex);
 }
 
 void UCPItemWheelWidget::UpdateSlotScales(float Progress)
@@ -264,4 +280,26 @@ void UCPItemWheelWidget::HandleScrollInput(float ScrollDelta)
 	SlideProgress = 0.f;
 
 	ShowWheelTemporarily();
+}
+
+bool UCPItemWheelWidget::TryScrollAndPickNextFocus(float ScrollDelta, int32& OutGridIndex)
+{
+	if (PotionArrayIndices.Num() == 0 || PendingDirection != 0)
+	{
+		return false; // 이미 슬라이드 진행 중이면 무시 (연타 방지)
+	}
+
+	int32 Direction = (ScrollDelta > 0.f) ? 1 : -1;
+	int32 Count = PotionArrayIndices.Num();
+	int32 NextListIndex = (FocusedListIndex + Direction + Count) % Count;
+
+	// 애니메이션은 기존 HandleScrollInput과 동일하게 시작
+	PendingDirection = Direction;
+	SlideProgress = 0.f;
+	ShowWheelTemporarily();
+
+	// 애니메이션 완료를 기다리지 않고 "이동할 목표"의 GridIndex를 미리 계산해서 반환
+	int32 ArrayIdx = PotionArrayIndices[NextListIndex];
+	OutGridIndex = BoundInventory->ContainerItems[ArrayIdx].GridIndex;
+	return true;
 }

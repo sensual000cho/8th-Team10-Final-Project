@@ -57,6 +57,18 @@ struct FCPNPCEffectSaveData
 	TMap<FGameplayTag, FCPActiveEffectInfo> ActiveEffects;
 };
 
+USTRUCT()
+struct CREATEPOTION_API FCPNPCSaveData
+{
+	GENERATED_BODY()
+	
+	UPROPERTY()
+	TMap<FName, FCPNPCEffectSaveData> NPCEffects;
+	
+	UPROPERTY()
+	TMap<FName, FCPNPCMovementSaveData> NPCMovements;
+};
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnNPCEffectApplied, FName, NPCId, FGameplayTag, EffectTag, int64, ExpiresAtWorldMinute, float, Magnitude);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnNPCEffectExpired, FName, NPCId, FGameplayTag, EffectTag);
 
@@ -68,6 +80,9 @@ class CREATEPOTION_API UCPNPCSubsystem : public UGameInstanceSubsystem
 public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
+	
+	FCPNPCSaveData GetSaveData();
+	void LoadSaveData(const FCPNPCSaveData& SaveData);
 
 	UFUNCTION(BlueprintCallable, Category = "NPC|Potion")
 	void RegisterNPCEffect(FName NPCId, FGameplayTag EffectTag, int64 DurationWorldMinutes, float Magnitude = 1.0f);

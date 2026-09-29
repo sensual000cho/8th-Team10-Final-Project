@@ -6,11 +6,14 @@
 #include "UI/Widgets/Base/CPBaseFixedWidget.h"
 #include "CPContainerMainWidget.generated.h"
 
+class UBorder;
+class UButton;
+class UCanvasPanel;
+class UOverlay;
+class UVerticalBox;
+class UCPMoneyWidget;
 class UCPContainerGridWidget;
 class UCPItemContainerComponent;
-class UBorder;
-class UCPMoneyWidget;
-class UButton;
 
 UCLASS()
 class CREATEPOTION_API UCPContainerMainWidget : public UCPBaseFixedWidget
@@ -26,6 +29,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Container|UI")
 	virtual void UpdateUI();
 
+	void SetHighlightedGridIndex(int32 InGridIndex);
+
 protected:
 	virtual void NativeConstruct() override;
 
@@ -40,6 +45,18 @@ private:
 	void OnCloseButtonClicked();
 
 protected:
+	UPROPERTY(meta = (BindWidgetOptional))
+	UCanvasPanel* RootCanvas;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	UBorder* TitleBar;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	UOverlay* ContentOverlay;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	UVerticalBox* MainVerticalBox;
+
 	// 실제 데이터를 가져올 컨테이너 컴포넌트
 	UPROPERTY(BlueprintReadOnly, Category = "Container")
 	UCPItemContainerComponent* TargetContainer;

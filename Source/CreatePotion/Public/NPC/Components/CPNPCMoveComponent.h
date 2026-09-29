@@ -33,6 +33,7 @@ public:
 
 	int32 GetCurrentPointIndex() const { return CurrentPointIndex; }
 	void RestoreMovementState(const FCPNPCMovementSaveData& SaveData);
+	void SaveMovementState();
 
 	bool IsMovePaused() const { return bIsMovePaused; }
 
@@ -50,7 +51,6 @@ protected:
 	void OnMoveCompleted(FAIRequestID RequestID, EPathFollowingResult::Type Result);
 
 private:
-	void SaveMovementState();
 	FString GetCurrentLevelIdentifier() const;
 	FName GetMovementStorageKey() const;
 

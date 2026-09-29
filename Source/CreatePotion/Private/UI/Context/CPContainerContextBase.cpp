@@ -7,12 +7,15 @@
 #include "UI/Widgets/Common/Container/CPGridSlotWidgetBase.h"
 #include "UI/Widgets/Common/Container/CPItemSlotWidget.h"
 #include "UI/Widgets/Common/Container/Shop/CPShopPurchasePopupWidget.h"
+#include "UI/Widgets/Common/Container/CPItemDetailPopupWidget.h"
 
 #include "Components/CPInventoryComponent.h"
 #include "Components/CPDropContainerComponent.h"
 
 #include "Data/CPForageableItemData.h"
 #include "Lab/Actor/CPAlchemyProp.h"
+
+#include "Subsystems/Level/DropItemWorldSubsystem.h"
 
 bool UCPContainerContextBase::HandleLeftClickOnly(UCPGridSlotWidgetBase* ClickedSlot)
 {
@@ -21,7 +24,6 @@ bool UCPContainerContextBase::HandleLeftClickOnly(UCPGridSlotWidgetBase* Clicked
     {
         return false;
     }
-
 
     if (!PC->IsHoldingItem()) // 무언가 들고 있는게 없으면
     {
@@ -37,25 +39,29 @@ bool UCPContainerContextBase::HandleLeftClickOnly(UCPGridSlotWidgetBase* Clicked
         FContainerItem PoppedItem;
         if (ClickedSlot->OwnerContainer->PopItemFromContainer(ClickedSlot->SlotGridIndex, PoppedItem))
         {
-            UE_LOG(LogContainer, Warning, TEXT("[Pick] 집기 성공: %s, Hand 컨테이너 개수: %d"),
-                *PoppedItem.Instance.SourceItemData->DisplayName.ToString(), PC->LeftClickPickedContainer->ContainerItems.Num());
-
-            PoppedItem.GridIndex = 0; // Hand 컨테이너는 1칸만 존재
-            PC->LeftClickPickedContainer->ContainerItems.Add(PoppedItem);
-            PC->LeftClickPickedContainer->OnContainerUpdated.Broadcast();
-
-            // 취소 시 되돌아갈 기존 Container의 종류와 index 정보 저장
-            PC->LeftClickPickedItemOriginContainer = ClickedSlot->OwnerContainer;
-            PC->LeftClickPickedOriginSlotIndex = ClickedSlot->SlotGridIndex;
+            PC->BeginHoldingItem(PoppedItem, ClickedSlot->OwnerContainer, ClickedSlot->SlotGridIndex);
         }
-
-        // TODO[Container] : 커서에 아이콘을 붙이는 드래그 비주얼 구현
         return true;
     }
     else // 무언가 들고 있었으면
     {
-        bool bIsPlacedAll = ClickedSlot->OwnerContainer->TryPlaceHoldingItem(
-            PC->LeftClickPickedContainer, ClickedSlot->ClickedGridIndex);
+        if (ClickedSlot->OwnerContainer->TargetContext == EUITargetContext::Drop) // Drop 컨테이너일 경우
+        {
+            FContainerItem HeldItem = PC->LeftClickPickedContainer->ContainerItems[0];
+
+            if (HeldItem.Instance.SourceItemData)
+            {
+                for (int32 i = 0; i < HeldItem.Stacked; ++i)
+                {
+                    SpawnDroppedProp(HeldItem.Instance.SourceItemData, 1, PC->GetPawn(), HeldItem.Instance.CurrentEffects);
+                }
+            }
+
+            PC->ResetHoldingItem();
+            return true;
+        }
+
+        bool bIsPlacedAll = ClickedSlot->OwnerContainer->TryPlaceHoldingItem(PC->LeftClickPickedContainer, ClickedSlot->ClickedGridIndex);
         // 기존 아이템과 스왑 또는 배치하는 함수
 
         // 다 내려놓았을 땐 PC의 "현재 들고 있는 정보"를 초기화
@@ -64,7 +70,6 @@ bool UCPContainerContextBase::HandleLeftClickOnly(UCPGridSlotWidgetBase* Clicked
             PC->ResetHoldingItem();
         }
 
-        // TODO: 마우스 커서를 원래대로 복구하는 로직 위치 (하드웨어 커서 복구 또는 커서 위젯 숨기기)
         return true;
     }
 }
@@ -108,6 +113,27 @@ bool UCPContainerContextBase::HandleCtrlLeftClick(UCPGridSlotWidgetBase* Clicked
     return ClickedSlot->OwnerContainer->AutoInsertItemToTargetContainer(ClickedSlot->SlotGridIndex, TargetContainer);
 }
 
+bool UCPContainerContextBase::HandleShiftLeftClick(UCPGridSlotWidgetBase* ClickedSlot)
+{
+    ACPPlayerController* PC = Cast<ACPPlayerController>(ClickedSlot->GetOwningPlayer());
+    if (!PC || PC->IsHoldingItem())
+    {
+        return false; // 이미 들고 있으면 나누기 불가
+    }
+
+    UCPItemSlotWidget* ItemSlot = Cast<UCPItemSlotWidget>(ClickedSlot);
+    if (!ItemSlot || !ItemSlot->CachedItemData.Instance.IsValid() || ItemSlot->CachedItemData.Stacked < 2)
+    {
+        return false; // 빈 칸이거나 1개짜리는 나누기 기능 제외
+    }
+
+    if (UCPShopPurchasePopupWidget* Popup = PC->GetOrCreateShopPopup())
+    {
+        Popup->OpenForSplit(ClickedSlot->OwnerContainer, ClickedSlot->SlotGridIndex);
+    }
+    return true;
+}
+
 bool UCPContainerContextBase::HandleAltLeftClick(UCPGridSlotWidgetBase* ClickedSlot)
 {
     ACPPlayerController* PC = Cast<ACPPlayerController>(ClickedSlot->GetOwningPlayer());
@@ -126,6 +152,7 @@ bool UCPContainerContextBase::HandleAltLeftClick(UCPGridSlotWidgetBase* ClickedS
 
     // 삭제되기 전에 미리 값으로 떠둠 (RemoveItemFromContainer가 배열 항목을 지울 수 있으므로)
     UCPForageableItemData* ItemData = ItemSlot->CachedItemData.Instance.SourceItemData;
+    TArray<FGameplayTag> EffectTags = ItemSlot->CachedItemData.Instance.CurrentEffects;
 
     // 스택 전체가 아니라 딱 1개만 차감
     if (!ClickedSlot->OwnerContainer->RemoveItemFromContainer(ClickedSlot->SlotGridIndex, 1))
@@ -134,7 +161,7 @@ bool UCPContainerContextBase::HandleAltLeftClick(UCPGridSlotWidgetBase* ClickedS
     }
 
     // TODO[Container] : 일단은 1개만 버리도록
-    SpawnDroppedProp(ItemData, 1, PC->GetPawn());
+    SpawnDroppedProp(ItemData, 1, PC->GetPawn(), EffectTags);
 
     return true;
 }
@@ -155,7 +182,7 @@ bool UCPContainerContextBase::IsSlotFromInventory(UCPGridSlotWidgetBase* Clicked
         && PC && (ClickedSlot->OwnerContainer == PC->CachedInventoryComponent);
 }
 
-void UCPContainerContextBase::SpawnDroppedProp(UCPForageableItemData* ItemData, int32 Count, AActor* NearActor) const
+void UCPContainerContextBase::SpawnDroppedProp(UCPForageableItemData* ItemData, int32 Count, AActor* NearActor, const TArray<FGameplayTag>& EffectTags) const
 {
     if (!ItemData || !NearActor || Count <= 0)
     {
@@ -163,7 +190,7 @@ void UCPContainerContextBase::SpawnDroppedProp(UCPForageableItemData* ItemData, 
     }
 
     // TSoftReference를 실제 메모리에 올리기
-    TSubclassOf<ACPAlchemyProp> PropClass = ItemData->AlchemyPropClass.LoadSynchronous();
+    TSubclassOf<ACPThrowablePropBase> PropClass = ItemData->AlchemyPropClass.LoadSynchronous();
     if (!PropClass)
     {
         UE_LOG(LogContainer, Warning, TEXT("[Drop] [%s]의 AlchemyPropClass가 설정되지 않음"),
@@ -189,9 +216,15 @@ void UCPContainerContextBase::SpawnDroppedProp(UCPForageableItemData* ItemData, 
     {
         FVector SpawnLoc = BaseLocation + FVector(FMath::RandRange(-50.f, 50.f), FMath::RandRange(-50.f, 50.f), 10.f);
 
-        if (ACPAlchemyProp* SpawnedProp = World->SpawnActor<ACPAlchemyProp>(PropClass, SpawnLoc, FRotator::ZeroRotator))
+        if (ACPThrowablePropBase* SpawnedProp = World->SpawnActor<ACPThrowablePropBase>(PropClass, SpawnLoc, FRotator::ZeroRotator))
         {
-            SpawnedProp->InitializeFromItemData(ItemData);
+            SpawnedProp->InitializeFromItemData(ItemData, EffectTags);
+
+            // TODO[Container] : 아이템을 버렸을 때 자동 수거 기능을 활성화 할 지 여부 미정
+            // if (UDropItemWorldSubsystem* DropSubsystem = World->GetSubsystem<UDropItemWorldSubsystem>())
+            // {
+            //     DropSubsystem->RegisterDroppedProp(SpawnedProp);
+            // }
         }
     }
 }
@@ -230,4 +263,27 @@ bool UCPContainerContextBase::TrySellItemToShop(UCPItemContainerComponent* Playe
     PlayerInventory->TryGetMoney(SellPricePerUnit * ActuallySold);
 
     return true;
+}
+
+bool UCPContainerContextBase::HandleShowItemDetail(UCPGridSlotWidgetBase* ClickedSlot) const
+{
+    ACPPlayerController* PC = Cast<ACPPlayerController>(ClickedSlot->GetOwningPlayer());
+    if (!PC)
+    {
+        return false;
+    }
+
+    UCPItemSlotWidget* ItemSlot = Cast<UCPItemSlotWidget>(ClickedSlot);
+    if (!ItemSlot || !ItemSlot->CachedItemData.Instance.IsValid())
+    {
+        return false; // 빈 슬롯이면 표시할 게 없음
+    }
+
+    if (UCPItemDetailPopupWidget* Popup = PC->GetOrCreateItemDetailPopup())
+    {
+        Popup->ShowDetail(ItemSlot->CachedItemData.Instance);
+        return true;
+    }
+
+    return false;
 }

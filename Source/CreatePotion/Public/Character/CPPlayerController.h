@@ -7,7 +7,6 @@
 #include "GameFramework/PlayerController.h"
 #include "InputActionValue.h"
 #include "Types/CPContainerTypes.h"
-#include "Types/CPInputModeTypes.h"
 #include "CPPlayerController.generated.h"
 
 class UInputAction;
@@ -15,13 +14,16 @@ class UInputMappingContext;
 
 class UCPItemContainerComponent;
 class UCPInventoryComponent;
-class UCPHandItemContainerComponent;
-class UCPContainerMainWidget;
+class UCPDropContainerComponent;
+
 class UCPContainerContextBase;
+
+class UCPContainerMainWidget;
 class UCPHandHeldItemWidget;
 class UCPItemWheelWidget;
-class UCPWheelModeIndicatorWidget;
 class UCPShopPurchasePopupWidget;
+class UCPItemDetailPopupWidget;
+class UCPDropZoneWidget;
 
 //디버깅용 포션생성 함수용
 class UCPForageableItemData;
@@ -33,38 +35,6 @@ class CREATEPOTION_API ACPPlayerController : public APlayerController
 
 public:
 	friend class UCPContainerContextBase;	// private 멤버 변수에 접근할 수 있도록
-
-#pragma region MouseWheel
-	UFUNCTION(BlueprintCallable, Category = "Input|Mode")
-	void SetWheelInputMode(EWheelInputMode NewMode);
-
-	UFUNCTION(BlueprintCallable, Category = "Input|Mode")
-	void CycleWheelInputMode();
-
-private:
-	void OnItemWheelScroll(const FInputActionValue& Value);
-	void OnEquipFocusedItem(const FInputActionValue& Value);
-
-public:
-	UPROPERTY(EditAnywhere, Category = "Input|Wheel")
-	UInputAction* IA_ScrollItem; // Axis1D 휠 값
-
-	UPROPERTY(EditAnywhere, Category = "Input|Wheel")
-	UInputAction* IA_EquipFocusedItem; // 휠 클릭
-
-	UPROPERTY(EditAnywhere, Category = "Input|Wheel")
-	UInputAction* IA_CycleWheelMode;
-
-protected:
-	UPROPERTY(EditAnywhere, Category = "Input|Wheel")
-	UInputMappingContext* IMC_PotionWheel;
-
-	UPROPERTY(EditAnywhere, Category = "Input|Wheel")
-	UInputMappingContext* IMC_IngredientWheel;
-
-private:
-	EWheelInputMode CurrentWheelMode = EWheelInputMode::CameraZoom;
-#pragma endregion
 
 protected:
 
@@ -83,6 +53,63 @@ protected:
 	// 폰 빙의가 변경될 때 엔진이 자동으로 호출해주는 함수
 	// TODO[Container] : 추후 멀티플레이 확장시 Dedicated Server 환경에서 Client들은 실행이 되지 않음
 	virtual void SetPawn(APawn* InPawn) override;
+
+#pragma region DropItem
+public:
+	UPROPERTY(EditAnywhere, Category = "Container|UI")
+	TSubclassOf<UCPDropZoneWidget> DropZoneWidgetClass;
+
+	UPROPERTY()
+	UCPDropContainerComponent* DropContainer;
+
+private:
+	UPROPERTY()
+	UCPDropZoneWidget* DropZoneWidgetInstance;
+
+#pragma endregion
+
+#pragma region PotionThrow
+public:
+	void ConsumeHeldPotionCharge();
+#pragma endregion
+
+#pragma region CarryProp
+private:
+	void HandlePropAttached(ACPThrowablePropBase* Prop);
+
+	void UpdatePotionHighlight();
+
+private:
+	// Q/E 장착으로 AttachProp을 호출하는 동안에만 true, 필드로부터 줍기와 구분용
+	bool bIsEquippingFromInventory = false;
+#pragma endregion
+
+#pragma region Wheel
+private:
+	void OnItemWheelScroll(const FInputActionValue& Value);
+	void EquipItemAtGridIndex(int32 GridIndex);
+
+	void HandleFocusedPotionChanged(int32 GridIndex);
+
+public:
+	UPROPERTY(EditAnywhere, Category = "Input|Wheel")
+	UInputAction* IA_ScrollItem; // Axis1D 휠 값
+
+	UPROPERTY(EditAnywhere, Category = "Input|Wheel")
+	UInputAction* IA_EquipFocusedItem; // 휠 클릭
+
+protected:
+	UPROPERTY(EditAnywhere, Category = "Input|Wheel")
+	UInputMappingContext* IMC_PotionWheel;
+
+private:
+	UPROPERTY()
+	FCPItemInstance CurrentlyHeldPotionInstance;
+
+	int32 CurrentlyHeldPotionOriginIndex = -1;
+
+	bool bCurrentHeldItemIsFromInventory = false;
+#pragma endregion
 
 #pragma region Container
 public:
@@ -106,13 +133,17 @@ public:
 	// 아이템을 내려놓은 상태로 초기화 하는 함수 
 	void ResetHoldingItem();
 
+	// 들고 있는 아이템의 수납 또는 장착 취소 처리
+	void OnCarryHeldProp(const FInputActionValue& Value);
+
 	UFUNCTION(BlueprintCallable, Category = "Debug|Shop")
 	void DebugToggleShopDirectly();
 
+	// 지정한 아이템을 HandItemContainer에 잡고 원래 위치 정보를 기록
+	bool BeginHoldingItem(const FContainerItem& InItem, UCPItemContainerComponent* OriginContainer, int32 OriginIndex);
+
 private:
 	void SetContextHandlerForTargetContext(EUITargetContext InTargetContext);
-
-	void OnCarryHeldProp(const FInputActionValue& Value);
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "Input|Carry")
@@ -141,10 +172,6 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Container|UI")
 	TSubclassOf<UCPItemWheelWidget> ItemWheelWidgetClass;
-
-	UPROPERTY(EditAnywhere, Category = "Input|Wheel")
-	TSubclassOf<class UCPWheelModeIndicatorWidget> WheelModeIndicatorWidgetClass;
-
 protected:
 	// 현재 화면에 떠 있는 외부 컨테이너 UI 인스턴스 (Lab, Storage, Shop 공용)
 	UPROPERTY()
@@ -156,9 +183,6 @@ private:
 
 	UPROPERTY()
 	UCPHandHeldItemWidget* HandHeldItemWidgetInstance;
-
-	UPROPERTY()
-	UCPWheelModeIndicatorWidget* WheelModeIndicatorInstance;
 
 	// 마우스 클릭으로 "현재 들고 있는 아이템"을 우클릭 등으로 취소할 경우 되돌아갈 기존 Container
 	UPROPERTY()
@@ -172,6 +196,8 @@ private:
 public:
 	UCPShopPurchasePopupWidget* GetOrCreateShopPopup();
 
+	UCPShopPurchasePopupWidget* JustGetShopPopup() const { return ShopPopupInstance; }
+
 public:
 	UPROPERTY(EditAnywhere, Category = "Shop|UI")
 	TSubclassOf<UCPShopPurchasePopupWidget> ShopPopupWidgetClass;
@@ -180,10 +206,29 @@ private:
 	UPROPERTY()
 	UCPShopPurchasePopupWidget* ShopPopupInstance;
 #pragma endregion
+
+#pragma region DetailWidget
+public:
+	UCPItemDetailPopupWidget* GetOrCreateItemDetailPopup();
+
+	UCPItemDetailPopupWidget* JustGetItemDetailPopup() const { return ItemDetailPopupInstance; }
+
+public:
+	UPROPERTY(EditAnywhere, Category = "Container|UI")
+	TSubclassOf<UCPItemDetailPopupWidget> ItemDetailPopupWidgetClass;
+
+private:
+	UPROPERTY()
+	UCPItemDetailPopupWidget* ItemDetailPopupInstance;
+#pragma endregion
 	
 //디버깅용 포션생성
 #pragma region DebugPotionHotkeys
 public:
+	// BP에서 지정한 효과의 포션을 손에 생성한다.
+	UFUNCTION(BlueprintCallable, Category = "Debug|Potion Hotkeys")
+	void SpawnDebugPotion(UPARAM(meta = (Categories = "Potion.Effect")) const TArray<FGameplayTag>& EffectTags);
+
 	UFUNCTION(BlueprintCallable, Category = "Debug|Potion Hotkeys")
 	void DebugSpawnFartLaunchPotion();
 
@@ -206,6 +251,5 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Debug|Potion Hotkeys")
 	TObjectPtr<UCPForageableItemData> DebugPotionData;
 
-	void SpawnDebugPotion(const TArray<FGameplayTag>& EffectTags);
 #pragma endregion
 };

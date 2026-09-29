@@ -25,6 +25,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Slot")
 	void ClearSlot();
 
+	void SetSlotHighlighted(bool bInHighlighted);
+
 protected:
 	virtual void NativeConstruct() override;
 
@@ -38,6 +40,10 @@ protected:
 	virtual FReply NativeOnMouseButtonDoubleClick(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 
 	virtual int32 GetClickedSlotGridIndex(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) const override;
+
+	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
+
 public:
 	// 현재 이 슬롯이 소유중인 아이템
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|Slot")
@@ -52,4 +58,7 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* StackText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	UImage* HighlightBorder;
 };

@@ -14,6 +14,15 @@ class CREATEPOTION_API UCPResourceStateSubsystem : public UGameInstanceSubsystem
 	GENERATED_BODY()
 	
 public:
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	
+	// 게임 세션 시드 Getter
+	int32 GetSessionSeed() const { return SessionSeed; }
+	
+	// 상태 저장 데이터 Getter / Setter
+	FCPResourceSaveData GetSaveData() const;
+	void LoadSaveData(const FCPResourceSaveData& SaveData);
+	
 	// 상태 Get / 없으면 생성
 	FCPResourceNodeState& GetOrCreateState(const FCPResourceNodeKey& Key);
 	
@@ -34,4 +43,7 @@ public:
 private:
 	// 키 상태 맵핑
 	TMap<FCPResourceNodeKey, FCPResourceNodeState> NodeStates;
+	
+	// 게임 세션 시드
+	int32 SessionSeed = 0;
 };

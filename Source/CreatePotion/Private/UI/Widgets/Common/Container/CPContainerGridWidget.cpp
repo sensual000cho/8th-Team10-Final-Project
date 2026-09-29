@@ -5,13 +5,26 @@
 #include "Components/UniformGridSlot.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
-#include "Components/SizeBox.h"		// 사이즈 조절
+#include "Components/SizeBox.h"
+#include "Components/Overlay.h"
 
 #include "CreatePotion.h"   // 로그용 헤더
 #include "UI/Widgets/Common/Container/CPItemSlotWidget.h"
 #include "UI/Widgets/Common/Container/CPBlankGridSlotWidget.h"
 #include "Components/CPItemContainerComponent.h"
-#include "Settings/CPContainerUISettings.h"
+#include "Settings/CPContainerSettings.h"
+
+void UCPContainerGridWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+
+	if (RootOverlay)
+	{
+		RootOverlay->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	}
+}
 
 void UCPContainerGridWidget::InitializeGrid(UCPItemContainerComponent* TargetContainer)
 {
@@ -25,7 +38,7 @@ void UCPContainerGridWidget::InitializeGrid(UCPItemContainerComponent* TargetCon
 
 	ItemGrid->ClearChildren();
 
-	const UCPContainerUISettings* Settings = GetDefault<UCPContainerUISettings>();
+	const UCPContainerSettings* Settings = GetDefault<UCPContainerSettings>();
 	float SlotSize = Settings->SlotSize;
 	float SlotPadding = Settings->SlotPadding;
 
@@ -121,7 +134,7 @@ void UCPContainerGridWidget::UpdateGrid(const TArray<FContainerItem>& ContainerI
 			int32 ItemW = Item.bIsRotated ? Item.Instance.SourceItemData->ContainerSizeY : Item.Instance.SourceItemData->ContainerSizeX;
 			int32 ItemH = Item.bIsRotated ? Item.Instance.SourceItemData->ContainerSizeX : Item.Instance.SourceItemData->ContainerSizeY;
 
-			const UCPContainerUISettings* Settings = GetDefault<UCPContainerUISettings>();
+			const UCPContainerSettings* Settings = GetDefault<UCPContainerSettings>();
 			float SlotSize = Settings->SlotSize;
 			float SlotPadding = Settings->SlotPadding;
 
@@ -168,7 +181,25 @@ void UCPContainerGridWidget::UpdateGrid(const TArray<FContainerItem>& ContainerI
 
 			NewItemWidget->UpdateSlot(Item);
 			NewItemWidget->OwnerContainer = CachedContainer;
-			// NewItemWidget->CachedItemData = Item; // UpdateSlot(Item)에서 이미 처리
+			NewItemWidget->SetSlotHighlighted(Item.GridIndex == HighlightedGridIndex);
+		}
+	}
+}
+
+void UCPContainerGridWidget::SetHighlightedGridIndex(int32 InGridIndex)
+{
+	HighlightedGridIndex = InGridIndex;
+
+	if (!ItemCanvas)
+	{
+		return;
+	}
+
+	for (UWidget* Child : ItemCanvas->GetAllChildren())
+	{
+		if (UCPItemSlotWidget* ItemSlot = Cast<UCPItemSlotWidget>(Child))
+		{
+			ItemSlot->SetSlotHighlighted(ItemSlot->SlotGridIndex == HighlightedGridIndex);
 		}
 	}
 }

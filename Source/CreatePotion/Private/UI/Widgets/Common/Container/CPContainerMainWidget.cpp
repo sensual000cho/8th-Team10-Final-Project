@@ -1,11 +1,14 @@
 ﻿// CPContainerMainWidget.cpp
 
 #include "UI/Widgets/Common/Container/CPContainerMainWidget.h"
-#include "Components/Border.h"		// 위젯 Border 헤더
-#include "Components/Button.h"		// 위젯 Button 헤더
+#include "Components/Border.h"
+#include "Components/Button.h"
+#include "Components/CanvasPanel.h"
+#include "Components/Overlay.h"
+#include "Components/VerticalBox.h"
 #include "Blueprint/WidgetLayoutLibrary.h" // DPI 스케일 계산용 헤더
 
-#include "CreatePotion.h"   // 로그용 헤더
+#include "CreatePotion.h"
 #include "Character/CPPlayerController.h"
 #include "Components/CPItemContainerComponent.h"
 #include "UI/Widgets/Common/Container/CPContainerGridWidget.h"
@@ -15,6 +18,15 @@
 void UCPContainerMainWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+
+	UE_LOG(LogContainer, Warning, TEXT("[ContainerMain] Self Visibility=%d"), (int32)GetVisibility());
+
+	SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+
+	if (RootCanvas) RootCanvas->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	if (TitleBar) TitleBar->SetVisibility(ESlateVisibility::Visible);
+	if (ContentOverlay) ContentOverlay->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	if (MainVerticalBox) MainVerticalBox->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 
 	if (CloseButton)
 	{
@@ -120,5 +132,13 @@ void UCPContainerMainWidget::HandleCloseRequested()
 	if (ACPPlayerController* PC = Cast<ACPPlayerController>(GetOwningPlayer()))
 	{
 		PC->CloseExternalContainerUI();
+	}
+}
+
+void UCPContainerMainWidget::SetHighlightedGridIndex(int32 InGridIndex)
+{
+	if (ContainerGrid)
+	{
+		ContainerGrid->SetHighlightedGridIndex(InGridIndex);
 	}
 }

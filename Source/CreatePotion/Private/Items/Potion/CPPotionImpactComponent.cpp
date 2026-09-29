@@ -79,6 +79,7 @@ void UCPPotionImpactComponent::ResolvePotionEffectArea(const FHitResult& HitResu
 	TSet<AActor*> ProcessedActors;
 	TSet<UAbilitySystemComponent*> ProcessedAbilitySystems;
 	UAbilitySystemComponent* SourceAbilitySystem = ResolveSourceAbilitySystem();
+	TArray<AActor*> EffectTargets;
 
 	for (AActor* TargetActor : OverlappedActors)
 	{
@@ -99,16 +100,37 @@ void UCPPotionImpactComponent::ResolvePotionEffectArea(const FHitResult& HitResu
 		if (!IsValid(TargetAbilitySystem) || ProcessedAbilitySystems.Contains(TargetAbilitySystem)) continue;
 
 		ProcessedAbilitySystems.Add(TargetAbilitySystem);
+		EffectTargets.Add(TargetActor);
+	}
 
-		for (const FGameplayTag& EffectTag : PotionEffectTags){
-			TryDispatchPotionEffectToTarget(TargetActor, EffectTag, HitResult, SourceAbilitySystem, TargetAbilitySystem);
+	// 최초 적중 대상에만 적용하며, 배열 순서와 관계없이 Slime을 먼저 완료한다.
+	const FGameplayTag SlimeTag = FGameplayTag::RequestGameplayTag(TEXT("Potion.Effect.Slime"));
+	if (PotionEffectTags.Contains(SlimeTag))
+	{
+		for (AActor* Target : EffectTargets)
+		{
+			if (!IsValid(Target)) continue;
+			TryDispatchPotionEffectToTarget(Target, SlimeTag, HitResult, SourceAbilitySystem, UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Target));
+		}
+	}
+
+	TSet<FGameplayTag> DispatchedTags;
+	DispatchedTags.Add(SlimeTag);
+	for (const FGameplayTag& EffectTag : PotionEffectTags)
+	{
+		if (DispatchedTags.Contains(EffectTag)) continue;
+		DispatchedTags.Add(EffectTag);
+		for (AActor* Target : EffectTargets)
+		{
+			if (!IsValid(Target)) continue;
+			TryDispatchPotionEffectToTarget(Target, EffectTag, HitResult, SourceAbilitySystem, UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Target));
 		}
 	}
 }
 
 void UCPPotionImpactComponent::TryDispatchPotionEffectToTarget(AActor* TargetActor, FGameplayTag EffectTag, const FHitResult& HitResult, UAbilitySystemComponent* SourceAbilitySystem, UAbilitySystemComponent* TargetAbilitySystem)
 {
-	if (!EffectTag.IsValid()) return;
+	if (!EffectTag.IsValid() || !IsValid(TargetActor) || !IsValid(SourceAbilitySystem) || !IsValid(TargetAbilitySystem)) return;
 
 	FGameplayEffectContextHandle EffectContext = SourceAbilitySystem->MakeEffectContext();
 	EffectContext.AddInstigator(ImpactInstigator, GetOwner());

@@ -12,70 +12,25 @@
 #include "NPC/Components/CPShopContainerComponent.h"
 
 #include "CreatePotion.h"   // 로그용 헤더
+#include "Character/CPCarryComponent.h"
+#include "Components/CPItemContainerComponent.h"
+#include "Components/CPInventoryComponent.h"
+#include "Components/CPHandItemContainerComponent.h"
+#include "Components/CPDropContainerComponent.h"
+
+#include "UI/Context/CPContextInventoryOnly.h"
 #include "UI/Widgets/Common/Container/CPContainerMainWidget.h"
 #include "UI/Widgets/Common/Container/CPContainerGridWidget.h"
 #include "UI/Widgets/Common/Container/CPHandHeldItemWidget.h"
 #include "UI/Widgets/Common/Container/CPItemWheelWidget.h"
-#include "UI/Widgets/Common/Container/CPWheelModeIndicatorWidget.h"
 #include "UI/Widgets/Common/Container/Shop/CPShopPurchasePopupWidget.h"
-
-#include "Components/CPItemContainerComponent.h"
-#include "Components/CPInventoryComponent.h"
-#include "Components/CPHandItemContainerComponent.h"
-#include "UI/Context/CPContextInventoryOnly.h"
+#include "UI/Widgets/Common/Container/CPItemDetailPopupWidget.h"
+#include "UI/Widgets/Common/Container/CPDropZoneWidget.h"
 
 //디버그용 포션 Spawn 용 include
 #include "Character/CPCarryComponent.h"
+#include "GameInstance/Subsystem/CPSaveSubsystem.h"
 #include "Lab/Actor/CPPotionActor.h"
-
-
-void ACPPlayerController::SetWheelInputMode(EWheelInputMode NewMode)
-{
-	if (CurrentWheelMode == NewMode)
-	{
-		return;
-	}
-
-	UEnhancedInputLocalPlayerSubsystem* Subsystem =
-		ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
-	if (!Subsystem)
-	{
-		return;
-	}
-
-	// 이전에 켜져 있던 전용 IMC만 끔 (캐릭터 BP가 등록한 기본 줌 IMC는 절대 건드리지 않음)
-	if (CurrentWheelMode == EWheelInputMode::PotionSelect && IMC_PotionWheel)
-	{
-		Subsystem->RemoveMappingContext(IMC_PotionWheel);
-	}
-	else if (CurrentWheelMode == EWheelInputMode::IngredientSelect && IMC_IngredientWheel)
-	{
-		Subsystem->RemoveMappingContext(IMC_IngredientWheel);
-	}
-
-	CurrentWheelMode = NewMode;
-
-	// 새 모드의 전용 IMC를 더 높은 우선순위로 등록
-	if (NewMode == EWheelInputMode::PotionSelect && IMC_PotionWheel)
-	{
-		Subsystem->AddMappingContext(IMC_PotionWheel, 10); // 캐릭터 IMC보다 높게
-	}
-	else if (NewMode == EWheelInputMode::IngredientSelect && IMC_IngredientWheel)
-	{
-		Subsystem->AddMappingContext(IMC_IngredientWheel, 10);
-	}
-}
-
-void ACPPlayerController::CycleWheelInputMode()
-{
-	uint8 NextModeValue = (static_cast<uint8>(CurrentWheelMode) + 1) % 3;
-	SetWheelInputMode(static_cast<EWheelInputMode>(NextModeValue));
-
-	if (WheelModeIndicatorInstance)
-	{
-		WheelModeIndicatorInstance->ShowMode(CurrentWheelMode);
-	}
-}
 
 void ACPPlayerController::BeginPlay()
 {
@@ -98,6 +53,11 @@ void ACPPlayerController::SetupInputComponent()
 			{
 				Subsystem->AddMappingContext(CurrentContext, 0);
 			}
+
+			if (IMC_PotionWheel)
+			{
+				Subsystem->AddMappingContext(IMC_PotionWheel, 10);
+			}
 		}
 	}
 
@@ -108,16 +68,6 @@ void ACPPlayerController::SetupInputComponent()
 			EIC->BindAction(IA_ScrollItem, ETriggerEvent::Triggered, this, &ACPPlayerController::OnItemWheelScroll);
 		}
 
-		if (IA_EquipFocusedItem)
-		{
-			EIC->BindAction(IA_EquipFocusedItem, ETriggerEvent::Started, this, &ACPPlayerController::OnEquipFocusedItem);
-		}
-
-		if (IA_CycleWheelMode)
-		{
-			EIC->BindAction(IA_CycleWheelMode, ETriggerEvent::Started, this, &ACPPlayerController::CycleWheelInputMode);
-		}
-
 		if (IA_CarryHeldProp)
 		{
 			EIC->BindAction(IA_CarryHeldProp, ETriggerEvent::Started, this, &ACPPlayerController::OnCarryHeldProp);
@@ -125,30 +75,136 @@ void ACPPlayerController::SetupInputComponent()
 	}
 }
 
-void ACPPlayerController::OnItemWheelScroll(const FInputActionValue& Value)
+#pragma region PotionThrow
+void ACPPlayerController::ConsumeHeldPotionCharge()
 {
-	if (ItemWheelWidgetInstance)
+	if (CachedInventoryComponent && bCurrentHeldItemIsFromInventory && CurrentlyHeldPotionInstance.IsValid())
 	{
-		ItemWheelWidgetInstance->HandleScrollInput(Value.Get<float>());
-	}
-}
+		// 저장해둔 인덱스 대신 같은 포션이 들어있는 칸을 찾아서 직접 차감
+		const FContainerItem* Match = CachedInventoryComponent->ContainerItems.FindByPredicate(
+			[this](const FContainerItem& It)
+			{
+				return UCPItemContainerComponent::AreInstancesStackable(It.Instance, CurrentlyHeldPotionInstance);
+			});
 
-void ACPPlayerController::OnEquipFocusedItem(const FInputActionValue& Value)
+		if (Match)
+		{
+			CachedInventoryComponent->RemoveItemFromContainer(Match->GridIndex, 1);
+		}
+	}
+
+	CurrentlyHeldPotionInstance = FCPItemInstance();
+	CurrentlyHeldPotionOriginIndex = -1;
+	bCurrentHeldItemIsFromInventory = false;
+	UpdatePotionHighlight();
+}
+#pragma endregion
+
+#pragma region CarryProp
+void ACPPlayerController::HandlePropAttached(ACPThrowablePropBase* Prop)
 {
-	if (!ItemWheelWidgetInstance || !CachedInventoryComponent)
+	// Q/E 장착 경로는 이미 인벤토리에 있으므로 무시
+	if (bIsEquippingFromInventory || !IsValid(Prop) || !CachedInventoryComponent)
 	{
 		return;
 	}
 
-	int32 FocusedGridIndex;
-	if (!ItemWheelWidgetInstance->GetFocusedPotionGridIndex(FocusedGridIndex))
+	const FCPItemInstance& Instance = Prop->GetWorkingIngredient();
+
+	// 포션 이외의 아이템은 적용 x
+	if (!Instance.IsValid() || Instance.CurrentEffects.Num() == 0)
 	{
-		return; // 휠에 아무것도 없으면 할 일 없음
+		return;
 	}
 
-	// GridIndex로 실제 아이템 데이터 찾기
+	int32 Leftover = CachedInventoryComponent->TryGetItemFromInstance(Instance, 1);
+	if (Leftover > 0)
+	{
+		// 인벤토리가 가득 차면 기존처럼 "필드에서 주운 것"으로 남겨둠 
+		UE_LOG(LogContainer, Warning, TEXT("[Carry] 인벤토리 공간 부족으로 주운 포션을 인벤토리에 넣지 못함"));
+		return;
+	}
+
+	// Q/E로 장착한 것과 동일하게 취급
+	CurrentlyHeldPotionInstance = Instance;
+	bCurrentHeldItemIsFromInventory = true;
+	UpdatePotionHighlight();
+}
+
+void ACPPlayerController::UpdatePotionHighlight()
+{
+	if (!CachedInventoryComponent)
+	{
+		return;
+	}
+
+	UCPContainerMainWidget* InventoryUI = CachedInventoryComponent->GetInventoryUIInstance();
+	if (!InventoryUI)
+	{
+		return;
+	}
+
+	int32 HighlightIndex = -1;
+
+	bool bIsHoldingPotion = false;
+	if (APawn* ControlledPawn = GetPawn())
+	{
+		if (UCPCarryComponent* CarryComponent = ControlledPawn->FindComponentByClass<UCPCarryComponent>())
+		{
+			bIsHoldingPotion = bCurrentHeldItemIsFromInventory && CarryComponent->HasHeldProp();
+		}
+	}
+
+	// 손에 든 포션과 같은 포션이 들어있는 칸을 찾음
+	if (bIsHoldingPotion && CurrentlyHeldPotionInstance.IsValid())
+	{
+		const FContainerItem* Match = CachedInventoryComponent->ContainerItems.FindByPredicate(
+			[this](const FContainerItem& It)
+			{
+				return UCPItemContainerComponent::AreInstancesStackable(It.Instance, CurrentlyHeldPotionInstance);
+			});
+
+		if (Match)
+		{
+			HighlightIndex = Match->GridIndex;
+		}
+	}
+
+	InventoryUI->SetHighlightedGridIndex(HighlightIndex);
+}
+
+void ACPPlayerController::HandleFocusedPotionChanged(int32 GridIndex)
+{
+	UpdatePotionHighlight();
+}
+#pragma endregion
+
+#pragma region PotionWheel
+void ACPPlayerController::OnItemWheelScroll(const FInputActionValue& Value)
+{
+	if (!ItemWheelWidgetInstance)
+	{
+		return;
+	}
+
+	int32 TargetGridIndex;
+	if (!ItemWheelWidgetInstance->TryScrollAndPickNextFocus(Value.Get<float>(), TargetGridIndex))
+	{
+		return; // 슬라이드 진행 중이거나 포션이 없으면 아무 것도 안 함
+	}
+
+	EquipItemAtGridIndex(TargetGridIndex);
+}
+
+void ACPPlayerController::EquipItemAtGridIndex(int32 GridIndex)
+{
+	if (!CachedInventoryComponent)
+	{
+		return;
+	}
+
 	FContainerItem* FoundItem = CachedInventoryComponent->ContainerItems.FindByPredicate(
-		[FocusedGridIndex](const FContainerItem& It) { return It.GridIndex == FocusedGridIndex; });
+		[GridIndex](const FContainerItem& It) { return It.GridIndex == GridIndex; });
 
 	if (!FoundItem || !FoundItem->Instance.SourceItemData)
 	{
@@ -163,9 +219,19 @@ void ACPPlayerController::OnEquipFocusedItem(const FInputActionValue& Value)
 	}
 
 	UCPCarryComponent* CarryComponent = ControlledPawn->FindComponentByClass<UCPCarryComponent>();
-	if (!CarryComponent || CarryComponent->HasHeldProp())
+	if (!CarryComponent)
 	{
-		return; // 이미 손에 뭔가 들고 있으면 장착 불가
+		return;
+	}
+
+	// 그냥 손에 든 액터만 파괴
+	if (CarryComponent->HasHeldProp())
+	{
+		if (ACPThrowablePropBase* PrevProp = CarryComponent->GetHeldProp())
+		{
+			CarryComponent->DetachProp(PrevProp, PrevProp->GetActorLocation()); // 참조만 해제
+			PrevProp->Destroy(); // 인벤토리엔 원래 아이템이 그대로 있으니 손에 있던 액터만 파괴
+		}
 	}
 
 	UCPForageableItemData* PotionData = FoundItem->Instance.SourceItemData;
@@ -187,15 +253,23 @@ void ACPPlayerController::OnEquipFocusedItem(const FInputActionValue& Value)
 
 	Potion->InitializeFromItemData(PotionData, FoundItem->Instance.CurrentEffects);
 
-	if (!CarryComponent->AttachProp(Potion))
+	bIsEquippingFromInventory = true;
+	const bool bAttached = CarryComponent->AttachProp(Potion);
+	bIsEquippingFromInventory = false;
+
+	if (!bAttached)
 	{
 		Potion->Destroy();
 		return;
 	}
 
-	// 장착 성공했으니 인벤토리에서 1개 차감
-	CachedInventoryComponent->RemoveItemFromContainer(FocusedGridIndex, 1);
+	// 인벤토리에서 차감은 하지 않고 "지금 이걸 들고 있다"는 정보만 저장
+	CurrentlyHeldPotionInstance = FoundItem->Instance;
+	CurrentlyHeldPotionOriginIndex = GridIndex;
+	bCurrentHeldItemIsFromInventory = true;
+	UpdatePotionHighlight();
 }
+#pragma endregion
 
 // TODO[Container] : 추후 멀티플레이 확장시 Dedicated Server 환경에서 Client들은 실행이 되지 않음
 void ACPPlayerController::SetPawn(APawn* InPawn)
@@ -204,34 +278,29 @@ void ACPPlayerController::SetPawn(APawn* InPawn)
 
 	if (InPawn)
 	{
-		// 폰에 성공적으로 빙의되었을 때, 딱 한 번만 찾아서 캐싱
+		if (UGameInstance* GI = GetGameInstance()){
+			if (UCPSaveSubsystem* SaveSubsystem = GI->GetSubsystem<UCPSaveSubsystem>()){
+				SaveSubsystem->ApplyLoadPlayerTransform(InPawn);
+			}
+		}
+		// 폰에 성공적으로 빙의되었을 때, 한 번만 찾아서 캐싱
 		CachedInventoryComponent = InPawn->FindComponentByClass<UCPInventoryComponent>();
 		LeftClickPickedContainer = InPawn->FindComponentByClass<UCPHandItemContainerComponent>();
+		DropContainer = InPawn->FindComponentByClass<UCPDropContainerComponent>();
 
 		// TODO[Container] : 레벨 전환시 자동 수거 기능을 구현하려면
 		// 레벨에 배치된 별도의 Actor(또는 GameMode, GameState 등 레벨 단위로 바뀌는 객체)에 구현해야함
-
-		if (CachedInventoryComponent)
-		{
-			UE_LOG(LogContainer, Log, TEXT("인벤토리 컴포넌트 캐싱 완료"));
-		}
-
 		if (ItemWheelWidgetClass && !ItemWheelWidgetInstance)
 		{
 			ItemWheelWidgetInstance = CreateWidget<UCPItemWheelWidget>(this, ItemWheelWidgetClass);
 			if (ItemWheelWidgetInstance)
 			{
-				ItemWheelWidgetInstance->AddToViewport();
-				UE_LOG(LogContainer, Warning, TEXT("[ItemWheel] AddToViewport 호출됨, IsInViewport=%d"), ItemWheelWidgetInstance->IsInViewport());
+				ItemWheelWidgetInstance->AddToViewport(-2);	// Visibility가 HitTestInvisible이라 영향 x
 				ItemWheelWidgetInstance->BindInventory(CachedInventoryComponent);
-			}
 
-			UE_LOG(LogContainer, Log, TEXT("아이템 휠 스크롤 UI 바인딩 완료"));
-		}
-		else
-		{
-			UE_LOG(LogContainer, Error, TEXT("[ItemWheel] 위젯 생성 실패: Inventory=%d, Class=%d, AlreadyExists=%d"),
-				CachedInventoryComponent != nullptr, ItemWheelWidgetClass != nullptr, ItemWheelWidgetInstance != nullptr);
+				ItemWheelWidgetInstance->OnFocusedPotionChanged.AddUObject(this, &ACPPlayerController::HandleFocusedPotionChanged);
+				ItemWheelWidgetInstance->BroadcastFocusedPotion();	// 최초 상태 Broadcast
+			}
 		}
 
 		if (LeftClickPickedContainer && HandHeldItemWidgetClass && !HandHeldItemWidgetInstance)
@@ -242,23 +311,24 @@ void ACPPlayerController::SetPawn(APawn* InPawn)
 				HandHeldItemWidgetInstance->AddToViewport(100); // 다른 UI보다 항상 위에 그려지도록
 				HandHeldItemWidgetInstance->TryBindHandContainer(LeftClickPickedContainer);
 			}
-
-			UE_LOG(LogContainer, Log, TEXT("아이템 집기 컴포넌트 캐싱 및 UI 바인딩 완료"));
 		}
 
-		if (WheelModeIndicatorWidgetClass && !WheelModeIndicatorInstance)
+		if (DropZoneWidgetClass && !DropZoneWidgetInstance)
 		{
-			WheelModeIndicatorInstance = CreateWidget<UCPWheelModeIndicatorWidget>(this, WheelModeIndicatorWidgetClass);
-			if (WheelModeIndicatorInstance)
+			DropZoneWidgetInstance = CreateWidget<UCPDropZoneWidget>(this, DropZoneWidgetClass);
+			if (DropZoneWidgetInstance)
 			{
-				WheelModeIndicatorInstance->AddToViewport();
+				DropZoneWidgetInstance->OwnerContainer = DropContainer;
+				DropZoneWidgetInstance->SlotGridIndex = 0;
+				DropZoneWidgetInstance->AddToViewport(-1);	
 			}
 		}
-		else
-		{
-			UE_LOG(LogContainer, Log, TEXT("아이템 선택 모드 UI 바인딩 실패"));
-		}
 
+		if (UCPCarryComponent* CarryComponent = InPawn->FindComponentByClass<UCPCarryComponent>())
+		{
+			CarryComponent->OnPropAttached.RemoveAll(this); // Delegate 중복 구독 방지를 위해 기존 항목 제거
+			CarryComponent->OnPropAttached.AddUObject(this, &ACPPlayerController::HandlePropAttached);
+		}
 	}
 	else
 	{
@@ -312,11 +382,28 @@ void ACPPlayerController::OnCarryHeldProp(const FInputActionValue& Value)
 		return;
 	}
 
-	if (!CarryComponent->ConsumeHeldPropToInventory(CachedInventoryComponent))
+	if (bCurrentHeldItemIsFromInventory)
 	{
-		UE_LOG(LogContainer, Warning, TEXT("[Carry] 인벤토리 공간 부족으로 수납 실패"));
-		// TODO[Container] : false가 반환될 경우 "인벤토리가 가득 찼습니다" 알림 UI 출력
+		// 포션 : 인벤토리에 원본이 그대로 있으니 손만 비움 (차감 취소, 장착 취소)
+		if (ACPThrowablePropBase* Prop = CarryComponent->GetHeldProp())
+		{
+			CarryComponent->DetachProp(Prop, Prop->GetActorLocation());
+			Prop->Destroy();
+		}
+		CurrentlyHeldPotionInstance = FCPItemInstance();
+		CurrentlyHeldPotionOriginIndex = -1;
 	}
+	else
+	{
+		// 월드에서 주운 재료 : 인벤토리에 새로 추가
+		if (!CarryComponent->ConsumeHeldPropToInventory(CachedInventoryComponent))
+		{
+			UE_LOG(LogContainer, Warning, TEXT("[Carry] 인벤토리 공간 부족으로 수납 실패"));
+		}
+	}
+
+	bCurrentHeldItemIsFromInventory = false;
+	UpdatePotionHighlight();
 }
 
 void ACPPlayerController::OpenExternalContainerUI(UCPItemContainerComponent* InTargetContainer)
@@ -345,7 +432,7 @@ void ACPPlayerController::OpenExternalContainerUI(UCPItemContainerComponent* InT
 		return;
 	}
 
-	CurrentContainerUIInstance->AddToViewport();
+	CurrentContainerUIInstance->AddToViewport(20);
 	CurrentContainerUIInstance->BindContainer(InTargetContainer);
 	CurrentInteractingContainer = InTargetContainer;
 
@@ -353,12 +440,22 @@ void ACPPlayerController::OpenExternalContainerUI(UCPItemContainerComponent* InT
 	SetInputMode(FInputModeGameAndUI());
 
 	SetContextHandlerForTargetContext(InTargetContainer->TargetContext);
+
+	if (UCPUIManagerSubsystem* UIManager = GetGameInstance()->GetSubsystem<UCPUIManagerSubsystem>())
+	{
+		UIManager->PlayWidgetSound(CurrentContainerUIInstance->OpenSound);
+	}
 }
 
 void ACPPlayerController::CloseExternalContainerUI()
 {
 	if (CurrentContainerUIInstance)
 	{
+		if (UCPUIManagerSubsystem* UIManager = GetGameInstance()->GetSubsystem<UCPUIManagerSubsystem>())
+		{
+			UIManager->PlayWidgetSound(CurrentContainerUIInstance->CloseSound);
+		}
+
 		CurrentContainerUIInstance->RemoveFromParent();
 		CurrentContainerUIInstance = nullptr;
 	}
@@ -422,13 +519,38 @@ void ACPPlayerController::DebugToggleShopDirectly()
 
 	ToggleExternalContainerUI(FoundShop);
 }
+bool ACPPlayerController::BeginHoldingItem(const FContainerItem& InItem, UCPItemContainerComponent* OriginContainer, int32 OriginIndex)
+{
+	if (!LeftClickPickedContainer || IsHoldingItem() || !InItem.Instance.IsValid())
+	{
+		return false; // 이미 무언가 들고 있으면 새로 들 수 없음
+	}
+
+	FContainerItem HeldItem = InItem;
+	HeldItem.GridIndex = 0; // HandHeld 컨테이너는 1칸만 존재하므로 항상 0번 index
+
+	LeftClickPickedContainer->ContainerItems.Add(HeldItem);
+	LeftClickPickedContainer->OnContainerUpdated.Broadcast();
+
+	// 취소 시 되돌아갈 기존 Container의 종류와 index 정보 저장
+	LeftClickPickedItemOriginContainer = OriginContainer;
+	LeftClickPickedOriginSlotIndex = OriginIndex;
+
+	// 집는 순간 열려있던 상세정보 UI가 있다면 닫기
+	if (UCPItemDetailPopupWidget* Popup = JustGetItemDetailPopup())
+	{
+		Popup->HideDetail();
+	}
+
+	return true;
+}
 #pragma endregion
 
 #pragma region Shop
 
 UCPShopPurchasePopupWidget* ACPPlayerController::GetOrCreateShopPopup()
 {
-	if (!ShopPopupInstance && ShopPopupWidgetClass)
+	if (!IsValid(ShopPopupInstance) && ShopPopupWidgetClass)
 	{
 		ShopPopupInstance = CreateWidget<UCPShopPurchasePopupWidget>(this, ShopPopupWidgetClass);
 		if (ShopPopupInstance)
@@ -437,6 +559,22 @@ UCPShopPurchasePopupWidget* ACPPlayerController::GetOrCreateShopPopup()
 		}
 	}
 	return ShopPopupInstance;
+}
+#pragma endregion
+
+#pragma region DetailWidget
+
+UCPItemDetailPopupWidget* ACPPlayerController::GetOrCreateItemDetailPopup()
+{
+	if (!IsValid(ItemDetailPopupInstance) && ItemDetailPopupWidgetClass)
+	{
+		ItemDetailPopupInstance = CreateWidget<UCPItemDetailPopupWidget>(this, ItemDetailPopupWidgetClass);
+		if (ItemDetailPopupInstance)
+		{
+			ItemDetailPopupInstance->AddToViewport(150);
+		}
+	}
+	return ItemDetailPopupInstance;
 }
 
 #pragma endregion
@@ -555,6 +693,4 @@ void ACPPlayerController::SpawnDebugPotion(const TArray<FGameplayTag>& EffectTag
 		Potion->Destroy();
 	}
 }
-
-
 #pragma endregion

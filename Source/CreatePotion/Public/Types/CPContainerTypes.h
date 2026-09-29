@@ -21,14 +21,16 @@ enum class EUITargetContext : uint8
     Inventory       UMETA(DisplayName = "인벤토리 단독"),
     Lab             UMETA(DisplayName = "공방 가공기"),
     Storage         UMETA(DisplayName = "창고"),
-    Shop            UMETA(DisplayName = "상점")
+    Shop            UMETA(DisplayName = "상점"),
+    Drop            UMETA(DisplayName = "버리기")
 };
 
 UENUM(BlueprintType)
 enum class EShopPopupMode : uint8
 {
     Buy,
-    Sell
+    Sell,
+    Split
 };
 
 USTRUCT(BlueprintType)

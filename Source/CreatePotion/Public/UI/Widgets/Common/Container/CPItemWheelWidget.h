@@ -7,12 +7,16 @@
 #include "CPItemWheelWidget.generated.h"
 
 class UImage;
+class UCanvasPanel;
 class UCPInventoryComponent;
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnFocusedPotionChangedSignature, int32 /*GridIndex, 없으면 -1*/);
 
 UCLASS()
 class CREATEPOTION_API UCPItemWheelWidget : public UCPBaseFixedWidget
 {
 	GENERATED_BODY()
+
 public:
 	// PC가 인벤토리를 확보한 시점에 한 번 호출
 	void BindInventory(UCPInventoryComponent* InInventory);
@@ -23,6 +27,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "ItemWheel")
 	void HandleScrollInput(float ScrollDelta);
+
+	bool TryScrollAndPickNextFocus(float ScrollDelta, int32& OutGridIndex);
 
 protected:
 	virtual void NativeConstruct() override;
@@ -67,6 +73,9 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "ItemWheel", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float FarIconAlpha = 0.2f;
 
+	UPROPERTY(meta = (BindWidgetOptional))
+	UCanvasPanel* RootCanvas;
+
 	UPROPERTY(meta = (BindWidget))
 	UImage* Left2Icon;
 	UPROPERTY(meta = (BindWidgetOptional))
@@ -91,6 +100,15 @@ private:
 	UImage* Right2Icon;
 	UPROPERTY(meta = (BindWidgetOptional))
 	UImage* Right2Liquid;
+
+#pragma region SlotHighlight
+public:
+	void BroadcastFocusedPotion();
+
+public:
+	FOnFocusedPotionChangedSignature OnFocusedPotionChanged;
+
+#pragma endregion
 
 #pragma region Sliding
 private:

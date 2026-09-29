@@ -11,6 +11,7 @@
 #include "Data/CPTagDefinitionTypes.h"
 #include "Engine/DataTable.h"
 #include "Engine/Engine.h"
+#include "GameInstance/Subsystem/CPCodexSubsystem.h"
 #include "GameMode/CPLabGameMode.h"
 #include "Kismet/GameplayStatics.h"
 #include "Lab/Actor/CPAlchemyProp.h"
@@ -18,7 +19,7 @@
 #include "UI/Widgets/Lab/CPCauldronWidget.h"
 
 UCPCauldronComponent::UCPCauldronComponent(): 
-	MaxSlotCount(3), 
+	MaxSlotCount(4), 
 	UpImpulse(5000.f), 
 	RandomImpulseMin(2000.f),
 	RandomImpulseMax(4000.f)
@@ -37,6 +38,13 @@ void UCPCauldronComponent::BeginPlay()
 		BoundIngredientTrigger->OnComponentBeginOverlap.AddUniqueDynamic(
 				this, &UCPCauldronComponent::HandleIngredientOverlap);
 	}
+	
+	UWorld* World = GetWorld();
+	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+	UCPCauldronSubsystem* CauldronSubsystem = GameInstance ? GameInstance->GetSubsystem<UCPCauldronSubsystem>() : nullptr;
+	if (!CauldronSubsystem) return;
+	
+	CauldronSubsystem->RegisterCauldron(this);
 }
 
 void UCPCauldronComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -46,6 +54,13 @@ void UCPCauldronComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 				this, &UCPCauldronComponent::HandleIngredientOverlap);
 
 		BoundIngredientTrigger = nullptr;
+	}
+	
+	UWorld* World = GetWorld();
+	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+	UCPCauldronSubsystem* CauldronSubsystem = GameInstance ? GameInstance->GetSubsystem<UCPCauldronSubsystem>() : nullptr;
+	if (CauldronSubsystem){
+		CauldronSubsystem->UnRegisterCauldron(this);
 	}
 	
 	Super::EndPlay(EndPlayReason);
@@ -87,13 +102,52 @@ TArray<FCPItemInstance> UCPCauldronComponent::GetIngredientInstance() const
 	return IngredientInstances;
 }
 
+FCPCauldronSaveData UCPCauldronComponent::GetSaveData() const
+{
+	FCPCauldronSaveData SaveData;
+	SaveData.IngredientInstances = IngredientInstances;
+	SaveData.IngredientTags = IngredientTags;
+	SaveData.CombinedTags = CombinedTags;
+	
+	return SaveData;
+}
+
+void UCPCauldronComponent::LoadSaveData(const FCPCauldronSaveData& InSaveData)
+{
+	IngredientInstances = InSaveData.IngredientInstances;
+	IngredientTags = InSaveData.IngredientTags;
+	CombinedTags = InSaveData.CombinedTags;
+	
+	OnEffectsChanged.Broadcast();
+}
+
 bool UCPCauldronComponent::CreatePotion()
 {
 	ACPLabGameMode* LabGameMode = Cast<ACPLabGameMode>(UGameplayStatics::GetGameMode(this));
-	if (!LabGameMode || !LabGameMode->CreatePotion(GetEffectTags(), MakePotionTransform(), MakeSpawnImpulse())) return false;
+	if (!LabGameMode) return false;
+	
+	const int32 PotionCount = IngredientInstances.Num();
+	const TArray<FGameplayTag> EffectTags = GetEffectTags();
+	const FTransform SpawnTransform = MakePotionTransform();
+	
+	// 매 포션마다 무작위 방향 적용
+	for (int32 idx = 0; idx < PotionCount; ++idx){
+		if (!LabGameMode->CreatePotion(EffectTags, SpawnTransform, MakeSpawnImpulse())) return false;
+	}
+	
+	UWorld* World = GetWorld();
+	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+	UCPCodexSubsystem* CodexSubsystem = GameInstance ? GameInstance->GetSubsystem<UCPCodexSubsystem>() : nullptr;
+	
+	if (CodexSubsystem){
+		for (const FGameplayTag& ResultTag : CombinedTags){
+			CodexSubsystem->DiscoverTag(ResultTag);
+		}
+	}
 	
 	IngredientInstances.Reset();
 	IngredientTags.Reset();
+	CombinedTags.Reset();
 	OnEffectsChanged.Broadcast();
 	return true;
 }
@@ -125,6 +179,8 @@ void UCPCauldronComponent::ResolveTagCombinations(int32 NewTagIndex)
 				if (Combination.OtherTag != CandidateTag || !Combination.ResultTag.IsValid()) continue;
 				
 				const FGameplayTag ResultTag = Combination.ResultTag;
+				
+				CombinedTags.AddUnique(ResultTag);
 				
 				// 조합 태그 제거
 				IngredientTags.RemoveAt(NewTagIndex);
