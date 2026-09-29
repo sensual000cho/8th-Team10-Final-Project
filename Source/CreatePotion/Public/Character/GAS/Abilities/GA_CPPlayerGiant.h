@@ -96,7 +96,7 @@ private:
 	float OriginalCapsuleRadius = 0.0f;
 	float OriginalCapsuleHalfHeight = 0.0f;
 	float OriginalThrowSpeedMultiplier = 1.0f;
-	// 매 프레임 부모 BP가 계산한 원본 MaxWalkSpeed
-	float OriginalMaxWalkSpeed = 0.0f;
+	// 현재 이동 계산에 Giant 속도 배율을 적용했는지 기록한다.
+	bool bSpeedApplied = false;
 	bool bGiantApplied = false;
 };

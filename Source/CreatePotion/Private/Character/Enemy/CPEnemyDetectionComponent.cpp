@@ -4,6 +4,8 @@
 #include "Character/Enemy/CPEnemyDetectionComponent.h"
 
 #include "AIController.h"
+#include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
 #include "GameFramework/Pawn.h"
 #include "Kismet/GameplayStatics.h"
 #include "Character/Enemy/CPEnemyAIController.h"
@@ -56,6 +58,7 @@ void UCPEnemyDetectionComponent::UpdateDetection()
 
     if (!IsValid(EnemyController) || !IsValid(World))
     {
+        bFleeFromStench = false;
         TargetActor = nullptr;
         return;
     }
@@ -69,6 +72,7 @@ void UCPEnemyDetectionComponent::UpdateDetection()
 
     if (!IsValid(EnemyPawn) || !IsValid(CachedPlayerPawn))
     {
+        bFleeFromStench = false;
         TargetActor = nullptr;
         return;
     }
@@ -77,6 +81,7 @@ void UCPEnemyDetectionComponent::UpdateDetection()
 
 	if (!IsValid(PlayerHealth) || PlayerHealth->IsDead())
 	{
+		bFleeFromStench = false;
 		bCanSeePlayer = false;
 		TargetActor = nullptr;
 		return;
@@ -84,6 +89,16 @@ void UCPEnemyDetectionComponent::UpdateDetection()
 
     const FVector PlayerLocation = CachedPlayerPawn->GetActorLocation();
     const FVector EnemyLocation = EnemyPawn->GetActorLocation();
+
+	// 냄새는 기존 시야·활동 구역 검사보다 먼저 판단한다.
+	const UAbilitySystemComponent* PlayerASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(CachedPlayerPawn.Get());
+	const float StenchRadius = bFleeFromStench ? FMath::Max(StenchDetectionRadius, StenchEscapeRadius) : StenchDetectionRadius;
+	bFleeFromStench = PlayerASC && PlayerASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(TEXT("State.Effect.Stench"))) && FVector::DistSquared(PlayerLocation, EnemyLocation) < FMath::Square(StenchRadius);
+	if (bFleeFromStench)
+	{
+		TargetActor = nullptr;
+		return;
+	}
 	
     const FVector HomeToPlayer = PlayerLocation - EnemyController->GetHomeLocation();
     const float HomeDistanceSquared = HomeToPlayer.SizeSquared2D();

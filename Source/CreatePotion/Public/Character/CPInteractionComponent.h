@@ -40,6 +40,9 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
 	void TryInteract();
+	// 변신 중 새 상호작용과 진행 중인 채집을 함께 막는다.
+	void SetInteractionBlocked(bool bBlocked);
+	bool IsInteractionBlocked() const { return bInteractionBlocked; }
 	
 	// ProgressBar, PlayerBP
 	UPROPERTY(BlueprintAssignable)
@@ -122,6 +125,7 @@ public:
 	
 private:
 	void PerformTrace(); // 타이머로 주기 실행
+	bool bInteractionBlocked = false;
 	
 	// 상호작용 보완 함수들
 	AActor* SelectBestInteractionTarget(const TArray<FHitResult>& InteractionHits, const FVector& CameraLocation, const FVector& CameraForward) const;

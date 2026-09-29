@@ -122,13 +122,13 @@ public:
 	// 아이템을 내려놓은 상태로 초기화 하는 함수 
 	void ResetHoldingItem();
 
+	void OnCarryHeldProp(const FInputActionValue& Value);
+
 	UFUNCTION(BlueprintCallable, Category = "Debug|Shop")
 	void DebugToggleShopDirectly();
 
 private:
 	void SetContextHandlerForTargetContext(EUITargetContext InTargetContext);
-
-	void OnCarryHeldProp(const FInputActionValue& Value);
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "Input|Carry")
