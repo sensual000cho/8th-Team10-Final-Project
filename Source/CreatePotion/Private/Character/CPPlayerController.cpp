@@ -130,6 +130,7 @@ void ACPPlayerController::HandlePropAttached(ACPThrowablePropBase* Prop)
 }
 #pragma endregion
 
+#pragma region PotionWheel
 void ACPPlayerController::OnItemWheelScroll(const FInputActionValue& Value)
 {
 	if (!ItemWheelWidgetInstance)
@@ -219,6 +220,20 @@ void ACPPlayerController::EquipItemAtGridIndex(int32 GridIndex)
 	bCurrentHeldItemIsFromInventory = true;
 }
 
+void ACPPlayerController::HandleFocusedPotionChanged(int32 GridIndex)
+{
+	if (!CachedInventoryComponent)
+	{
+		return;
+	}
+
+	if (UCPContainerMainWidget* InventoryUI = CachedInventoryComponent->GetInventoryUIInstance())
+	{
+		InventoryUI->SetHighlightedGridIndex(GridIndex);
+	}
+}
+#pragma endregion
+
 // TODO[Container] : 추후 멀티플레이 확장시 Dedicated Server 환경에서 Client들은 실행이 되지 않음
 void ACPPlayerController::SetPawn(APawn* InPawn)
 {
@@ -245,6 +260,9 @@ void ACPPlayerController::SetPawn(APawn* InPawn)
 			{
 				ItemWheelWidgetInstance->AddToViewport(-2);	// Visibility가 HitTestInvisible이라 영향 x
 				ItemWheelWidgetInstance->BindInventory(CachedInventoryComponent);
+
+				ItemWheelWidgetInstance->OnFocusedPotionChanged.AddUObject(this, &ACPPlayerController::HandleFocusedPotionChanged);
+				ItemWheelWidgetInstance->BroadcastFocusedPotion();	// 최초 상태 Broadcast
 			}
 		}
 

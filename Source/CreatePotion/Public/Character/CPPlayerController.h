@@ -89,6 +89,8 @@ private:
 	void OnItemWheelScroll(const FInputActionValue& Value);
 	void EquipItemAtGridIndex(int32 GridIndex);
 
+	void HandleFocusedPotionChanged(int32 GridIndex);
+
 public:
 	UPROPERTY(EditAnywhere, Category = "Input|Wheel")
 	UInputAction* IA_ScrollItem; // Axis1D 휠 값
