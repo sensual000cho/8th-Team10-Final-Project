@@ -4,6 +4,8 @@
 
 #include "Lab/Actor/CPThrowablePropBase.h"
 #include "Components/CPInventoryComponent.h"
+#include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
 
 UCPCarryComponent::UCPCarryComponent()  
     : ReplacementDropTraceUpDistance(100.f),
@@ -32,6 +34,10 @@ void UCPCarryComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 bool UCPCarryComponent::CanAttachProp(ACPThrowablePropBase* Prop) const
 {
+	// GA 집기와 Controller 장착 모두 슬라임 상태에서는 막는다.
+	const UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetOwner());
+	if (ASC && ASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(TEXT("State.Effect.Slime")))) return false;
+
     if (!IsValid(Prop))
     {
         return false;
@@ -71,6 +77,8 @@ bool UCPCarryComponent::AttachProp(ACPThrowablePropBase* Prop)
     }
 
     SetHeldProp(Prop);
+    OnPropAttached.Broadcast(Prop);
+
     return true;
 }
 

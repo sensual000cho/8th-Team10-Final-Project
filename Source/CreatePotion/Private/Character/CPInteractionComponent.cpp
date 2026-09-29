@@ -101,6 +101,7 @@ float UCPInteractionComponent::GetInteractionFacingRotationSpeed() const
 
 void UCPInteractionComponent::PerformTrace()
 {
+	if (bInteractionBlocked) return;
 	if (!IsValid(Camera) || !IsValid(GetOwner()))
     {
 		UpdateCurrentTarget(nullptr);
@@ -257,8 +258,19 @@ void UCPInteractionComponent::PerformTrace()
 	UpdateCurrentTarget(BestTarget);
 }
 
+void UCPInteractionComponent::SetInteractionBlocked(bool bBlocked)
+{
+	bInteractionBlocked = bBlocked;
+	if (bBlocked)
+	{
+		if (InteractingTarget.IsValid()) CancelTimedInteraction();
+		UpdateCurrentTarget(nullptr);
+	}
+}
+
 void UCPInteractionComponent::TryInteract()
 {
+	if (bInteractionBlocked) return;
 	// 시간형 상호작용 실행중엔 상호작용 Try 하지 않음
 	if (InteractingTarget.IsValid() || !CurrentTarget.IsValid()) return;
 

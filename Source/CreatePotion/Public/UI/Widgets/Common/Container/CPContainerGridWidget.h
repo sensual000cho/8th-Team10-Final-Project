@@ -27,6 +27,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Container|Grid")
 	void UpdateGrid(const TArray<FContainerItem>& ContainerItems);
 
+	// Index에 해당하는 Grid를 하이라이트
+	void SetHighlightedGridIndex(int32 InGridIndex);
+
 protected:
 	virtual void NativeConstruct() override;
 	
@@ -51,4 +54,7 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	UCanvasPanel* ItemCanvas;
+
+private:
+	int32 HighlightedGridIndex = -1;
 };

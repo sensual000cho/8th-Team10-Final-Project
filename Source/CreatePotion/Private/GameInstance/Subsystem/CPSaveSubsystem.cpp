@@ -1,6 +1,5 @@
 #include "GameInstance/Subsystem/CPSaveSubsystem.h"
 
-#include "Components/CPInventoryComponent.h"
 #include "Data/CPSaveGame.h"
 #include "GameInstance/Subsystem/CPTimeSubsystem.h"
 #include "Kismet/GameplayStatics.h"
@@ -33,7 +32,13 @@ void UCPSaveSubsystem::SaveGame()
 		SaveData->NPCData = NPCSubsystem->GetSaveData();
 	}
 	
-	//TODO: 각 서브시스템에서 데이터 수집
+	if (UQuestManager* QuestManager = GI->GetSubsystem<UQuestManager>()){
+		SaveData->QuestData = QuestManager->GetSaveData();
+	}
+	
+	if (UCPCauldronSubsystem* CauldronSubsystem = GI->GetSubsystem<UCPCauldronSubsystem>()){
+		SaveData->CauldronData = CauldronSubsystem->GetSaveData();
+	}
 	
 	// 현재 레벨, 플레이어 위치, 방향 저장
 	if (APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0)){
@@ -72,8 +77,13 @@ void UCPSaveSubsystem::LoadGame()
 		NPCSubsystem->LoadSaveData(SaveData->NPCData);
 	}
 	
-	//TODO: 각 서브시스템으로 데이터 로드.
-	//서브시스템 내부에서 받은 데이터를 로드하도록 구현
+	if (UQuestManager* QuestManager = GI->GetSubsystem<UQuestManager>()){
+		QuestManager->LoadSaveData(SaveData->QuestData);
+	}
+	
+	if (UCPCauldronSubsystem* CauldronSubsystem = GI->GetSubsystem<UCPCauldronSubsystem>()){
+		CauldronSubsystem->LoadSaveData(SaveData->CauldronData);
+	}
 	
 	LoadedLocation = SaveData->PlayerLocation;
 	LoadedRotation = SaveData->PlayerRotation;

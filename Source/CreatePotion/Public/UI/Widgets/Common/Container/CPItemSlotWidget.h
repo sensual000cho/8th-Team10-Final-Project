@@ -25,6 +25,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Slot")
 	void ClearSlot();
 
+	void SetSlotHighlighted(bool bInHighlighted);
+
 protected:
 	virtual void NativeConstruct() override;
 
@@ -56,4 +58,7 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* StackText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	UImage* HighlightBorder;
 };

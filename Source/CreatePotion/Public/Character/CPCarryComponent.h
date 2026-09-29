@@ -10,6 +10,7 @@ class AActor;
 class ACPThrowablePropBase;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FCPOnCarryHeldPropChanged, ACPThrowablePropBase*, HeldProp);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnPropAttachedSignature, ACPThrowablePropBase*);
 
 /**
  * 플레이어가 들고 있는 공용 기능(부착, 투척, 해제)
@@ -74,6 +75,8 @@ public:
     // 현재 들고 있는 Prop이 변경되었음을 알림
     UPROPERTY(BlueprintAssignable, Category = "Carry")
     FCPOnCarryHeldPropChanged OnHeldPropChanged;
+
+    FOnPropAttachedSignature OnPropAttached;
 
 private:
     FVector MakeReplacementDropLocation(const ACPThrowablePropBase* PreviousHeldProp, const ACPThrowablePropBase* NewProp) const;

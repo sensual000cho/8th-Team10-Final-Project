@@ -14,7 +14,6 @@ class UInputMappingContext;
 
 class UCPItemContainerComponent;
 class UCPInventoryComponent;
-class UCPHandItemContainerComponent;
 class UCPDropContainerComponent;
 
 class UCPContainerContextBase;
@@ -22,7 +21,6 @@ class UCPContainerContextBase;
 class UCPContainerMainWidget;
 class UCPHandHeldItemWidget;
 class UCPItemWheelWidget;
-class UCPWheelModeIndicatorWidget;
 class UCPShopPurchasePopupWidget;
 class UCPItemDetailPopupWidget;
 class UCPDropZoneWidget;
@@ -75,10 +73,23 @@ public:
 	void ConsumeHeldPotionCharge();
 #pragma endregion
 
+#pragma region CarryProp
+private:
+	void HandlePropAttached(ACPThrowablePropBase* Prop);
+
+	void UpdatePotionHighlight();
+
+private:
+	// Q/E 장착으로 AttachProp을 호출하는 동안에만 true, 필드로부터 줍기와 구분용
+	bool bIsEquippingFromInventory = false;
+#pragma endregion
+
 #pragma region Wheel
 private:
 	void OnItemWheelScroll(const FInputActionValue& Value);
 	void EquipItemAtGridIndex(int32 GridIndex);
+
+	void HandleFocusedPotionChanged(int32 GridIndex);
 
 public:
 	UPROPERTY(EditAnywhere, Category = "Input|Wheel")
@@ -122,6 +133,9 @@ public:
 	// 아이템을 내려놓은 상태로 초기화 하는 함수 
 	void ResetHoldingItem();
 
+	// 들고 있는 아이템의 수납 또는 장착 취소 처리
+	void OnCarryHeldProp(const FInputActionValue& Value);
+
 	UFUNCTION(BlueprintCallable, Category = "Debug|Shop")
 	void DebugToggleShopDirectly();
 
@@ -130,8 +144,6 @@ public:
 
 private:
 	void SetContextHandlerForTargetContext(EUITargetContext InTargetContext);
-
-	void OnCarryHeldProp(const FInputActionValue& Value);
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "Input|Carry")
