@@ -29,6 +29,7 @@
 
 //디버그용 포션 Spawn 용 include
 #include "Character/CPCarryComponent.h"
+#include "GameInstance/Subsystem/CPSaveSubsystem.h"
 #include "Lab/Actor/CPPotionActor.h"
 
 void ACPPlayerController::BeginPlay()
@@ -180,6 +181,11 @@ void ACPPlayerController::SetPawn(APawn* InPawn)
 
 	if (InPawn)
 	{
+		if (UGameInstance* GI = GetGameInstance()){
+			if (UCPSaveSubsystem* SaveSubsystem = GI->GetSubsystem<UCPSaveSubsystem>()){
+				SaveSubsystem->ApplyLoadPlayerTransform(InPawn);
+			}
+		}
 		// 폰에 성공적으로 빙의되었을 때, 한 번만 찾아서 캐싱
 		CachedInventoryComponent = InPawn->FindComponentByClass<UCPInventoryComponent>();
 		LeftClickPickedContainer = InPawn->FindComponentByClass<UCPHandItemContainerComponent>();
@@ -193,7 +199,7 @@ void ACPPlayerController::SetPawn(APawn* InPawn)
 			ItemWheelWidgetInstance = CreateWidget<UCPItemWheelWidget>(this, ItemWheelWidgetClass);
 			if (ItemWheelWidgetInstance)
 			{
-				ItemWheelWidgetInstance->AddToViewport(-1);	// Visibility가 HitTestInvisible이라 영향 x
+				ItemWheelWidgetInstance->AddToViewport(-2);	// Visibility가 HitTestInvisible이라 영향 x
 				ItemWheelWidgetInstance->BindInventory(CachedInventoryComponent);
 			}
 		}
@@ -406,6 +412,31 @@ void ACPPlayerController::DebugToggleShopDirectly()
 	}
 
 	ToggleExternalContainerUI(FoundShop);
+}
+bool ACPPlayerController::BeginHoldingItem(const FContainerItem& InItem, UCPItemContainerComponent* OriginContainer, int32 OriginIndex)
+{
+	if (!LeftClickPickedContainer || IsHoldingItem() || !InItem.Instance.IsValid())
+	{
+		return false; // 이미 무언가 들고 있으면 새로 들 수 없음
+	}
+
+	FContainerItem HeldItem = InItem;
+	HeldItem.GridIndex = 0; // HandHeld 컨테이너는 1칸만 존재하므로 항상 0번 index
+
+	LeftClickPickedContainer->ContainerItems.Add(HeldItem);
+	LeftClickPickedContainer->OnContainerUpdated.Broadcast();
+
+	// 취소 시 되돌아갈 기존 Container의 종류와 index 정보 저장
+	LeftClickPickedItemOriginContainer = OriginContainer;
+	LeftClickPickedOriginSlotIndex = OriginIndex;
+
+	// 집는 순간 열려있던 상세정보 UI가 있다면 닫기
+	if (UCPItemDetailPopupWidget* Popup = JustGetItemDetailPopup())
+	{
+		Popup->HideDetail();
+	}
+
+	return true;
 }
 #pragma endregion
 

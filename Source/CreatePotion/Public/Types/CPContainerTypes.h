@@ -29,7 +29,8 @@ UENUM(BlueprintType)
 enum class EShopPopupMode : uint8
 {
     Buy,
-    Sell
+    Sell,
+    Split
 };
 
 USTRUCT(BlueprintType)
