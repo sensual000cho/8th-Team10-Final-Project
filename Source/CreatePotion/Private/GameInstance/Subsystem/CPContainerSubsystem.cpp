@@ -5,6 +5,7 @@
 #include "CreatePotion.h"				// 로그용 헤더
 #include "Types/CPContainerTypes.h"		// 아이템 구조체
 #include "Components/CPInventoryComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 void UCPContainerSubsystem::SaveContainerData(UCPInventoryComponent* PlayerInventory)
 {
@@ -47,6 +48,42 @@ bool UCPContainerSubsystem::LoadContainerData(UCPInventoryComponent* PlayerInven
 	}
 
 	UE_LOG(LogContainer, Log, TEXT("[ContainerSubsystem] 전체 데이터 복원 완료"));
+	return true;
+}
+
+FCPInventorySaveData UCPContainerSubsystem::GetSaveData()
+{
+	FCPInventorySaveData SaveData;
+	
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+	UCPInventoryComponent* PlayerInventory = PlayerPawn ? PlayerPawn->FindComponentByClass<UCPInventoryComponent>() : nullptr;
+	if (!PlayerInventory) return SaveData;
+	
+	SaveData.ContainerItems = PlayerInventory->ContainerItems;
+	SaveData.TempContainerItems = PlayerInventory->TempInventoryItems;
+	SaveData.OwningMoney = PlayerInventory->GetOwningMoney();
+	
+	return SaveData;
+}
+
+void UCPContainerSubsystem::LoadSaveData(const FCPInventorySaveData& InSaveData)
+{
+	LoadedSaveData = InSaveData;
+	bHasLoadedSaveData = true;
+}
+
+bool UCPContainerSubsystem::ApplyLoadedSaveData(UCPInventoryComponent* PlayerInventory)
+{
+	if (!PlayerInventory || !bHasLoadedSaveData) return false;
+	
+	PlayerInventory->ContainerItems = LoadedSaveData.ContainerItems;
+	PlayerInventory->TempInventoryItems = LoadedSaveData.TempContainerItems;
+	PlayerInventory->RestoreMoney(LoadedSaveData.OwningMoney);
+	
+	PlayerInventory->OnContainerUpdated.Broadcast();
+	
+	bHasLoadedSaveData = false;
+	
 	return true;
 }
 
