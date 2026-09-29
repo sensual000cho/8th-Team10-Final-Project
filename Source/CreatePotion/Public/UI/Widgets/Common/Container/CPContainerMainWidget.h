@@ -29,6 +29,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Container|UI")
 	virtual void UpdateUI();
 
+	void SetHighlightedGridIndex(int32 InGridIndex);
+
 protected:
 	virtual void NativeConstruct() override;
 

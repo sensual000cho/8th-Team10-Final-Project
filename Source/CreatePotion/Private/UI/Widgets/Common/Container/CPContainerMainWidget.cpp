@@ -134,3 +134,11 @@ void UCPContainerMainWidget::HandleCloseRequested()
 		PC->CloseExternalContainerUI();
 	}
 }
+
+void UCPContainerMainWidget::SetHighlightedGridIndex(int32 InGridIndex)
+{
+	if (ContainerGrid)
+	{
+		ContainerGrid->SetHighlightedGridIndex(InGridIndex);
+	}
+}

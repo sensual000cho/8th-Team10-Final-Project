@@ -114,6 +114,14 @@ void UCPItemSlotWidget::ClearSlot()
 	}
 }
 
+void UCPItemSlotWidget::SetSlotHighlighted(bool bInHighlighted)
+{
+	if (HighlightBorder)
+	{
+		HighlightBorder->SetVisibility(bInHighlighted ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	}
+}
+
 FReply UCPItemSlotWidget::NativeOnMouseButtonDoubleClick(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
 	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
