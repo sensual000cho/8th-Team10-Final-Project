@@ -79,6 +79,8 @@ public:
 private:
 	void HandlePropAttached(ACPThrowablePropBase* Prop);
 
+	void UpdatePotionHighlight();
+
 private:
 	// Q/E 장착으로 AttachProp을 호출하는 동안에만 true, 필드로부터 줍기와 구분용
 	bool bIsEquippingFromInventory = false;

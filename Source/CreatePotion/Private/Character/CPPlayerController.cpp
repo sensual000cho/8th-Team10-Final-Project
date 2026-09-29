@@ -96,6 +96,7 @@ void ACPPlayerController::ConsumeHeldPotionCharge()
 	CurrentlyHeldPotionInstance = FCPItemInstance();
 	CurrentlyHeldPotionOriginIndex = -1;
 	bCurrentHeldItemIsFromInventory = false;
+	UpdatePotionHighlight();
 }
 #pragma endregion
 
@@ -127,6 +128,54 @@ void ACPPlayerController::HandlePropAttached(ACPThrowablePropBase* Prop)
 	// Q/E로 장착한 것과 동일하게 취급
 	CurrentlyHeldPotionInstance = Instance;
 	bCurrentHeldItemIsFromInventory = true;
+	UpdatePotionHighlight();
+}
+
+void ACPPlayerController::UpdatePotionHighlight()
+{
+	if (!CachedInventoryComponent)
+	{
+		return;
+	}
+
+	UCPContainerMainWidget* InventoryUI = CachedInventoryComponent->GetInventoryUIInstance();
+	if (!InventoryUI)
+	{
+		return;
+	}
+
+	int32 HighlightIndex = -1;
+
+	bool bIsHoldingPotion = false;
+	if (APawn* ControlledPawn = GetPawn())
+	{
+		if (UCPCarryComponent* CarryComponent = ControlledPawn->FindComponentByClass<UCPCarryComponent>())
+		{
+			bIsHoldingPotion = bCurrentHeldItemIsFromInventory && CarryComponent->HasHeldProp();
+		}
+	}
+
+	// 손에 든 포션과 같은 포션이 들어있는 칸을 찾음
+	if (bIsHoldingPotion && CurrentlyHeldPotionInstance.IsValid())
+	{
+		const FContainerItem* Match = CachedInventoryComponent->ContainerItems.FindByPredicate(
+			[this](const FContainerItem& It)
+			{
+				return UCPItemContainerComponent::AreInstancesStackable(It.Instance, CurrentlyHeldPotionInstance);
+			});
+
+		if (Match)
+		{
+			HighlightIndex = Match->GridIndex;
+		}
+	}
+
+	InventoryUI->SetHighlightedGridIndex(HighlightIndex);
+}
+
+void ACPPlayerController::HandleFocusedPotionChanged(int32 GridIndex)
+{
+	UpdatePotionHighlight();
 }
 #pragma endregion
 
@@ -218,19 +267,7 @@ void ACPPlayerController::EquipItemAtGridIndex(int32 GridIndex)
 	CurrentlyHeldPotionInstance = FoundItem->Instance;
 	CurrentlyHeldPotionOriginIndex = GridIndex;
 	bCurrentHeldItemIsFromInventory = true;
-}
-
-void ACPPlayerController::HandleFocusedPotionChanged(int32 GridIndex)
-{
-	if (!CachedInventoryComponent)
-	{
-		return;
-	}
-
-	if (UCPContainerMainWidget* InventoryUI = CachedInventoryComponent->GetInventoryUIInstance())
-	{
-		InventoryUI->SetHighlightedGridIndex(GridIndex);
-	}
+	UpdatePotionHighlight();
 }
 #pragma endregion
 
@@ -366,6 +403,7 @@ void ACPPlayerController::OnCarryHeldProp(const FInputActionValue& Value)
 	}
 
 	bCurrentHeldItemIsFromInventory = false;
+	UpdatePotionHighlight();
 }
 
 void ACPPlayerController::OpenExternalContainerUI(UCPItemContainerComponent* InTargetContainer)
