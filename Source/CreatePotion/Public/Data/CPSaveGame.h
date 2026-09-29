@@ -38,8 +38,8 @@ public:
 	FCPNPCSaveData NPCData;
 	
 	// 퀘스트 상태 정보
-	//UPROPERTY()
-	//FCPQuestSaveData QuestData;
+	UPROPERTY()
+	FCPQuestSaveData QuestData;
 	
 	// 가마솥 상태 정보
 	UPROPERTY()

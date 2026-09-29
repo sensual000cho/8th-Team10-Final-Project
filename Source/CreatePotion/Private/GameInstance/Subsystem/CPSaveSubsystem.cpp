@@ -33,7 +33,7 @@ void UCPSaveSubsystem::SaveGame()
 	}
 	
 	if (UQuestManager* QuestManager = GI->GetSubsystem<UQuestManager>()){
-		//SaveData->QuestData = QuestManager->GetSaveData();
+		SaveData->QuestData = QuestManager->GetSaveData();
 	}
 	
 	if (UCPCauldronSubsystem* CauldronSubsystem = GI->GetSubsystem<UCPCauldronSubsystem>()){
@@ -78,7 +78,7 @@ void UCPSaveSubsystem::LoadGame()
 	}
 	
 	if (UQuestManager* QuestManager = GI->GetSubsystem<UQuestManager>()){
-		//QuestManager->LoadSaveData(SaveData->QuestData);
+		QuestManager->LoadSaveData(SaveData->QuestData);
 	}
 	
 	if (UCPCauldronSubsystem* CauldronSubsystem = GI->GetSubsystem<UCPCauldronSubsystem>()){
