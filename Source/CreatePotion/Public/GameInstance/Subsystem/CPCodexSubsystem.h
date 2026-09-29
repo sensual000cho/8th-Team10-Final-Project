@@ -28,7 +28,7 @@ public:
 	int32 Level = 1;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Codex")
-	int32 HarvestCount = 0;
+	int32 HarvestCount = 1;
 };
 
 USTRUCT(BlueprintType)
@@ -119,4 +119,8 @@ protected:
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Codex|NPC")
 	TMap<TObjectPtr<UCPNPCDataAsset>, FCPNPCCodexEntry> NPCCodexEntries;
+	
+private:
+	static constexpr int32 MaxLevel = 4;
+	static constexpr float LevelUpChance = 0.1f;
 };
