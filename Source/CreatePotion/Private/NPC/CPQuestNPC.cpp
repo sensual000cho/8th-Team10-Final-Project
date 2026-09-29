@@ -12,6 +12,8 @@
 #include "NPC/Components/CPNPCComponent.h"
 #include "NPC/Components/CPNPCMoveComponent.h"
 #include "UI/Widgets/Common/Quest/CPQuestMarkerWidget.h"
+#include "UI/Widgets/Lab/CPLabResultWidget.h"
+#include "Quest/Components/CPQuestLocationComponent.h"
 
 
 ACPQuestNPC::ACPQuestNPC() : CurrentQuestId(NAME_None)
@@ -30,54 +32,79 @@ void ACPQuestNPC::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	if (QuestMarkerWidget){
+	if (QuestMarkerWidget) {
 		InitialQuestMarkerLocation = QuestMarkerWidget->GetRelativeLocation();
 	}
 }
 
 void ACPQuestNPC::StartDialogue(AActor* Interactor)
 {
+	UE_LOG(LogTemp, Log, TEXT("[%s] StartDialogue 진입"), *GetName());
+
 	if (!IsValid(Interactor) || (ActiveDialogueWidget && ActiveDialogueWidget->IsInViewport())) return;
-	
+
 	UGameInstance* GameInstance = GetGameInstance();
 	UCPUIManagerSubsystem* UIManager = GameInstance ? GameInstance->GetSubsystem<UCPUIManagerSubsystem>() : nullptr;
 	const UCPUISettings* UISettings = GetDefault<UCPUISettings>();
 	UClass* DialogueWidgetClass = UISettings ? UISettings->NPCDialogueWidgetClass.LoadSynchronous() : nullptr;
 	if (!UIManager || !DialogueWidgetClass) return;
-	
+
+	// 대화 중에는 퀘스트 위치 이동 보류 (대화로 완료되는 순간 사라지는 것 방지)
+	UCPQuestLocationComponent* LocationComp = FindComponentByClass<UCPQuestLocationComponent>();
+	if (LocationComp)
+	{
+		LocationComp->SetRefreshLocked(true);
+	}
+
 	// 표시할 Text 선택
 	TArray<FText> DialogueLines = FindDialogueLines(Interactor);
-	if (CurrentQuestId.IsNone()) return;
+	if (CurrentQuestId.IsNone())
+	{
+		if (LocationComp)
+		{
+			LocationComp->SetRefreshLocked(false);
+		}
+		return;
+	}
 
 	// Widget 띄우기
 	ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
-	if (!ActiveDialogueWidget){
+	if (!ActiveDialogueWidget) {
 		CurrentQuestId = NAME_None;
+		PendingResultQuestId = NAME_None;
+		if (LocationComp)
+		{
+			LocationComp->SetRefreshLocked(false);
+		}
 		return;
 	}
-	
+
 	// Patrol 중지
-	if (MoveComponent){
+	if (MoveComponent) {
 		MoveComponent->StopMoving();
 	}
-	
+
 	FVector Direction = Interactor->GetActorLocation() - GetActorLocation();
 	Direction.Z = 0.0f;
-	if (!Direction.IsNearlyZero()){
+	if (!Direction.IsNearlyZero()) {
 		SetActorRotation(FRotationMatrix::MakeFromX(Direction).Rotator());
 	}
-	
-	// Player에게 다가감
-	if (AAIController* AIController = Cast<AAIController>(GetController())){
-		AIController->MoveToActor(
-			Interactor,
-			StopRadius,
-			true,
-			true,
-			false,
-			nullptr,
-			true
-		);
+
+	// Player에게 다가감 (퀘스트 위치에 있을 때는 제자리 유지)
+	const bool bAwayFromHome = LocationComp && LocationComp->IsAwayFromHome();
+	if (!bAwayFromHome)
+	{
+		if (AAIController* AIController = Cast<AAIController>(GetController())) {
+			AIController->MoveToActor(
+				Interactor,
+				StopRadius,
+				true,
+				true,
+				false,
+				nullptr,
+				true
+			);
+		}
 	}
 
 	ActiveDialogueWidget->OnClosed.RemoveAll(this);
@@ -92,12 +119,16 @@ void ACPQuestNPC::SetFocused(bool bFocused)
 {
 	bIsFocused = bFocused;
 	if (!MoveComponent || IsValid(ActiveDialogueWidget)) return;
-	
-	if (bFocused){
+
+	if (bFocused) {
 		MoveComponent->StopMoving();
 		return;
 	}
-	
+
+	// 퀘스트 위치에 있으면 순찰 재개하지 않음
+	const UCPQuestLocationComponent* LocationComp = FindComponentByClass<UCPQuestLocationComponent>();
+	if (LocationComp && LocationComp->IsAwayFromHome()) return;
+
 	MoveComponent->StartMoving();
 }
 
@@ -155,11 +186,11 @@ void ACPQuestNPC::ShowResultDialogue()
 
 	ActiveDialogueWidget = Cast<UCPNPCDialogueWidget>(UIManager->PushWidget(DialogueWidgetClass));
 	if (!ActiveDialogueWidget) return;
-	
-	if (MoveComponent){
+
+	if (MoveComponent) {
 		MoveComponent->StopMoving();
 	}
-	
+
 	ActiveDialogueWidget->OnClosed.RemoveAll(this);
 	ActiveDialogueWidget->OnClosed.AddUObject(this, &ACPQuestNPC::OnDialogueClosed);
 
@@ -182,7 +213,7 @@ void ACPQuestNPC::ShowResultDialogue()
 void ACPQuestNPC::UpdateOverheadWidgetsScale(float ScaleMultiplier)
 {
 	Super::UpdateOverheadWidgetsScale(ScaleMultiplier);
-	if (QuestMarkerWidget){
+	if (QuestMarkerWidget) {
 		QuestMarkerWidget->SetRelativeLocation(InitialQuestMarkerLocation * ScaleMultiplier);
 	}
 }
@@ -192,7 +223,7 @@ void ACPQuestNPC::BeginPlay()
 	QuestData = Cast<UCPQuestNPCDataAsset>(NPCData);
 
 	Super::BeginPlay();
-	
+
 	if (UGameInstance* GI = GetGameInstance())
 	{
 		if (UQuestManager* QuestManager = GI->GetSubsystem<UQuestManager>())
@@ -200,8 +231,37 @@ void ACPQuestNPC::BeginPlay()
 			QuestManager->OnQuestUpdated.AddDynamic(this, &ACPQuestNPC::HandleQuestUpdatedForMarker);
 		}
 	}
+
+	// 퀘스트 위치 변경 시 순찰 제어
+	if (UCPQuestLocationComponent* LocationComp = FindComponentByClass<UCPQuestLocationComponent>())
+	{
+		LocationComp->OnLocationChanged.AddWeakLambda(this, [this](bool bAwayFromHome)
+			{
+				if (!MoveComponent) return;
+
+				if (bAwayFromHome)
+				{
+					MoveComponent->StopMoving();
+				}
+				else if (!bIsFocused && !IsValid(ActiveDialogueWidget) && MoveComponent->IsMovePaused())
+				{
+					MoveComponent->StartMoving();
+				}
+			});
+
+		// 이동 페이드가 끝나면 대기 중이던 결과 UI 표시
+		LocationComp->OnFadeFinished.AddUObject(this, &ACPQuestNPC::HandleLocationFadeFinished);
+
+		// 레벨 재진입으로 이미 퀘스트 위치에 있으면 순찰 중지
+		if (LocationComp->IsAwayFromHome() && MoveComponent)
+		{
+			MoveComponent->StopMoving();
+		}
+	}
+
 	UpdateQuestMarker();
 }
+
 
 FName ACPQuestNPC::FindAcceptedQuestId() const
 {
@@ -222,19 +282,57 @@ FName ACPQuestNPC::FindAcceptedQuestId() const
 
 void ACPQuestNPC::OnDialogueClosed()
 {
+	UE_LOG(LogTemp, Log, TEXT("[%s] OnDialogueClosed 호출"), *GetName());
+
 	ActiveDialogueWidget = nullptr;
 	CurrentQuestId = NAME_None;
-	
-	if (!bIsFocused && MoveComponent){
+
+	const FName ResultQuestId = PendingResultQuestId;
+	PendingResultQuestId = NAME_None;
+
+	// 대화 중 보류된 위치 이동 적용 (이동이 필요하면 여기서 페이드가 시작됨)
+	UCPQuestLocationComponent* LocationComp = FindComponentByClass<UCPQuestLocationComponent>();
+	if (LocationComp)
+	{
+		LocationComp->SetRefreshLocked(false);
+	}
+
+	// 퀘스트 위치에 있으면 순찰하지 않음 (복귀 시 이미 재개됐으면 중복 호출 방지)
+	const bool bAwayFromHome = LocationComp && LocationComp->IsAwayFromHome();
+	if (!bIsFocused && !bAwayFromHome && MoveComponent && MoveComponent->IsMovePaused()) {
 		MoveComponent->StartMoving();
 	}
+
+	// 대화형 퀘스트 완료 → 결과 UI (페이드 중이면 끝난 뒤에 표시)
+	if (!ResultQuestId.IsNone())
+	{
+		if (LocationComp && LocationComp->IsFading())
+		{
+			ResultAfterFadeQuestId = ResultQuestId;
+		}
+		else
+		{
+			ShowQuestResultWidget(ResultQuestId);
+		}
+	}
 }
+
+void ACPQuestNPC::HandleLocationFadeFinished()
+{
+	if (ResultAfterFadeQuestId.IsNone()) return;
+
+	const FName QuestId = ResultAfterFadeQuestId;
+	ResultAfterFadeQuestId = NAME_None;
+
+	ShowQuestResultWidget(QuestId);
+}
+
 
 void ACPQuestNPC::HandleQuestUpdatedForMarker(FName QuestID, EQuestState NewState)
 {
 	if (!QuestData || !QuestData->QuestIDs.Contains(QuestID)) return;
 	UpdateQuestMarker();
-	if (InteractableComponent){
+	if (InteractableComponent) {
 		InteractableComponent->RefreshUI();
 	}
 }
@@ -242,60 +340,62 @@ void ACPQuestNPC::HandleQuestUpdatedForMarker(FName QuestID, EQuestState NewStat
 TArray<FText> ACPQuestNPC::FindDialogueLines(AActor* Interactor)
 {
 	CurrentQuestId = NAME_None;
+	PendingResultQuestId = NAME_None;
 	if (!IsValid(Interactor) || !QuestData || QuestData->QuestIDs.IsEmpty()) return {};
-	
+
 	UGameInstance* GameInstance = GetGameInstance();
 	UQuestManager* QuestManager = GameInstance ? GameInstance->GetSubsystem<UQuestManager>() : nullptr;
 	if (!QuestManager) return {};
-	
-	for (const FName& QuestID : QuestData->QuestIDs){
+
+	for (const FName& QuestID : QuestData->QuestIDs) {
 		if (QuestID.IsNone()) continue;
-		
+
 		const EQuestState State = QuestManager->GetQuestState(QuestID);
 		// 추후 해당 위치에 배치할 텍스트 추가
 		if (State == EQuestState::Completed) continue;
 		// 퀘스트 수락
-		if (State == EQuestState::NotAccepted){
+		if (State == EQuestState::NotAccepted) {
 			if (!QuestManager->IsQuestStoryUnlocked(QuestID)) continue;
-			
+
 			CurrentQuestId = QuestID;
 			return QuestManager->GetQuestScriptLines(QuestID);
 		}
-		
+
 		const EQuestCompletionType CompletionType = QuestManager->GetQuestCompletionType(QuestID);
 		// 대화형 퀘스트
-		if (CompletionType == EQuestCompletionType::Dialogue){
+		if (CompletionType == EQuestCompletionType::Dialogue) {
 			TArray<FText> DialogueLines = QuestManager->GetNPCStoryLines(QuestID);
 			if (DialogueLines.IsEmpty() || !QuestManager->CompleteQuestByDialogue(QuestID)) return {};
-			
+
 			CurrentQuestId = QuestID;
+			PendingResultQuestId = QuestID;
 			return DialogueLines;
 		}
-		
+
 		// 아이템 수집 퀘스트
-		if (CompletionType == EQuestCompletionType::ItemCollection){
+		if (CompletionType == EQuestCompletionType::ItemCollection) {
 			UCPInventoryComponent* Inventory = Interactor->FindComponentByClass<UCPInventoryComponent>();
 			if (!Inventory) return {};
-			
+
 			const TMap<FName, int32> HeldItems = Inventory->GetItemCountsByID();
-			if (QuestManager->TryCompleteQuestByItem(QuestID, HeldItems)){
+			if (QuestManager->TryCompleteQuestByItem(QuestID, HeldItems)) {
 				TArray<FName> RequiredItemIDs;
 				int32 RequiredItemCount = 0;
-				
+
 				QuestManager->GetRequiredItemInfo(QuestID, RequiredItemIDs, RequiredItemCount);
-				for (const FName& RequiredItemID : RequiredItemIDs){
+				for (const FName& RequiredItemID : RequiredItemIDs) {
 					Inventory->RemoveItemByID(RequiredItemID, RequiredItemCount);
 				}
 				CurrentQuestId = QuestID;
 				return QuestManager->GetNPCStoryLines(QuestID);
 			}
-			
+
 			CurrentQuestId = QuestID;
-			return {QuestManager->GetSessionHintText(QuestID)};
+			return { QuestManager->GetSessionHintText(QuestID) };
 		}
-		
+
 		CurrentQuestId = QuestID;
-		return {QuestManager->GetSessionHintText(QuestID)};
+		return { QuestManager->GetSessionHintText(QuestID) };
 	}
 	return {};
 }
@@ -320,5 +420,24 @@ void ACPQuestNPC::UpdateQuestMarker()
 	if (UCPQuestMarkerWidget* MarkerWidget = Cast<UCPQuestMarkerWidget>(QuestMarkerWidget->GetUserWidgetObject()))
 	{
 		MarkerWidget->SetMarkerState(State);
+	}
+}
+
+void ACPQuestNPC::ShowQuestResultWidget(FName QuestID)
+{
+	UGameInstance* GI = GetGameInstance();
+	if (!GI) return;
+
+	UCPUIManagerSubsystem* UIManager = GI->GetSubsystem<UCPUIManagerSubsystem>();
+	const UCPUISettings* UISettings = GetDefault<UCPUISettings>();
+	UClass* ResultWidgetClass = UISettings ? UISettings->ResultWidgetClass.LoadSynchronous() : nullptr;
+
+	if (UIManager && ResultWidgetClass)
+	{
+		UCPLabResultWidget* ResultWidget = Cast<UCPLabResultWidget>(UIManager->PushWidget(ResultWidgetClass));
+		if (ResultWidget && !ResultWidget->InitializeResult(QuestID))
+		{
+			ResultWidget->RequestClose();
+		}
 	}
 }
