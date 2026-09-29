@@ -23,11 +23,11 @@ public:
 	ECPInputMode GetInputMode() const { return InputMode; }
 	
 	UFUNCTION(BlueprintCallable, Category = "Popup")
-	void RequestClose();
+	virtual void RequestClose();
 	
 	// 타이머 설정
 	UFUNCTION(BlueprintCallable, Category = "Popup")
-	void SetAutoClose(float Duration);
+	virtual void SetAutoClose(float Duration);
 	
 protected:
 	FTimerHandle AutoCloseTimerHandle;
