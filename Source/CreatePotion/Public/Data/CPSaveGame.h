@@ -2,9 +2,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/SaveGame.h"
+#include "GameInstance/Subsystem/CPCauldronSubsystem.h"
 #include "GameInstance/Subsystem/CPCodexSubsystem.h"
 #include "GameInstance/Subsystem/CPContainerSubsystem.h"
 #include "GameInstance/Subsystem/CPNPCSubsystem.h"
+#include "Quest/QuestManager.h"
 #include "Resource/CPResourceType.h"
 #include "CPSaveGame.generated.h"
 
@@ -34,6 +36,14 @@ public:
 	// NPC 상태 정보
 	UPROPERTY()
 	FCPNPCSaveData NPCData;
+	
+	// 퀘스트 상태 정보
+	UPROPERTY()
+	FCPQuestSaveData QuestData;
+	
+	// 가마솥 상태 정보
+	UPROPERTY()
+	FCPCauldronSaveData CauldronData;
 	
 	UPROPERTY()
 	FName LevelName;
