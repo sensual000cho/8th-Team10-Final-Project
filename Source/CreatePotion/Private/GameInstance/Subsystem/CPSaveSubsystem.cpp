@@ -1,6 +1,5 @@
 #include "GameInstance/Subsystem/CPSaveSubsystem.h"
 
-#include "Components/CPInventoryComponent.h"
 #include "Data/CPSaveGame.h"
 #include "GameInstance/Subsystem/CPTimeSubsystem.h"
 #include "Kismet/GameplayStatics.h"
@@ -31,6 +30,10 @@ void UCPSaveSubsystem::SaveGame()
 	
 	if (UCPNPCSubsystem* NPCSubsystem = GI->GetSubsystem<UCPNPCSubsystem>()){
 		SaveData->NPCData = NPCSubsystem->GetSaveData();
+	}
+	
+	if (UQuestManager* QuestManager = GI->GetSubsystem<UQuestManager>()){
+		//SaveData->QuestData = QuestManager->GetSaveData();
 	}
 	
 	//TODO: 각 서브시스템에서 데이터 수집
@@ -70,6 +73,10 @@ void UCPSaveSubsystem::LoadGame()
 	
 	if (UCPNPCSubsystem* NPCSubsystem = GI->GetSubsystem<UCPNPCSubsystem>()){
 		NPCSubsystem->LoadSaveData(SaveData->NPCData);
+	}
+	
+	if (UQuestManager* QuestManager = GI->GetSubsystem<UQuestManager>()){
+		//QuestManager->LoadSaveData(SaveData->QuestData);
 	}
 	
 	//TODO: 각 서브시스템으로 데이터 로드.

@@ -5,6 +5,7 @@
 #include "GameInstance/Subsystem/CPCodexSubsystem.h"
 #include "GameInstance/Subsystem/CPContainerSubsystem.h"
 #include "GameInstance/Subsystem/CPNPCSubsystem.h"
+#include "Quest/QuestManager.h"
 #include "Resource/CPResourceType.h"
 #include "CPSaveGame.generated.h"
 
@@ -34,6 +35,10 @@ public:
 	// NPC 상태 정보
 	UPROPERTY()
 	FCPNPCSaveData NPCData;
+	
+	// 퀘스트 상태 정보
+	//UPROPERTY()
+	//FCPQuestSaveData QuestData;
 	
 	UPROPERTY()
 	FName LevelName;
