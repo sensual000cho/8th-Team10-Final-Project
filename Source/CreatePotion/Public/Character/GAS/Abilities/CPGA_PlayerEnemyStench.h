@@ -9,7 +9,7 @@ class UCPHealthComponent;
 class UNiagaraComponent;
 class UNiagaraSystem;
 
-// Player와 Enemy의 악취 연출과 지속 시간을 관리한다.
+/** Player와 Enemy의 악취 연출과 지속 시간을 관리한다. */
 UCLASS(Blueprintable)
 class CREATEPOTION_API UCPGA_PlayerEnemyStench : public UGameplayAbility
 {
@@ -22,20 +22,20 @@ public:
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 
 protected:
-	// 활성 중 재적용은 무시한다.
+	// Stench 유지 시간. 활성 중 재적용 시 갱신하지 않음
 	UPROPERTY(EditDefaultsOnly, Category = "Potion|Stench", meta = (ClampMin = "0.01", Units = "s"))
 	float DurationSeconds = 30.0f;
 
-	// NPC와 같은 Niagara를 BP 참조로 지정한다.
+	// 악취 연출에 사용할 Niagara 시스템
 	UPROPERTY(EditDefaultsOnly, Category = "Visual|Stench")
 	TObjectPtr<UNiagaraSystem> StenchNiagaraSystem;
 
-	// 현재 외형의 월드 크기에 곱할 연출 배율.
+	// 현재 외형의 월드 스케일에 곱할 연출 배율
 	UPROPERTY(EditDefaultsOnly, Category = "Visual|Stench", meta = (ClampMin = "0.01"))
 	float VisualScale = 3.0f;
 
 private:
-	// 변신과 거대화 순서에 관계없이 현재 보이는 몸을 따른다.
+	// 현재 표시 중인 메시의 중심과 크기에 연출 동기화
 	void UpdateVisual();
 	void HandleDurationExpired();
 	UFUNCTION()

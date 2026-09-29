@@ -1,6 +1,5 @@
 #include "Character/GAS/Abilities/GA_CPPlayerGiant.h"
 
-#include "Abilities/GameplayAbilityTypes.h"
 #include "Character/CPCarryComponent.h"
 #include "Components/ActorComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -13,6 +12,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/BlueprintCameraEvaluationDataRef.h"
 #include "GameFramework/GameplayCameraComponentBase.h"
+#include "TimerManager.h"
 #include "UObject/UnrealType.h"
 
 UGA_CPPlayerGiant::UGA_CPPlayerGiant()

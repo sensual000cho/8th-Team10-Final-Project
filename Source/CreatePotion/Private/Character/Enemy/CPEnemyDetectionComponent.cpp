@@ -3,7 +3,6 @@
 
 #include "Character/Enemy/CPEnemyDetectionComponent.h"
 
-#include "AIController.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "GameFramework/Pawn.h"
@@ -90,7 +89,7 @@ void UCPEnemyDetectionComponent::UpdateDetection()
     const FVector PlayerLocation = CachedPlayerPawn->GetActorLocation();
     const FVector EnemyLocation = EnemyPawn->GetActorLocation();
 
-	// 냄새는 기존 시야·활동 구역 검사보다 먼저 판단한다.
+	// 악취 도주는 시야와 활동 구역 제한보다 우선한다.
 	const UAbilitySystemComponent* PlayerASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(CachedPlayerPawn.Get());
 	const float StenchRadius = bFleeFromStench ? FMath::Max(StenchDetectionRadius, StenchEscapeRadius) : StenchDetectionRadius;
 	bFleeFromStench = PlayerASC && PlayerASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(TEXT("State.Effect.Stench"))) && FVector::DistSquared(PlayerLocation, EnemyLocation) < FMath::Square(StenchRadius);

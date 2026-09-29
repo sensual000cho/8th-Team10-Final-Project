@@ -16,7 +16,7 @@ struct CREATEPOTION_API FCPSTCondition_StenchInstanceData
 	TObjectPtr<ACPEnemyAIController> AIController = nullptr;
 };
 
-// 같은 조건을 도주 진입과 종료에 사용한다.
+// 악취 도주 상태를 확인하는 전환 조건
 USTRUCT(meta = (DisplayName = "CP Should Flee Stench", Category = "Enemy"))
 struct CREATEPOTION_API FCPSTCondition_Stench : public FStateTreeConditionCommonBase
 {
@@ -25,11 +25,12 @@ struct CREATEPOTION_API FCPSTCondition_Stench : public FStateTreeConditionCommon
 	virtual const UStruct* GetInstanceDataType() const override { return FInstanceDataType::StaticStruct(); }
 	virtual bool TestCondition(FStateTreeExecutionContext& Context) const override;
 
+	// 도주 종료 조건에서는 결과 반전
 	UPROPERTY(EditAnywhere, Category = "Condition")
 	bool bInvert = false;
 };
 
-// 추적과 같은 Move To를 쓰고 목적지만 Player 반대편으로 갱신한다.
+// Player로부터 멀어지는 목적지를 갱신하는 Move To Task
 USTRUCT(meta = (DisplayName = "CP Flee Stench", Category = "Enemy"))
 struct CREATEPOTION_API FCPSTTask_Flee : public FStateTreeMoveToTask
 {
@@ -39,5 +40,6 @@ struct CREATEPOTION_API FCPSTTask_Flee : public FStateTreeMoveToTask
 	virtual EStateTreeRunStatus Tick(FStateTreeExecutionContext& Context, const float DeltaTime) const override;
 
 private:
+	// 도주 종료 거리 밖의 목적지 계산
 	bool UpdateDestination(FStateTreeExecutionContext& Context) const;
 };

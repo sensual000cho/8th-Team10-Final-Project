@@ -9,7 +9,7 @@ class UActorComponent;
 class UCharacterMovementComponent;
 class UCPHealthComponent;
 
-// Player와 Enemy의 이동속도만 높이는 지속 효과.
+/** Player와 Enemy의 이동 속도에 Gust 배율을 적용하는 지속 효과. */
 UCLASS(Blueprintable)
 class CREATEPOTION_API UCPGA_PlayerEnemyGust : public UGameplayAbility
 {
@@ -21,11 +21,11 @@ public:
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 
 protected:
-	// 재적용은 무시하고 최초 적용부터 시간을 센다.
+	// Gust 유지 시간. 활성 중 재적용 시 갱신하지 않음
 	UPROPERTY(EditDefaultsOnly, Category = "Potion|Gust", meta = (ClampMin = "0.01", Units = "s"))
 	float DurationSeconds = 30.0f;
 
-	// NPC Gust와 같은 기본 배율. Giant 배율과 곱한다.
+	// 이동 속도 배율. 다른 효과의 속도 배율과 곱연산
 	UPROPERTY(EditDefaultsOnly, Category = "Potion|Gust", meta = (ClampMin = "1.0"))
 	float WalkSpeedMultiplier = 5.0f;
 
@@ -33,11 +33,16 @@ private:
 	void HandleDurationExpired();
 	UFUNCTION()
 	void HandlePlayerDeath(AActor* DamageCauser);
+
+	// Player BP의 속도 계산 이후, CMC 이동 직전에 배율 적용
 	UFUNCTION()
 	void HandlePreCharacterMovement();
+
+	// CMC 이동 이후 Gust 배율 제거
 	UFUNCTION()
 	void RestoreCalculatedWalkSpeed(float DeltaSeconds, FVector OldLocation, FVector OldVelocity);
-	// 현재 속도에서 자신이 적용한 배율만 제거한다.
+
+	// 다른 효과의 속도 배율을 보존하며 Gust 배율만 제거
 	void RemoveSpeedMultiplier();
 
 	TWeakObjectPtr<ACharacter> CachedCharacter;

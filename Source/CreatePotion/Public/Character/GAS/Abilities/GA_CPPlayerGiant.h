@@ -3,7 +3,6 @@
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbility.h"
 #include "Core/CameraRigInstanceID.h"
-#include "TimerManager.h"
 #include "GA_CPPlayerGiant.generated.h"
 
 class ACharacter;
@@ -17,7 +16,7 @@ class USkeletalMeshComponent;
 
 /**
  * Potion.Effect.Giant의 Player 전용 구현.
- * NPC GA에 의존하지 않고 거대화 적용과 원상복구를 직접 관리한다.
+ * 외형, 캡슐, 이동 속도와 카메라의 거대화 적용 및 복구를 관리한다.
  */
 UCLASS(Blueprintable)
 class CREATEPOTION_API UGA_CPPlayerGiant : public UGameplayAbility
@@ -96,7 +95,7 @@ private:
 	float OriginalCapsuleRadius = 0.0f;
 	float OriginalCapsuleHalfHeight = 0.0f;
 	float OriginalThrowSpeedMultiplier = 1.0f;
-	// 현재 이동 계산에 Giant 속도 배율을 적용했는지 기록한다.
+	// 현재 이동 계산의 Giant 속도 배율 적용 여부
 	bool bSpeedApplied = false;
 	bool bGiantApplied = false;
 };

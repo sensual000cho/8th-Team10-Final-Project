@@ -40,7 +40,7 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
 	void TryInteract();
-	// 변신 중 새 상호작용과 진행 중인 채집을 함께 막는다.
+	// 차단 시 진행 중인 시간형 상호작용 취소 및 선택 대상 해제
 	void SetInteractionBlocked(bool bBlocked);
 	bool IsInteractionBlocked() const { return bInteractionBlocked; }
 	

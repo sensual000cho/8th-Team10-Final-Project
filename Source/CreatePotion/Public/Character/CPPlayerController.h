@@ -14,7 +14,6 @@ class UInputMappingContext;
 
 class UCPItemContainerComponent;
 class UCPInventoryComponent;
-class UCPHandItemContainerComponent;
 class UCPDropContainerComponent;
 
 class UCPContainerContextBase;
@@ -22,7 +21,6 @@ class UCPContainerContextBase;
 class UCPContainerMainWidget;
 class UCPHandHeldItemWidget;
 class UCPItemWheelWidget;
-class UCPWheelModeIndicatorWidget;
 class UCPShopPurchasePopupWidget;
 class UCPItemDetailPopupWidget;
 class UCPDropZoneWidget;
@@ -122,6 +120,7 @@ public:
 	// 아이템을 내려놓은 상태로 초기화 하는 함수 
 	void ResetHoldingItem();
 
+	// 들고 있는 아이템의 수납 또는 장착 취소 처리
 	void OnCarryHeldProp(const FInputActionValue& Value);
 
 	UFUNCTION(BlueprintCallable, Category = "Debug|Shop")

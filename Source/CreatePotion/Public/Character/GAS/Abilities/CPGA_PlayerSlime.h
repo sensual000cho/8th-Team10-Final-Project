@@ -13,7 +13,7 @@ class UAnimInstance;
 class UCPHealthComponent;
 class UCPInteractionComponent;
 
-// 원래 이동과 애니메이션 구성은 유지하고 보이는 외형만 슬라임으로 바꾼다.
+/** Player의 이동 구성을 유지하며 슬라임 외형과 상호작용 제한을 적용한다. */
 UCLASS(Blueprintable)
 class CREATEPOTION_API UCPGA_PlayerSlime : public UGameplayAbility
 {
@@ -26,17 +26,23 @@ public:
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 
 protected:
-	// 임시 NPC 에셋은 BP에서 설정하고 나중에 교체한다.
+	// 변신 중 표시할 슬라임 메시
 	UPROPERTY(EditDefaultsOnly, Category = "Potion|Slime")
 	TObjectPtr<USkeletalMesh> SlimeMesh;
+
+	// 슬라임 메시의 애니메이션 클래스
 	UPROPERTY(EditDefaultsOnly, Category = "Potion|Slime")
 	TSubclassOf<UAnimInstance> SlimeAnimClass;
+
+	// 미지정 시 슬라임 메시의 기본 머티리얼 사용
 	UPROPERTY(EditDefaultsOnly, Category = "Potion|Slime")
 	TObjectPtr<UMaterialInterface> SlimeMaterial;
 
-	// 원래 Character Mesh 기준 상대 변환. Giant 크기를 자동으로 따라간다.
+	// Character Mesh 기준 상대 변환. 부모 메시의 크기 변화 반영
 	UPROPERTY(EditDefaultsOnly, Category = "Potion|Slime")
 	FTransform SlimeRelativeTransform;
+
+	// Slime 유지 시간. 활성 중 재적용 시 갱신하지 않음
 	UPROPERTY(EditDefaultsOnly, Category = "Potion|Slime", meta = (ClampMin = "0.01", Units = "s"))
 	float DurationSeconds = 30.0f;
 
@@ -44,11 +50,11 @@ private:
 	void HandleDurationExpired();
 	UFUNCTION()
 	void HandlePlayerDeath(AActor* DamageCauser);
-	// 정지 중 시선 회전은 무시하고 이동할 때만 외형 방향을 바꾼다.
+	// 수평 이동 방향으로 외형 회전, 정지 중 방향 유지
 	UFUNCTION()
 	void UpdateSlimeFacing(float DeltaSeconds, FVector OldLocation, FVector OldVelocity);
 
-	// 효과가 숨긴 Mesh만 복구하여 원래 숨겨진 Mesh는 그대로 둔다.
+	// 종료 시 복구할 메시 목록. 변신 전부터 숨겨진 메시는 제외
 	TArray<TWeakObjectPtr<UMeshComponent>> HiddenMeshes;
 	UPROPERTY(Transient)
 	TObjectPtr<USkeletalMeshComponent> SlimeVisual;
