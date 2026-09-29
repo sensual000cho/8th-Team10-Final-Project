@@ -31,6 +31,7 @@ class CREATEPOTION_API UCPTimeSubsystem : public UGameInstanceSubsystem
 public:
 	int32 GetCurrentDay() const;
 	int64 GetTotalWorldMinutes() const;
+	UFUNCTION(BlueprintCallable)
 	ECPTimePhase GetCurrentPhase() const;
 	
 	// Game Save
