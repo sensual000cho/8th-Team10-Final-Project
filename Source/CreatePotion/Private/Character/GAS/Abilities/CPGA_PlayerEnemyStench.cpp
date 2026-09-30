@@ -1,5 +1,8 @@
 #include "Character/GAS/Abilities/CPGA_PlayerEnemyStench.h"
 
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
+
 #include "Character/CPHealthComponent.h"
 #include "Character/Enemy/CPEnemyCharacter.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -57,6 +60,12 @@ void UCPGA_PlayerEnemyStench::ActivateAbility(const FGameplayAbilitySpecHandle H
 		CachedHealth = Character->FindComponentByClass<UCPHealthComponent>();
 		if (CachedHealth.IsValid()) CachedHealth->OnDeath.AddUniqueDynamic(this, &UCPGA_PlayerEnemyStench::HandlePlayerDeath);
 	}
+	if (AActor* Avatar = GetAvatarActorFromActorInfo())
+	{
+		if (StartSFX) UGameplayStatics::PlaySoundAtLocation(this, StartSFX, Avatar->GetActorLocation());
+	}
+	bEffectSFXStarted = true;
+
 	GetWorld()->GetTimerManager().SetTimer(DurationTimerHandle, this, &UCPGA_PlayerEnemyStench::HandleDurationExpired, DurationSeconds, false);
 	GetWorld()->GetTimerManager().SetTimer(VisualTimerHandle, this, &UCPGA_PlayerEnemyStench::UpdateVisual, 0.1f, true);
 }
@@ -102,6 +111,15 @@ void UCPGA_PlayerEnemyStench::HandleOwnerEndPlay(AActor* Actor, EEndPlayReason::
 
 void UCPGA_PlayerEnemyStench::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
+	if (bEffectSFXStarted)
+	{
+		bEffectSFXStarted = false;
+		if (AActor* Avatar = GetAvatarActorFromActorInfo())
+		{
+			if (EndSFX) UGameplayStatics::PlaySoundAtLocation(this, EndSFX, Avatar->GetActorLocation());
+		}
+	}
+
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(DurationTimerHandle);
