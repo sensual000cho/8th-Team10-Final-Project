@@ -1,5 +1,8 @@
 #include "Character/GAS/Abilities/CPGA_PlayerEnemyReset.h"
 
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
+
 #include "AbilitySystemComponent.h"
 #include "GameplayEffect.h"
 
@@ -34,6 +37,11 @@ void UCPGA_PlayerEnemyReset::ActivateAbility(const FGameplayAbilitySpecHandle Ha
 		return;
 	}
 
+	if (AActor* Avatar = GetAvatarActorFromActorInfo())
+	{
+		if (StartSFX) UGameplayStatics::PlaySoundAtLocation(this, StartSFX, Avatar->GetActorLocation());
+	}
+
 	// 종료 콜백이 Ability 목록을 바꿀 수 있으므로 먼저 대상을 모은다.
 	TArray<FGameplayAbilitySpecHandle> AbilitiesToCancel;
 	for (const FGameplayAbilitySpec& Spec : ASC->GetActivatableAbilities())
@@ -58,5 +66,9 @@ void UCPGA_PlayerEnemyReset::ActivateAbility(const FGameplayAbilitySpecHandle Ha
 	// 원상복구는 각 GA의 EndAbility와 GE 제거 처리에 맡긴다. Loose Tag는 건드리지 않는다.
 	for (const FGameplayAbilitySpecHandle AbilityHandle : AbilitiesToCancel) ASC->CancelAbilityHandle(AbilityHandle);
 	for (const FActiveGameplayEffectHandle EffectHandle : EffectsToRemove) ASC->RemoveActiveGameplayEffect(EffectHandle);
+	if (AActor* Avatar = GetAvatarActorFromActorInfo())
+	{
+		if (EndSFX) UGameplayStatics::PlaySoundAtLocation(this, EndSFX, Avatar->GetActorLocation());
+	}
 	EndAbility(Handle, ActorInfo, ActivationInfo, false, false);
 }

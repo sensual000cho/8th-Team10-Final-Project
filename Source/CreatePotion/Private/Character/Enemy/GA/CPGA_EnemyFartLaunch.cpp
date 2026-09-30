@@ -1,5 +1,8 @@
 #include "Character/Enemy/GA/CPGA_EnemyFartLaunch.h"
 
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
+
 #include "AIController.h"
 #include "AbilitySystemComponent.h"
 #include "Animation/AnimInstance.h"
@@ -72,6 +75,12 @@ void UCPGA_EnemyFartLaunch::ActivateAbility(const FGameplayAbilitySpecHandle Han
 		Mesh->PlayAnimation(LaunchAnimation, true);
 	}
 
+	if (AActor* Avatar = GetAvatarActorFromActorInfo())
+	{
+		if (StartSFX) UGameplayStatics::PlaySoundAtLocation(this, StartSFX, Avatar->GetActorLocation());
+	}
+	bEffectSFXStarted = true;
+
 	if (FartLaunchCueTag.IsValid() && ActorInfo->AbilitySystemComponent.IsValid())
 	{
 		ActorInfo->AbilitySystemComponent->AddGameplayCue(FartLaunchCueTag);
@@ -140,6 +149,15 @@ void UCPGA_EnemyFartLaunch::RestoreLivingState()
 
 void UCPGA_EnemyFartLaunch::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
+	if (bEffectSFXStarted)
+	{
+		bEffectSFXStarted = false;
+		if (AActor* Avatar = GetAvatarActorFromActorInfo())
+		{
+			if (EndSFX) UGameplayStatics::PlaySoundAtLocation(this, EndSFX, Avatar->GetActorLocation());
+		}
+	}
+
 	if (ACPEnemyCharacter* Enemy = CachedEnemy.Get())
 	{
 		Enemy->LandedDelegate.RemoveDynamic(this, &UCPGA_EnemyFartLaunch::HandleLanded);
