@@ -63,6 +63,7 @@ void UCPTimeSubsystem::AdvanceTime(int64 Amount)
 	if (OldDay != NewDay) OnDayChanged.Broadcast(NewDay);
 	if (OldPhase != NewPhase) OnTimePhaseChanged.Broadcast(NewPhase);
 	
+	OnTimePhaseChanged.Broadcast(GetCurrentPhase());
 	// 시간 체크용
 	// GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, FString::Printf(TEXT("%lld"), TotalWorldMinutes));
 }
@@ -89,6 +90,10 @@ void UCPTimeSubsystem::StartTime()
 		1.f,
 		true
 	);
+	
+	OnTimeChanged.Broadcast(TotalWorldMinutes);
+	OnDayChanged.Broadcast(GetCurrentDay());
+	OnTimePhaseChanged.Broadcast(GetCurrentPhase());
 }
 
 void UCPTimeSubsystem::PauseTime()
