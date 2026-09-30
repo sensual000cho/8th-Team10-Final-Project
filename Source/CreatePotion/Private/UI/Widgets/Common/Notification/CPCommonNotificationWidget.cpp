@@ -20,9 +20,6 @@ void UCPCommonNotificationWidget::ShowNotification()
 
 void UCPCommonNotificationWidget::RequestClose()
 {
-	if (GetWorld())
-	{
-		GetWorld()->GetTimerManager().ClearTimer(AutoCloseTimerHandle);
-	}
+	AutoCloseRemaining = -1.f;
 	RemoveFromParent();
 }

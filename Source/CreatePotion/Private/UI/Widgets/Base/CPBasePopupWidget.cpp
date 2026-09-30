@@ -19,15 +19,22 @@ void UCPBasePopupWidget::RequestClose()
 
 void UCPBasePopupWidget::SetAutoClose(float Duration)
 {
-	if (Duration <= 0.f || !GetWorld()) return;
+	AutoCloseRemaining = Duration > 0.f ? Duration : -1.f;
+}
+
+void UCPBasePopupWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
 	
-	GetWorld()->GetTimerManager().SetTimer(
-		AutoCloseTimerHandle,
-		this,
-		&UCPBasePopupWidget::RequestClose,
-		Duration,
-		false
-		);
+	if (AutoCloseRemaining > 0.f)
+	{
+		AutoCloseRemaining -= InDeltaTime;
+		if (AutoCloseRemaining <=0.f)
+		{
+			AutoCloseRemaining = -1.f;
+			RequestClose();
+		}
+	}
 }
 
 
