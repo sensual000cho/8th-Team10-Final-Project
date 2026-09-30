@@ -4,6 +4,8 @@
 #include "Abilities/GameplayAbility.h"
 #include "GA_CPPlayerFartLaunch.generated.h"
 
+class USoundBase;
+
 /**
  * C++ contract for the player reaction to Potion.Effect.FartLaunch.
  * Blueprint children configure the event trigger, cue, tuning, and presentation.
@@ -20,10 +22,21 @@ public:
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 
 private:
+	// 시작에 성공한 실행만 종료음을 한 번 재생
+	bool bEffectSFXStarted = false;
+
 	UFUNCTION()
 	void EndLaunchBehavior();
 
 protected:
+	// 효과 적용 성공 시 재생할 단발음. 미지정 시 생략
+	UPROPERTY(EditDefaultsOnly, Category = "Audio|Potion")
+	TObjectPtr<USoundBase> StartSFX;
+
+	// 효과 종료 시 재생할 단발음. 미지정 시 생략
+	UPROPERTY(EditDefaultsOnly, Category = "Audio|Potion")
+	TObjectPtr<USoundBase> EndSFX;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Potion|FartLaunch", meta = (ClampMin = "0.0", Units = "s"))
 	float ReactionDuration = 2.5f;
 

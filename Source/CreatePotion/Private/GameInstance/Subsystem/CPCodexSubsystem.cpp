@@ -140,14 +140,19 @@ bool UCPCodexSubsystem::RecordForageableEntry(UCPForageableItemData* ItemData)
 		OnForageableCodexUpdated.Broadcast();
 		return true;
 	}
+	else
+	{
+		// 채집물 등록
+		FCPForageableCodexEntry NewEntry;
+		NewEntry.Entry = ItemData;
+		ForageableCodexEntries.Add(ItemData, NewEntry);
+		
+		OnForageableCodexUpdated.Broadcast();
+		OnForageableCodexRegistered.Broadcast(ItemData);
+		return true;	
+	}
 	
-	// 채집물 등록
-	FCPForageableCodexEntry NewEntry;
-	NewEntry.Entry = ItemData;
-	ForageableCodexEntries.Add(ItemData, NewEntry);
 	
-	OnForageableCodexUpdated.Broadcast();
-	return true;
 }
 
 bool UCPCodexSubsystem::RegisterNPCEntry(UCPNPCDataAsset* NPCData)
