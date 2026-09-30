@@ -78,17 +78,108 @@ void ACPPlayerController::SetupInputComponent()
 #pragma region PotionThrow
 void ACPPlayerController::ConsumeHeldPotionCharge()
 {
-	if (CachedInventoryComponent && CurrentlyHeldPotionOriginIndex != -1)
+	if (CachedInventoryComponent && bCurrentHeldItemIsFromInventory && CurrentlyHeldPotionInstance.IsValid())
 	{
-		CachedInventoryComponent->RemoveItemFromContainer(CurrentlyHeldPotionOriginIndex, 1);
+		// 저장해둔 인덱스 대신 같은 포션이 들어있는 칸을 찾아서 직접 차감
+		const FContainerItem* Match = CachedInventoryComponent->ContainerItems.FindByPredicate(
+			[this](const FContainerItem& It)
+			{
+				return UCPItemContainerComponent::AreInstancesStackable(It.Instance, CurrentlyHeldPotionInstance);
+			});
+
+		if (Match)
+		{
+			CachedInventoryComponent->RemoveItemFromContainer(Match->GridIndex, 1);
+		}
 	}
 
 	CurrentlyHeldPotionInstance = FCPItemInstance();
 	CurrentlyHeldPotionOriginIndex = -1;
 	bCurrentHeldItemIsFromInventory = false;
+	UpdatePotionHighlight();
 }
 #pragma endregion
 
+#pragma region CarryProp
+void ACPPlayerController::HandlePropAttached(ACPThrowablePropBase* Prop)
+{
+	// Q/E 장착 경로는 이미 인벤토리에 있으므로 무시
+	if (bIsEquippingFromInventory || !IsValid(Prop) || !CachedInventoryComponent)
+	{
+		return;
+	}
+
+	const FCPItemInstance& Instance = Prop->GetWorkingIngredient();
+
+	// 포션 이외의 아이템은 적용 x
+	if (!Instance.IsValid() || Instance.CurrentEffects.Num() == 0)
+	{
+		return;
+	}
+
+	int32 Leftover = CachedInventoryComponent->TryGetItemFromInstance(Instance, 1);
+	if (Leftover > 0)
+	{
+		// 인벤토리가 가득 차면 기존처럼 "필드에서 주운 것"으로 남겨둠 
+		UE_LOG(LogContainer, Warning, TEXT("[Carry] 인벤토리 공간 부족으로 주운 포션을 인벤토리에 넣지 못함"));
+		return;
+	}
+
+	// Q/E로 장착한 것과 동일하게 취급
+	CurrentlyHeldPotionInstance = Instance;
+	bCurrentHeldItemIsFromInventory = true;
+	UpdatePotionHighlight();
+}
+
+void ACPPlayerController::UpdatePotionHighlight()
+{
+	if (!CachedInventoryComponent)
+	{
+		return;
+	}
+
+	UCPContainerMainWidget* InventoryUI = CachedInventoryComponent->GetInventoryUIInstance();
+	if (!InventoryUI)
+	{
+		return;
+	}
+
+	int32 HighlightIndex = -1;
+
+	bool bIsHoldingPotion = false;
+	if (APawn* ControlledPawn = GetPawn())
+	{
+		if (UCPCarryComponent* CarryComponent = ControlledPawn->FindComponentByClass<UCPCarryComponent>())
+		{
+			bIsHoldingPotion = bCurrentHeldItemIsFromInventory && CarryComponent->HasHeldProp();
+		}
+	}
+
+	// 손에 든 포션과 같은 포션이 들어있는 칸을 찾음
+	if (bIsHoldingPotion && CurrentlyHeldPotionInstance.IsValid())
+	{
+		const FContainerItem* Match = CachedInventoryComponent->ContainerItems.FindByPredicate(
+			[this](const FContainerItem& It)
+			{
+				return UCPItemContainerComponent::AreInstancesStackable(It.Instance, CurrentlyHeldPotionInstance);
+			});
+
+		if (Match)
+		{
+			HighlightIndex = Match->GridIndex;
+		}
+	}
+
+	InventoryUI->SetHighlightedGridIndex(HighlightIndex);
+}
+
+void ACPPlayerController::HandleFocusedPotionChanged(int32 GridIndex)
+{
+	UpdatePotionHighlight();
+}
+#pragma endregion
+
+#pragma region PotionWheel
 void ACPPlayerController::OnItemWheelScroll(const FInputActionValue& Value)
 {
 	if (!ItemWheelWidgetInstance)
@@ -162,7 +253,11 @@ void ACPPlayerController::EquipItemAtGridIndex(int32 GridIndex)
 
 	Potion->InitializeFromItemData(PotionData, FoundItem->Instance.CurrentEffects);
 
-	if (!CarryComponent->AttachProp(Potion))
+	bIsEquippingFromInventory = true;
+	const bool bAttached = CarryComponent->AttachProp(Potion);
+	bIsEquippingFromInventory = false;
+
+	if (!bAttached)
 	{
 		Potion->Destroy();
 		return;
@@ -172,7 +267,9 @@ void ACPPlayerController::EquipItemAtGridIndex(int32 GridIndex)
 	CurrentlyHeldPotionInstance = FoundItem->Instance;
 	CurrentlyHeldPotionOriginIndex = GridIndex;
 	bCurrentHeldItemIsFromInventory = true;
+	UpdatePotionHighlight();
 }
+#pragma endregion
 
 // TODO[Container] : 추후 멀티플레이 확장시 Dedicated Server 환경에서 Client들은 실행이 되지 않음
 void ACPPlayerController::SetPawn(APawn* InPawn)
@@ -193,14 +290,16 @@ void ACPPlayerController::SetPawn(APawn* InPawn)
 
 		// TODO[Container] : 레벨 전환시 자동 수거 기능을 구현하려면
 		// 레벨에 배치된 별도의 Actor(또는 GameMode, GameState 등 레벨 단위로 바뀌는 객체)에 구현해야함
-
 		if (ItemWheelWidgetClass && !ItemWheelWidgetInstance)
 		{
 			ItemWheelWidgetInstance = CreateWidget<UCPItemWheelWidget>(this, ItemWheelWidgetClass);
 			if (ItemWheelWidgetInstance)
 			{
-				ItemWheelWidgetInstance->AddToViewport(-1);	// Visibility가 HitTestInvisible이라 영향 x
+				ItemWheelWidgetInstance->AddToViewport(-2);	// Visibility가 HitTestInvisible이라 영향 x
 				ItemWheelWidgetInstance->BindInventory(CachedInventoryComponent);
+
+				ItemWheelWidgetInstance->OnFocusedPotionChanged.AddUObject(this, &ACPPlayerController::HandleFocusedPotionChanged);
+				ItemWheelWidgetInstance->BroadcastFocusedPotion();	// 최초 상태 Broadcast
 			}
 		}
 
@@ -223,6 +322,12 @@ void ACPPlayerController::SetPawn(APawn* InPawn)
 				DropZoneWidgetInstance->SlotGridIndex = 0;
 				DropZoneWidgetInstance->AddToViewport(-1);	
 			}
+		}
+
+		if (UCPCarryComponent* CarryComponent = InPawn->FindComponentByClass<UCPCarryComponent>())
+		{
+			CarryComponent->OnPropAttached.RemoveAll(this); // Delegate 중복 구독 방지를 위해 기존 항목 제거
+			CarryComponent->OnPropAttached.AddUObject(this, &ACPPlayerController::HandlePropAttached);
 		}
 	}
 	else
@@ -298,6 +403,7 @@ void ACPPlayerController::OnCarryHeldProp(const FInputActionValue& Value)
 	}
 
 	bCurrentHeldItemIsFromInventory = false;
+	UpdatePotionHighlight();
 }
 
 void ACPPlayerController::OpenExternalContainerUI(UCPItemContainerComponent* InTargetContainer)
@@ -412,6 +518,31 @@ void ACPPlayerController::DebugToggleShopDirectly()
 	}
 
 	ToggleExternalContainerUI(FoundShop);
+}
+bool ACPPlayerController::BeginHoldingItem(const FContainerItem& InItem, UCPItemContainerComponent* OriginContainer, int32 OriginIndex)
+{
+	if (!LeftClickPickedContainer || IsHoldingItem() || !InItem.Instance.IsValid())
+	{
+		return false; // 이미 무언가 들고 있으면 새로 들 수 없음
+	}
+
+	FContainerItem HeldItem = InItem;
+	HeldItem.GridIndex = 0; // HandHeld 컨테이너는 1칸만 존재하므로 항상 0번 index
+
+	LeftClickPickedContainer->ContainerItems.Add(HeldItem);
+	LeftClickPickedContainer->OnContainerUpdated.Broadcast();
+
+	// 취소 시 되돌아갈 기존 Container의 종류와 index 정보 저장
+	LeftClickPickedItemOriginContainer = OriginContainer;
+	LeftClickPickedOriginSlotIndex = OriginIndex;
+
+	// 집는 순간 열려있던 상세정보 UI가 있다면 닫기
+	if (UCPItemDetailPopupWidget* Popup = JustGetItemDetailPopup())
+	{
+		Popup->HideDetail();
+	}
+
+	return true;
 }
 #pragma endregion
 

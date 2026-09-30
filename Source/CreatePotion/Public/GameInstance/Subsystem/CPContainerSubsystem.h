@@ -4,10 +4,25 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
+#include "Types/CPContainerTypes.h"
 #include "CPContainerSubsystem.generated.h"
 
-struct FContainerItem;
 class UCPInventoryComponent;
+
+USTRUCT()
+struct CREATEPOTION_API FCPInventorySaveData
+{
+	GENERATED_BODY()
+	
+	UPROPERTY()
+	TArray<FContainerItem> ContainerItems;
+	
+	UPROPERTY()
+	TArray<FContainerItem> TempContainerItems;
+	
+	UPROPERTY()
+	int32 OwningMoney = 0;
+};
 
 UCLASS()
 class CREATEPOTION_API UCPContainerSubsystem : public UGameInstanceSubsystem
@@ -20,6 +35,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Container|Save")
 	bool LoadContainerData(UCPInventoryComponent* PlayerInventory);
+	
+	FCPInventorySaveData GetSaveData();
+	void LoadSaveData(const FCPInventorySaveData& InSaveData);
+	bool ApplyLoadedSaveData(UCPInventoryComponent* PlayerInventory);
 
 private:
 	void SaveContainerItem(const TArray<FContainerItem>& InItems);
@@ -41,5 +60,11 @@ public:
 	// 백업된 데이터가 있는지 여부 (처음 게임 시작 시엔 안 부르기 위함)
 	UPROPERTY()
 	bool bHasBackup = false;
+	
+private:
+	UPROPERTY()
+	FCPInventorySaveData LoadedSaveData;
+	
+	bool bHasLoadedSaveData = false;
 };
 

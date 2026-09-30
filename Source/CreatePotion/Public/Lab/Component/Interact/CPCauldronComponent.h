@@ -6,6 +6,7 @@
 #include "GameplayTagContainer.h"
 #include "Types/CPItemInstanceTypes.h"
 #include "Components/CPInteractableComponent.h"
+#include "GameInstance/Subsystem/CPCauldronSubsystem.h"
 #include "CPCauldronComponent.generated.h"
 
 struct FCPTagDefinitionRow;
@@ -37,6 +38,9 @@ public:
 	
 	UFUNCTION(BlueprintPure, Category = "Lab|Interaction")
 	TArray<FCPItemInstance> GetIngredientInstance() const;
+	
+	FCPCauldronSaveData GetSaveData() const;
+	void LoadSaveData(const FCPCauldronSaveData& InSaveData);
 	
 	// 포션 생성 (BP 호출)
 	UFUNCTION(BlueprintCallable, Category = "Lab|Interaction")

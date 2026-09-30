@@ -24,6 +24,7 @@ void UCPInventoryComponent::BeginPlay()
 		if (UCPContainerSubsystem* ContainerSubsystem = GI->GetSubsystem<UCPContainerSubsystem>())
 		{
 			ContainerSubsystem->LoadContainerData(this);
+			ContainerSubsystem->ApplyLoadedSaveData(this);
 		}
 	}
 

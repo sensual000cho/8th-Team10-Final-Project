@@ -24,12 +24,9 @@ void UCPContainerMainWidget::NativeConstruct()
 	SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 
 	if (RootCanvas) RootCanvas->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
-	if (TitleBar) TitleBar->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	if (TitleBar) TitleBar->SetVisibility(ESlateVisibility::Visible);
 	if (ContentOverlay) ContentOverlay->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	if (MainVerticalBox) MainVerticalBox->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
-
-	UE_LOG(LogContainer, Warning, TEXT("[ContainerMain] ContentOverlay=%d, Visibility=%d"),
-		ContentOverlay != nullptr, ContentOverlay ? (int32)ContentOverlay->GetVisibility() : -1);
 
 	if (CloseButton)
 	{
@@ -135,5 +132,13 @@ void UCPContainerMainWidget::HandleCloseRequested()
 	if (ACPPlayerController* PC = Cast<ACPPlayerController>(GetOwningPlayer()))
 	{
 		PC->CloseExternalContainerUI();
+	}
+}
+
+void UCPContainerMainWidget::SetHighlightedGridIndex(int32 InGridIndex)
+{
+	if (ContainerGrid)
+	{
+		ContainerGrid->SetHighlightedGridIndex(InGridIndex);
 	}
 }
