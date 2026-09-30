@@ -30,7 +30,13 @@ public:
 	virtual void SetAutoClose(float Duration);
 	
 protected:
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+	
+protected:
 	FTimerHandle AutoCloseTimerHandle;
+	
+	// 음수면 비활성
+	float AutoCloseRemaining = -1.f; 
 };
 
 
