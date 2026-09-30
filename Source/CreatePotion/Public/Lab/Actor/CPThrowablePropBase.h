@@ -88,10 +88,6 @@ protected:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Carry")
     FTransform HeldRelativeTransform;
 
-    // 100.0만큼 투척방향으로 이동(물리 활성화 전)
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Throw", meta = (ClampMin = "0.0", Units = "cm"))
-    float ThrowStartOffset = 100.f;
-
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Prop|Throw", meta = (ClampMin = "0.01", Units = "s"))
     float ThrowerCollisionIgnoreDuration = 0.2f;
 
@@ -146,7 +142,6 @@ private:
     bool bHasHitSinceThrow = false;
     bool bIgnoringThrowerCollision = false;
     float LowSpeedElapsedTime = 0.f;
-    ECollisionResponse OriginalPawnCollisionResponse = ECR_Block;
 
     FTimerHandle RestCheckTimerHandle;
     FTimerHandle ThrowerCollisionIgnoreTimerHandle;
