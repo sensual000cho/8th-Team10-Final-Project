@@ -1,5 +1,8 @@
 #include "Character/GAS/Abilities/GA_CPPlayerGiant.h"
 
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
+
 #include "Character/CPCarryComponent.h"
 #include "Components/ActorComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -52,11 +55,26 @@ void UGA_CPPlayerGiant::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 
 	CacheOriginalState(PlayerCharacter);
 	ApplyGiantState();
+	if (AActor* Avatar = GetAvatarActorFromActorInfo())
+	{
+		if (StartSFX) UGameplayStatics::PlaySoundAtLocation(this, StartSFX, Avatar->GetActorLocation());
+	}
+	bEffectSFXStarted = true;
+
 	PlayerCharacter->GetWorldTimerManager().SetTimer(DurationTimerHandle, this, &UGA_CPPlayerGiant::HandleDurationExpired, DurationSeconds, false);
 }
 
 void UGA_CPPlayerGiant::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
+	if (bEffectSFXStarted)
+	{
+		bEffectSFXStarted = false;
+		if (AActor* Avatar = GetAvatarActorFromActorInfo())
+		{
+			if (EndSFX) UGameplayStatics::PlaySoundAtLocation(this, EndSFX, Avatar->GetActorLocation());
+		}
+	}
+
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(DurationTimerHandle);

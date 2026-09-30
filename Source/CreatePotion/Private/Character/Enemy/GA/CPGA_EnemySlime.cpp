@@ -1,5 +1,8 @@
 #include "Character/Enemy/GA/CPGA_EnemySlime.h"
 
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
+
 #include "AIController.h"
 #include "AbilitySystemComponent.h"
 #include "Character/Enemy/CPEnemyCharacter.h"
@@ -69,6 +72,11 @@ void UCPGA_EnemySlime::ActivateAbility(const FGameplayAbilitySpecHandle Handle, 
 		return;
 	}
 
+	if (AActor* Avatar = GetAvatarActorFromActorInfo())
+	{
+		if (StartSFX) UGameplayStatics::PlaySoundAtLocation(this, StartSFX, Avatar->GetActorLocation());
+	}
+
 	// Spawn된 Class의 초기 AI를 사용하고 원본의 진행 중인 공격/승리 상태는 복사하지 않는다.
 	Clone->InitializeSlimeSplit(*Enemy, SplitScaleMultiplier);
 	Clone->SetLifeSpan(0.0f);
@@ -93,6 +101,10 @@ void UCPGA_EnemySlime::ActivateAbility(const FGameplayAbilitySpecHandle Handle, 
 	Clone->LaunchCharacter(SplitDirection * SplitHorizontalSpeed + FVector::UpVector * SplitUpwardSpeed, true, true);
 
 	// Spawner 등록과 Quest/처치 집계 정책은 여기에서 연결하지 않는다.
+	if (AActor* Avatar = GetAvatarActorFromActorInfo())
+	{
+		if (EndSFX) UGameplayStatics::PlaySoundAtLocation(this, EndSFX, Avatar->GetActorLocation());
+	}
 	EndAbility(Handle, ActorInfo, ActivationInfo, false, false);
 }
 

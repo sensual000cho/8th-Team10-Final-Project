@@ -4,6 +4,8 @@
 #include "Abilities/GameplayAbility.h"
 #include "CPGA_PlayerEnemyGust.generated.h"
 
+class USoundBase;
+
 class ACharacter;
 class UActorComponent;
 class UCharacterMovementComponent;
@@ -21,6 +23,14 @@ public:
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 
 protected:
+	// 효과 적용 성공 시 재생할 단발음. 미지정 시 생략
+	UPROPERTY(EditDefaultsOnly, Category = "Audio|Potion")
+	TObjectPtr<USoundBase> StartSFX;
+
+	// 효과 종료 시 재생할 단발음. 미지정 시 생략
+	UPROPERTY(EditDefaultsOnly, Category = "Audio|Potion")
+	TObjectPtr<USoundBase> EndSFX;
+
 	// Gust 유지 시간. 활성 중 재적용 시 갱신하지 않음
 	UPROPERTY(EditDefaultsOnly, Category = "Potion|Gust", meta = (ClampMin = "0.01", Units = "s"))
 	float DurationSeconds = 30.0f;
@@ -30,6 +40,9 @@ protected:
 	float WalkSpeedMultiplier = 5.0f;
 
 private:
+	// 시작에 성공한 실행만 종료음을 한 번 재생
+	bool bEffectSFXStarted = false;
+
 	void HandleDurationExpired();
 	UFUNCTION()
 	void HandlePlayerDeath(AActor* DamageCauser);
