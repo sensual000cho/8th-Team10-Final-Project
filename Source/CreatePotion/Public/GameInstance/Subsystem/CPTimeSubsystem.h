@@ -29,16 +29,26 @@ class CREATEPOTION_API UCPTimeSubsystem : public UGameInstanceSubsystem
 	GENERATED_BODY()
 	
 public:
-	int32 GetCurrentDay() const;
-	int64 GetTotalWorldMinutes() const;
-	ECPTimePhase GetCurrentPhase() const;
-	
 	// Game Save
 	void LoadSaveData(int64 SavedTotalWorldMinutes);
 	
+	UPROPERTY(BlueprintAssignable)
 	FOnTimeChanged OnTimeChanged;
+	
+	UPROPERTY(BlueprintAssignable)
 	FOnDayChanged OnDayChanged;
+	
+	UPROPERTY(BlueprintAssignable)
 	FOnTimePhaseChanged OnTimePhaseChanged;
+	
+	UFUNCTION(BlueprintCallable)
+	int32 GetCurrentDay() const;
+	
+	UFUNCTION(BlueprintCallable)
+	int64 GetTotalWorldMinutes() const;
+	
+	UFUNCTION(BlueprintCallable)
+	ECPTimePhase GetCurrentPhase() const;
 	
 	UFUNCTION(BlueprintCallable)
 	void AdvanceTime(int64 Amount);

@@ -1,5 +1,8 @@
 #include "Character/GAS/Abilities/CPGA_PlayerSlime.h"
 
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
+
 #include "AbilitySystemComponent.h"
 #include "Character/CPCarryComponent.h"
 #include "Character/CPHealthComponent.h"
@@ -94,6 +97,12 @@ void UCPGA_PlayerSlime::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 
 	CachedHealth = Character->FindComponentByClass<UCPHealthComponent>();
 	if (CachedHealth.IsValid()) CachedHealth->OnDeath.AddUniqueDynamic(this, &UCPGA_PlayerSlime::HandlePlayerDeath);
+	if (AActor* Avatar = GetAvatarActorFromActorInfo())
+	{
+		if (StartSFX) UGameplayStatics::PlaySoundAtLocation(this, StartSFX, Avatar->GetActorLocation());
+	}
+	bEffectSFXStarted = true;
+
 	GetWorld()->GetTimerManager().SetTimer(DurationTimerHandle, this, &UCPGA_PlayerSlime::HandleDurationExpired, DurationSeconds, false);
 }
 
@@ -118,6 +127,15 @@ void UCPGA_PlayerSlime::HandlePlayerDeath(AActor* DamageCauser)
 
 void UCPGA_PlayerSlime::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
+	if (bEffectSFXStarted)
+	{
+		bEffectSFXStarted = false;
+		if (AActor* Avatar = GetAvatarActorFromActorInfo())
+		{
+			if (EndSFX) UGameplayStatics::PlaySoundAtLocation(this, EndSFX, Avatar->GetActorLocation());
+		}
+	}
+
 	if (UWorld* World = GetWorld()) World->GetTimerManager().ClearTimer(DurationTimerHandle);
 	if (CachedCharacter.IsValid()) CachedCharacter->OnCharacterMovementUpdated.RemoveDynamic(this, &UCPGA_PlayerSlime::UpdateSlimeFacing);
 	CachedCharacter.Reset();

@@ -29,14 +29,12 @@ void ACPTutorialActor::BeginPlay()
 
 		if (!bIsCompletionActor && State != EQuestState::NotAccepted)
 		{
-			
 			Destroy();
 			return;
 		}
 
 		if (bIsCompletionActor && State == EQuestState::Completed)
 		{
-		 
 			Destroy();
 			return;
 		}
@@ -83,8 +81,6 @@ void ACPTutorialActor::RefreshInteractability()
 		EQuestCompletionType Type = QuestManager->GetQuestCompletionType(AssociatedQuestID);
 		bCanInteract = (Type == EQuestCompletionType::Dialogue || Type == EQuestCompletionType::ItemCollection);
 	}
-
-	
 }
 
 void ACPTutorialActor::HandleInteract(AActor* Interactor)

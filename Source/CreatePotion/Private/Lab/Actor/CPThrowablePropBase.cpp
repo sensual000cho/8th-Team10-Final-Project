@@ -5,10 +5,15 @@
 #include "AbilitySystemComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/PrimitiveComponent.h"
 #include "GameFramework/Pawn.h"
 #include "TimerManager.h"
 #include "Data/CPForageableItemData.h"
 #include "Lab/Component/Interact/CPThrowableComponent.h"
+#include "GameFramework/Character.h"     
+#include "Components/CapsuleComponent.h" 
+#include "CollisionQueryParams.h"        
+#include "CollisionShape.h"                     
 
 ACPThrowablePropBase::ACPThrowablePropBase()
 {
@@ -201,19 +206,63 @@ bool ACPThrowablePropBase::Throw(const FVector& Direction, float Speed)
 
     const FVector ThrowDirection = Direction.GetSafeNormal();
 
-    // 투척자 저장(현 프로젝트 상 무조건 Player)
     LastThrower = GetAttachParentActor();
-    BeginThrowerCollisionIgnore();
+
+    if (!IsValid(LastThrower))
+    {
+        return false;
+    }
 
     DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+    
+    float ReleaseDistance = 50.f;
 
-    // 물리를 활성화하기 전에 투척 방향으로 이동.
+    if (const ACharacter* ThrowerCharacter = Cast<ACharacter>(LastThrower))
+    {
+        if (const UCapsuleComponent* Capsule = ThrowerCharacter->GetCapsuleComponent())
+        {
+            const float CapsuleRadius = Capsule->GetScaledCapsuleRadius();
+            const FVector PropExtent = StaticMeshComponent->Bounds.BoxExtent;
+            const float PropRadius = PropExtent.GetMax();
+            ReleaseDistance = CapsuleRadius + PropRadius + 5.f;
+        }
+    }
+
+    const FVector StartLocation = GetActorLocation();
+    const FVector DesiredLocation = StartLocation + ThrowDirection * ReleaseDistance;
+
+    FCollisionQueryParams QueryParams;
+    QueryParams.AddIgnoredActor(this);
+    QueryParams.AddIgnoredActor(LastThrower.Get());
+
+    FHitResult HitResult;
+
+    const FVector PropExtent = StaticMeshComponent->Bounds.BoxExtent;
+    const float SweepRadius = PropExtent.GetMax();
+    
+    const bool bBlocked = GetWorld()->SweepSingleByChannel(
+        HitResult,
+        StartLocation,
+        DesiredLocation,
+        FQuat::Identity,
+        ECC_Visibility,
+        FCollisionShape::MakeSphere(SweepRadius),
+        QueryParams
+    );
+
+    FVector ReleaseLocation = DesiredLocation;
+
+    if (bBlocked)
+    {
+        ReleaseLocation = HitResult.Location - ThrowDirection * 2.f;
+    }
+
     SetActorLocation(
-        GetActorLocation() + ThrowDirection * ThrowStartOffset, 
-        false, 
-        nullptr, 
+        ReleaseLocation,
+        false,
+        nullptr,
         ETeleportType::TeleportPhysics
-        );
+    );
 
     SetActorHiddenInGame(false);
 
@@ -222,18 +271,21 @@ bool ACPThrowablePropBase::Throw(const FVector& Direction, float Speed)
 
     StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
     StaticMeshComponent->SetGenerateOverlapEvents(true);
-    
     StaticMeshComponent->SetLinearDamping(FlightLinearDamping);
     StaticMeshComponent->SetAngularDamping(FlightAngularDamping);
-    
     StaticMeshComponent->SetSimulatePhysics(true);
     StaticMeshComponent->WakeAllRigidBodies();
-    StaticMeshComponent->SetPhysicsLinearVelocity(ThrowDirection * Speed);
+
+    FVector ThrowerVelocity = LastThrower->GetVelocity();
+    ThrowerVelocity.Z = 0.f;
+
+    const FVector InitialVelocity = ThrowerVelocity + ThrowDirection * Speed;
+
+    StaticMeshComponent->SetPhysicsLinearVelocity(InitialVelocity);
 
     SetPropState(ECPThrowablePropState::Thrown);
     StartRestCheck();
 
-    // 물리 투척 준비가 끝난 후 자식 Actor에 알림.
     HandleThrowStarted(LastThrower);
 
     return true;
@@ -271,7 +323,8 @@ void ACPThrowablePropBase::SetPropState(ECPThrowablePropState NewState)
     if (PropState == NewState) return;
     PropState = NewState;
     
-    if (IsValid(InteractableComponent)){
+    if (IsValid(InteractableComponent))
+    {
         InteractableComponent->RefreshUI();
     }
 }
@@ -299,17 +352,32 @@ void ACPThrowablePropBase::StopRestCheck()
 
 void ACPThrowablePropBase::BeginThrowerCollisionIgnore()
 {
-    StaticMeshComponent->IgnoreActorWhenMoving(LastThrower.Get(), true);
-    OriginalPawnCollisionResponse = StaticMeshComponent->GetCollisionResponseToChannel(ECC_Pawn);
-    StaticMeshComponent->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
-    bIgnoringThrowerCollision = true;
-
-    if (UPrimitiveComponent* ThrowerRoot = Cast<UPrimitiveComponent>(LastThrower->GetRootComponent()))
+    if (!IsValid(StaticMeshComponent) || !IsValid(LastThrower))
     {
-        ThrowerRoot->IgnoreActorWhenMoving(this, true);
+        return;
+    }
+    
+    StaticMeshComponent->IgnoreActorWhenMoving(LastThrower.Get(), true);
+    TArray<UPrimitiveComponent*> ThrowerPrimitiveComponents;
+    LastThrower->GetComponents<UPrimitiveComponent>(ThrowerPrimitiveComponents);
+
+    for (UPrimitiveComponent* PrimitiveComponent : ThrowerPrimitiveComponents)
+    {
+        if (IsValid(PrimitiveComponent))
+        {
+            PrimitiveComponent->IgnoreActorWhenMoving(this, true);
+        }
     }
 
-    GetWorldTimerManager().SetTimer(ThrowerCollisionIgnoreTimerHandle, this, &ACPThrowablePropBase::EndThrowerCollisionIgnore, ThrowerCollisionIgnoreDuration, false);
+    bIgnoringThrowerCollision = true;
+
+    GetWorldTimerManager().SetTimer(
+        ThrowerCollisionIgnoreTimerHandle,
+        this,
+        &ACPThrowablePropBase::EndThrowerCollisionIgnore,
+        ThrowerCollisionIgnoreDuration,
+        false
+    );
 }
 
 void ACPThrowablePropBase::EndThrowerCollisionIgnore()
@@ -323,15 +391,21 @@ void ACPThrowablePropBase::EndThrowerCollisionIgnore()
 
     if (IsValid(StaticMeshComponent))
     {
-        StaticMeshComponent->SetCollisionResponseToChannel(ECC_Pawn, OriginalPawnCollisionResponse);
         StaticMeshComponent->IgnoreActorWhenMoving(LastThrower.Get(), false);
     }
 
     if (IsValid(LastThrower))
     {
-        if (UPrimitiveComponent* ThrowerRoot = Cast<UPrimitiveComponent>(LastThrower->GetRootComponent()))
+        TArray<UPrimitiveComponent*> ThrowerPrimitiveComponents;
+
+        LastThrower->GetComponents<UPrimitiveComponent>(ThrowerPrimitiveComponents);
+
+        for (UPrimitiveComponent* PrimitiveComponent : ThrowerPrimitiveComponents)
         {
-            ThrowerRoot->IgnoreActorWhenMoving(this, false);
+            if (IsValid(PrimitiveComponent))
+            {
+                PrimitiveComponent->IgnoreActorWhenMoving(this, false);
+            }
         }
     }
 

@@ -133,33 +133,26 @@ bool UCPCodexSubsystem::RecordForageableEntry(UCPForageableItemData* ItemData)
 	if (FCPForageableCodexEntry* CodexEntry = ForageableCodexEntries.Find(ItemData)){
 		CodexEntry->HarvestCount++;
 		
-		if (CodexEntry->Level < MaxLevel && FMath::FRand() < LevelUpChance){
+		if (CodexEntry->Level < MaxLevel && CodexEntry->HarvestCount >= RequiredCount[CodexEntry->Level]){
 			CodexEntry->Level++;
 		}
 		
 		OnForageableCodexUpdated.Broadcast();
 		return true;
 	}
+	else
+	{
+		// 채집물 등록
+		FCPForageableCodexEntry NewEntry;
+		NewEntry.Entry = ItemData;
+		ForageableCodexEntries.Add(ItemData, NewEntry);
+		
+		OnForageableCodexUpdated.Broadcast();
+		OnForageableCodexRegistered.Broadcast(ItemData);
+		return true;	
+	}
 	
-	// 채집물 등록
-	FCPForageableCodexEntry NewEntry;
-	NewEntry.Entry = ItemData;
-	ForageableCodexEntries.Add(ItemData, NewEntry);
 	
-	OnForageableCodexUpdated.Broadcast();
-	return true;
-}
-
-bool UCPCodexSubsystem::IncreaseForageableLevel(UCPForageableItemData* ItemData)
-{
-	if (!ItemData) return false;
-	
-	FCPForageableCodexEntry* CodexEntry = ForageableCodexEntries.Find(ItemData);
-	if (!CodexEntry || CodexEntry->Level >= MaxLevel) return false;
-
-	CodexEntry->Level++;
-	OnForageableCodexUpdated.Broadcast();
-	return true;
 }
 
 bool UCPCodexSubsystem::RegisterNPCEntry(UCPNPCDataAsset* NPCData)

@@ -46,6 +46,8 @@ bool ACPNestActor::PotionReaction(const FGameplayTag& EventTag, AActor* Instigat
 	
 	DroppedItem->StartDropMotion(DropDirection);
 	
+	PlayStartSound();
+	
 	Destroy();
 	
 	return true;

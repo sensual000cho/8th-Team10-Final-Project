@@ -4,7 +4,7 @@
 #include "UI/Widgets/Common/Notification/CPCommonNotificationWidget.h"
 #include "Components/TextBlock.h"
 
-void UCPCommonNotificationWidget::SetNotifiactionText(const FText& InText)
+void UCPCommonNotificationWidget::SetNotificationText(const FText& InText)
 {
 	if (TextBlock_Notification)
 	{
@@ -12,8 +12,14 @@ void UCPCommonNotificationWidget::SetNotifiactionText(const FText& InText)
 	}
 }
 
-void UCPCommonNotificationWidget::ShowWithAutoClose(const FText& InText, float Duration)
+void UCPCommonNotificationWidget::ShowNotification()
 {
-	SetNotifiactionText(InText);
-	SetAutoClose(Duration);
+	AddToViewport();
+	SetAutoClose(NotificationDuration);
+}
+
+void UCPCommonNotificationWidget::RequestClose()
+{
+	AutoCloseRemaining = -1.f;
+	RemoveFromParent();
 }
