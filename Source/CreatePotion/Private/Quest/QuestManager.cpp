@@ -228,15 +228,20 @@ FText UQuestManager::GetQuestTitle(FName QuestID) const
 	return Quest ? Quest->QuestTitle : FText::GetEmpty();
 }
 
-TArray<FText> UQuestManager::GetQuestScriptLines(FName QuestID) const
+TArray<FCPDialogueLine> UQuestManager::GetQuestScriptLines(FName QuestID) const
 {
 	const FQuestData* Quest = FindScriptData(QuestID);
-	return Quest ? Quest->QuestScriptLines : TArray<FText>();
+	return Quest ? Quest->QuestScriptLines : TArray<FCPDialogueLine>();
 }
 
 FText UQuestManager::GetQuestScriptTextJoined(FName QuestID) const
 {
-	return FText::Join(FText::FromString(TEXT("\n")), GetQuestScriptLines(QuestID));
+	TArray<FText> Texts;
+	for (const FCPDialogueLine& Line : GetQuestScriptLines(QuestID))
+	{
+		Texts.Add(Line.Text);
+	}
+	return FText::Join(FText::FromString(TEXT("\n")), Texts);
 }
 
 FText UQuestManager::GetQuestSummaryText(FName QuestID) const
@@ -277,10 +282,10 @@ bool UQuestManager::IsQuestStoryUnlocked(FName QuestID) const
 	return Quest->RequiredStoryStage <= GetNPCStoryStage(Quest->OwningNPCId);
 }
 
-TArray<FText> UQuestManager::GetNPCStoryLines(FName QuestID) const
+TArray<FCPDialogueLine> UQuestManager::GetNPCStoryLines(FName QuestID) const
 {
 	const FQuestAnswerData* Answer = FindAnswerData(QuestID);
-	return Answer ? Answer->NPCStoryLines : TArray<FText>();
+	return Answer ? Answer->NPCStoryLines : TArray<FCPDialogueLine>();
 }
 
 int32 UQuestManager::GetQuestHintLevel(FName QuestID) const
