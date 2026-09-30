@@ -12,8 +12,13 @@ class UCPForageableItemData;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnForageableCodexUpdated);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnNPCCodexUpdated);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnForageableCodexRegistered, UCPForageableItemData*, ItemData);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnForageableCodexLevelUp, UCPForageableItemData*, ItemData, int32, NewLevel);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNPCCodexRegistered, UCPNPCDataAsset*, NPCData);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCodexItemSelected, UCPForageableItemData*, ItemData);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCodexNPCSelected, UCPNPCDataAsset*, NPCData);
+
 
 USTRUCT(BlueprintType)
 struct FCPForageableCodexEntry
@@ -28,7 +33,7 @@ public:
 	int32 Level = 1;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Codex")
-	int32 HarvestCount = 0;
+	int32 HarvestCount = 1;
 };
 
 USTRUCT(BlueprintType)
@@ -110,6 +115,15 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Codex|NPC")
 	FOnCodexNPCSelected OnCodexNPCSelected;
 
+	UPROPERTY(BlueprintAssignable, Category = "Codex|Forageable")
+	FOnForageableCodexRegistered OnForageableCodexRegistered;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Codex|Forageable")
+	FOnForageableCodexLevelUp OnForageableCodexLevelUp;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Codex|Forageable")
+	FOnNPCCodexRegistered OnNPCCodexRegistered;
+	
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Codex|Forageable")
 	TMap<TObjectPtr<UCPForageableItemData>, FCPForageableCodexEntry> ForageableCodexEntries;
@@ -119,4 +133,8 @@ protected:
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Codex|NPC")
 	TMap<TObjectPtr<UCPNPCDataAsset>, FCPNPCCodexEntry> NPCCodexEntries;
+	
+private:
+	static constexpr int32 MaxLevel = 4;
+	static constexpr float LevelUpChance = 0.1f;
 };

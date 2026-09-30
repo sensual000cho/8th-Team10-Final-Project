@@ -38,6 +38,13 @@ void UCPCauldronComponent::BeginPlay()
 		BoundIngredientTrigger->OnComponentBeginOverlap.AddUniqueDynamic(
 				this, &UCPCauldronComponent::HandleIngredientOverlap);
 	}
+	
+	UWorld* World = GetWorld();
+	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+	UCPCauldronSubsystem* CauldronSubsystem = GameInstance ? GameInstance->GetSubsystem<UCPCauldronSubsystem>() : nullptr;
+	if (!CauldronSubsystem) return;
+	
+	CauldronSubsystem->RegisterCauldron(this);
 }
 
 void UCPCauldronComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -47,6 +54,13 @@ void UCPCauldronComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 				this, &UCPCauldronComponent::HandleIngredientOverlap);
 
 		BoundIngredientTrigger = nullptr;
+	}
+	
+	UWorld* World = GetWorld();
+	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+	UCPCauldronSubsystem* CauldronSubsystem = GameInstance ? GameInstance->GetSubsystem<UCPCauldronSubsystem>() : nullptr;
+	if (CauldronSubsystem){
+		CauldronSubsystem->UnRegisterCauldron(this);
 	}
 	
 	Super::EndPlay(EndPlayReason);
@@ -86,6 +100,25 @@ TArray<FGameplayTag> UCPCauldronComponent::GetEffectTags() const
 TArray<FCPItemInstance> UCPCauldronComponent::GetIngredientInstance() const
 {
 	return IngredientInstances;
+}
+
+FCPCauldronSaveData UCPCauldronComponent::GetSaveData() const
+{
+	FCPCauldronSaveData SaveData;
+	SaveData.IngredientInstances = IngredientInstances;
+	SaveData.IngredientTags = IngredientTags;
+	SaveData.CombinedTags = CombinedTags;
+	
+	return SaveData;
+}
+
+void UCPCauldronComponent::LoadSaveData(const FCPCauldronSaveData& InSaveData)
+{
+	IngredientInstances = InSaveData.IngredientInstances;
+	IngredientTags = InSaveData.IngredientTags;
+	CombinedTags = InSaveData.CombinedTags;
+	
+	OnEffectsChanged.Broadcast();
 }
 
 bool UCPCauldronComponent::CreatePotion()

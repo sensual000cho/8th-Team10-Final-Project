@@ -1,6 +1,8 @@
 #include "Character/GAS/Abilities/GA_CPPlayerGiant.h"
 
-#include "Abilities/GameplayAbilityTypes.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
+
 #include "Character/CPCarryComponent.h"
 #include "Components/ActorComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -13,6 +15,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/BlueprintCameraEvaluationDataRef.h"
 #include "GameFramework/GameplayCameraComponentBase.h"
+#include "TimerManager.h"
 #include "UObject/UnrealType.h"
 
 UGA_CPPlayerGiant::UGA_CPPlayerGiant()
@@ -44,7 +47,7 @@ void UGA_CPPlayerGiant::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 
 	ACharacter* PlayerCharacter = ActorInfo ? Cast<ACharacter>(ActorInfo->AvatarActor.Get()) : nullptr;
-	if (!IsValid(PlayerCharacter) || DurationSeconds <= 0.0f)
+	if (!IsValid(PlayerCharacter) || DurationSeconds <= 0.0f || WalkSpeedMultiplier <= 0.0f)
 	{
 		EndAbility(Handle, ActorInfo, ActivationInfo, false, true);
 		return;
@@ -52,11 +55,26 @@ void UGA_CPPlayerGiant::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 
 	CacheOriginalState(PlayerCharacter);
 	ApplyGiantState();
+	if (AActor* Avatar = GetAvatarActorFromActorInfo())
+	{
+		if (StartSFX) UGameplayStatics::PlaySoundAtLocation(this, StartSFX, Avatar->GetActorLocation());
+	}
+	bEffectSFXStarted = true;
+
 	PlayerCharacter->GetWorldTimerManager().SetTimer(DurationTimerHandle, this, &UGA_CPPlayerGiant::HandleDurationExpired, DurationSeconds, false);
 }
 
 void UGA_CPPlayerGiant::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
+	if (bEffectSFXStarted)
+	{
+		bEffectSFXStarted = false;
+		if (AActor* Avatar = GetAvatarActorFromActorInfo())
+		{
+			if (EndSFX) UGameplayStatics::PlaySoundAtLocation(this, EndSFX, Avatar->GetActorLocation());
+		}
+	}
+
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(DurationTimerHandle);
@@ -73,13 +91,18 @@ void UGA_CPPlayerGiant::HandleDurationExpired()
 
 void UGA_CPPlayerGiant::HandlePreCharacterMovement()
 {
-	OriginalMaxWalkSpeed = CachedCharacterMovement->MaxWalkSpeed;
-	CachedCharacterMovement->MaxWalkSpeed = OriginalMaxWalkSpeed * WalkSpeedMultiplier;
+	if (!bSpeedApplied)
+	{
+		CachedCharacterMovement->MaxWalkSpeed *= WalkSpeedMultiplier;
+		bSpeedApplied = true;
+	}
 }
 
 void UGA_CPPlayerGiant::RestoreCalculatedWalkSpeed(float DeltaSeconds, FVector OldLocation, FVector OldVelocity)
 {
-	CachedCharacterMovement->MaxWalkSpeed = OriginalMaxWalkSpeed;
+	// Gust와 종료 순서가 달라도 Giant 배율만 제거한다.
+	if (bSpeedApplied) CachedCharacterMovement->MaxWalkSpeed /= WalkSpeedMultiplier;
+	bSpeedApplied = false;
 }
 
 void UGA_CPPlayerGiant::CacheOriginalState(ACharacter* PlayerCharacter)
@@ -95,7 +118,6 @@ void UGA_CPPlayerGiant::CacheOriginalState(ACharacter* PlayerCharacter)
 	OriginalMeshLocation = CachedMesh->GetRelativeLocation();
 	OriginalCapsuleRadius = CachedCapsule->GetUnscaledCapsuleRadius();
 	OriginalCapsuleHalfHeight = CachedCapsule->GetUnscaledCapsuleHalfHeight();
-	OriginalMaxWalkSpeed = CachedCharacterMovement->MaxWalkSpeed;
 
 	if (CachedCarryComponent.IsValid())
 	{
@@ -138,7 +160,7 @@ void UGA_CPPlayerGiant::RestoreOriginalState()
 	CachedCharacter->OnCharacterMovementUpdated.RemoveDynamic(this, &UGA_CPPlayerGiant::RestoreCalculatedWalkSpeed);
 	CachedCapsule->SetCapsuleSize(OriginalCapsuleRadius, OriginalCapsuleHalfHeight, true);
 	CachedCharacter->AddActorWorldOffset(FVector(0.0f, 0.0f, -OriginalCapsuleHalfHeight * (Magnitude - 1.0f)), false, nullptr, ETeleportType::TeleportPhysics);
-	CachedCharacterMovement->MaxWalkSpeed = OriginalMaxWalkSpeed;
+	RestoreCalculatedWalkSpeed(0.0f, FVector::ZeroVector, FVector::ZeroVector);
 	RestoreGiantCamera();
 
 	if (CachedCarryComponent.IsValid())
@@ -163,7 +185,10 @@ void UGA_CPPlayerGiant::BindPreCharacterMovement()
 
 void UGA_CPPlayerGiant::UnbindPreCharacterMovement()
 {
+	// 컴포넌트 제거 중에는 Tick 컴포넌트가 먼저 사라질 수 있다.
+	if (!CachedPreCMCTickComponent.IsValid()) return;
 	FMulticastDelegateProperty* TickDelegateProperty = FindFProperty<FMulticastDelegateProperty>(CachedPreCMCTickComponent->GetClass(), TEXT("Tick"));
+	if (!TickDelegateProperty) return;
 	FScriptDelegate Delegate;
 	Delegate.BindUFunction(this, GET_FUNCTION_NAME_CHECKED(UGA_CPPlayerGiant, HandlePreCharacterMovement));
 	TickDelegateProperty->RemoveDelegate(Delegate, CachedPreCMCTickComponent.Get(), TickDelegateProperty->ContainerPtrToValuePtr<void>(CachedPreCMCTickComponent.Get()));

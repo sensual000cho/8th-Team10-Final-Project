@@ -46,6 +46,10 @@ public:
 	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Common")
 	TSoftClassPtr<UUserWidget> GoalWidgetClass;
 	
+	// Notification
+	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Notification")
+	TSoftClassPtr<UUserWidget> NotificationWidgetClass;
+	
 	// Dialogue
 	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Dialogue")
 	TSoftClassPtr<UUserWidget> NPCDialogueWidgetClass;

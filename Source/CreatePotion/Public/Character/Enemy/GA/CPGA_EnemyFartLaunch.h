@@ -5,6 +5,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "CPGA_EnemyFartLaunch.generated.h"
 
+class USoundBase;
+
 class ACPEnemyCharacter;
 class UAnimInstance;
 class UAnimSequence;
@@ -25,6 +27,14 @@ public:
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 
 protected:
+	// 효과 적용 성공 시 재생할 단발음. 미지정 시 생략
+	UPROPERTY(EditDefaultsOnly, Category = "Audio|Potion")
+	TObjectPtr<USoundBase> StartSFX;
+
+	// 효과 종료 시 재생할 단발음. 미지정 시 생략
+	UPROPERTY(EditDefaultsOnly, Category = "Audio|Potion")
+	TObjectPtr<USoundBase> EndSFX;
+
 	// 날아가는 동안 반복 재생할 Animation. BP GA에서 지정한다.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Potion|FartLaunch|Animation")
 	TObjectPtr<UAnimSequence> LaunchAnimation;
@@ -45,6 +55,9 @@ protected:
 	FGameplayTag FartLaunchCueTag;
 
 private:
+	// 시작에 성공한 실행만 종료음을 한 번 재생
+	bool bEffectSFXStarted = false;
+
 	UFUNCTION()
 	void HandleLanded(const FHitResult& Hit);
 

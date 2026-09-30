@@ -132,17 +132,27 @@ bool UCPCodexSubsystem::RecordForageableEntry(UCPForageableItemData* ItemData)
 	// 등록이 되어 있는 경우 채집 횟수 증가
 	if (FCPForageableCodexEntry* CodexEntry = ForageableCodexEntries.Find(ItemData)){
 		CodexEntry->HarvestCount++;
+		
+		if (CodexEntry->Level < MaxLevel && FMath::FRand() < LevelUpChance){
+			CodexEntry->Level++;
+		}
+		
 		OnForageableCodexUpdated.Broadcast();
 		return true;
 	}
+	else
+	{
+		// 채집물 등록
+		FCPForageableCodexEntry NewEntry;
+		NewEntry.Entry = ItemData;
+		ForageableCodexEntries.Add(ItemData, NewEntry);
+		
+		OnForageableCodexUpdated.Broadcast();
+		OnForageableCodexRegistered.Broadcast(ItemData);
+		return true;	
+	}
 	
-	// 채집물 등록
-	FCPForageableCodexEntry NewEntry;
-	NewEntry.Entry = ItemData;
-	ForageableCodexEntries.Add(ItemData, NewEntry);
 	
-	OnForageableCodexUpdated.Broadcast();
-	return true;
 }
 
 bool UCPCodexSubsystem::IncreaseForageableLevel(UCPForageableItemData* ItemData)
@@ -150,7 +160,7 @@ bool UCPCodexSubsystem::IncreaseForageableLevel(UCPForageableItemData* ItemData)
 	if (!ItemData) return false;
 	
 	FCPForageableCodexEntry* CodexEntry = ForageableCodexEntries.Find(ItemData);
-	if (!CodexEntry || CodexEntry->Level >= 4) return false;
+	if (!CodexEntry || CodexEntry->Level >= MaxLevel) return false;
 
 	CodexEntry->Level++;
 	OnForageableCodexUpdated.Broadcast();

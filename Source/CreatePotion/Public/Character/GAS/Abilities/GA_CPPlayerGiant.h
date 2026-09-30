@@ -3,8 +3,9 @@
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbility.h"
 #include "Core/CameraRigInstanceID.h"
-#include "TimerManager.h"
 #include "GA_CPPlayerGiant.generated.h"
+
+class USoundBase;
 
 class ACharacter;
 class UActorComponent;
@@ -17,7 +18,7 @@ class USkeletalMeshComponent;
 
 /**
  * Potion.Effect.Giant의 Player 전용 구현.
- * NPC GA에 의존하지 않고 거대화 적용과 원상복구를 직접 관리한다.
+ * 외형, 캡슐, 이동 속도와 카메라의 거대화 적용 및 복구를 관리한다.
  */
 UCLASS(Blueprintable)
 class CREATEPOTION_API UGA_CPPlayerGiant : public UGameplayAbility
@@ -31,6 +32,14 @@ public:
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 
 protected:
+	// 효과 적용 성공 시 재생할 단발음. 미지정 시 생략
+	UPROPERTY(EditDefaultsOnly, Category = "Audio|Potion")
+	TObjectPtr<USoundBase> StartSFX;
+
+	// 효과 종료 시 재생할 단발음. 미지정 시 생략
+	UPROPERTY(EditDefaultsOnly, Category = "Audio|Potion")
+	TObjectPtr<USoundBase> EndSFX;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Potion|Giant")
 	FGameplayTag EffectTag;
 
@@ -59,6 +68,9 @@ protected:
 	FVector GiantCameraTranslationOffset = FVector(-600.0f, 0.0f, 150.0f);
 
 private:
+	// 시작에 성공한 실행만 종료음을 한 번 재생
+	bool bEffectSFXStarted = false;
+
 	UFUNCTION()
 	void HandleDurationExpired();
 
@@ -96,7 +108,7 @@ private:
 	float OriginalCapsuleRadius = 0.0f;
 	float OriginalCapsuleHalfHeight = 0.0f;
 	float OriginalThrowSpeedMultiplier = 1.0f;
-	// 매 프레임 부모 BP가 계산한 원본 MaxWalkSpeed
-	float OriginalMaxWalkSpeed = 0.0f;
+	// 현재 이동 계산의 Giant 속도 배율 적용 여부
+	bool bSpeedApplied = false;
 	bool bGiantApplied = false;
 };

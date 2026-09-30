@@ -40,4 +40,7 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Carry|Throw", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
 	float UpwardBias;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Carry|Throw", meta = (AllowPrivateAccess = "true", ClampMin = "1.0"))
+	float UpwardThrowSpeedMultiplier;
 };
