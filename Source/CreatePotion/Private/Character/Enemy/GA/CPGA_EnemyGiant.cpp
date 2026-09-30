@@ -1,5 +1,8 @@
 #include "Character/Enemy/GA/CPGA_EnemyGiant.h"
 
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
+
 #include "Character/Enemy/CPEnemyCharacter.h"
 #include "TimerManager.h"
 
@@ -42,6 +45,12 @@ void UCPGA_EnemyGiant::ActivateAbility(const FGameplayAbilitySpecHandle Handle, 
 	bGiantApplied = true;
 	Enemy->SetGiantMultipliers(ScaleMultiplier, WalkSpeedMultiplier, AttackImpulseMultiplier);
 	DyingDelegateHandle = Enemy->OnEnemyDying.AddUObject(this, &UCPGA_EnemyGiant::HandleDurationExpired);
+	if (AActor* Avatar = GetAvatarActorFromActorInfo())
+	{
+		if (StartSFX) UGameplayStatics::PlaySoundAtLocation(this, StartSFX, Avatar->GetActorLocation());
+	}
+	bEffectSFXStarted = true;
+
 	GetWorld()->GetTimerManager().SetTimer(DurationTimerHandle, this, &UCPGA_EnemyGiant::HandleDurationExpired, DurationSeconds, false);
 }
 
@@ -52,6 +61,15 @@ void UCPGA_EnemyGiant::HandleDurationExpired()
 
 void UCPGA_EnemyGiant::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
+	if (bEffectSFXStarted)
+	{
+		bEffectSFXStarted = false;
+		if (AActor* Avatar = GetAvatarActorFromActorInfo())
+		{
+			if (EndSFX) UGameplayStatics::PlaySoundAtLocation(this, EndSFX, Avatar->GetActorLocation());
+		}
+	}
+
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(DurationTimerHandle);

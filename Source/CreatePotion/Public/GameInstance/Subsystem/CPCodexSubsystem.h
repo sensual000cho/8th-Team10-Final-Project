@@ -12,8 +12,13 @@ class UCPForageableItemData;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnForageableCodexUpdated);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnNPCCodexUpdated);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnForageableCodexRegistered, UCPForageableItemData*, ItemData);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnForageableCodexLevelUp, UCPForageableItemData*, ItemData, int32, NewLevel);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNPCCodexRegistered, UCPNPCDataAsset*, NPCData);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCodexItemSelected, UCPForageableItemData*, ItemData);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCodexNPCSelected, UCPNPCDataAsset*, NPCData);
+
 
 USTRUCT(BlueprintType)
 struct FCPForageableCodexEntry
@@ -28,7 +33,7 @@ public:
 	int32 Level = 1;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Codex")
-	int32 HarvestCount = 0;
+	int32 HarvestCount = 1;
 };
 
 USTRUCT(BlueprintType)
@@ -41,15 +46,31 @@ public:
 	TObjectPtr<UCPNPCDataAsset> Entry = nullptr;
 };
 
+USTRUCT(BlueprintType)
+struct FCPCodexSaveData
+{
+	GENERATED_BODY()
+	
+public:
+	UPROPERTY()
+	TArray<FCPForageableCodexEntry> ForageableEntries;
+	
+	UPROPERTY()
+	TMap<FGameplayTag, bool> DiscoveredTags;
+
+	UPROPERTY()
+	TArray<FCPNPCCodexEntry> NPCEntries;
+};
+
 UCLASS()
 class CREATEPOTION_API UCPCodexSubsystem : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
 	
 public:
-	// 등록된 전체 채집물을 반환(미사용)
-	UFUNCTION(BlueprintPure, Category = "Codex|Forageable")
-	TArray<FCPForageableCodexEntry> GetForageableCodexEntries() const;
+	// Game Save
+	FCPCodexSaveData GetSaveData() const;
+	void LoadSaveData(const FCPCodexSaveData& SaveData);
 	
 	// 등록된 전체 채집물 DA를 반환
 	UFUNCTION(BlueprintPure, Category = "Codex|Forageable")
@@ -74,10 +95,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Codex|Forageable")
 	bool RecordForageableEntry(UCPForageableItemData* ItemData);
 	
-	// 등록된 채집물의 정보 레벨을 증가(~4)
-	UFUNCTION(BlueprintCallable, Category = "Codex|Forageable")
-	bool IncreaseForageableLevel(UCPForageableItemData* ItemData);
-	
 	UFUNCTION(BlueprintCallable, Category = "Codex|NPC")
 	bool RegisterNPCEntry(UCPNPCDataAsset* NPCData);
 	
@@ -94,6 +111,15 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Codex|NPC")
 	FOnCodexNPCSelected OnCodexNPCSelected;
 
+	UPROPERTY(BlueprintAssignable, Category = "Codex|Forageable")
+	FOnForageableCodexRegistered OnForageableCodexRegistered;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Codex|Forageable")
+	FOnForageableCodexLevelUp OnForageableCodexLevelUp;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Codex|Forageable")
+	FOnNPCCodexRegistered OnNPCCodexRegistered;
+	
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Codex|Forageable")
 	TMap<TObjectPtr<UCPForageableItemData>, FCPForageableCodexEntry> ForageableCodexEntries;
@@ -103,4 +129,8 @@ protected:
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Codex|NPC")
 	TMap<TObjectPtr<UCPNPCDataAsset>, FCPNPCCodexEntry> NPCCodexEntries;
+	
+private:
+	inline static constexpr int32 RequiredCount[] = {1, 3, 6, 10};
+	static constexpr int32 MaxLevel = 4;
 };

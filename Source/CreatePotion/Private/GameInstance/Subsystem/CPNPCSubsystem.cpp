@@ -1,6 +1,7 @@
 ﻿#include "GameInstance/Subsystem/CPNPCSubsystem.h"
 #include "GameInstance/Subsystem/CPTimeSubsystem.h"
 #include "NPC/CPBaseNPC.h"
+#include "NPC/Components/CPNPCMoveComponent.h"
 
 void UCPNPCSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -28,6 +29,33 @@ void UCPNPCSubsystem::Deinitialize()
 		}
 	}
 	Super::Deinitialize();
+}
+
+FCPNPCSaveData UCPNPCSubsystem::GetSaveData()
+{
+	for (const TPair<FName, TArray<TWeakObjectPtr<ACPBaseNPC>>>& Pair : ActiveNPCRegistry){
+		for (const TWeakObjectPtr<ACPBaseNPC>& WeakNPC : Pair.Value){
+			ACPBaseNPC* NPC = WeakNPC.Get();
+			if (!NPC) continue;
+			
+			UCPNPCMoveComponent* MoveComponent = NPC->FindComponentByClass<UCPNPCMoveComponent>();
+			if (!MoveComponent) continue;
+			
+			MoveComponent->SaveMovementState();
+		}
+	}
+	
+	FCPNPCSaveData SaveData;
+	SaveData.NPCEffects = NPCStateRepository;
+	SaveData.NPCMovements = NPCMovementRepository;
+
+	return SaveData;
+}
+
+void UCPNPCSubsystem::LoadSaveData(const FCPNPCSaveData& SaveData)
+{
+	NPCStateRepository = SaveData.NPCEffects;
+	NPCMovementRepository = SaveData.NPCMovements;
 }
 
 void UCPNPCSubsystem::RegisterNPCEffect(FName NPCId, FGameplayTag EffectTag, int64 DurationWorldMinutes, float Magnitude)
