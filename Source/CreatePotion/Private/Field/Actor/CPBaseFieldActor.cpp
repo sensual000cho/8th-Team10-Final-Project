@@ -1,5 +1,7 @@
 #include "Field/Actor/CPBaseFieldActor.h"
 #include "AbilitySystemComponent.h"
+#include "Components/AudioComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 ACPBaseFieldActor::ACPBaseFieldActor()
 {
@@ -9,6 +11,11 @@ ACPBaseFieldActor::ACPBaseFieldActor()
 	SetRootComponent(Root);
 	
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+	
+	LoopAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("LoopAudioComponent"));
+	
+	LoopAudioComponent->SetupAttachment(Root);
+	LoopAudioComponent->bAutoActivate = false;
 }
 
 UAbilitySystemComponent* ACPBaseFieldActor::GetAbilitySystemComponent() const
@@ -29,6 +36,56 @@ bool ACPBaseFieldActor::PotionReaction(const FGameplayTag& EventTag, AActor* Ins
 	const int32 ActivatedAbilityCount = AbilitySystemComponent->HandleGameplayEvent(EventTag, &EventData);
 	
 	return ActivatedAbilityCount > 0;
+}
+
+void ACPBaseFieldActor::PlayStartSound()
+{
+	if (!SoundSet.StartSound) return;
+	
+	UGameplayStatics::PlaySoundAtLocation(
+		this,
+		SoundSet.StartSound,
+		GetActorLocation(),
+		1.f,
+		1.f,
+		0.f,
+		SoundSet.Attenuation,
+		SoundSet.Concurrency);
+}
+
+void ACPBaseFieldActor::StartLoopSound()
+{
+	if (!SoundSet.LoopSound || !LoopAudioComponent) return;
+	
+	LoopAudioComponent->SetSound(SoundSet.LoopSound);
+	
+	if (SoundSet.Attenuation)
+	{
+		LoopAudioComponent->AttenuationSettings = SoundSet.Attenuation;
+	}
+	
+	LoopAudioComponent->Play();
+}
+
+void ACPBaseFieldActor::StopLoopSound()
+{
+	if (LoopAudioComponent && LoopAudioComponent->IsPlaying())
+	{
+		LoopAudioComponent->FadeOut(0.3f, 0.f);
+	}
+	
+	if (SoundSet.EndSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+	this,
+		SoundSet.EndSound,
+		GetActorLocation(),
+		1.f,
+		1.f,
+		0.f,
+		SoundSet.Attenuation,
+		SoundSet.Concurrency);
+	}
 }
 
 void ACPBaseFieldActor::BeginPlay()

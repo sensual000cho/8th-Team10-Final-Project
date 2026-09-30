@@ -163,6 +163,7 @@ void ACPRockVineActor::OnGiantStateChanged(const FGameplayTag Tag, int32 NewCoun
 	if (NewCount > 0)
 	{
 		StartScaleTransition(GiantScaleMultiplier, GrowDuration);
+		PlayStartSound();
 		
 		return;
 	}
@@ -268,11 +269,13 @@ void ACPRockVineActor::SetHeatFXActive(bool bActive)
 		if (bActive)
 		{
 			HeatFX->Activate(true);
+			StartLoopSound();
 		}
 
 		else
 		{
 			HeatFX->Deactivate();
+			StopLoopSound();
 		}
 	}
 }
