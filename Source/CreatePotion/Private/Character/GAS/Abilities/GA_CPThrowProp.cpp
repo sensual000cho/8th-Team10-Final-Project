@@ -11,7 +11,7 @@
 #include "Character/CPPlayerController.h"
 #include "Components/CPInventoryComponent.h" 
 
-UGA_CPThrowProp::UGA_CPThrowProp() : ThrowSpeed(800.f), UpwardBias(0.5f)
+UGA_CPThrowProp::UGA_CPThrowProp() : ThrowSpeed(800.f), UpwardBias(0.5f), UpwardThrowSpeedMultiplier(1.35f)
 {
     InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
     
@@ -52,19 +52,12 @@ void UGA_CPThrowProp::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
         return;
     }
 
-    // Gameplay Event + Input Tag 시스템 두 가지로 실행 가능
-    if (TriggerEventData && !TriggerEventData->EventTag.MatchesTagExact(GetThrowEventTag()))
+    if (TriggerEventData &&
+        !TriggerEventData->EventTag.MatchesTagExact(GetThrowEventTag()))
     {
         EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
         return;
     }
-    
-    // 오직 Gameplay Event로만 GA를 실행시키려면 위의 조건문 대신 아래의 조건문으로 교체
-    // if (!TriggerEventData || !TriggerEventData->EventTag.MatchesTagExact(GetThrowEventTag()))
-    // {
-    //     EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
-    //     return;
-    // }
 
     UCPCarryComponent* CarryComponent = FindCarryComponent(ActorInfo);
 
@@ -82,18 +75,31 @@ void UGA_CPThrowProp::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
         return;
     }
 
-    const bool bThrowSucceeded = CarryComponent->ThrowHeldProp(ThrowDirection, GetResolvedThrowSpeed(*CarryComponent));
+    float ResolvedThrowSpeed = GetResolvedThrowSpeed(*CarryComponent);
+
+    // 위쪽으로 조준할수록 속도를 추가로 올려서
+    // 기본 중력 때문에 지나치게 무겁게 떨어지는 느낌을 완화.
+    //
+    // 수평/아래쪽 투척: VerticalAlpha = 0
+    // 완전히 위쪽 투척: VerticalAlpha = 1
+    const float VerticalAlpha = FMath::Clamp(ThrowDirection.Z, 0.f, 1.f);
+
+    const float UpwardSpeedScale = FMath::Lerp(1.f, UpwardThrowSpeedMultiplier, VerticalAlpha);
+
+    ResolvedThrowSpeed *= UpwardSpeedScale;
+
+    const bool bThrowSucceeded = CarryComponent->ThrowHeldProp(ThrowDirection, ResolvedThrowSpeed);
 
     if (!bThrowSucceeded)
     {
         UE_LOG(LogTemp, Warning, TEXT("[ThrowAbility] Prop 투척 실패"));
+
         EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
         return;
     }
 
     UE_LOG(LogTemp, Log, TEXT("[ThrowAbility] Prop 투척 성공"));
 
-    // 실제로 던지기가 성공한 시점에만 인벤토리에서 미리 보류해뒀던 포션을 실제로 차감
     if (ACPPlayerController* PC = Cast<ACPPlayerController>(ActorInfo->PlayerController.Get()))
     {
         PC->ConsumeHeldPotionCharge();
