@@ -1,5 +1,8 @@
 #include "Character/GAS/Abilities/CPGA_PlayerEnemyGust.h"
 
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
+
 #include "Character/CPHealthComponent.h"
 #include "Character/Enemy/CPEnemyCharacter.h"
 #include "GameFramework/Character.h"
@@ -63,6 +66,12 @@ void UCPGA_PlayerEnemyGust::ActivateAbility(const FGameplayAbilitySpecHandle Han
 		CachedHealth = Health;
 		if (Health) Health->OnDeath.AddUniqueDynamic(this, &UCPGA_PlayerEnemyGust::HandlePlayerDeath);
 	}
+	if (AActor* Avatar = GetAvatarActorFromActorInfo())
+	{
+		if (StartSFX) UGameplayStatics::PlaySoundAtLocation(this, StartSFX, Avatar->GetActorLocation());
+	}
+	bEffectSFXStarted = true;
+
 	GetWorld()->GetTimerManager().SetTimer(DurationTimerHandle, this, &UCPGA_PlayerEnemyGust::HandleDurationExpired, DurationSeconds, false);
 }
 
@@ -98,6 +107,15 @@ void UCPGA_PlayerEnemyGust::HandlePlayerDeath(AActor* DamageCauser)
 
 void UCPGA_PlayerEnemyGust::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
+	if (bEffectSFXStarted)
+	{
+		bEffectSFXStarted = false;
+		if (AActor* Avatar = GetAvatarActorFromActorInfo())
+		{
+			if (EndSFX) UGameplayStatics::PlaySoundAtLocation(this, EndSFX, Avatar->GetActorLocation());
+		}
+	}
+
 	if (UWorld* World = GetWorld()) World->GetTimerManager().ClearTimer(DurationTimerHandle);
 	if (UActorComponent* PreTick = CachedPreCMCTick.Get())
 	{

@@ -15,28 +15,28 @@ ECPTimePhase UCPTimeSubsystem::GetCurrentPhase() const
 {
 	const int32 Minutes = static_cast<int32>(TotalWorldMinutes) % 1440;
 	
-	constexpr int32 MorningStart = 6 * 60;
-	constexpr int32 DayStart = 12 * 60;
-	constexpr int32 NightStart = 18 * 60;
+	constexpr int32 NightStart = 6 * 60;
+	constexpr int32 DawnStart = 12 * 60;
+	constexpr int32 MorningStart = 18 * 60;
 	
-	if (Minutes < MorningStart)
-	{
-		return ECPTimePhase::Dawn;
-	}
-	
-	else if (Minutes < DayStart)
-	{
-		return ECPTimePhase::Morning;
-	}
-	
-	else if (Minutes < NightStart)
+	if (Minutes < NightStart)
 	{
 		return ECPTimePhase::Day;
+	}
+	
+	else if (Minutes < DawnStart)
+	{
+		return ECPTimePhase::Night;
+	}
+	
+	else if (Minutes < MorningStart)
+	{
+		return ECPTimePhase::Dawn;
 	}
 
 	else
 	{
-		return ECPTimePhase::Night;
+		return ECPTimePhase::Morning;
 	}
 }
 
@@ -63,7 +63,7 @@ void UCPTimeSubsystem::AdvanceTime(int64 Amount)
 	if (OldDay != NewDay) OnDayChanged.Broadcast(NewDay);
 	if (OldPhase != NewPhase) OnTimePhaseChanged.Broadcast(NewPhase);
 	
-	OnTimePhaseChanged.Broadcast(GetCurrentPhase());
+	// OnTimePhaseChanged.Broadcast(GetCurrentPhase());
 	// 시간 체크용
 	// GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, FString::Printf(TEXT("%lld"), TotalWorldMinutes));
 }

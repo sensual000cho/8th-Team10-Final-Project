@@ -4,6 +4,8 @@
 #include "Abilities/GameplayAbility.h"
 #include "CPGA_EnemySlime.generated.h"
 
+class USoundBase;
+
 class ACPEnemyCharacter;
 
 /** 같은 Enemy를 한 마리 생성하고 양쪽을 80% 크기로 줄이는 포션 반응. */
@@ -19,6 +21,14 @@ public:
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 
 protected:
+	// 효과 적용 성공 시 재생할 단발음. 미지정 시 생략
+	UPROPERTY(EditDefaultsOnly, Category = "Audio|Potion")
+	TObjectPtr<USoundBase> StartSFX;
+
+	// 효과 종료 시 재생할 단발음. 미지정 시 생략
+	UPROPERTY(EditDefaultsOnly, Category = "Audio|Potion")
+	TObjectPtr<USoundBase> EndSFX;
+
 	// 원본과 복제본이 서로 겹치지 않도록 더할 여유 거리다.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Potion|Slime", meta = (ClampMin = "1.0", Units = "cm"))
 	float SplitSpacing = 20.0f;
