@@ -94,116 +94,9 @@ void UQuestManager::CompleteQuest(FName QuestID)
 
 bool UQuestManager::IsRandomQuest(FName QuestID) const
 {
-	if (!QuestScriptTable) return FText::GetEmpty();
-
-	FQuestData* Quest = QuestScriptTable->FindRow<FQuestData>(QuestID, TEXT(""));
-	return Quest ? Quest->QuestTitle : FText::GetEmpty();
-}
-
-// 마을 NPC가 퀘스트를 제안할 때 보여줄 원문 대사
-TArray<FCPDialogueLine> UQuestManager::GetQuestScriptLines(FName QuestID) const
-{
-	if (!QuestScriptTable) return TArray<FCPDialogueLine>();
-	FQuestData* Quest = QuestScriptTable->FindRow<FQuestData>(QuestID, TEXT(""));
-	return Quest ? Quest->QuestScriptLines : TArray<FCPDialogueLine>();
-}
-
-// 퀘스트 수락 후, 저널/퀘스트 목록 UI에서 다시 확인할 때 보여줄 요약 텍스트
-FText UQuestManager::GetQuestSummaryText(FName QuestID) const
-{
-	if (!QuestScriptTable) return FText::GetEmpty();
-
-	FQuestData* Quest = QuestScriptTable->FindRow<FQuestData>(QuestID, TEXT(""));
-	return Quest ? Quest->QuestSummaryText : FText::GetEmpty();
-}
-
-FText UQuestManager::GetQuestScriptTextJoined(FName QuestID) const
-{
-	TArray<FText> Texts;
-	for (const FCPDialogueLine& Line : GetQuestScriptLines(QuestID))
-	{
-		Texts.Add(Line.Text);
-	}
-	return FText::Join(FText::FromString(TEXT("\n")), Texts);
-}
-
-FText UQuestManager::GetCodexSummaryText(FName QuestID) const
-{
-	if (!QuestScriptTable) return FText::GetEmpty();
-	FQuestData* Quest = QuestScriptTable->FindRow<FQuestData>(QuestID, TEXT(""));
-	return Quest ? Quest->CodexSummaryText : FText::GetEmpty();
-}
-
-// ===================================================================
-// [세션 힌트 / NPC 스토리]
-// GetSessionHintText : 1차 힌트 (레벨 0)
-// GetNPCStoryLines : 힌트 열람 후 보여줄 NPC 스토리 (레벨 1) - 단일/배열 버전
-// GetQuestHintLevel / SetQuestHintLevel : 현재 열람 단계 조회/갱신
-// ===================================================================
-
-// 1차 힌트
-FText UQuestManager::GetSessionHintText(FName QuestID) const
-{
-	FQuestAnswerData* Answer = FindAnswerData(QuestID);
-	return Answer ? Answer->SessionHintText : FText::GetEmpty();
-}
-
-
-
-// 특정 퀘스트가 현재 몇 번째 힌트 단계까지 열람했는지 조회 (0: 기본, 1: 2차, 2: 3차)
-int32 UQuestManager::GetQuestHintLevel(FName QuestID) const
-{
-	if (const int32* Level = QuestHintLevels.Find(QuestID))
-	{
-		return *Level;
-	}
-	return 0;
-}
-
-// 힌트 단계 갱신 (더보기 버튼 클릭 시 UI가 호출)
-void UQuestManager::SetQuestHintLevel(FName QuestID, int32 NewLevel)
-{
-	QuestHintLevels.Add(QuestID, NewLevel);
-	UE_LOG(LogTemp, Log, TEXT("퀘스트 %s 힌트 단계 %d(으)로 갱신"), *QuestID.ToString(), NewLevel);
-}
-
-
-TArray<FCPDialogueLine> UQuestManager::GetNPCStoryLines(FName QuestID) const
-{
-	FQuestAnswerData* Answer = FindAnswerData(QuestID);
-	return Answer ? Answer->NPCStoryLines : TArray<FCPDialogueLine>();
-}
-
-// 퀘스트 정답 찾기 함수 - QuestAnswerTable(고유)을 먼저 찾고, 없으면 RandomQuestAnswerTable(랜덤)에서 찾음
-// bOutIsRandom이 주어지면 어느 테이블에서 찾았는지 결과를 같이 반환
-FQuestAnswerData* UQuestManager::FindAnswerData(FName QuestID, bool* bOutIsRandom) const
-{
-	if (QuestAnswerTable)
-	{
-		if (FQuestAnswerData* Found = QuestAnswerTable->FindRow<FQuestAnswerData>(QuestID, TEXT("")))
-		{
-			if (bOutIsRandom) *bOutIsRandom = false;
-			return Found;
-		}
-	}
-	if (RandomQuestAnswerTable)
-	{
-		if (FQuestAnswerData* Found = RandomQuestAnswerTable->FindRow<FQuestAnswerData>(QuestID, TEXT("")))
-		{
-			if (bOutIsRandom) *bOutIsRandom = true;
-			return Found;
-		}
-	}
-	if (bOutIsRandom) *bOutIsRandom = false;
-	return nullptr;
-}
-
-// 퀘스트 완료 보상 골드 조회
-int32 UQuestManager::GetRewardGold(FName QuestID) const
-{
-	FQuestAnswerData* Answer = FindAnswerData(QuestID);
-	return Answer ? Answer->RewardGold : 0;
-
+	bool bIsRandom = false;
+	FindAnswerData(QuestID, &bIsRandom);
+	return bIsRandom;
 }
 
 // 랜덤 퀘스트 하나를 무작위로 뽑아 반환 (모브 NPC 등장 시 사용)
@@ -335,15 +228,20 @@ FText UQuestManager::GetQuestTitle(FName QuestID) const
 	return Quest ? Quest->QuestTitle : FText::GetEmpty();
 }
 
-TArray<FText> UQuestManager::GetQuestScriptLines(FName QuestID) const
+TArray<FCPDialogueLine> UQuestManager::GetQuestScriptLines(FName QuestID) const
 {
 	const FQuestData* Quest = FindScriptData(QuestID);
-	return Quest ? Quest->QuestScriptLines : TArray<FText>();
+	return Quest ? Quest->QuestScriptLines : TArray<FCPDialogueLine>();
 }
 
 FText UQuestManager::GetQuestScriptTextJoined(FName QuestID) const
 {
-	return FText::Join(FText::FromString(TEXT("\n")), GetQuestScriptLines(QuestID));
+	TArray<FText> Texts;
+	for (const FCPDialogueLine& Line : GetQuestScriptLines(QuestID))
+	{
+		Texts.Add(Line.Text);
+	}
+	return FText::Join(FText::FromString(TEXT("\n")), Texts);
 }
 
 FText UQuestManager::GetQuestSummaryText(FName QuestID) const
@@ -384,10 +282,10 @@ bool UQuestManager::IsQuestStoryUnlocked(FName QuestID) const
 	return Quest->RequiredStoryStage <= GetNPCStoryStage(Quest->OwningNPCId);
 }
 
-TArray<FText> UQuestManager::GetNPCStoryLines(FName QuestID) const
+TArray<FCPDialogueLine> UQuestManager::GetNPCStoryLines(FName QuestID) const
 {
 	const FQuestAnswerData* Answer = FindAnswerData(QuestID);
-	return Answer ? Answer->NPCStoryLines : TArray<FText>();
+	return Answer ? Answer->NPCStoryLines : TArray<FCPDialogueLine>();
 }
 
 int32 UQuestManager::GetQuestHintLevel(FName QuestID) const
