@@ -95,10 +95,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Codex|Forageable")
 	bool RecordForageableEntry(UCPForageableItemData* ItemData);
 	
-	// 등록된 채집물의 정보 레벨을 증가(~4)
-	UFUNCTION(BlueprintCallable, Category = "Codex|Forageable")
-	bool IncreaseForageableLevel(UCPForageableItemData* ItemData);
-	
 	UFUNCTION(BlueprintCallable, Category = "Codex|NPC")
 	bool RegisterNPCEntry(UCPNPCDataAsset* NPCData);
 	
@@ -135,6 +131,6 @@ protected:
 	TMap<TObjectPtr<UCPNPCDataAsset>, FCPNPCCodexEntry> NPCCodexEntries;
 	
 private:
+	inline static constexpr int32 RequiredCount[] = {1, 3, 6, 10};
 	static constexpr int32 MaxLevel = 4;
-	static constexpr float LevelUpChance = 0.1f;
 };
