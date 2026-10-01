@@ -118,6 +118,11 @@ void UCPGA_FartLaunch::ApplyRagdollThrust()
 
 void UCPGA_FartLaunch::EndFloatBehavior()
 {
+	if (FartLaunchCueTag.IsValid() && CurrentActorInfo && CurrentActorInfo->AbilitySystemComponent.IsValid())
+	{
+		CurrentActorInfo->AbilitySystemComponent->RemoveGameplayCue(FartLaunchCueTag);
+	}
+
 	TransitionToNaturalSettling(ThrustTimerHandle);
 }
 
@@ -134,11 +139,6 @@ void UCPGA_FartLaunch::OnCapsuleHit(UPrimitiveComponent* HitComponent, AActor* O
 void UCPGA_FartLaunch::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
 	ClearTimers({ &DurationTimerHandle, &RagdollTimerHandle, &ThrustTimerHandle });
-
-	if (FartLaunchCueTag.IsValid() && ActorInfo && ActorInfo->AbilitySystemComponent.IsValid())
-	{
-		ActorInfo->AbilitySystemComponent->RemoveGameplayCue(FartLaunchCueTag);
-	}
 
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
