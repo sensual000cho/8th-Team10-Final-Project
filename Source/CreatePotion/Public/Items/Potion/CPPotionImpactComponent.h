@@ -37,6 +37,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Potion|Impact", meta = (ClampMin = "0.0", Units = "cm"))
 	float EffectRadius = 250.0f;
 
+	// Explosion 태그(Potion.Effect.Explosion)가 포함된 포션만 효과 범위가 EffectRadius * 이 배율로 넓어진다.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Potion|Impact", meta = (ClampMin = "1.0"))
+	float ExplosionRadiusMultiplier = 5.0f;
+
 	// 효과 범위 검사에 포함할 Collision Object Type 목록이다.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Potion|Impact")
 	TArray<TEnumAsByte<EObjectTypeQuery>> EffectObjectTypes;
