@@ -670,3 +670,11 @@ void UQuestManager::LoadSaveData(const FCPQuestSaveData& SaveData)
 	NPCStoryStages = SaveData.NPCStoryStages;
 	PinnedQuestID = SaveData.PinnedQuestID;
 }
+
+void UQuestManager::ResetData()
+{
+	QuestStates.Reset();
+	QuestOrder.Reset();
+	NPCStoryStages.Reset();
+	PinnedQuestID = NAME_None;
+}

@@ -83,6 +83,7 @@ public:
 	
 	FCPNPCSaveData GetSaveData();
 	void LoadSaveData(const FCPNPCSaveData& SaveData);
+	void ResetData();
 
 	UFUNCTION(BlueprintCallable, Category = "NPC|Potion")
 	void RegisterNPCEffect(FName NPCId, FGameplayTag EffectTag, int64 DurationWorldMinutes, float Magnitude = 1.0f);

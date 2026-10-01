@@ -58,6 +58,14 @@ void UCPNPCSubsystem::LoadSaveData(const FCPNPCSaveData& SaveData)
 	NPCMovementRepository = SaveData.NPCMovements;
 }
 
+void UCPNPCSubsystem::ResetData()
+{
+	NPCStateRepository.Reset();
+	ActiveNPCRegistry.Reset();
+	CachedCurrentWorldMinute = 0;
+	NPCMovementRepository.Reset();
+}
+
 void UCPNPCSubsystem::RegisterNPCEffect(FName NPCId, FGameplayTag EffectTag, int64 DurationWorldMinutes, float Magnitude)
 {
 	if (NPCId.IsNone() || !EffectTag.IsValid()) return;

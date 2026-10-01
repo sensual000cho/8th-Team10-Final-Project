@@ -36,9 +36,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Container|Save")
 	bool LoadContainerData(UCPInventoryComponent* PlayerInventory);
 	
+	// 게임 세이브/로드
 	FCPInventorySaveData GetSaveData();
 	void LoadSaveData(const FCPInventorySaveData& InSaveData);
 	bool ApplyLoadedSaveData(UCPInventoryComponent* PlayerInventory);
+	void ResetData();
 
 private:
 	void SaveContainerItem(const TArray<FContainerItem>& InItems);

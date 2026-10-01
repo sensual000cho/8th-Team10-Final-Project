@@ -8,6 +8,10 @@
 #include "UI/Widgets/Base/CPBasePopupWidget.h"
 #include "CPForageableCodexWidget.generated.h"
 
+class UBorder;
+class UCPCodexCombineRowWidget;
+class UVerticalBox;
+struct FCPTagCodexDisplayData;
 struct FCPForageableCodexEntry;
 class UCPCodexSubsystem;
 class UTextBlock;
@@ -43,7 +47,9 @@ private:
 	FText BuildTagText(const TArray<FGameplayTag>& Tags) const;
 	
 	// 조합 가능 텍스트 설정
-	FText BuildTagCombinationText(const TArray<FGameplayTag>& Tags) const;
+	void BuildTagCombination(const TArray<FGameplayTag>& Tags);
+	
+	FCPTagCodexDisplayData MakeTagDisplayData(const FGameplayTag& Tag) const;
 	
 	// DisplayName을 사용해 태그 텍스트 설정
 	FText GetTagDisplayText(const FGameplayTag& Tag) const;
@@ -63,6 +69,9 @@ protected:
 	TObjectPtr<UTextBlock> Txt_DescriptionText;
 	
 	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UBorder> Border_Tag;
+	
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Txt_TagText;
 	
 	UPROPERTY(meta = (BindWidget))
@@ -70,6 +79,12 @@ protected:
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Txt_HarvestCountText;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UVerticalBox> VB_TagCombinations;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Codex|Tag")
+	TSubclassOf<UCPCodexCombineRowWidget> CombinationRowWidgetClass;
 	
 protected:
 	// 도감 데이터 서브시스템
@@ -83,4 +98,8 @@ protected:
 	// 현재 표시 대상 채집물 DA
 	UPROPERTY(BlueprintReadOnly, Category = "Codex")
 	TObjectPtr<UCPForageableItemData> CurrentItemData;
+	
+private:
+	UPROPERTY()
+	float TagColorOpacity;
 };

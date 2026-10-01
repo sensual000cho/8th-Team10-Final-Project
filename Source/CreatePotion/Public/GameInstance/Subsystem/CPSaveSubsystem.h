@@ -17,6 +17,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Save")	
 	void LoadGame();
 	
+	UFUNCTION(BlueprintCallable, Category = "Save")
+	void ResetGameSession();
+	
 	void ApplyLoadPlayerTransform(APawn* InPawn);
 	
 private:

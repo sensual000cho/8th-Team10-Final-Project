@@ -60,13 +60,11 @@ void UCPLabCarriedIngredientWidget::HandlePropChanged(ACPThrowablePropBase* Prop
 		
 		const UCPForageableItemData* ItemData = WorkingIngredient.SourceItemData.Get();
 		if (!ItemData) return;
-
-		const FGameplayTag& TagEffect = ItemData->TagAxes[0];
-		if (!TagEffect.IsValid()) return;
 		
-		// 효과 태그를 보여줌
-		Txt_TagEffect->SetText(GetEffectDisplayName(TagEffect));
-		Txt_TagEffect->SetVisibility(ESlateVisibility::HitTestInvisible);
+		if (!ItemData->TagAxes.IsEmpty()){
+			Txt_TagEffect->SetText(GetEffectDisplayName(ItemData->TagAxes[0]));
+			Txt_TagEffect->SetVisibility(ESlateVisibility::HitTestInvisible);
+		}
 		return;
 	}
 
