@@ -84,7 +84,7 @@ void UCPForageableCodexWidget::NativeDestruct()
 FText UCPForageableCodexWidget::BuildTagText(const TArray<FGameplayTag>& Tags) const
 {
 	if (Tags.IsEmpty() || !Tags[0].IsValid()){
-		return FText::FromString(TEXT("조사가 필요합니다."));
+		return FText::FromString(TEXT("없음"));
 	}
 	
 	return GetTagDisplayText(Tags[0]);
@@ -93,7 +93,7 @@ FText UCPForageableCodexWidget::BuildTagText(const TArray<FGameplayTag>& Tags) c
 FText UCPForageableCodexWidget::BuildTagCombinationText(const TArray<FGameplayTag>& Tags) const
 {
 	if (Tags.IsEmpty() || !Tags[0].IsValid()){
-		return FText::FromString(TEXT("조사가 필요합니다."));
+		return FText::FromString(TEXT("없음"));
 	}
 	
 	const FGameplayTag& Tag = Tags[0];
@@ -101,7 +101,7 @@ FText UCPForageableCodexWidget::BuildTagCombinationText(const TArray<FGameplayTa
 	// 태그에 대응하는 DT Row가 있는지 확인
 	const FCPTagDefinitionRow* TagRow = nullptr;
 	if (!FindTagDefinitionRow(Tag, TagRow) || !TagRow){
-		return FText::FromString(TEXT("조사가 필요합니다."));
+		return FText::FromString(TEXT("없음"));
 	}
 	
 	// DT에 정의된 조합 가능 정보를 사용해서 문자열을 표시
