@@ -68,9 +68,10 @@ class CREATEPOTION_API UCPCodexSubsystem : public UGameInstanceSubsystem
 	GENERATED_BODY()
 	
 public:
-	// Game Save
+	// 게임 세이브/로드
 	FCPCodexSaveData GetSaveData() const;
 	void LoadSaveData(const FCPCodexSaveData& SaveData);
+	void ResetData();
 	
 	// 등록된 전체 채집물 DA를 반환
 	UFUNCTION(BlueprintPure, Category = "Codex|Forageable")

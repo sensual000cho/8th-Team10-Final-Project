@@ -32,9 +32,13 @@ void UCPCodexSubsystem::LoadSaveData(const FCPCodexSaveData& SaveData)
 	for (const FCPNPCCodexEntry& Entry : SaveData.NPCEntries) {
 		NPCCodexEntries.Add(Entry.Entry, Entry);
 	}
-	
-	OnForageableCodexUpdated.Broadcast();
-	OnNPCCodexUpdated.Broadcast();
+}
+
+void UCPCodexSubsystem::ResetData()
+{
+	ForageableCodexEntries.Reset();
+	DiscoveredTags.Reset();
+	NPCCodexEntries.Reset();
 }
 
 TArray<UCPForageableItemData*> UCPCodexSubsystem::GetRegisteredForageableItems() const

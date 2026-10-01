@@ -43,10 +43,15 @@ ECPTimePhase UCPTimeSubsystem::GetCurrentPhase() const
 void UCPTimeSubsystem::LoadSaveData(int64 SavedTotalWorldMinutes)
 {
 	TotalWorldMinutes = SavedTotalWorldMinutes;
+}
+
+void UCPTimeSubsystem::ResetData()
+{
+	if (UGameInstance* GI = GetGameInstance()){
+		GI->GetTimerManager().ClearTimer(TimeTickHandle);
+	}
 	
-	OnTimeChanged.Broadcast(TotalWorldMinutes);
-	OnDayChanged.Broadcast(GetCurrentDay());
-	OnTimePhaseChanged.Broadcast(GetCurrentPhase());
+	TotalWorldMinutes = 0;
 }
 
 void UCPTimeSubsystem::AdvanceTime(int64 Amount)
