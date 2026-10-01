@@ -2,6 +2,7 @@
 
 #include "Data/NPC/CPNPCDataAsset.h"
 #include "NPC/CPQuestNPC.h"
+#include "NPC/CPShopNPC.h"
 
 UCPNPCComponent::UCPNPCComponent()
 {
@@ -43,9 +44,21 @@ bool UCPNPCComponent::TryInteract(AActor* Interactor)
 {
 	if (!Super::TryInteract(Interactor) || !IsValid(Interactor)) return false;
 
-	ACPQuestNPC* OwnerNPC = Cast<ACPQuestNPC>(GetOwner());
-	if (!IsValid(OwnerNPC)) return false;
+	AActor* Owner = GetOwner();
+	if (!IsValid(Owner)) return false;
 
-	OwnerNPC->StartDialogue(Interactor);
+	if (ACPShopNPC* ShopNPC = Cast<ACPShopNPC>(Owner))
+	{
+		ShopNPC->OpenShopUI(Interactor);
+		return true;
+	}
+
+	if (ACPQuestNPC* QuestNPC = Cast<ACPQuestNPC>(Owner))
+	{
+		QuestNPC->StartDialogue(Interactor);
+		return true;
+	}
+
 	return true;
+
 }

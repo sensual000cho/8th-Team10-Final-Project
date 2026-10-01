@@ -82,7 +82,7 @@ public:
 	EQuestState GetQuestState(FName QuestID) const;
 
 	// 랜덤 퀘스트 테이블 소속 여부
-	UFUNCTION(BlueprintCallable, Category = "Quest|State")
+	UFUNCTION(BlueprintCallable, Category = "Quest")
 	bool IsRandomQuest(FName QuestID) const;
 
 	// 랜덤 퀘스트 ID 하나 선택
@@ -134,7 +134,7 @@ public:
 
 	// NPC 제안 원문 대사
 	UFUNCTION(BlueprintCallable, Category = "Quest|Text")
-	TArray<FText> GetQuestScriptLines(FName QuestID) const;
+	TArray<FCPDialogueLine> GetQuestScriptLines(FName QuestID) const;
 
 	// 원문 대사를 한 줄로 이어 붙인 버전
 	UFUNCTION(BlueprintCallable, Category = "Quest|Text")
@@ -166,7 +166,7 @@ public:
 
 	// 스토리 스크립트 반환
 	UFUNCTION(BlueprintCallable, Category = "Quest|Story")
-	TArray<FText> GetNPCStoryLines(FName QuestID) const;
+	TArray<FCPDialogueLine> GetNPCStoryLines(FName QuestID) const;
 
 	// 퀘스트별 스크립트 출력 단계 조회/갱신
 	UFUNCTION(BlueprintCallable, Category = "Quest|Story")

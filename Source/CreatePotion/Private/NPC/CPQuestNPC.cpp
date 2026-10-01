@@ -57,7 +57,8 @@ void ACPQuestNPC::StartDialogue(AActor* Interactor)
 	}
 
 	// 표시할 Text 선택
-	TArray<FText> DialogueLines = FindDialogueLines(Interactor);
+
+	TArray<FCPDialogueLine> DialogueLines = FindDialogueLines(Interactor);
 	if (CurrentQuestId.IsNone())
 	{
 		if (LocationComp)
@@ -194,7 +195,7 @@ void ACPQuestNPC::ShowResultDialogue()
 	ActiveDialogueWidget->OnClosed.RemoveAll(this);
 	ActiveDialogueWidget->OnClosed.AddUObject(this, &ACPQuestNPC::OnDialogueClosed);
 
-	TArray<FText> ReactionTexts;
+	TArray<FCPDialogueLine> ReactionTexts;
 	const TArray<FConditionEvaluation> Evaluations = QuestManager->EvaluateConditions(DeliveryResult.QuestId, DeliveryResult.CurrentEffects);
 
 	for (const FConditionEvaluation& Eval : Evaluations) {
@@ -203,7 +204,9 @@ void ACPQuestNPC::ShowResultDialogue()
 
 		FText Reaction = QuestManager->GetReactionText(DeliveryResult.QuestId, Eval);
 		if (!Reaction.IsEmpty()) {
-			ReactionTexts.Add(Reaction);
+			FCPDialogueLine Line;
+			Line.Text = Reaction;
+			ReactionTexts.Add(Line);
 		}
 	}
 
@@ -337,7 +340,7 @@ void ACPQuestNPC::HandleQuestUpdatedForMarker(FName QuestID, EQuestState NewStat
 	}
 }
 
-TArray<FText> ACPQuestNPC::FindDialogueLines(AActor* Interactor)
+TArray<FCPDialogueLine> ACPQuestNPC::FindDialogueLines(AActor* Interactor)
 {
 	CurrentQuestId = NAME_None;
 	PendingResultQuestId = NAME_None;
@@ -347,7 +350,7 @@ TArray<FText> ACPQuestNPC::FindDialogueLines(AActor* Interactor)
 	UQuestManager* QuestManager = GameInstance ? GameInstance->GetSubsystem<UQuestManager>() : nullptr;
 	if (!QuestManager) return {};
 
-	for (const FName& QuestID : QuestData->QuestIDs) {
+	for (const FName& QuestID : QuestData->QuestIDs){
 		if (QuestID.IsNone()) continue;
 
 		const EQuestState State = QuestManager->GetQuestState(QuestID);
@@ -363,8 +366,9 @@ TArray<FText> ACPQuestNPC::FindDialogueLines(AActor* Interactor)
 
 		const EQuestCompletionType CompletionType = QuestManager->GetQuestCompletionType(QuestID);
 		// 대화형 퀘스트
-		if (CompletionType == EQuestCompletionType::Dialogue) {
-			TArray<FText> DialogueLines = QuestManager->GetNPCStoryLines(QuestID);
+		if (CompletionType == EQuestCompletionType::Dialogue){
+			TArray<FCPDialogueLine> DialogueLines = QuestManager->GetNPCStoryLines(QuestID);
+
 			if (DialogueLines.IsEmpty() || !QuestManager->CompleteQuestByDialogue(QuestID)) return {};
 
 			CurrentQuestId = QuestID;
@@ -390,12 +394,16 @@ TArray<FText> ACPQuestNPC::FindDialogueLines(AActor* Interactor)
 				return QuestManager->GetNPCStoryLines(QuestID);
 			}
 
+			FCPDialogueLine HintLine;
+			HintLine.Text = QuestManager->GetSessionHintText(QuestID);
 			CurrentQuestId = QuestID;
-			return { QuestManager->GetSessionHintText(QuestID) };
+			return { HintLine };
 		}
 
+		FCPDialogueLine HintLine;
+		HintLine.Text = QuestManager->GetSessionHintText(QuestID);
 		CurrentQuestId = QuestID;
-		return { QuestManager->GetSessionHintText(QuestID) };
+		return { HintLine };
 	}
 	return {};
 }
