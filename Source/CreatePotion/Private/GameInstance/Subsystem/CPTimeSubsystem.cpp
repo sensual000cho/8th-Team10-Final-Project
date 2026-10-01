@@ -15,11 +15,16 @@ ECPTimePhase UCPTimeSubsystem::GetCurrentPhase() const
 {
 	const int32 Minutes = static_cast<int32>(TotalWorldMinutes) % 1440;
 	
-	constexpr int32 NightStart = 6 * 60;
-	constexpr int32 DawnStart = 12 * 60;
-	constexpr int32 MorningStart = 18 * 60;
+	constexpr int32 DayStart = 6 * 60;
+	constexpr int32 NightStart = 12 * 60;
+	constexpr int32 DawnStart = 18 * 60;
 	
-	if (Minutes < NightStart)
+	if (Minutes < DayStart)
+	{
+		return ECPTimePhase::Morning;
+	}
+	
+	else if (Minutes < NightStart)
 	{
 		return ECPTimePhase::Day;
 	}
@@ -28,15 +33,10 @@ ECPTimePhase UCPTimeSubsystem::GetCurrentPhase() const
 	{
 		return ECPTimePhase::Night;
 	}
-	
-	else if (Minutes < MorningStart)
-	{
-		return ECPTimePhase::Dawn;
-	}
 
 	else
 	{
-		return ECPTimePhase::Morning;
+		return ECPTimePhase::Dawn;
 	}
 }
 
