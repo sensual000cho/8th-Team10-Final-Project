@@ -10,6 +10,7 @@
 UCPGA_Stench::UCPGA_Stench()
 {
 	EffectTag = FGameplayTag::RequestGameplayTag(FName("State.Effect.Stench"));
+	ImmunityTag = FGameplayTag::RequestGameplayTag(FName("Immunity.Potion.Stench"));
 	DurationWorldMinutes = 60.0f;
 	Magnitude = 1.5f; 
 }

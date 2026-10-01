@@ -7,6 +7,7 @@
 #include "TimerManager.h"
 #include "Settings/CPUISettings.h"
 #include "UI/Widgets/Lab/CPLabResultWidget.h"
+#include "Kismet/GameplayStatics.h"
 
 // [신규] DialogueLines[CurrentLineIndex]를 꺼내 타자기 효과로 재생.
 // "다음" 버튼 클릭 시에도 이 함수가 다시 호출되어 다음 줄을 재생함.
@@ -14,12 +15,21 @@ void UCPNPCDialogueWidget::PlayCurrentLine()
 {
     if (DialogueLines.IsValidIndex(CurrentLineIndex))
     {
-        PlayTypewriterEffect(DialogueLines[CurrentLineIndex]);
+        PlayTypewriterEffect(DialogueLines[CurrentLineIndex].Text);
+
+        const FCPDialogueLine& CurrentLine = DialogueLines[CurrentLineIndex];
+        if (!CurrentLine.Voice.IsNull())
+        {
+            if (USoundBase* SoundAsset = CurrentLine.Voice.LoadSynchronous())
+            {
+                UGameplayStatics::PlaySound2D(this, SoundAsset);
+            }
+        }
     }
 }
 
 void UCPNPCDialogueWidget::InitDialogueLines(FName InQuestID, const FText& InNPCName,
-    const TArray<FText>& InDialogueLines)
+    const TArray<FCPDialogueLine>& InDialogueLines)
 {
     CurrentQuestID = InQuestID;
     DialogueLines = InDialogueLines;
@@ -246,7 +256,7 @@ void UCPNPCDialogueWidget::OnSkipAllClicked()
     if (DialogueLines.Num() > 0)
     {
         CurrentLineIndex = DialogueLines.Num() - 1;
-        FullDialogueText = DialogueLines[CurrentLineIndex].ToString();
+        FullDialogueText = DialogueLines[CurrentLineIndex].Text.ToString();
     }
 
     GetWorld()->GetTimerManager().ClearTimer(TypewriterTimerHandle);

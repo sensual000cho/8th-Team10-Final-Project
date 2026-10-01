@@ -42,3 +42,10 @@ void UCPCauldronSubsystem::LoadSaveData(const FCPCauldronSaveData& InSaveData)
 	
 	ActiveCauldronComponent.Reset();
 }
+
+void UCPCauldronSubsystem::ResetData()
+{
+	CauldronData = FCPCauldronSaveData{};
+	ActiveCauldronComponent.Reset();
+	bHasCauldronData = false;
+}

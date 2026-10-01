@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "UI/Widgets/Base/CPBasePopupWidget.h"
+#include "Quest/QuestTypes.h" 
 #include "CPNPCDialogueWidget.generated.h"
 
 class UTextBlock;
@@ -19,7 +20,7 @@ public:
     // [신규] 여러 줄 대사(TArray<FText>)를 순서대로 타이핑해서 보여주기 위한 함수
     // UFUNCTION 오버로드가 블루프린트에서 지원되지 않아 이름을 다르게 지정
     UFUNCTION(BlueprintCallable, Category = "Dialogue")
-    void InitDialogueLines(FName InQuestID, const FText& InNPCName, const TArray<FText>& InDialogueLines);
+    void InitDialogueLines(FName InQuestID, const FText& InNPCName, const TArray<FCPDialogueLine>& InDialogueLines);
     
 protected:
     virtual void BindEvents() override;
@@ -87,7 +88,7 @@ private:
 
     // [신규] 여러 줄 대사 원본 배열. InitDialogue(배열 버전) 호출 시 저장됨.
     // 단일 텍스트 InitDialogue()로 호출된 경우엔 빈 배열로 초기화되어 이 기능과 무관하게 동작.
-    TArray<FText> DialogueLines;
+    TArray<FCPDialogueLine> DialogueLines;
 
     // [신규] DialogueLines 중 현재 몇 번째 줄을 보여주고 있는지 추적하는 인덱스.
     int32 CurrentLineIndex = 0;

@@ -11,7 +11,6 @@
 
 UCPGA_FartLaunch::UCPGA_FartLaunch()
 {
-	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	ImmunityTag = FGameplayTag::RequestGameplayTag(FName("Immunity.Potion.FartLaunch"));
 }
 

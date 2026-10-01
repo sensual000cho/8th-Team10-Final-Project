@@ -32,6 +32,8 @@ public:
 	// Game Save
 	void LoadSaveData(int64 SavedTotalWorldMinutes);
 	
+	void ResetData();
+	
 	UPROPERTY(BlueprintAssignable)
 	FOnTimeChanged OnTimeChanged;
 	

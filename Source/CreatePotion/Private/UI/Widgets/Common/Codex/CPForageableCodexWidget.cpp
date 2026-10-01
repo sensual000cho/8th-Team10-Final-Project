@@ -3,13 +3,16 @@
 
 #include "UI/Widgets/Common/Codex/CPForageableCodexWidget.h"
 
+#include "Components/Border.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
+#include "Components/VerticalBox.h"
 #include "Data/CPForageableItemData.h"
 #include "Data/CPTagDefinitionTypes.h"
 #include "GameInstance/Subsystem/CPCodexSubsystem.h"
 #include "Internationalization/StringTable.h"
 #include "Settings/CPDTSettings.h"
+#include "UI/Widgets/Common/Codex/CPCodexCombineRowWidget.h"
 
 UCPForageableCodexWidget::UCPForageableCodexWidget(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -61,8 +64,23 @@ void UCPForageableCodexWidget::NativeDestruct()
 	Img_CodexImage->SetBrushFromTexture(CodexImageTexture);
 	
 	Txt_NameText->SetText(CurrentItemData->DisplayName);
-	Txt_TagText->SetText(BuildTagText(CurrentItemData->TagAxes));
-	Txt_TagCombinationText->SetText(BuildTagCombinationText(CurrentItemData->TagAxes));
+	
+	const TArray<FGameplayTag> Tags = CurrentItemData->TagAxes;
+	Txt_TagText->SetText(BuildTagText(Tags));
+	
+	FLinearColor TagBorderColor = FLinearColor::Transparent;
+	BuildTagCombination(CurrentItemData->TagAxes);
+	
+	// 현재 태그 Border 색상 설정
+	if (!Tags.IsEmpty() && Tags[0].IsValid()){
+		const FCPTagDefinitionRow* TagRow = nullptr;
+		if (FindTagDefinitionRow(Tags[0], TagRow) && TagRow){
+			TagBorderColor = TagRow->LiquidColor01;
+			TagBorderColor.A *= TagColorOpacity;
+		}
+	}
+	
+	Border_Tag->SetBrushColor(TagBorderColor);
 	Txt_HarvestCountText->SetText(FText::Format(
 		FText::FromString(TEXT("{0} 회")), FText::AsNumber(CurrentCodexEntry.HarvestCount)));
 	
@@ -84,16 +102,19 @@ void UCPForageableCodexWidget::NativeDestruct()
 FText UCPForageableCodexWidget::BuildTagText(const TArray<FGameplayTag>& Tags) const
 {
 	if (Tags.IsEmpty() || !Tags[0].IsValid()){
-		return FText::FromString(TEXT("조사가 필요합니다."));
+		return FText::FromString(TEXT("없음"));
 	}
 	
 	return GetTagDisplayText(Tags[0]);
 }
 
-FText UCPForageableCodexWidget::BuildTagCombinationText(const TArray<FGameplayTag>& Tags) const
+void UCPForageableCodexWidget::BuildTagCombination(const TArray<FGameplayTag>& Tags)
 {
-	if (Tags.IsEmpty() || !Tags[0].IsValid()){
-		return FText::FromString(TEXT("조사가 필요합니다."));
+	VB_TagCombinations->ClearChildren();
+	
+	if (Tags.IsEmpty() || !Tags[0].IsValid() || !CombinationRowWidgetClass){
+		Txt_TagCombinationText->SetVisibility(ESlateVisibility::HitTestInvisible);
+		return;
 	}
 	
 	const FGameplayTag& Tag = Tags[0];
@@ -101,22 +122,41 @@ FText UCPForageableCodexWidget::BuildTagCombinationText(const TArray<FGameplayTa
 	// 태그에 대응하는 DT Row가 있는지 확인
 	const FCPTagDefinitionRow* TagRow = nullptr;
 	if (!FindTagDefinitionRow(Tag, TagRow) || !TagRow){
-		return FText::FromString(TEXT("조사가 필요합니다."));
+		Txt_TagCombinationText->SetVisibility(ESlateVisibility::HitTestInvisible);
+		return;
 	}
 	
 	// DT에 정의된 조합 가능 정보를 사용해서 문자열을 표시
-	TArray<FString> CombinationTexts;
 	for (const FCPTagCombinationEntry& Combination : TagRow->Combinations){
 		if (!Combination.OtherTag.IsValid() || !Combination.ResultTag.IsValid()) continue;
 		
-		CombinationTexts.Add(FString::Printf(TEXT("%s + %s = %s"),
-			*GetTagDisplayText(Tag).ToString(),
-			*GetTagDisplayText(Combination.OtherTag).ToString(),
-			*GetTagDisplayText(Combination.ResultTag).ToString()));
+		UCPCodexCombineRowWidget* CombinationRow = CreateWidget<UCPCodexCombineRowWidget>(this, CombinationRowWidgetClass);
+		if (!CombinationRow) continue;
+
+		TagColorOpacity = CombinationRow->GetTagColorOpacity();
+		CombinationRow->SetCombinationData(MakeTagDisplayData(Tag), MakeTagDisplayData(Combination.OtherTag), 
+			MakeTagDisplayData(Combination.ResultTag), false);
+		
+		VB_TagCombinations->AddChildToVerticalBox(CombinationRow);
 	}
 	
-	return CombinationTexts.IsEmpty() ? 
-		FText::FromString(TEXT("없음")) : FText::FromString(FString::Join(CombinationTexts, TEXT("\n")));
+	Txt_TagCombinationText->SetVisibility(VB_TagCombinations->GetChildrenCount() == 0 
+		? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+}
+
+FCPTagCodexDisplayData UCPForageableCodexWidget::MakeTagDisplayData(const FGameplayTag& Tag) const
+{
+	FCPTagCodexDisplayData DisplayData;
+	DisplayData.Tag = Tag;
+	DisplayData.Text = FText::FromString(TEXT("???"));
+	
+	const FCPTagDefinitionRow* TagRow = nullptr;
+	if (FindTagDefinitionRow(Tag, TagRow) && TagRow) {
+		DisplayData.Text = TagRow->DisplayName;
+		DisplayData.Color = TagRow->LiquidColor01;
+	}
+
+	return DisplayData;
 }
 
 FText UCPForageableCodexWidget::GetTagDisplayText(const FGameplayTag& Tag) const

@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "NPC/CPBaseNPC.h"
+#include "Quest/QuestTypes.h"
 #include "CPQuestNPC.generated.h"
 
 class UCPNPCComponent;
@@ -45,7 +46,7 @@ protected:
 
 
 private:
-	TArray<FText> FindDialogueLines(AActor* Interactor);
+	TArray<FCPDialogueLine> FindDialogueLines(AActor* Interactor);
 
 	// 결과 UI 표시 (대화형 퀘스트 완료 후)
 	void ShowQuestResultWidget(FName QuestID);
