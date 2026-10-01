@@ -26,8 +26,5 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Potion")
 	FGameplayTag ImmunityTag;
-	
-	//디버그용
-	void PrintPotionEventLog(const FGameplayEventData* TriggerEventData) const;
 
 };
