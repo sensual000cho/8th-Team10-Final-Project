@@ -442,13 +442,14 @@ void ACPPlayerController::OpenExternalContainerUI(UCPItemContainerComponent* InT
 	CurrentContainerUIInstance->BindContainer(InTargetContainer);
 	CurrentInteractingContainer = InTargetContainer;
 
-	bShowMouseCursor = true;
-	SetInputMode(FInputModeGameAndUI());
+	// bShowMouseCursor = true;
+	// SetInputMode(FInputModeGameAndUI());
 
 	SetContextHandlerForTargetContext(InTargetContainer->TargetContext);
 
 	if (UCPUIManagerSubsystem* UIManager = GetGameInstance()->GetSubsystem<UCPUIManagerSubsystem>())
 	{
+		UIManager->RegisterCreatedWidget(CurrentContainerUIInstance);
 		UIManager->PlayWidgetSound(CurrentContainerUIInstance->OpenSound);
 	}
 }
@@ -460,16 +461,16 @@ void ACPPlayerController::CloseExternalContainerUI()
 		if (UCPUIManagerSubsystem* UIManager = GetGameInstance()->GetSubsystem<UCPUIManagerSubsystem>())
 		{
 			UIManager->PlayWidgetSound(CurrentContainerUIInstance->CloseSound);
+			UIManager->CloseWidget(CurrentContainerUIInstance);
 		}
-
-		CurrentContainerUIInstance->RemoveFromParent();
+		
 		CurrentContainerUIInstance = nullptr;
 	}
 
 	CurrentInteractingContainer = nullptr;
 
-	bShowMouseCursor = false;
-	SetInputMode(FInputModeGameOnly());
+	// bShowMouseCursor = false;
+	// SetInputMode(FInputModeGameOnly());
 
 	// 컨테이너를 닫은 뒤에는 Inventory로 변경
 	SetContextHandlerForTargetContext(EUITargetContext::Inventory);
