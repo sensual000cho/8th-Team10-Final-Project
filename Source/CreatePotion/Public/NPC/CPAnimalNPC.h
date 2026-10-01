@@ -1,13 +1,13 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "NPC/CPQuestNPC.h"
+#include "NPC/CPBaseNPC.h"
 #include "CPAnimalNPC.generated.h"
 
 class UQuestManager;
 
 UCLASS()
-class CREATEPOTION_API ACPAnimalNPC : public ACPQuestNPC
+class CREATEPOTION_API ACPAnimalNPC : public ACPBaseNPC
 {
 	GENERATED_BODY()
 

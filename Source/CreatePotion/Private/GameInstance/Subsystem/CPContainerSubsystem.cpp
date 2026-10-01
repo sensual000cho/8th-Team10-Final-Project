@@ -87,6 +87,16 @@ bool UCPContainerSubsystem::ApplyLoadedSaveData(UCPInventoryComponent* PlayerInv
 	return true;
 }
 
+void UCPContainerSubsystem::ResetData()
+{
+	BackupContainerItems.Reset();
+	BackupPlayerMoney = 0;
+	bHasBackup = false;
+	
+	LoadedSaveData = FCPInventorySaveData{};
+	bHasLoadedSaveData = false;
+}
+
 
 void UCPContainerSubsystem::SaveContainerItem(const TArray<FContainerItem>& InItems)
 {
