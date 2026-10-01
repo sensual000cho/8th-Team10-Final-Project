@@ -72,7 +72,7 @@ void UCPForageableCodexWidget::NativeDestruct()
 	BuildTagCombination(CurrentItemData->TagAxes);
 	
 	// 현재 태그 Border 색상 설정
-	if (!Tags.IsEmpty() || Tags[0].IsValid()){
+	if (!Tags.IsEmpty() && Tags[0].IsValid()){
 		const FCPTagDefinitionRow* TagRow = nullptr;
 		if (FindTagDefinitionRow(Tags[0], TagRow) && TagRow){
 			TagBorderColor = TagRow->LiquidColor01;
