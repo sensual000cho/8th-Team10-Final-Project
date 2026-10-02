@@ -73,8 +73,13 @@ void UCPPotionImpactComponent::ResolvePotionEffectArea(const FHitResult& HitResu
 	TArray<AActor*> ActorsToIgnore;
 	ActorsToIgnore.Add(GetOwner());
 
+	const FGameplayTag ExplosionEffectTag = FGameplayTag::RequestGameplayTag(TEXT("Potion.Effect.Explosion"));
+
+	const bool bHasExplosion = PotionEffectTags.Contains(ExplosionEffectTag);
+	const float CurrentEffectRadius = bHasExplosion ? EffectRadius * ExplosionRadiusMultiplier : EffectRadius;
+
 	TArray<AActor*> OverlappedActors;
-	UKismetSystemLibrary::SphereOverlapActors(this, HitResult.ImpactPoint, EffectRadius, EffectObjectTypes, AActor::StaticClass(), ActorsToIgnore, OverlappedActors);
+	UKismetSystemLibrary::SphereOverlapActors(this, HitResult.ImpactPoint, CurrentEffectRadius, EffectObjectTypes, AActor::StaticClass(), ActorsToIgnore, OverlappedActors);
 
 	TSet<AActor*> ProcessedActors;
 	TSet<UAbilitySystemComponent*> ProcessedAbilitySystems;
