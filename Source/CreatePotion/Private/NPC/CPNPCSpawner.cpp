@@ -56,3 +56,14 @@ bool ACPNPCSpawner::SpawnNPC(FName QuestID)
 
 	return true;
 }
+
+void ACPNPCSpawner::DestroyActiveNPC()
+{
+	for (TPair<FName, ACPBaseNPC*>& Pair : ActiveQuestNPCs){
+		if (IsValid(Pair.Value)){
+			Pair.Value->Destroy();
+		}
+	}
+	
+	ActiveQuestNPCs.Empty();
+}

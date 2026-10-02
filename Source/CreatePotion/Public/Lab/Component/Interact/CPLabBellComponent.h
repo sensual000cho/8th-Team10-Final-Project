@@ -17,8 +17,8 @@ public:
 	UCPLabBellComponent();
 	
 	// Interact
+	virtual void BeginFocus(AActor* Interactor) override;
 	virtual bool TryInteract(AActor* Interactor) override;
-	virtual bool CanInteract() const override;
 	
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
