@@ -9,6 +9,7 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
 #include "NavigationSystem.h"
+#include "GameMode/CPLabGameMode.h"
 
 DEFINE_LOG_CATEGORY(LogCPNPC);
 
@@ -42,18 +43,22 @@ void UCPNPCMoveComponent::BeginPlay()
 	}
 	
 	InitializeMovementData();
-
-	const FName StorageKey = GetMovementStorageKey();
-	if (!StorageKey.IsNone())
-	{
-		if (UGameInstance* GI = GetWorld()->GetGameInstance())
+	
+	const bool bIsLab = GetWorld() && GetWorld()->GetAuthGameMode<ACPLabGameMode>() != nullptr;
+	
+	if (!bIsLab){
+		const FName StorageKey = GetMovementStorageKey();
+		if (!StorageKey.IsNone())
 		{
-			if (UCPNPCSubsystem* Subsystem = GI->GetSubsystem<UCPNPCSubsystem>())
+			if (UGameInstance* GI = GetWorld()->GetGameInstance())
 			{
-				FCPNPCMovementSaveData SaveData;
-				if (Subsystem->GetNPCMovementData(StorageKey, SaveData))
+				if (UCPNPCSubsystem* Subsystem = GI->GetSubsystem<UCPNPCSubsystem>())
 				{
-					RestoreMovementState(SaveData);
+					FCPNPCMovementSaveData SaveData;
+					if (Subsystem->GetNPCMovementData(StorageKey, SaveData))
+					{
+						RestoreMovementState(SaveData);
+					}
 				}
 			}
 		}
