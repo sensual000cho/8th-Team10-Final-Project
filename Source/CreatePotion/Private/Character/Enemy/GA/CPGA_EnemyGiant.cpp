@@ -2,9 +2,13 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
 
 #include "Character/Enemy/CPEnemyCharacter.h"
 #include "TimerManager.h"
+#include "Components/SkeletalMeshComponent.h"
 
 UCPGA_EnemyGiant::UCPGA_EnemyGiant()
 {
@@ -44,6 +48,11 @@ void UCPGA_EnemyGiant::ActivateAbility(const FGameplayAbilitySpecHandle Handle, 
 	CachedEnemy = Enemy;
 	bGiantApplied = true;
 	Enemy->SetGiantMultipliers(ScaleMultiplier, WalkSpeedMultiplier, AttackImpulseMultiplier);
+	if (GiantVFX)
+	{
+		GiantVFXComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(GiantVFX, Enemy->GetMesh(), TEXT("root"), FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true);
+		if (GiantVFXComponent.IsValid()) GiantVFXComponent->SetWorldScale3D(FVector(GiantVFXScale));
+	}
 	DyingDelegateHandle = Enemy->OnEnemyDying.AddUObject(this, &UCPGA_EnemyGiant::HandleDurationExpired);
 	if (AActor* Avatar = GetAvatarActorFromActorInfo())
 	{
@@ -61,6 +70,8 @@ void UCPGA_EnemyGiant::HandleDurationExpired()
 
 void UCPGA_EnemyGiant::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
+	if (GiantVFXComponent.IsValid()) GiantVFXComponent->DestroyComponent();
+	GiantVFXComponent.Reset();
 	if (bEffectSFXStarted)
 	{
 		bEffectSFXStarted = false;

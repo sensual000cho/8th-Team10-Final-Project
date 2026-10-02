@@ -2,6 +2,9 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
 
 #include "Character/CPCarryComponent.h"
 #include "Components/ActorComponent.h"
@@ -55,6 +58,21 @@ void UGA_CPPlayerGiant::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 
 	CacheOriginalState(PlayerCharacter);
 	ApplyGiantState();
+	if (GiantVFX)
+	{
+		USkeletalMeshComponent* VisualMesh = PlayerCharacter->GetMesh();
+		if (VisualMesh->bHiddenInGame)
+		{
+			TArray<USkeletalMeshComponent*> Meshes;
+			PlayerCharacter->GetComponents(Meshes);
+			for (USkeletalMeshComponent* Mesh : Meshes)
+			{
+				if (Mesh->GetAttachParent() == VisualMesh && !Mesh->bHiddenInGame) { VisualMesh = Mesh; break; }
+			}
+		}
+		GiantVFXComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(GiantVFX, VisualMesh, TEXT("root"), FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true);
+		if (GiantVFXComponent.IsValid()) GiantVFXComponent->SetWorldScale3D(FVector(GiantVFXScale));
+	}
 	if (AActor* Avatar = GetAvatarActorFromActorInfo())
 	{
 		if (StartSFX) UGameplayStatics::PlaySoundAtLocation(this, StartSFX, Avatar->GetActorLocation());
@@ -66,6 +84,8 @@ void UGA_CPPlayerGiant::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 
 void UGA_CPPlayerGiant::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
+	if (GiantVFXComponent.IsValid()) GiantVFXComponent->DestroyComponent();
+	GiantVFXComponent.Reset();
 	if (bEffectSFXStarted)
 	{
 		bEffectSFXStarted = false;
