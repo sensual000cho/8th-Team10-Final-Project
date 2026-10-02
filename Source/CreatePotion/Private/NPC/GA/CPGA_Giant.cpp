@@ -20,7 +20,7 @@ void UCPGA_Giant::ApplyVisual(ACPBaseNPC* NPC, bool bActive, float InMagnitude)
 		VisualComp->SetScaleMultiplier(bActive ? InMagnitude : 1.0f);
 	}
 
-	if (bActive && GiantCueTag.IsValid())
+	if (bActive && !NPC->IsRestoringPersistentPotionEffects() && GiantCueTag.IsValid())
 	{
 		if (UAbilitySystemComponent* ASC = NPC->GetAbilitySystemComponent())
 		{
