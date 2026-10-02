@@ -107,13 +107,15 @@ void UCPInventoryComponent::ToggleInventoryUI()
 		if (InventoryUIInstance->CachedUIManager)
 		{
 			InventoryUIInstance->CachedUIManager->PlayWidgetSound(InventoryUIInstance->OpenSound);
+			InventoryUIInstance->CachedUIManager->RegisterCreatedWidget(InventoryUIInstance);
 		}
 
-		PC->bShowMouseCursor = true;
-		FInputModeGameAndUI InputMode;
-		InputMode.SetWidgetToFocus(InventoryUIInstance->TakeWidget());
-		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-		PC->SetInputMode(InputMode);
+		// PC->bShowMouseCursor = true;
+		// FInputModeGameAndUI InputMode;
+		// InputMode.SetWidgetToFocus(InventoryUIInstance->TakeWidget());
+		// InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		// PC->SetInputMode(InputMode);
+		
 	}
 	else
 	{
@@ -122,11 +124,12 @@ void UCPInventoryComponent::ToggleInventoryUI()
 		if (InventoryUIInstance->CachedUIManager)
 		{
 			InventoryUIInstance->CachedUIManager->PlayWidgetSound(InventoryUIInstance->CloseSound);
+			InventoryUIInstance->CachedUIManager->UnregisterCreatedWidget(InventoryUIInstance);
 		}
 
-		PC->bShowMouseCursor = false;
-		FInputModeGameOnly InputMode;
-		PC->SetInputMode(InputMode);
+		// PC->bShowMouseCursor = false;
+		// FInputModeGameOnly InputMode;
+		// PC->SetInputMode(InputMode);
 	}
 }
 
@@ -150,7 +153,7 @@ void UCPInventoryComponent::CloseInventoryUI()
 		return;
 	}
 
-	if (InventoryUIInstance->GetVisibility() == ESlateVisibility::Visible)
+	if (InventoryUIInstance->GetVisibility() == ESlateVisibility::SelfHitTestInvisible)
 	{
 		ToggleInventoryUI();
 	}
