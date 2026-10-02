@@ -15,14 +15,18 @@ UUserWidget* UCPUIManagerSubsystem::PushWidget(TSubclassOf<UUserWidget> WidgetCl
 	
 	if (Widget)
 	{
-		Widget->AddToViewport(OpenWidgets.Num());
-		
+		int32 ZOrder = 0;
 		ECPInputMode InputMode = ECPInputMode::GameOnly;
+		
+		// 팝업위젯일 경우
 		if (auto* PopupWidget = Cast<UCPBasePopupWidget>(Widget))
 		{
+			ZOrder = PopupWidget->ZOrder;
 			InputMode = PopupWidget->GetInputMode();
 			// UE_LOG(LogTemp, Warning, TEXT("[UIManager] PushWidgetBP InputMode 읽음: %d"), (int32)InputMode);
 		}
+		
+		Widget->AddToViewport(ZOrder);
 		
 		OpenWidgets.Add({Widget, InputMode});
 		UpdateInputMode();
