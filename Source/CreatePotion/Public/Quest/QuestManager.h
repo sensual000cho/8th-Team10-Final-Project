@@ -200,6 +200,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest|Delivery")
 	int32 GetRewardGold(FName QuestID) const;
 
+	UFUNCTION(BlueprintCallable, Category = "Quest|Completion")
+	bool ShouldConsumeRequiredItems(FName QuestID) const;
+
 	// ===================================================================
 	// [결과]
 
@@ -276,6 +279,9 @@ private:
 
 	UPROPERTY()
 	FName PinnedQuestID;
+
+	UPROPERTY()
+	bool bHasEverPinned = false;
 
 	// 마지막 퀘스트 결과
 	UPROPERTY()
