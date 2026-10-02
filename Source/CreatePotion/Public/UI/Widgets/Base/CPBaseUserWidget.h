@@ -27,6 +27,10 @@ protected:
 	virtual void UnbindEvents();
 
 public:
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category= "UI|Widget")
+	int32 ZOrder = 0;
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "UI|Sound")
 	class USoundBase* OpenSound;
 	

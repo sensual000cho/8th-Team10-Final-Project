@@ -3,6 +3,8 @@
 
 #include "UI/Widgets/Base/CPBaseFixedWidget.h"
 
+#include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
+
 void UCPBaseFixedWidget::ShowWidget()
 {
 	SetVisibility(ESlateVisibility::Visible);
