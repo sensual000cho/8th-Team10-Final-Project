@@ -9,24 +9,46 @@ namespace
 {
 	struct FSharedCueSlot
 	{
+		TWeakObjectPtr<const UWorld> World;
 		FVector Location = FVector::ZeroVector;
 		double Time = -1000.0;
 	};
 
+
+	FSharedCueSlot GatherSlot;
+	FSharedCueSlot ExplodeSlot;
+
 	bool TryClaimSharedCue(const UWorld* World, const FVector& Loc, FSharedCueSlot& Slot)
 	{
 		const double Now = World->GetTimeSeconds();
-		if (Now - Slot.Time < 0.3 && FVector::DistSquared(Loc, Slot.Location) < 1.0)
+		if (Slot.World.Get() == World
+			&& Now - Slot.Time < 0.3
+			&& FVector::DistSquared(Loc, Slot.Location) < 1.0)
 		{
 			return false;
 		}
+
+		Slot.World = World;
 		Slot.Time = Now;
 		Slot.Location = Loc;
 		return true;
 	}
 
-	FSharedCueSlot GatherSlot;
-	FSharedCueSlot ExplodeSlot;
+	void ExecuteSharedCue(UAbilitySystemComponent* ASC, const UWorld* World, const FGameplayTag& Tag,
+		const FVector& Center, float Radius, FSharedCueSlot& Slot)
+	{
+		if (!ASC || !World || !Tag.IsValid() || !TryClaimSharedCue(World, Center, Slot)) return;
+
+		FGameplayCueParameters Params;
+		Params.Location = Center;
+		Params.RawMagnitude = Radius;
+		ASC->ExecuteGameplayCue(Tag, Params);
+	}
+
+	bool IsSimulatingBody(const FBodyInstance* Body)
+	{
+		return Body && Body->bSimulatePhysics && Body->IsValidBodyInstance();
+	}
 }
 
 UCPGA_Explosion::UCPGA_Explosion()
@@ -42,7 +64,7 @@ void UCPGA_Explosion::GetBodyState(USkeletalMeshComponent* Mesh, FVector& OutPos
 
 	for (FBodyInstance* Body : Mesh->Bodies)
 	{
-		if (!Body || !Body->bSimulatePhysics || !Body->IsValidBodyInstance()) continue;
+		if (!IsSimulatingBody(Body)) continue;
 
 		const float Mass = Body->GetBodyMass();
 		OutPos += Body->GetCOMPosition() * Mass;
@@ -71,13 +93,21 @@ FVector UCPGA_Explosion::GetCorePosition(USkeletalMeshComponent* Mesh) const
 	return Pos;
 }
 
+FBodyInstance* UCPGA_Explosion::GetCoreBody(USkeletalMeshComponent* Mesh) const
+{
+	if (!Mesh || !Mesh->Bodies.IsValidIndex(CoreBodyIndex)) return nullptr;
+
+	FBodyInstance* Body = Mesh->Bodies[CoreBodyIndex];
+	return IsSimulatingBody(Body) ? Body : nullptr;
+}
+
 void UCPGA_Explosion::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 	const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 
 	ACPBaseNPC* NPC = PrepareReactionNPC(Handle, ActorInfo, ActivationInfo);
-	if (!NPC) return; 
+	if (!NPC) return;
 
 	FHitResult Hit;
 	UWorld* World = GetWorld();
@@ -88,7 +118,7 @@ void UCPGA_Explosion::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 	}
 
 	EnterRagdoll(NPC);
-	bReactToMeshBounce = false; 
+	bReactToMeshBounce = false;
 
 	USkeletalMeshComponent* Mesh = NPC->GetMesh();
 	if (!Mesh)
@@ -99,54 +129,47 @@ void UCPGA_Explosion::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 
 	Center = Hit.ImpactPoint + FVector(0.0f, 0.0f, CenterZOffset);
 
-	CoreBody = nullptr;
+	CoreBodyIndex = INDEX_NONE;
 	float MaxMass = -1.0f;
-	for (FBodyInstance* Body : Mesh->Bodies)
+	for (int32 i = 0; i < Mesh->Bodies.Num(); ++i)
 	{
-		if (Body && Body->bSimulatePhysics && Body->IsValidBodyInstance() && Body->GetBodyMass() > MaxMass)
+		const FBodyInstance* Body = Mesh->Bodies[i];
+		if (IsSimulatingBody(Body) && Body->GetBodyMass() > MaxMass)
 		{
 			MaxMass = Body->GetBodyMass();
-			CoreBody = Body;
+			CoreBodyIndex = i;
 		}
 	}
 
 	const FVector Core = GetCorePosition(Mesh);
 	StartRadius = FVector2D(Core.X - Center.X, Core.Y - Center.Y).Size();
-	StartZ = Core.Z;
 	ActualOrbitRadius = OrbitRadius * FMath::FRandRange(1.0f - OrbitRadiusJitter, 1.0f + OrbitRadiusJitter);
 	PullStartTime = LastTickTime = World->GetTimeSeconds();
 	TurbulenceTimer = 0.0f;
 
-	auto PlayGatherCue = [this, ActorInfo, World]()
-		{
-			if (UAbilitySystemComponent* ASC = ActorInfo->AbilitySystemComponent.Get())
-			{
-				if (GatherCueTag.IsValid() && TryClaimSharedCue(World, Center, GatherSlot))
-				{
-					FGameplayCueParameters CueParams;
-					CueParams.Location = Center;
-					CueParams.RawMagnitude = OrbitRadius;
-					ASC->ExecuteGameplayCue(GatherCueTag, CueParams);
-				}
-			}
-		};
-
 	if (PullDelay > 0.0f)
 	{
-		World->GetTimerManager().SetTimer(PullTimerHandle, [this, World, PlayGatherCue]()
-			{
-				if (!IsValid(this)) return;
-				PlayGatherCue();
-
-				PullStartTime = LastTickTime = World->GetTimeSeconds();
-				World->GetTimerManager().SetTimer(PullTimerHandle, this, &UCPGA_Explosion::TickPull, 0.016f, true);
-			}, PullDelay, false);
+		World->GetTimerManager().SetTimer(PullTimerHandle, this, &UCPGA_Explosion::StartPull, PullDelay, false);
 	}
 	else
 	{
-		PlayGatherCue();
-		World->GetTimerManager().SetTimer(PullTimerHandle, this, &UCPGA_Explosion::TickPull, 0.016f, true);
+		StartPull();
 	}
+}
+
+void UCPGA_Explosion::StartPull()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		ForceEndAbility();
+		return;
+	}
+
+	ExecuteSharedCue(GetAbilitySystemComponentFromActorInfo(), World, GatherCueTag, Center, OrbitRadius, GatherSlot);
+
+	PullStartTime = LastTickTime = World->GetTimeSeconds();
+	World->GetTimerManager().SetTimer(PullTimerHandle, this, &UCPGA_Explosion::TickPull, 0.016f, true);
 }
 
 void UCPGA_Explosion::TickPull()
@@ -162,9 +185,8 @@ void UCPGA_Explosion::TickPull()
 	const float Now = World->GetTimeSeconds();
 	const float Dt = FMath::Max(Now - LastTickTime, KINDA_SMALL_NUMBER);
 	LastTickTime = Now;
-	const float Elapsed = Now - PullStartTime;
 
-	if (Elapsed >= PullDuration)
+	if (Now - PullStartTime >= PullDuration)
 	{
 		Explode(Mesh);
 		return;
@@ -182,24 +204,17 @@ void UCPGA_Explosion::TickPull()
 		DistanceAlpha = 1.0f - FMath::Clamp((CoreRadius - ActualOrbitRadius) / (StartRadius - ActualOrbitRadius), 0.0f, 1.0f);
 	}
 
-	const float TargetRadius = ActualOrbitRadius;
-	const float TargetZ = Center.Z;
-
 	const FVector Radial = CoreRel.IsNearlyZero() ? FVector::ForwardVector : CoreRel.GetSafeNormal();
 
 	const float Omega = FMath::DegreesToRadians(OrbitSpeedDegPerSec);
 	const FVector Tangent = FVector::CrossProduct(FVector::UpVector, Radial) * (Omega >= 0.0f ? 1.0f : -1.0f);
-
 	const float AbsOmega = FMath::Min3(FMath::Abs(Omega), MaxPullSpeed / CoreRadius, FMath::Sqrt(MaxPullAccel * 0.6f / CoreRadius));
 
 	const float VRadial = FVector::DotProduct(CoreVel, Radial);
 	const float VTangent = FVector::DotProduct(CoreVel, Tangent);
-	const float VRadialTarget = FMath::Clamp((TargetRadius - CoreRadius) * PullStiffness, -MaxPullSpeed, MaxPullSpeed);
-
-	const float SwirlScale = FMath::Lerp(0.25f, 1.0f, DistanceAlpha);
-	const float VTangentTarget = AbsOmega * SwirlScale * CoreRadius;
-
-	const float VZTarget = FMath::Clamp((TargetZ - Core.Z) * PullStiffness, -MaxPullSpeed, MaxPullSpeed);
+	const float VRadialTarget = FMath::Clamp((ActualOrbitRadius - CoreRadius) * PullStiffness, -MaxPullSpeed, MaxPullSpeed);
+	const float VTangentTarget = AbsOmega * FMath::Lerp(0.25f, 1.0f, DistanceAlpha) * CoreRadius;
+	const float VZTarget = FMath::Clamp((Center.Z - Core.Z) * PullStiffness, -MaxPullSpeed, MaxPullSpeed);
 
 	FVector Accel = Radial * ((VRadialTarget - VRadial) * WindFollowGain)
 		+ Tangent * ((VTangentTarget - VTangent) * WindFollowGain)
@@ -222,13 +237,12 @@ void UCPGA_Explosion::TickPull()
 	{
 		for (FBodyInstance* Body : Mesh->Bodies)
 		{
-			if (!Body || !Body->bSimulatePhysics || !Body->IsValidBodyInstance()) continue;
-			Body->AddImpulse(DeltaV * RestRatio, true);
+			if (IsSimulatingBody(Body)) Body->AddImpulse(DeltaV * RestRatio, true);
 		}
 	}
 
 	const FVector CoreImpulse = DeltaV * TotalMass * CoreDriveRatio;
-	if (CoreBody && CoreBody->IsValidBodyInstance())
+	if (FBodyInstance* CoreBody = GetCoreBody(Mesh))
 	{
 		CoreBody->AddImpulse(CoreImpulse, false);
 		if (bApplyTurbulence) CoreBody->AddAngularImpulseInRadians(Spin, true);
@@ -243,19 +257,16 @@ void UCPGA_Explosion::TickPull()
 void UCPGA_Explosion::Explode(USkeletalMeshComponent* Mesh)
 {
 	UWorld* World = GetWorld();
+	if (!World)
+	{
+		ForceEndAbility();
+		return;
+	}
+
 	FTimerManager& TM = World->GetTimerManager();
 	TM.ClearTimer(PullTimerHandle);
 
-	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo())
-	{
-		if (ExplodeCueTag.IsValid() && TryClaimSharedCue(World, Center, ExplodeSlot))
-		{
-			FGameplayCueParameters CueParams;
-			CueParams.Location = Center;
-			CueParams.RawMagnitude = OrbitRadius;
-			ASC->ExecuteGameplayCue(ExplodeCueTag, CueParams);
-		}
-	}
+	ExecuteSharedCue(GetAbilitySystemComponentFromActorInfo(), World, ExplodeCueTag, Center, OrbitRadius, ExplodeSlot);
 
 	FVector Dir = (GetCorePosition(Mesh) - Center).GetSafeNormal();
 	if (Dir.IsNearlyZero())
@@ -266,10 +277,10 @@ void UCPGA_Explosion::Explode(USkeletalMeshComponent* Mesh)
 	const FVector Blast = Dir * ExplosionSpeed * FMath::FRandRange(0.85f, 1.15f);
 
 	Mesh->SetEnableGravity(true);
-	Mesh->SetAllPhysicsLinearVelocity(Blast * ExplosionLimbSpeedRatio); 
-	if (CoreBody && CoreBody->IsValidBodyInstance())
+	Mesh->SetAllPhysicsLinearVelocity(Blast * ExplosionLimbSpeedRatio);
+	if (FBodyInstance* CoreBody = GetCoreBody(Mesh))
 	{
-		CoreBody->SetLinearVelocity(Blast, false);                    
+		CoreBody->SetLinearVelocity(Blast, false);
 	}
 	else
 	{
@@ -289,6 +300,6 @@ void UCPGA_Explosion::FinishExplosionForce()
 void UCPGA_Explosion::CleanupNPCReaction(const FGameplayAbilityActorInfo* ActorInfo)
 {
 	ClearTimers({ &PullTimerHandle, &ExplosionTimerHandle });
-	CoreBody = nullptr;
+	CoreBodyIndex = INDEX_NONE;
 	Super::CleanupNPCReaction(ActorInfo);
 }

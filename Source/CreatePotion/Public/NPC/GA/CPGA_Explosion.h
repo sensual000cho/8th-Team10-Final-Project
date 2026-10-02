@@ -8,15 +8,6 @@
 class UAbilitySystemComponent;
 struct FBodyInstance;
 
-/**
- * 포션 폭발 리액션.
- * 1) 레그돌 상태로 태풍(바람장)에 휘말려 폭발 중심(피격 지점 + Z 오프셋)으로 나선형으로 빨려 들어옴
- * 2) 궤도 반지름(OrbitRadius)에서 잠시 회전 유지
- * 3) 중심에서 바깥(+위)으로 폭발하며 날아감 -> 자연 정착 후 종료
- *
- * 코어 바디(질량이 가장 큰 바디)만 바람장(수렴 + 중심 둘레 회전) 속도로 구동하고,
- * 팔다리는 조인트에 끌려오며 자유롭게 휘날림. 속도 변화량은 가속도 상한으로 제한해 관절 늘어남을 방지.
- */
 UCLASS(Blueprintable)
 class CREATEPOTION_API UCPGA_Explosion : public UCPGA_ImpulseReactionBase
 {
@@ -34,11 +25,14 @@ protected:
 	virtual float GetMeshBounceSpinMultiplier() const override { return BounceSpin; }
 
 private:
+	void StartPull();
 	void TickPull();
 	void Explode(USkeletalMeshComponent* Mesh);
 	void FinishExplosionForce();
 	FVector GetCorePosition(USkeletalMeshComponent* Mesh) const;
 	void GetBodyState(USkeletalMeshComponent* Mesh, FVector& OutPos, FVector& OutVel, float& OutMass) const;
+
+	FBodyInstance* GetCoreBody(USkeletalMeshComponent* Mesh) const;
 
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Explosion|Pull", meta = (ClampMin = "0"))
@@ -125,13 +119,12 @@ private:
 	FVector Center = FVector::ZeroVector;
 	float StartRadius = 0.0f;
 	float ActualOrbitRadius = 0.0f;
-	float StartZ = 0.0f;
 	float PullStartTime = 0.0f;
 	float LastTickTime = 0.0f;
 	float TurbulenceTimer = 0.0f;
-	FBodyInstance* CoreBody = nullptr;
+
+	int32 CoreBodyIndex = INDEX_NONE;
 
 	FTimerHandle PullTimerHandle;
 	FTimerHandle ExplosionTimerHandle;
-
 };
