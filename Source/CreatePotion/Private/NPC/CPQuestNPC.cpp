@@ -221,6 +221,14 @@ void ACPQuestNPC::UpdateOverheadWidgetsScale(float ScaleMultiplier)
 	}
 }
 
+void ACPQuestNPC::SetQuestMarkerVisibility(bool bVisible)
+{
+	if (QuestMarkerWidget)
+	{
+		QuestMarkerWidget->SetVisibility(bVisible);
+	}
+}
+
 void ACPQuestNPC::BeginPlay()
 {
 	QuestData = Cast<UCPQuestNPCDataAsset>(NPCData);

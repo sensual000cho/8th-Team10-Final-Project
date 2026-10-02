@@ -42,6 +42,43 @@ void UCPNPCDialogueWidget::InitDialogueLines(FName InQuestID, const FText& InNPC
     PlayCurrentLine();
 }
 
+void UCPNPCDialogueWidget::NativeConstruct()
+{
+    Super::NativeConstruct();
+
+    if (APlayerController* PC = GetOwningPlayer())
+    {
+        FInputModeUIOnly UIInputMode;
+        UIInputMode.SetWidgetToFocus(TakeWidget());
+        UIInputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+
+        PC->SetInputMode(UIInputMode);
+        PC->bShowMouseCursor = true;
+
+        if (APawn* ControlledPawn = PC->GetPawn())
+        {
+            ControlledPawn->DisableInput(PC);
+        }
+    }
+}
+
+void UCPNPCDialogueWidget::NativeDestruct()
+{
+    if (APlayerController* PC = GetOwningPlayer())
+    {
+        FInputModeGameOnly GameInputMode;
+        PC->SetInputMode(GameInputMode);
+        PC->bShowMouseCursor = false;
+
+        if (APawn* ControlledPawn = PC->GetPawn())
+        {
+            ControlledPawn->EnableInput(PC);
+        }
+    }
+
+    Super::NativeDestruct();
+}
+
 void UCPNPCDialogueWidget::BindEvents()
 {
     Super::BindEvents();

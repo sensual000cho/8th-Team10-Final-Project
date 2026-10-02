@@ -23,6 +23,9 @@ public:
     void InitDialogueLines(FName InQuestID, const FText& InNPCName, const TArray<FCPDialogueLine>& InDialogueLines);
     
 protected:
+    virtual void NativeConstruct() override;
+    virtual void NativeDestruct() override;
+
     virtual void BindEvents() override;
     virtual void UnbindEvents() override;
 
