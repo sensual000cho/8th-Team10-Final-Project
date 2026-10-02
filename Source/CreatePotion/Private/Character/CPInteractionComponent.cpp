@@ -9,6 +9,7 @@
 #include "Engine/World.h"
 #include "Components/MeshComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Components/MeshComponent.h"
 
 #include "EnhancedInputSubsystems.h"	// IMC 바인딩
 #include "EnhancedInputComponent.h"		// IA 바인딩
@@ -458,33 +459,53 @@ void UCPInteractionComponent::SetActorHighlight(AActor* Target, bool bHighlighte
 	// Target->GetComponentByClass<UMeshComponent>();
 	
 	// 하이라이트할 메쉬 찾기
+	UMeshComponent* MeshComp = FindTopMesh(Target);
+	if (!MeshComp)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[InteractionComponent] %s 에서 Mesh 발견되지 않음"), *Target->GetName());
+		return;
+	}
+	
+	MeshComp->SetOverlayMaterial(bHighlighted ? HighlightMaterial : nullptr);
+	
+}
+
+UMeshComponent* UCPInteractionComponent::FindTopMesh(AActor* Target)
+{
+	if (!Target) return nullptr;
+	
+	// 루트가 메쉬면 바로 사용
+	if (UMeshComponent* RootMesh = Cast<UMeshComponent>(Target->GetRootComponent()))
+	{
+		if (!RootMesh->IsA<UWidgetComponent>())
+		{
+			return RootMesh;
+		}
+	}
+	
 	TArray<UMeshComponent*> MeshComponents;
 	Target->GetComponents<UMeshComponent>(MeshComponents);
 	
-	bool bMeshFound = false;
+	UMeshComponent* BestMesh = nullptr;
+	int32 BestDepth = MAX_int32;
+	
 	for (UMeshComponent* Comp : MeshComponents)
 	{
-		if (!Comp && !Comp->IsA<UWidgetComponent>())
+		if (!Comp || !Comp->IsA<UWidgetComponent>()) continue;
+		
+		int32 Depth = 0;
+		for (USceneComponent* Parent = Comp->GetAttachParent(); Parent; Parent = Parent->GetAttachParent())
 		{
-			continue;
+			++Depth;	
 		}
 		
-		
-		Comp->SetOverlayMaterial(bHighlighted ? HighlightMaterial : nullptr);
-		bMeshFound = true;
-		
-		// Debug Log: 어떤 메쉬를 찾아서 하이라이트 하고 있는지 출력
-		// const TCHAR* Message = HighlightMaterial ? TEXT("Valid") : TEXT("NULL");
-		// UE_LOG(LogTemp, Warning, TEXT("[InteractionComponent] Found Mesh: %s, HighlightMaterial: %s"),
-		// *Comp->GetName(), Message);
+		if (Depth < BestDepth)
+		{
+			BestDepth = Depth;
+			BestMesh = Comp;
+		}
 	}
-	
-	// Debug Log: Mesh 발견되지 않으면 출력
-	if (!bMeshFound)
-	{
-		UE_LOG(LogTemp, Error, TEXT("[InteractionComponent] %s 에서 Mesh 발견되지 않음"), *Target->GetName());
-	}
-	
+	return BestMesh;
 }
 
 AActor* UCPInteractionComponent::SelectBestInteractionTarget(const TArray<FHitResult>& InteractionHits, const FVector& CameraLocation, const FVector& CameraForward) const
