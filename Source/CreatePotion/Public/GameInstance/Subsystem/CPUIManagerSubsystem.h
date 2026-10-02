@@ -62,13 +62,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UI|Sound")
 	void PlayWidgetSound(USoundBase* Sound);
 	
+	// 이미 생성된 위젯 OpenWidgets 배열에 등록 
 	UFUNCTION(BlueprintCallable, Category = "UI|Widget")
 	void RegisterCreatedWidget(UUserWidget* Widget);
+
+	// OpenWidgets 배열에서 위젯 제거
+	UFUNCTION(BlueprintCallable, Category = "UI|Widget")
+	void UnregisterCreatedWidget(UUserWidget* Widget);
+	
 private:
 	// --- 헬퍼 함수 ---
 	// InputMode 변경
 	void UpdateInputMode(); 
-	// Push된 위젯 배열에 저장
 	
 	
 private:

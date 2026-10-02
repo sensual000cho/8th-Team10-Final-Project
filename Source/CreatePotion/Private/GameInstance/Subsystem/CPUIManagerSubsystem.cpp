@@ -183,6 +183,7 @@ void UCPUIManagerSubsystem::UpdateInputMode()
 		{
 			FInputModeGameAndUI InputMode;
 			if (TopWidget) InputMode.SetWidgetToFocus(TopWidget->TakeWidget());
+			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 			InputMode.SetHideCursorDuringCapture(false);
 			PC->SetInputMode(InputMode);
 			PC->bShowMouseCursor = true;
@@ -218,6 +219,19 @@ void UCPUIManagerSubsystem::RegisterCreatedWidget(UUserWidget* Widget)
 	// 열린 위젯 배열에 추가
 	OpenWidgets.Add({Widget, InputMode});
 	UpdateInputMode();
+}
+
+void UCPUIManagerSubsystem::UnregisterCreatedWidget(UUserWidget* Widget)
+{
+	if (!IsValid(Widget)) return;
+	
+	const int32 Removed = OpenWidgets.RemoveAll(
+		[Widget](const FPopupEntry& Entry){ return Entry.Widget == Widget; });
+	
+	if (Removed > 0)
+	{
+		UpdateInputMode();
+	}
 }
 
 
