@@ -33,6 +33,8 @@ public:
 	// 선택한 퀘스트 ID에 해당하는 NPC 1명만 즉시 스폰
 	UFUNCTION(BlueprintCallable, Category = "NPC Spawner")
 	bool SpawnNPC(FName QuestID);
+	
+	void DestroyActiveNPC();
 
 public:
 	UPROPERTY(EditAnywhere, Category = "NPC")
