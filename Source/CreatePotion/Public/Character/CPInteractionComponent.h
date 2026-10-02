@@ -24,6 +24,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInteractionAlignmentStarted);
 
 class AActor;
 class UCameraComponent;
+class UmeshComponent;
 class UInputAction;
 class UInputMappingContext;
 class UMaterialInterface;
@@ -150,6 +151,8 @@ private:
 	
 	// --- 상호작용 대상 Highlight ---
 	void SetActorHighlight(AActor* Target, bool bHighlighted);
+	
+	static UMeshComponent* FindTopMesh(AActor* Target);
 	
 	// 상호작용 취소 함수
 	void CancelTimedInteraction();

@@ -6,6 +6,7 @@
 #include "Sound/SoundBase.h"
 #include "QuestTypes.generated.h"
 
+
 // ===================================================================
 // [DT 1: 텍스트 스크립트 (마을 퀘스트/저널용)]
 // 플레이어에게 보이는 텍스트만 담음. 판정용 데이터는 포함하지 않음.
@@ -37,7 +38,7 @@ struct FQuestData : public FTableRowBase
 	TArray<FCPDialogueLine> QuestScriptLines;
 
 	// 수락 후 저널 요약
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerFacing")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerFacing", meta = (MultiLine = true))
 	FText QuestSummaryText;
 
 	// 인물 도감 회고 요약 (랜덤 퀘스트는 미사용)
@@ -134,6 +135,13 @@ struct FQuestAnswerData : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Completion|ItemCollection",
 		meta = (EditCondition = "CompletionType == EQuestCompletionType::ItemCollection", EditConditionHides))
 	TArray<FText> RequiredItemHintNames;
+
+	// [ItemCollection] 완료 시 요구 아이템을 인벤토리에서 제거할지 여부
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Completion|ItemCollection",
+		meta = (EditCondition = "CompletionType == EQuestCompletionType::ItemCollection", EditConditionHides))
+	bool bConsumeRequiredItems = true;
+
+
 };
 
 // ===================================================================

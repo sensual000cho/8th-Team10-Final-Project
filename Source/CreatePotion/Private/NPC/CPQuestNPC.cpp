@@ -221,6 +221,14 @@ void ACPQuestNPC::UpdateOverheadWidgetsScale(float ScaleMultiplier)
 	}
 }
 
+void ACPQuestNPC::SetQuestMarkerVisibility(bool bVisible)
+{
+	if (QuestMarkerWidget)
+	{
+		QuestMarkerWidget->SetVisibility(bVisible);
+	}
+}
+
 void ACPQuestNPC::BeginPlay()
 {
 	QuestData = Cast<UCPQuestNPCDataAsset>(NPCData);
@@ -383,12 +391,15 @@ TArray<FCPDialogueLine> ACPQuestNPC::FindDialogueLines(AActor* Interactor)
 
 			const TMap<FName, int32> HeldItems = Inventory->GetItemCountsByID();
 			if (QuestManager->TryCompleteQuestByItem(QuestID, HeldItems)) {
-				TArray<FName> RequiredItemIDs;
-				int32 RequiredItemCount = 0;
+				if (QuestManager->ShouldConsumeRequiredItems(QuestID))
+				{
+					TArray<FName> RequiredItemIDs;
+					int32 RequiredItemCount = 0;
 
-				QuestManager->GetRequiredItemInfo(QuestID, RequiredItemIDs, RequiredItemCount);
-				for (const FName& RequiredItemID : RequiredItemIDs) {
-					Inventory->RemoveItemByID(RequiredItemID, RequiredItemCount);
+					QuestManager->GetRequiredItemInfo(QuestID, RequiredItemIDs, RequiredItemCount);
+					for (const FName& RequiredItemID : RequiredItemIDs) {
+						Inventory->RemoveItemByID(RequiredItemID, RequiredItemCount);
+					}
 				}
 				CurrentQuestId = QuestID;
 				return QuestManager->GetNPCStoryLines(QuestID);

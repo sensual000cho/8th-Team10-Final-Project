@@ -86,6 +86,11 @@ void UQuestManager::CompleteQuest(FName QuestID)
 		}
 	}
 
+	if (PinnedQuestID == QuestID)
+	{
+		PinnedQuestID = NAME_None;
+	}
+
 	OnQuestUpdated.Broadcast(QuestID, EQuestState::Completed);
 	OnRewardGranted.Broadcast(GetRewardGold(QuestID));
 
@@ -163,12 +168,26 @@ FName UQuestManager::GetActiveGoalQuestID() const
 	{
 		return PinnedQuestID;
 	}
+
+	// 플레이어가 한 번도 고정을 안 써봤다면, 자동으로 첫 Accepted 퀘스트 표시
+	if (!bHasEverPinned)
+	{
+		for (const FName& QuestID : QuestOrder)
+		{
+			if (GetQuestState(QuestID) == EQuestState::Accepted)
+			{
+				return QuestID;
+			}
+		}
+	}
+
 	return NAME_None;
 }
 
 void UQuestManager::SetPinnedQuest(FName QuestID)
 {
 	PinnedQuestID = QuestID;
+	bHasEverPinned = true;
 	OnQuestUpdated.Broadcast(QuestID, GetQuestState(QuestID));
 }
 
@@ -414,6 +433,12 @@ int32 UQuestManager::GetRewardGold(FName QuestID) const
 {
 	const FQuestAnswerData* Answer = FindAnswerData(QuestID);
 	return Answer ? Answer->RewardGold : 0;
+}
+
+bool UQuestManager::ShouldConsumeRequiredItems(FName QuestID) const
+{
+	const FQuestAnswerData* Answer = FindAnswerData(QuestID);
+	return Answer ? Answer->bConsumeRequiredItems : true;
 }
 
 // ===================================================================

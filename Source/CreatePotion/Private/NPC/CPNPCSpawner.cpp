@@ -18,7 +18,6 @@ bool ACPNPCSpawner::SpawnNPC(FName QuestID)
 
 	if (ActiveQuestNPCs.Contains(QuestID) && IsValid(ActiveQuestNPCs[QuestID]))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[CPNPCSpawner] 이미 스폰되었습니다 %s"), *QuestID.ToString());
 		return false;
 	}
 
@@ -56,4 +55,15 @@ bool ACPNPCSpawner::SpawnNPC(FName QuestID)
 	}
 
 	return true;
+}
+
+void ACPNPCSpawner::DestroyActiveNPC()
+{
+	for (TPair<FName, ACPBaseNPC*>& Pair : ActiveQuestNPCs){
+		if (IsValid(Pair.Value)){
+			Pair.Value->Destroy();
+		}
+	}
+	
+	ActiveQuestNPCs.Empty();
 }

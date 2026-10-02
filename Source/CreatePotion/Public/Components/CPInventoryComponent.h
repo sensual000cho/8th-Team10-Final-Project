@@ -6,6 +6,8 @@
 #include "Components/CPItemContainerComponent.h"
 #include "CPInventoryComponent.generated.h"
 
+class UCPUIManagerSubsystem;
+
 class UInputMappingContext;
 class UInputAction;
 
@@ -95,7 +97,7 @@ public:
 private:
 	UPROPERTY()
 	UCPContainerMainWidget* InventoryUIInstance;
-
+	
 	// TryBindInput()을 retry하기 위한 타이머 핸들
 	FTimerHandle InputBindingTimerHandle;
 
