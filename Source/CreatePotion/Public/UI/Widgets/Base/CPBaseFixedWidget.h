@@ -14,7 +14,7 @@ class CREATEPOTION_API UCPBaseFixedWidget : public UCPBaseUserWidget
 {
 	GENERATED_BODY()
 	
-protected:
+public:
 	UFUNCTION(BlueprintCallable, Category = "Fixed")
 	void ShowWidget();
 	

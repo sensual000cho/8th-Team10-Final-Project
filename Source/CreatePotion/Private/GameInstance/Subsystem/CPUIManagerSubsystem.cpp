@@ -15,14 +15,18 @@ UUserWidget* UCPUIManagerSubsystem::PushWidget(TSubclassOf<UUserWidget> WidgetCl
 	
 	if (Widget)
 	{
-		Widget->AddToViewport(OpenWidgets.Num());
-		
+		int32 ZOrder = 0;
 		ECPInputMode InputMode = ECPInputMode::GameOnly;
+		
+		// 팝업위젯일 경우
 		if (auto* PopupWidget = Cast<UCPBasePopupWidget>(Widget))
 		{
+			ZOrder = PopupWidget->ZOrder;
 			InputMode = PopupWidget->GetInputMode();
-			UE_LOG(LogTemp, Warning, TEXT("[UIManager] PushWidgetBP InputMode 읽음: %d"), (int32)InputMode);
+			// UE_LOG(LogTemp, Warning, TEXT("[UIManager] PushWidgetBP InputMode 읽음: %d"), (int32)InputMode);
 		}
+		
+		Widget->AddToViewport(ZOrder);
 		
 		OpenWidgets.Add({Widget, InputMode});
 		UpdateInputMode();
@@ -128,21 +132,39 @@ void UCPUIManagerSubsystem::PlayWidgetSound(USoundBase* Sound)
 
 void UCPUIManagerSubsystem::UpdateInputMode()
 {
+	
+	
 	APlayerController* PC = GetGameInstance()->GetFirstLocalPlayerController();
 	if (!PC) return;
 	
-	// 열린 위젯이 없으면 기본 게임모드로 복구
-	if (OpenWidgets.Num() == 0)
+	auto Priority = [](ECPInputMode Mode)
 	{
-		FInputModeGameOnly InputMode;
-		PC->SetInputMode(InputMode);
-		PC->bShowMouseCursor = false;
-		return;
+		switch (Mode)
+		{
+			case ECPInputMode::UIOnly:    return 2;
+			case ECPInputMode::GameAndUI: return 1;
+			default:					  return 0;
+		}
+	};
+	
+	ECPInputMode CurrentMode = ECPInputMode::GameOnly;
+	UUserWidget* TopWidget = nullptr;
+	
+	for (int32 i = OpenWidgets.Num() - 1; i>= 0; --i)
+	{
+		const FPopupEntry& Entry = OpenWidgets[i];
+		if (!Entry.Widget.IsValid()) continue;
+		
+		if (Priority(Entry.InputMode) > Priority(CurrentMode))
+		{
+			CurrentMode = Entry.InputMode;
+			TopWidget = Entry.Widget.Get();
+		}
 	}
 	
-	const FPopupEntry& TopEntry = OpenWidgets.Last();
-	UUserWidget* TopWidget = TopEntry.Widget.Get();
-	ECPInputMode CurrentMode = TopEntry.InputMode;
+	UE_LOG(LogTemp, Warning, TEXT("[UIManager] -> 적용 모드 = %s, 포커스 = %s"),
+		*UEnum::GetValueAsString(CurrentMode),
+		*GetNameSafe(TopWidget));
 	
 	switch (CurrentMode)
 	{
@@ -165,17 +187,32 @@ void UCPUIManagerSubsystem::UpdateInputMode()
 		{
 			FInputModeGameAndUI InputMode;
 			if (TopWidget) InputMode.SetWidgetToFocus(TopWidget->TakeWidget());
+			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 			InputMode.SetHideCursorDuringCapture(false);
 			PC->SetInputMode(InputMode);
 			PC->bShowMouseCursor = true;
 			break;
 		}
 	}
+	
 }
 
-void UCPUIManagerSubsystem::RegisterPushedWidget(UUserWidget* Widget)
+void UCPUIManagerSubsystem::RegisterCreatedWidget(UUserWidget* Widget)
 {
-	Widget->AddToViewport(OpenWidgets.Num());
+	if (!IsValid(Widget)) return;
+	
+	if (!Widget->IsInViewport())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[UIManager] %s가 뷰포트에 없는 상태로 등록됩니다."), *GetNameSafe(Widget));
+	}
+	
+	const bool bAlreadyOpen = OpenWidgets.ContainsByPredicate(
+		[Widget](const FPopupEntry& Entry){ return Entry.Widget == Widget;});
+	if (bAlreadyOpen)
+	{
+		UpdateInputMode();
+		return;
+	}
 			
 	ECPInputMode InputMode = ECPInputMode::GameAndUI; // 디폴트값
 	if (auto* PopupWidget = Cast<UCPBasePopupWidget>(Widget))
@@ -186,6 +223,19 @@ void UCPUIManagerSubsystem::RegisterPushedWidget(UUserWidget* Widget)
 	// 열린 위젯 배열에 추가
 	OpenWidgets.Add({Widget, InputMode});
 	UpdateInputMode();
+}
+
+void UCPUIManagerSubsystem::UnregisterCreatedWidget(UUserWidget* Widget)
+{
+	if (!IsValid(Widget)) return;
+	
+	const int32 Removed = OpenWidgets.RemoveAll(
+		[Widget](const FPopupEntry& Entry){ return Entry.Widget == Widget; });
+	
+	if (Removed > 0)
+	{
+		UpdateInputMode();
+	}
 }
 
 
