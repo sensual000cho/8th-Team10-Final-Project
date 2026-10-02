@@ -5,21 +5,30 @@
 
 #include "Components/Border.h"
 #include "Components/Image.h"
+#include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
 #include "Data/CPForageableItemData.h"
 #include "GameInstance/Subsystem/CPCodexSubsystem.h"
 
 void UCPCodexCombineRowWidget::SetCombinationData(const FCPTagCodexDisplayData& LeftData,
-	const FCPTagCodexDisplayData& RightData, const FCPTagCodexDisplayData& ResultData)
+	const FCPTagCodexDisplayData& RightData, const FCPTagCodexDisplayData& ResultData, bool bShowImages)
 {
 	UGameInstance* GameInstance = GetWorld()->GetGameInstance();
 	UCPCodexSubsystem* CodexSubsystem = GameInstance ? GameInstance->GetSubsystem<UCPCodexSubsystem>() : nullptr;
 	
-	UCPForageableItemData* LeftItemData = CodexSubsystem ? CodexSubsystem->FindRegisteredItemByTag(LeftData.Tag) : nullptr;
-	UCPForageableItemData* RightItemData = CodexSubsystem ? CodexSubsystem->FindRegisteredItemByTag(RightData.Tag) : nullptr;
+	if (bShowImages){
+		SizeBox->SetHeightOverride(SizeBox->GetHeightOverride());
+		
+		UCPForageableItemData* LeftItemData = CodexSubsystem ? CodexSubsystem->FindRegisteredItemByTag(LeftData.Tag) : nullptr;
+		UCPForageableItemData* RightItemData = CodexSubsystem ? CodexSubsystem->FindRegisteredItemByTag(RightData.Tag) : nullptr;
 	
-	ApplyIngredientImage(Img_LeftImage, LeftItemData);
-	ApplyIngredientImage(Img_RightImage, RightItemData);
+		ApplyIngredientImage(Img_LeftImage, LeftItemData);
+		ApplyIngredientImage(Img_RightImage, RightItemData);	
+	}else{
+		SizeBox->ClearHeightOverride();
+		Img_LeftImage->SetVisibility(ESlateVisibility::Collapsed);
+		Img_RightImage->SetVisibility(ESlateVisibility::Collapsed);
+	}
 	
 	const bool bLeftTagDiscovered = CodexSubsystem ? CodexSubsystem->IsTagDiscovered(LeftData.Tag) : false;
 	const bool bRightTagDiscovered = CodexSubsystem ? CodexSubsystem->IsTagDiscovered(RightData.Tag) : false;

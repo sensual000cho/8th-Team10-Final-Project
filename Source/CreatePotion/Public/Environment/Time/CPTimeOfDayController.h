@@ -77,7 +77,7 @@ private:
 	
 	// 태양 궤도 시작 각도
 	UPROPERTY(EditAnywhere, Category = "Time Of Day")
-	float SunPitchOffset = -90.f;
+	float SunPitchOffset = -180.f;
 	
 	// 방향 조절용
 	UPROPERTY(EditAnywhere, Category = "Time Of Day")

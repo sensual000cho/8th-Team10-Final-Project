@@ -34,11 +34,10 @@ public:
 	void RegisterCauldron(UCPCauldronComponent* InCauldronComponent);
 	void UnRegisterCauldron(UCPCauldronComponent* InCauldronComponent);
 	
-	// 가마솥 데이터 저장
+	// 게임 세이브/로드
 	FCPCauldronSaveData GetSaveData();
-	
-	// 가마솥 데이터 로드
 	void LoadSaveData(const FCPCauldronSaveData& InSaveData);
+	void ResetData();
 	
 private:
 	UPROPERTY()

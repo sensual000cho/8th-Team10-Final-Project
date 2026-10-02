@@ -92,6 +92,44 @@ void UCPSaveSubsystem::LoadGame()
 	UGameplayStatics::OpenLevel(GetWorld(), SaveData->LevelName);
 }
 
+void UCPSaveSubsystem::ResetGameSession()
+{
+	UGameInstance* GI = GetGameInstance();
+	if (!GI) return;
+	
+	bHasLoadedTransform = false;
+	LoadedLocation = FVector::ZeroVector;
+	LoadedRotation = FRotator::ZeroRotator;
+	
+	if (UCPContainerSubsystem* ContainerSubsystem = GI->GetSubsystem<UCPContainerSubsystem>()){
+		ContainerSubsystem->ResetData();
+	}
+	
+	if (UCPResourceStateSubsystem* ResourceSubsystem = GI->GetSubsystem<UCPResourceStateSubsystem>()){
+		ResourceSubsystem->ResetData();
+	}
+
+	if (UCPCodexSubsystem* CodexSubsystem = GI->GetSubsystem<UCPCodexSubsystem>()){
+		CodexSubsystem->ResetData();
+	}
+	
+	if (UCPNPCSubsystem* NPCSubsystem = GI->GetSubsystem<UCPNPCSubsystem>()){
+		NPCSubsystem->ResetData();
+	}
+	
+	if (UQuestManager* QuestManager = GI->GetSubsystem<UQuestManager>()){
+		QuestManager->ResetData();
+	}
+	
+	if (UCPCauldronSubsystem* CauldronSubsystem = GI->GetSubsystem<UCPCauldronSubsystem>()){
+		CauldronSubsystem->ResetData();
+	} 
+	
+	if (UCPTimeSubsystem* TimeSubsystem = GI->GetSubsystem<UCPTimeSubsystem>()){
+		TimeSubsystem->ResetData();
+	}
+}
+
 void UCPSaveSubsystem::ApplyLoadPlayerTransform(APawn* InPawn)
 {
 	if (!bHasLoadedTransform || !InPawn) return;
