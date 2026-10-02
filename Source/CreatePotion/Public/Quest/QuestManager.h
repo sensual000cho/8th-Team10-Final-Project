@@ -36,9 +36,11 @@ class CREATEPOTION_API UQuestManager : public UGameInstanceSubsystem
 	GENERATED_BODY()
 
 public:
-	//Game Save
+	//게임 세이브/로드
 	FCPQuestSaveData GetSaveData();
 	void LoadSaveData(const FCPQuestSaveData& SaveData);
+	void ResetData();
+	
 	// ===================================================================
 	// [데이터 테이블] - Initialize()에서 자동 연결
 	// ===================================================================
@@ -198,6 +200,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest|Delivery")
 	int32 GetRewardGold(FName QuestID) const;
 
+	UFUNCTION(BlueprintCallable, Category = "Quest|Completion")
+	bool ShouldConsumeRequiredItems(FName QuestID) const;
+
 	// ===================================================================
 	// [결과]
 
@@ -274,6 +279,9 @@ private:
 
 	UPROPERTY()
 	FName PinnedQuestID;
+
+	UPROPERTY()
+	bool bHasEverPinned = false;
 
 	// 마지막 퀘스트 결과
 	UPROPERTY()

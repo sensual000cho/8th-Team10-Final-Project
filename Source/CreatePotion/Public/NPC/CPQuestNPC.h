@@ -31,6 +31,8 @@ public:
 
 	virtual void UpdateOverheadWidgetsScale(float ScaleMultiplier) override;
 
+	void SetQuestMarkerVisibility(bool bVisible);
+
 protected:
 	virtual void BeginPlay() override;
 

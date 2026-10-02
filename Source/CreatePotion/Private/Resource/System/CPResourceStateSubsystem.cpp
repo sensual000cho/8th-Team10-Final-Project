@@ -23,6 +23,12 @@ void UCPResourceStateSubsystem::LoadSaveData(const FCPResourceSaveData& SaveData
 	SessionSeed = SaveData.SessionSeed;
 }
 
+void UCPResourceStateSubsystem::ResetData()
+{
+	NodeStates.Reset();
+	SessionSeed = static_cast<int32>(FGuid::NewGuid().A & 0x7FFFFFFF);
+}
+
 FCPResourceNodeState& UCPResourceStateSubsystem::GetOrCreateState(const FCPResourceNodeKey& Key)
 {
 	return NodeStates.FindOrAdd(Key);

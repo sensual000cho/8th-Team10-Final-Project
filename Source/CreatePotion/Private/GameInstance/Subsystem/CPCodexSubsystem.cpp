@@ -32,9 +32,13 @@ void UCPCodexSubsystem::LoadSaveData(const FCPCodexSaveData& SaveData)
 	for (const FCPNPCCodexEntry& Entry : SaveData.NPCEntries) {
 		NPCCodexEntries.Add(Entry.Entry, Entry);
 	}
-	
-	OnForageableCodexUpdated.Broadcast();
-	OnNPCCodexUpdated.Broadcast();
+}
+
+void UCPCodexSubsystem::ResetData()
+{
+	ForageableCodexEntries.Reset();
+	DiscoveredTags.Reset();
+	NPCCodexEntries.Reset();
 }
 
 TArray<UCPForageableItemData*> UCPCodexSubsystem::GetRegisteredForageableItems() const
@@ -64,7 +68,7 @@ UCPForageableItemData* UCPCodexSubsystem::FindRegisteredItemByTag(const FGamepla
 	
 	for (const TPair<TObjectPtr<UCPForageableItemData>, FCPForageableCodexEntry>& Pair : ForageableCodexEntries){
 		UCPForageableItemData* ItemData = Pair.Key.Get();
-		if (!ItemData || ItemData->TagAxes[0] != Tag) continue;
+		if (!ItemData || ItemData->TagAxes.IsEmpty() ||ItemData->TagAxes[0] != Tag) continue;
 		return ItemData;
 	}
 	return nullptr;
@@ -127,7 +131,9 @@ bool UCPCodexSubsystem::RecordForageableEntry(UCPForageableItemData* ItemData)
 {
 	if (!ItemData) return false;
 	
-	DiscoveredTags.Add(ItemData->TagAxes[0], true);
+	if (!ItemData->TagAxes.IsEmpty()){
+		DiscoveredTags.Add(ItemData->TagAxes[0], true);	
+	}
 	
 	// 등록이 되어 있는 경우 채집 횟수 증가
 	if (FCPForageableCodexEntry* CodexEntry = ForageableCodexEntries.Find(ItemData)){

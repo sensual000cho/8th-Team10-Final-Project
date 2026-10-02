@@ -7,7 +7,6 @@
 #include "NPC/CPBaseNPC.h"
 #include "Components/WidgetComponent.h"
 #include "GameFramework/CharacterMovementComponent.h" 
-#include "PhysicsEngine/AggregateGeom.h"
 #include "Components/StaticMeshComponent.h"
 
 UCPNPCVisualComponent::UCPNPCVisualComponent()
@@ -224,6 +223,7 @@ void UCPNPCVisualComponent::RestoreMeshTransformAfterRagdoll()
 
 	const FVector StoppedMeshWorldLoc = MeshComponent->GetComponentLocation();
 
+	MeshComponent->PutAllRigidBodiesToSleep();
 	MeshComponent->SetSimulatePhysics(false);
 	MeshComponent->SetEnableGravity(false);
 	MeshComponent->SetUseCCD(false);
@@ -242,18 +242,22 @@ void UCPNPCVisualComponent::RestoreMeshTransformAfterRagdoll()
 	const FVector TraceEnd = StoppedMeshWorldLoc - FVector(0.f, 0.f, 3000.f);
 
 	FVector NewCapsuleLocation = StoppedMeshWorldLoc;
-	if (GetWorld()->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_WorldStatic, Params))
+	if (UWorld* World = GetWorld())
 	{
-		NewCapsuleLocation = Hit.ImpactPoint + FVector(0.f, 0.f, ExpectedHalfHeight);
-	}
-	else
-	{
-		NewCapsuleLocation = StoppedMeshWorldLoc + FVector(0.f, 0.f, ExpectedHalfHeight);
+		if (World->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_WorldStatic, Params))
+		{
+			NewCapsuleLocation = Hit.ImpactPoint + FVector(0.f, 0.f, ExpectedHalfHeight);
+		}
+		else
+		{
+			NewCapsuleLocation = StoppedMeshWorldLoc + FVector(0.f, 0.f, ExpectedHalfHeight);
+		}
 	}
 
 	CapsuleComponent->SetWorldLocation(NewCapsuleLocation, false, nullptr, ETeleportType::TeleportPhysics);
 	CapsuleComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	MeshComponent->AttachToComponent(CapsuleComponent.Get(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+	MeshComponent->SetRelativeLocationAndRotation(FVector(0.f, 0.f, -ExpectedHalfHeight), DefaultOriginalRotation, false, nullptr, ETeleportType::TeleportPhysics);
 	MeshComponent->InitAnim(true);
 
 	ApplyTopMesh();
@@ -261,7 +265,6 @@ void UCPNPCVisualComponent::RestoreMeshTransformAfterRagdoll()
 	MeshComponent->RefreshBoneTransforms();
 	MeshComponent->UpdateComponentToWorld();
 }
-
 void UCPNPCVisualComponent::RefreshVisuals()
 {
 	ApplyTopMesh();
@@ -327,7 +330,7 @@ void UCPNPCVisualComponent::ApplyTopMesh()
 		MeshComponent->SetSkeletalMesh(TargetMesh);
 		MeshComponent->SetRelativeScale3D(GetCurrentBaseScale() * CurrentScaleMultiplier);
 		MeshComponent->SetBoundsScale(3.0f);
-		MeshComponent->SetRelativeRotation(TargetRotation);
+		MeshComponent->SetRelativeRotation(TargetRotation, false, nullptr, ETeleportType::TeleportPhysics);
 
 		if (TargetAnimClass)
 		{
