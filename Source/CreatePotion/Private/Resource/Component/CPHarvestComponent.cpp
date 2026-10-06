@@ -1,8 +1,8 @@
 #include "Resource/Component/CPHarvestComponent.h"
-
 #include "Components/CPInventoryComponent.h"
 #include "Data/CPResourceDefinition.h"
 #include "GameInstance/Subsystem/CPCodexSubsystem.h"
+#include "Kismet/GameplayStatics.h"
 #include "Resource/System/CPObjectPoolSubsystem.h"
 #include "Resource/System/CPResourceStateSubsystem.h"
 
@@ -52,6 +52,12 @@ void UCPHarvestComponent::BeginTimeInteraction(AActor* Interactor)
 	Super::BeginTimeInteraction(Interactor);
 	
 	if (!IsValid(Interactor) || !CanInteract()) return;
+	
+	// 사운드 재생
+	if (IsValid(HarvestSound))
+	{
+		UGameplayStatics::PlaySoundAtLocation(GetWorld(), HarvestSound, GetOwner()->GetActorLocation(), 1.f, 1.f, 0.f);
+	}
 	
 	USkeletalMeshComponent* CharacterMesh = Interactor->FindComponentByClass<USkeletalMeshComponent>();
 	UAnimInstance* AnimInstance = IsValid(CharacterMesh) ? CharacterMesh->GetAnimInstance() : nullptr;

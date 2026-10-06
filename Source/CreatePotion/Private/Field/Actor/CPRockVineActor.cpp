@@ -35,32 +35,47 @@ void ACPRockVineActor::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	
-	if (!bIsScaleTransitioning)
+	if (bIsScaleTransitioning)
 	{
-		SetActorTickEnabled(false);
+		ScaleTransitionElapsed += DeltaSeconds;
+	
+		const float LinearAlpha = FMath::Clamp(ScaleTransitionElapsed / ScaleTransitionDuration, 0.f, 1.f);
+		const float Alpha = LinearAlpha * LinearAlpha * (3.f - 2.f * LinearAlpha);
+		const int32 Count = FMath::Min(VineMeshes.Num(), ScaleTransitionTarget.Num());
+	
+		for (int32 i = 0; i < Count; ++i)
+		{
+			UStaticMeshComponent* Vine = VineMeshes[i];
+			if (!Vine) continue;
 		
-		 return;
+			const FVector NewScale = FMath::Lerp(ScaleTransitionStart[i], ScaleTransitionTarget[i], Alpha);
+		
+			Vine->SetRelativeScale3D(NewScale);
+		}
+	
+		if (LinearAlpha >= 1.f)
+		{
+			bIsScaleTransitioning = false;
+		}
 	}
 	
-	ScaleTransitionElapsed += DeltaSeconds;
-	
-	const float LinearAlpha = FMath::Clamp(ScaleTransitionElapsed / ScaleTransitionDuration, 0.f, 1.f);
-	const float Alpha = LinearAlpha * LinearAlpha * (3.f - 2.f * LinearAlpha);
-	const int32 Count = FMath::Min(VineMeshes.Num(), ScaleTransitionTarget.Num());
-	
-	for (int32 i = 0; i < Count; ++i)
+	if (bIsDissolving)
 	{
-		UStaticMeshComponent* Vine = VineMeshes[i];
-		if (!Vine) continue;
+		DissolveElapsed += DeltaSeconds;
 		
-		const FVector NewScale = FMath::Lerp(ScaleTransitionStart[i], ScaleTransitionTarget[i], Alpha);
+		const float Alpha = FMath::Clamp(DissolveElapsed / DissolveDuration, 0.f, 1.f);
+		const float DissolveValue = FMath::Lerp(DissolveStart, DissolveTarget, Alpha);
 		
-		Vine->SetRelativeScale3D(NewScale);
+		SetDissolveImmediately(DissolveValue);
+		
+		if (Alpha >= 1.f)
+		{
+			bIsDissolving = false;
+		}
 	}
 	
-	if (LinearAlpha >= 1.f)
+	if (!bIsScaleTransitioning && !bIsDissolving)
 	{
-		bIsScaleTransitioning = false;
 		SetActorTickEnabled(false);
 	}
 }
@@ -103,6 +118,8 @@ void ACPRockVineActor::ResetRuntimeState()
 	ScaleTransitionElapsed = 0.f;
 	ScaleTransitionDuration = 0.f;
 	
+	DissolveElapsed = 0.f;
+	
 	ScaleTransitionStart.Reset();
 	ScaleTransitionTarget.Reset();
 	
@@ -111,6 +128,8 @@ void ACPRockVineActor::ResetRuntimeState()
 	
 	SetOriginalScaleImmediately();
 	SetVinesEnabled(true);
+	
+	SetDissolveImmediately(0.f);
 }
 
 void ACPRockVineActor::BeginPlay()
@@ -121,6 +140,7 @@ void ACPRockVineActor::BeginPlay()
 	HeatFXComponents = {HeatFXComponent0, HeatFXComponent1, HeatFXComponent2, HeatFXComponent3};
 	
 	CacheInitialVineState();
+	InitializeDynamicMaterials();
 	SetHeatFXActive(false);
 	BindGameplayTagEvents();
 }
@@ -186,6 +206,7 @@ void ACPRockVineActor::OnHeatStateChanged(const FGameplayTag Tag, int32 NewCount
 	if (NewCount > 0)
 	{
 		SetHeatFXActive(true);
+		StartDissolve(1.f, DissolveDuration);
 		
 		return;
 	}
@@ -207,15 +228,19 @@ void ACPRockVineActor::OnRespawningStateChanged(const FGameplayTag Tag, int32 Ne
 	if (NewCount > 0)
 	{
 		bIsScaleTransitioning = false;
+		bIsDissolving = false;
 		SetActorTickEnabled(false);
-		SetOriginalScaleImmediately();
+		SetScaleMultiplierImmediately(0.f);
+		SetDissolveImmediately(0.f);
 		SetVinesEnabled(false);
 		
 		return;
 	}
 	
-	SetOriginalScaleImmediately();
+	SetScaleMultiplierImmediately(0.f);
 	SetVinesEnabled(true);
+	
+	StartScaleTransition(1.f, 1.f);
 }
 
 void ACPRockVineActor::StartScaleTransition(float TargetMultiplier, float Duration)
@@ -248,7 +273,7 @@ void ACPRockVineActor::StartScaleTransition(float TargetMultiplier, float Durati
 	SetActorTickEnabled(true);
 }
 
-void ACPRockVineActor::SetOriginalScaleImmediately()
+void ACPRockVineActor::SetScaleMultiplierImmediately(float Multiplier)
 {
 	const int32 Count = FMath::Min(VineMeshes.Num(), OriginalScales.Num());
 	
@@ -256,8 +281,13 @@ void ACPRockVineActor::SetOriginalScaleImmediately()
 	{
 		if (!VineMeshes[i]) continue;
 		
-		VineMeshes[i]->SetRelativeScale3D(OriginalScales[i]);
+		VineMeshes[i]->SetRelativeScale3D(OriginalScales[i] * Multiplier);
 	}
+}
+
+void ACPRockVineActor::SetOriginalScaleImmediately()
+{
+	SetScaleMultiplierImmediately(1.f);
 }
 
 void ACPRockVineActor::SetHeatFXActive(bool bActive)
@@ -269,14 +299,22 @@ void ACPRockVineActor::SetHeatFXActive(bool bActive)
 		if (bActive)
 		{
 			HeatFX->Activate(true);
-			StartLoopSound();
 		}
 
 		else
 		{
 			HeatFX->Deactivate();
-			StopLoopSound();
 		}
+	}
+	
+	if (bActive)
+	{
+		StartLoopSound();
+	}
+	
+	else
+	{
+		StopLoopSound();
 	}
 }
 
@@ -342,4 +380,58 @@ void ACPRockVineActor::HandleVineDestroyed()
 	}
 	
 	// 스포너에서 생성되지 않은 경우(오브젝트 풀링X인 경우)
+}
+
+void ACPRockVineActor::InitializeDynamicMaterials()
+{
+	VineDynamicMaterials.Reset();
+	
+	for (UStaticMeshComponent* Vine : VineMeshes)
+	{
+		if (!Vine)
+		{
+			VineDynamicMaterials.Add(nullptr);
+			continue;
+		}
+		
+		UMaterialInstanceDynamic* DynamicMaterial = Vine->CreateDynamicMaterialInstance(0);
+		VineDynamicMaterials.Add(DynamicMaterial);
+		
+		if (DynamicMaterial)
+		{
+			DynamicMaterial->SetScalarParameterValue(TEXT("Dissolve"), 0.f);
+		}
+	}
+}
+
+void ACPRockVineActor::StartDissolve(float TargetValue, float Duration)
+{
+	if (VineDynamicMaterials.IsEmpty()) return;
+	
+	float CurrentValue = 0.f;
+	
+	if (VineDynamicMaterials[0])
+	{
+		VineDynamicMaterials[0]->GetScalarParameterDefaultValue(TEXT("Dissolve"), CurrentValue);
+	}
+	
+	DissolveStart = CurrentValue;
+	DissolveTarget = TargetValue;
+	
+	DissolveElapsed = 0.f;
+	DissolveDuration = FMath::Max(Duration, KINDA_SMALL_NUMBER);
+	
+	bIsDissolving = true;
+	
+	SetActorTickEnabled(true);
+}
+
+void ACPRockVineActor::SetDissolveImmediately(float Value)
+{
+	for (UMaterialInstanceDynamic* DynamicMaterial : VineDynamicMaterials)
+	{
+		if (!DynamicMaterial) continue;
+		
+		DynamicMaterial->SetScalarParameterValue(TEXT("Dissolve"), Value);
+	}
 }

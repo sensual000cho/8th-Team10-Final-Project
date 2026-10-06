@@ -5,6 +5,7 @@
 #include "GA_CPPlayerFartLaunch.generated.h"
 
 class USoundBase;
+class UAudioComponent;
 
 /**
  * C++ contract for the player reaction to Potion.Effect.FartLaunch.
@@ -22,6 +23,8 @@ public:
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 
 private:
+	TWeakObjectPtr<UAudioComponent> FlightAudioComponent;
+
 	// 시작에 성공한 실행만 종료음을 한 번 재생
 	bool bEffectSFXStarted = false;
 
@@ -29,6 +32,10 @@ private:
 	void EndLaunchBehavior();
 
 protected:
+	// 비행 중 대상을 따라 재생하며 종료·취소 시 정지하는 소리
+	UPROPERTY(EditDefaultsOnly, Category = "Audio|Potion")
+	TObjectPtr<USoundBase> FlightSFX;
+
 	// 효과 적용 성공 시 재생할 단발음. 미지정 시 생략
 	UPROPERTY(EditDefaultsOnly, Category = "Audio|Potion")
 	TObjectPtr<USoundBase> StartSFX;
