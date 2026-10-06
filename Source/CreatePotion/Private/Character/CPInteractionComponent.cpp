@@ -466,7 +466,22 @@ void UCPInteractionComponent::SetActorHighlight(AActor* Target, bool bHighlighte
 		return;
 	}
 	
-	MeshComp->SetOverlayMaterial(bHighlighted ? HighlightMaterial : nullptr);
+	UMaterialInterface* Overlay = bHighlighted ? HighlightMaterial : nullptr;
+	
+	// 상위 메쉬
+	MeshComp->SetOverlayMaterial(Overlay);
+	
+	// 자식 메쉬
+	TArray<USceneComponent*> Children;
+	MeshComp->GetChildrenComponents(true, Children);
+	
+	for (USceneComponent* Child : Children)
+	{
+		UMeshComponent* ChildMesh = Cast<UMeshComponent>(Child);
+		if (!ChildMesh || ChildMesh->IsA<UWidgetComponent>()) continue;
+		
+		ChildMesh->SetOverlayMaterial(Overlay);
+	}
 	
 }
 
