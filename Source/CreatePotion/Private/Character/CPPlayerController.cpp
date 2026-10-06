@@ -189,6 +189,26 @@ void ACPPlayerController::OnItemWheelScroll(const FInputActionValue& Value)
 	{
 		return;
 	}
+	bool bIsHoldingSomething = false;
+	if (APawn* ControlledPawn = GetPawn())
+	{
+		if (UCPCarryComponent* CarryComponent = ControlledPawn->FindComponentByClass<UCPCarryComponent>())
+		{
+			bIsHoldingSomething = CarryComponent->HasHeldProp();
+		}
+	}
+
+	// 아무것도 안 들고 있으면 휠을 넘기지 않고 현재 포커스 중인(=마지막으로 사용한) 포션을 장착
+	if (!bIsHoldingSomething)
+	{
+		int32 FocusedGridIndex;
+		if (ItemWheelWidgetInstance->GetFocusedPotionGridIndex(FocusedGridIndex))
+		{
+			ItemWheelWidgetInstance->ShowCurrentFocus();
+			EquipItemAtGridIndex(FocusedGridIndex);
+		}
+		return;
+	}
 
 	int32 TargetGridIndex;
 	if (!ItemWheelWidgetInstance->TryScrollAndPickNextFocus(Value.Get<float>(), TargetGridIndex))
