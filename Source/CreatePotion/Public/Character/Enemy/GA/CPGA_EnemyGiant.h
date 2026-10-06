@@ -5,6 +5,8 @@
 #include "CPGA_EnemyGiant.generated.h"
 
 class USoundBase;
+class UNiagaraSystem;
+class UNiagaraComponent;
 
 class ACPEnemyCharacter;
 
@@ -21,6 +23,13 @@ public:
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 
 protected:
+	// 거대화 시작 연출. NPC와 같은 Niagara 에셋을 BP에서 지정
+	UPROPERTY(EditDefaultsOnly, Category = "Potion|Giant|Visual")
+	TObjectPtr<UNiagaraSystem> GiantVFX;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Potion|Giant|Visual", meta = (ClampMin = "0"))
+	float GiantVFXScale = 2.5f;
+
 	// 효과 적용 성공 시 재생할 단발음. 미지정 시 생략
 	UPROPERTY(EditDefaultsOnly, Category = "Audio|Potion")
 	TObjectPtr<USoundBase> StartSFX;
@@ -45,6 +54,9 @@ protected:
 	float AttackImpulseMultiplier = 2.0f;
 
 private:
+	// 중화·종료 시 아직 남은 시작 연출 제거
+	TWeakObjectPtr<UNiagaraComponent> GiantVFXComponent;
+
 	// 시작에 성공한 실행만 종료음을 한 번 재생
 	bool bEffectSFXStarted = false;
 

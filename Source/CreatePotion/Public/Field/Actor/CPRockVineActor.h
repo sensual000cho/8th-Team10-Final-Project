@@ -52,6 +52,7 @@ private:
 	
 	// 스케일
 	void StartScaleTransition(float TargetMultiplier, float Duration);
+	void SetScaleMultiplierImmediately(float Multiplier);
 	void SetOriginalScaleImmediately();
 	
 	// 화염 활성화
@@ -68,6 +69,11 @@ private:
 	
 	// 삭제 시 처리
 	void HandleVineDestroyed();
+	
+	// Dissolve 관련
+	void InitializeDynamicMaterials();
+	void StartDissolve(float TargetValue, float Duration);
+	void SetDissolveImmediately(float Value);
 	
 protected:
 	// 바위 메시 컴포넌트
@@ -100,6 +106,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Heat")
 	TObjectPtr<UNiagaraComponent> HeatFXComponent3;
 	
+	// 다이나믹 머티리얼(For Dissolve)
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UMaterialInstanceDynamic>> VineDynamicMaterials;
+	
 	// 화염 나이아가라용 태그
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Heat")
 	FName HeatFXComponentTag = TEXT("HeatFX");
@@ -117,6 +127,10 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Giant")
 	float ShrinkDuration = 0.8f;
+	
+	// Dissolve 시간
+	UPROPERTY(EditAnywhere, Category = "Dissolve")
+	float DissolveDuration = 5.f;
 	
 private:
 	// 성장 효과 복구를 위한 초기 정보
@@ -137,4 +151,10 @@ private:
 	
 	// 채집물 감싸는 덩굴이라면,
 	FCPResourceNodeKey NodeKey;
+	
+	// Dissolve 관련
+	bool bIsDissolving = false;
+	float DissolveElapsed = 0.f;
+	float DissolveStart = 0.f;
+	float DissolveTarget = 0.f;
 };

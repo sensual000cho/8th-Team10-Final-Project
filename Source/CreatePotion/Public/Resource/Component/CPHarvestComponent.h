@@ -36,4 +36,7 @@ private:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Resource|Animation")
 	TObjectPtr<UAnimMontage> HarvestMontage;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Resource|Sound")
+	TObjectPtr<USoundBase> HarvestSound;
 };
