@@ -111,6 +111,9 @@ public:
 #pragma endregion
 
 #pragma region Sliding
+public:
+	void ShowCurrentFocus();
+
 private:
 	void UpdateSlotScales(float Progress);
 
