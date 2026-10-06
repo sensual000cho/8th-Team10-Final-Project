@@ -241,6 +241,13 @@ void UCPUIManagerSubsystem::UnregisterCreatedWidget(UUserWidget* Widget)
 
 bool UCPUIManagerSubsystem::HandleEscape()
 {
+	// null 위젯 처리
+	OpenWidgets.RemoveAll([](const FPopupEntry& Entry)
+	{
+		return !Entry.Widget.IsValid();	
+	});
+	
+	
 	// 열려있는 위젯이 없으면 ESC로 메뉴 열기
 	if (OpenWidgets.IsEmpty())
 	{
@@ -248,8 +255,12 @@ bool UCPUIManagerSubsystem::HandleEscape()
 	}
 	
 	// 열려있는 위젯이 있으면 최상위 위젯부터 닫기
-	UCPBaseUserWidget* Top = Cast<UCPBaseUserWidget>(OpenWidgets.Last().Widget.Get());
-	return Top && Top->HandleEscape();
+	if (UCPBaseUserWidget* Top = Cast<UCPBaseUserWidget>(OpenWidgets.Last().Widget.Get()))
+	{
+		Top->HandleEscape();
+	}
+	
+	return true;
 }
 
 
