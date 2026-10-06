@@ -109,12 +109,6 @@ void UCPInventoryComponent::ToggleInventoryUI()
 			InventoryUIInstance->CachedUIManager->PlayWidgetSound(InventoryUIInstance->OpenSound);
 			InventoryUIInstance->CachedUIManager->RegisterCreatedWidget(InventoryUIInstance);
 		}
-
-		// PC->bShowMouseCursor = true;
-		// FInputModeGameAndUI InputMode;
-		// InputMode.SetWidgetToFocus(InventoryUIInstance->TakeWidget());
-		// InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-		// PC->SetInputMode(InputMode);
 		
 	}
 	else
@@ -126,10 +120,6 @@ void UCPInventoryComponent::ToggleInventoryUI()
 			InventoryUIInstance->CachedUIManager->PlayWidgetSound(InventoryUIInstance->CloseSound);
 			InventoryUIInstance->CachedUIManager->UnregisterCreatedWidget(InventoryUIInstance);
 		}
-
-		// PC->bShowMouseCursor = false;
-		// FInputModeGameOnly InputMode;
-		// PC->SetInputMode(InputMode);
 	}
 }
 
