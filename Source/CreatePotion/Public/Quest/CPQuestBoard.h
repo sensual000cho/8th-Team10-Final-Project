@@ -18,8 +18,6 @@ public:
 	ACPQuestBoard();
 
 protected:
-	virtual void BeginPlay() override;
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	UFUNCTION()
 	void HandleInteract(AActor* Interactor);

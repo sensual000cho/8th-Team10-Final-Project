@@ -16,16 +16,6 @@ ACPQuestBoard::ACPQuestBoard()
 	InteractableComponent = CreateDefaultSubobject<UCPInteractableComponent>(TEXT("InteractableComponent"));
 }
 
-void ACPQuestBoard::BeginPlay()
-{
-	Super::BeginPlay();
-}
-
-void ACPQuestBoard::EndPlay(const EEndPlayReason::Type EndPlayReason)
-{
-	Super::EndPlay(EndPlayReason);
-}
-
 void ACPQuestBoard::HandleInteract(AActor* Interactor)
 {
 	UGameInstance* GameInstance = GetGameInstance();
@@ -33,6 +23,8 @@ void ACPQuestBoard::HandleInteract(AActor* Interactor)
 
 	UQuestManager* QuestManager = GameInstance->GetSubsystem<UQuestManager>();
 	if (!QuestManager) return;
+
+	UCPUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UCPUIManagerSubsystem>();
 
 	UCPInventoryComponent* Inventory = Interactor ? Interactor->FindComponentByClass<UCPInventoryComponent>() : nullptr;
 	if (Inventory)
@@ -43,42 +35,31 @@ void ACPQuestBoard::HandleInteract(AActor* Interactor)
 		{
 			if (QuestManager->GetQuestState(QuestID) != EQuestState::Accepted) continue;
 			if (QuestManager->GetQuestCompletionType(QuestID) != EQuestCompletionType::ItemCollection) continue;
+			if (!QuestManager->TryCompleteQuestByItem(QuestID, HeldItems)) continue;
 
-			if (QuestManager->TryCompleteQuestByItem(QuestID, HeldItems))
+			TArray<FName> RequiredIDs;
+			int32 RequiredCount = 0;
+			QuestManager->GetRequiredItemInfo(QuestID, RequiredIDs, RequiredCount);
+
+			for (const FName& ItemID : RequiredIDs)
 			{
-				TArray<FName> RequiredIDs;
-				int32 RequiredCount = 0;
-				QuestManager->GetRequiredItemInfo(QuestID, RequiredIDs, RequiredCount);
+				Inventory->RemoveItemByID(ItemID, RequiredCount);
+			}
 
-				for (const FName& ItemID : RequiredIDs)
+			const UCPUISettings* UISettings = GetDefault<UCPUISettings>();
+			UClass* ResultWidgetClass = UISettings ? UISettings->ResultWidgetClass.LoadSynchronous() : nullptr;
+			if (UIManager && ResultWidgetClass)
+			{
+				UCPLabResultWidget* ResultWidget = Cast<UCPLabResultWidget>(UIManager->PushWidget(ResultWidgetClass));
+				if (ResultWidget && !ResultWidget->InitializeResult(QuestID))
 				{
-					Inventory->RemoveItemByID(ItemID, RequiredCount);
+					ResultWidget->RequestClose();
 				}
-
-				QuestManager->CreateResult(QuestID);
-				
-				const UCPUISettings* UISettings = GetDefault<UCPUISettings>();
-				UClass* ResultWidgetClass = UISettings ? UISettings->ResultWidgetClass.LoadSynchronous() : nullptr;
-				if (UCPUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UCPUIManagerSubsystem>())
-				{
-					if (ResultWidgetClass)
-					{
-						UCPLabResultWidget* ResultWidget = Cast<UCPLabResultWidget>(UIManager->PushWidget(ResultWidgetClass));
-						if (ResultWidget && !ResultWidget->InitializeResult(QuestID))
-						{
-							ResultWidget->RequestClose();
-						}
-					}
-				}
-
-				UE_LOG(LogTemp, Log, TEXT("[게시판] 랜덤 퀘스트 [%s] 완료 처리됨"), *QuestID.ToString());
 			}
 		}
 	}
 
-	if (!QuestBoardWidgetClass) return;
-
-	if (UCPUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UCPUIManagerSubsystem>())
+	if (QuestBoardWidgetClass && UIManager)
 	{
 		UIManager->PushWidget(QuestBoardWidgetClass);
 	}
