@@ -1,13 +1,12 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Quest/QuestTypes.h"
 #include "CPQuestMarkerWidget.generated.h"
 
-class UTextBlock;
+class UImage;
+class UTexture2D;
 
 UCLASS()
 class CREATEPOTION_API UCPQuestMarkerWidget : public UUserWidget
@@ -20,5 +19,14 @@ public:
 
 protected:
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> MarkerText;
+	TObjectPtr<UImage> MarkerImage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest|Marker")
+	TObjectPtr<UTexture2D> AvailableTexture;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest|Marker")
+	TObjectPtr<UTexture2D> InProgressTexture;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest|Marker")
+	TObjectPtr<UTexture2D> CompletableTexture;
 };
