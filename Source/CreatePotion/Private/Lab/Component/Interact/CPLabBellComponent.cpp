@@ -15,6 +15,28 @@ UCPLabBellComponent::UCPLabBellComponent()
 	InteractionPrompt = FText::FromString(TEXT("벨 울리기"));
 }
 
+void UCPLabBellComponent::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	UWorld* World = GetWorld();
+	ACPLabGameMode* LabGameMode = World ? World->GetAuthGameMode<ACPLabGameMode>() : nullptr;
+	if (!LabGameMode) return;
+
+	LabGameMode->OnPotionRequestStateChanged.AddUObject(this, &UCPLabBellComponent::HandlePotionRequestStateChanged);
+}
+
+void UCPLabBellComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	UWorld* World = GetWorld();
+	ACPLabGameMode* LabGameMode = World ? World->GetAuthGameMode<ACPLabGameMode>() : nullptr;
+	if (LabGameMode){
+		LabGameMode->OnPotionRequestStateChanged.RemoveAll(this);
+	}
+
+	Super::EndPlay(EndPlayReason);
+}
+
 void UCPLabBellComponent::BeginFocus(AActor* Interactor)
 {
 	const UWorld* World = GetWorld();
@@ -42,8 +64,6 @@ bool UCPLabBellComponent::TryInteract(AActor* Interactor)
 		Spawner->DestroyActiveNPC();
 		if (!LabGameMode->ClearPotionRequest()) return false;
 		
-		InteractionPrompt = FText::FromString(TEXT("손님 부르기"));
-		RefreshUI();
 		return true;
 	}
 	
@@ -54,4 +74,10 @@ bool UCPLabBellComponent::TryInteract(AActor* Interactor)
 	
 	UIManager->PushWidget(QuestSelectWidgetClass);
 	return true;
+}
+
+void UCPLabBellComponent::HandlePotionRequestStateChanged(bool bActiveRequest)
+{
+	InteractionPrompt = bActiveRequest ? FText::FromString(TEXT("손님 돌려보내기")) : FText::FromString(TEXT("손님 부르기"));
+	RefreshUI();
 }
