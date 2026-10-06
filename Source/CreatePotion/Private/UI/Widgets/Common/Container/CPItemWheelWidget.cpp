@@ -257,6 +257,17 @@ float UCPItemWheelWidget::GetTargetScaleForOffset(int32 Offset) const
 	}
 }
 
+void UCPItemWheelWidget::ShowCurrentFocus()
+{
+	if (PotionArrayIndices.Num() == 0)
+	{
+		return;
+	}
+
+	RefreshIcons();
+	ShowWheelTemporarily();
+}
+
 bool UCPItemWheelWidget::GetFocusedPotionGridIndex(int32& OutGridIndex) const
 {
 	if (!BoundInventory || PotionArrayIndices.Num() == 0)
