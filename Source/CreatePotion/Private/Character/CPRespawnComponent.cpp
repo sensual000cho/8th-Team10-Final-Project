@@ -12,6 +12,7 @@
 #include "GameFramework/Controller.h"
 #include "GameFramework/PlayerStart.h"
 #include "TimerManager.h"
+#include "Character/CPInteractionComponent.h"
 
 UCPRespawnComponent::UCPRespawnComponent()
 {
@@ -35,6 +36,8 @@ void UCPRespawnComponent::BeginPlay()
     {
         return;
     }
+    
+    interactionComponent = OwnerCharacter->FindComponentByClass<UCPInteractionComponent>();
     
     if (!IsValid(RespawnAnimationMesh))
     {
@@ -88,6 +91,10 @@ void UCPRespawnComponent::HandleOwnerDeath(AActor* DamageCauser)
     {
         return;
     }
+    
+    if (IsValid(interactionComponent)){
+        interactionComponent->SetInteractionBlocked(true);
+    }
 
     const float SafeDelay = FMath::IsFinite(RespawnDelay) ? FMath::Max(RespawnDelay, 0.01f) : 5.f;
 
@@ -109,37 +116,16 @@ void UCPRespawnComponent::HandleRespawnTimer()
 APlayerStart* UCPRespawnComponent::FindRespawnStart() const
 {
     UWorld* World = GetWorld();
-
-    if (!World)
-    {
-        return nullptr;
-    }
-
-    APlayerStart* FoundStart = nullptr;
+    if (!World) return nullptr;
 
     for (TActorIterator<APlayerStart> It(World); It; ++It)
     {
         APlayerStart* Candidate = *It;
-
-        if (!IsValid(Candidate))
-        {
-            continue;
-        }
-
-        if (!RespawnStartTag.IsNone() && Candidate->PlayerStartTag != RespawnStartTag)
-        {
-            continue;
-        }
-        
-        if (FoundStart)
-        {
-            return nullptr;
-        }
-
-        FoundStart = Candidate;
+        if (!IsValid(Candidate)) continue;
+        if (!RespawnStartTag.IsNone() && Candidate->PlayerStartTag != RespawnStartTag) continue;
+        return Candidate;
     }
-
-    return FoundStart;
+    return nullptr;
 }
 
 bool UCPRespawnComponent::Respawn()
@@ -228,6 +214,11 @@ bool UCPRespawnComponent::Respawn()
 
     // 회복 타이머 정리
     HealthComponent->RestoreFullHealth();
+    
+    if (IsValid(interactionComponent)){
+        interactionComponent->SetInteractionBlocked(false);
+    }
+    
     OnRespawnCompleted.Broadcast();
     
     return true;

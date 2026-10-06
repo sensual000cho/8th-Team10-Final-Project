@@ -7,6 +7,8 @@
 
 class UCPForageableItemData;
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnPotionRequestStateChanged, bool);
+
 // Blueprint와 월드 Actor가 포션 세션 기능을 호출하는 입구
 UCLASS()
 class CREATEPOTION_API ACPLabGameMode : public ACPGameModeBase
@@ -36,6 +38,9 @@ private:
 	// Potion Spawn
 	bool SpawnPotion(const TArray<FGameplayTag>& EffectTags, const FTransform& SpawnTransform, const FVector& SpawnImpulse);
 
+public:
+	FOnPotionRequestStateChanged OnPotionRequestStateChanged;
+	
 private:
 	// 포션 Prop을 만들 때 사용할 DA
 	UPROPERTY(EditDefaultsOnly, Category = "Lab|Potion")

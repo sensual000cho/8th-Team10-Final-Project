@@ -16,6 +16,7 @@ bool ACPLabGameMode::StartPotionRequest()
 	if (bActiveRequest) return false;
 	
 	bActiveRequest = true;
+	OnPotionRequestStateChanged.Broadcast(bActiveRequest);
 	return true;
 }
 
@@ -24,6 +25,7 @@ bool ACPLabGameMode::ClearPotionRequest()
 	if (!bActiveRequest) return false;
 	
 	bActiveRequest = false;
+	OnPotionRequestStateChanged.Broadcast(bActiveRequest);
 	return true;
 }
 
