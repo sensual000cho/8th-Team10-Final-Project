@@ -56,6 +56,9 @@ void UCPCauldronWidget::RefreshEffectTags()
 	UCPCauldronComponent* BoundCauldronComponent = CauldronComponent.Get();
 	if (!BoundCauldronComponent || !WidgetTree) return;
 	
+	const bool bHasIngredients = !BoundCauldronComponent->GetIngredientInstance().IsEmpty();
+	Txt_CurrentEffects->SetVisibility(bHasIngredients ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	
 	// 효과 VB에 추가 + 가운데 정렬
 	const TArray<FGameplayTag> EffectTags = BoundCauldronComponent->GetEffectTags();
 	for (const FGameplayTag& Tag : EffectTags){
