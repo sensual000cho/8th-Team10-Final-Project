@@ -475,14 +475,14 @@ void UCPInteractionComponent::SetActorHighlight(AActor* Target, bool bHighlighte
 	TArray<USceneComponent*> Children;
 	MeshComp->GetChildrenComponents(true, Children);
 	
+	static const FName NoHighlightTag(TEXT("NoHighlight"));
 	for (USceneComponent* Child : Children)
 	{
 		UMeshComponent* ChildMesh = Cast<UMeshComponent>(Child);
-		if (!ChildMesh || ChildMesh->IsA<UWidgetComponent>()) continue;
+		if (!ChildMesh || ChildMesh->IsA<UWidgetComponent>() || ChildMesh->ComponentHasTag(NoHighlightTag)) continue;
 		
 		ChildMesh->SetOverlayMaterial(Overlay);
 	}
-	
 }
 
 UMeshComponent* UCPInteractionComponent::FindTopMesh(AActor* Target)
