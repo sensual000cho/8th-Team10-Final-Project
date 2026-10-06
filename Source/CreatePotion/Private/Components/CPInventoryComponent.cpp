@@ -5,6 +5,7 @@
 #include "Engine/LocalPlayer.h"
 #include "CreatePotion.h"   // 로그용 헤더
 
+#include "Character/CPPlayerController.h"
 #include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
 #include "GameInstance/Subsystem/CPContainerSubsystem.h"
 #include "UI/Widgets/Common/Container/CPContainerMainWidget.h"
@@ -119,6 +120,11 @@ void UCPInventoryComponent::ToggleInventoryUI()
 	}
 	else
 	{
+		if (ACPPlayerController* CPPC = Cast<ACPPlayerController>(PC))
+		{
+			CPPC->ReturnHeldItemToOrigin();
+		}
+
 		InventoryUIInstance->SetVisibility(ESlateVisibility::Collapsed);
 
 		if (InventoryUIInstance->CachedUIManager)
