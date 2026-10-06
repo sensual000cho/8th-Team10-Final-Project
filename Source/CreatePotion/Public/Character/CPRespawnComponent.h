@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "CPRespawnComponent.generated.h"
 
+class UCPInteractionComponent;
 class ACharacter;
 class APlayerStart;
 class UCPHealthComponent;
@@ -60,6 +61,9 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UCPHealthComponent> HealthComponent;
+	
+	UPROPERTY(Transient)
+	TObjectPtr<UCPInteractionComponent> interactionComponent;
 
 	UPROPERTY(Transient)
 	TObjectPtr<USkeletalMeshComponent> RespawnAnimationMesh;
