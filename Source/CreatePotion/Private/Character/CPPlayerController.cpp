@@ -476,6 +476,8 @@ void ACPPlayerController::OpenExternalContainerUI(UCPItemContainerComponent* InT
 
 void ACPPlayerController::CloseExternalContainerUI()
 {
+	ReturnHeldItemToOrigin();	// HandHeld에 무언가를 들고 있으면 원래 자리로 되돌리기
+
 	if (CurrentContainerUIInstance)
 	{
 		if (UCPUIManagerSubsystem* UIManager = GetGameInstance()->GetSubsystem<UCPUIManagerSubsystem>())
@@ -570,6 +572,48 @@ bool ACPPlayerController::BeginHoldingItem(const FContainerItem& InItem, UCPItem
 	}
 	
 	return true;
+}
+
+void ACPPlayerController::ReturnHeldItemToOrigin()
+{
+	if (!IsHoldingItem() || !LeftClickPickedContainer)
+	{
+		return;
+	}
+
+	FContainerItem Held = LeftClickPickedContainer->ContainerItems[0];
+	UCPItemContainerComponent* Origin = LeftClickPickedItemOriginContainer;
+	int32 Remaining = Held.Stacked;
+
+	// 1. 원래 칸이 비어 있으면 정확히 그 자리에 되돌리기
+	if (Origin && Origin->CanPlaceItemAt(Held, LeftClickPickedOriginSlotIndex))
+	{
+		if (Origin->TryPlaceHoldingItem(LeftClickPickedContainer, LeftClickPickedOriginSlotIndex))
+		{
+			Remaining = 0;
+		}
+	}
+
+	// 2. 원래 컨테이너의 다른 빈자리 아무곳에나 되돌리기 (같은 아이템이 있으면 합치기)
+	if (Remaining > 0 && Origin)
+	{
+		Remaining = Origin->TryGetItemFromInstance(Held.Instance, Remaining);
+	}
+
+	// 3. 원래 컨테이너에도 자리가 없으면 인벤토리로
+	if (Remaining > 0 && CachedInventoryComponent && CachedInventoryComponent != Origin)
+	{
+		Remaining = CachedInventoryComponent->TryGetItemFromInstance(Held.Instance, Remaining);
+	}
+
+	// 4. 그래도 남아 있을경우
+	if (Remaining > 0)
+	{
+		UE_LOG(LogContainer, Warning, TEXT("[HandHeldContainer] 되돌릴 공간이 없어 [%s]를 넣지 못했음"),
+			*Held.Instance.GetDisplayName().ToString());
+	}
+
+	ResetHoldingItem();
 }
 
 #pragma endregion
