@@ -14,3 +14,9 @@ void UCPInventoryMainWidget::HandleCloseRequested()
 		}
 	}
 }
+
+bool UCPInventoryMainWidget::HandleEscape()
+{
+	HandleCloseRequested();
+	return true;
+}
