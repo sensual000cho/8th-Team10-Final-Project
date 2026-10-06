@@ -9,6 +9,7 @@ class UCPNPCComponent;
 class UCPNPCDialogueWidget;
 class UCPQuestNPCDataAsset;
 class UWidgetComponent;
+class UCPInventoryComponent;
 
 UCLASS()
 class CREATEPOTION_API ACPQuestNPC : public ACPBaseNPC
@@ -43,6 +44,9 @@ protected:
 
 	UFUNCTION()
 	void HandleQuestUpdatedForMarker(FName QuestID, EQuestState NewState);
+
+	UFUNCTION()
+	void HandleInventoryUpdatedForMarker();
 
 	void HandleLocationFadeFinished();
 
