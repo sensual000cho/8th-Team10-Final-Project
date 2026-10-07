@@ -24,7 +24,13 @@ struct FCPItemInstance
 
 	bool IsValid() const { return SourceItemData != nullptr; }
 
+	bool IsPotion() const;
+
+	FCPItemInstance MakeInventoryInstance() const;
+
 	FLinearColor GetLiquidColor() const;
 
 	FText GetDisplayName() const;
+
+	TArray<FGameplayTag> GetDisplayTags() const;
 };
