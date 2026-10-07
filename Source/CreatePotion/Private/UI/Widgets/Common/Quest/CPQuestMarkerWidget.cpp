@@ -1,31 +1,34 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
-#include "UI/Widgets/Common/Quest/CPQuestMarkerWidget.h"
-#include "Components/TextBlock.h"
+ï»¿#include "UI/Widgets/Common/Quest/CPQuestMarkerWidget.h"
+#include "Components/Image.h"
+#include "Engine/Texture2D.h"
 
 void UCPQuestMarkerWidget::SetMarkerState(EQuestMarkerState NewState)
 {
-	if (!MarkerText) return;
+	if (!MarkerImage) return;
 
+	UTexture2D* Texture = nullptr;
 	switch (NewState)
 	{
 	case EQuestMarkerState::Available:
-		MarkerText->SetText(FText::FromString(TEXT("!")));
-		SetVisibility(ESlateVisibility::Visible);
+		Texture = AvailableTexture;
 		break;
 	case EQuestMarkerState::InProgress:
-		MarkerText->SetText(FText::FromString(TEXT("...")));   // ÁøÇà Áß, ¿øÇÏ´Â ÅØ½ºÆ®·Î ¹Ù²Ù¼Åµµ µÊ
-		SetVisibility(ESlateVisibility::Visible);
+		Texture = InProgressTexture;
 		break;
 	case EQuestMarkerState::Completable:
-		MarkerText->SetText(FText::FromString(TEXT("?")));
-		SetVisibility(ESlateVisibility::Visible);
+		Texture = CompletableTexture;
 		break;
-	case EQuestMarkerState::None:
 	default:
-		SetVisibility(ESlateVisibility::Collapsed);
 		break;
 	}
-}
 
+	// í…ìŠ¤ì²˜ê°€ ì—†ìœ¼ë©´(None ìƒíƒœ ë˜ëŠ” ë¯¸ì§€ì •) ìˆ¨ê¹€
+	if (!Texture)
+	{
+		SetVisibility(ESlateVisibility::Collapsed);
+		return;
+	}
+
+	MarkerImage->SetBrushFromTexture(Texture, true);
+	SetVisibility(ESlateVisibility::Visible);
+}

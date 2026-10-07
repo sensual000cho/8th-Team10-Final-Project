@@ -348,6 +348,11 @@ void ACPQuestNPC::HandleQuestUpdatedForMarker(FName QuestID, EQuestState NewStat
 	}
 }
 
+void ACPQuestNPC::HandleInventoryUpdatedForMarker()
+{
+	UpdateQuestMarker();
+}
+
 TArray<FCPDialogueLine> ACPQuestNPC::FindDialogueLines(AActor* Interactor)
 {
 	CurrentQuestId = NAME_None;
@@ -358,7 +363,7 @@ TArray<FCPDialogueLine> ACPQuestNPC::FindDialogueLines(AActor* Interactor)
 	UQuestManager* QuestManager = GameInstance ? GameInstance->GetSubsystem<UQuestManager>() : nullptr;
 	if (!QuestManager) return {};
 
-	for (const FName& QuestID : QuestData->QuestIDs){
+	for (const FName& QuestID : QuestData->QuestIDs) {
 		if (QuestID.IsNone()) continue;
 
 		const EQuestState State = QuestManager->GetQuestState(QuestID);
@@ -374,7 +379,7 @@ TArray<FCPDialogueLine> ACPQuestNPC::FindDialogueLines(AActor* Interactor)
 
 		const EQuestCompletionType CompletionType = QuestManager->GetQuestCompletionType(QuestID);
 		// 대화형 퀘스트
-		if (CompletionType == EQuestCompletionType::Dialogue){
+		if (CompletionType == EQuestCompletionType::Dialogue) {
 			TArray<FCPDialogueLine> DialogueLines = QuestManager->GetNPCStoryLines(QuestID);
 
 			if (DialogueLines.IsEmpty() || !QuestManager->CompleteQuestByDialogue(QuestID)) return {};
@@ -431,6 +436,7 @@ void ACPQuestNPC::UpdateQuestMarker()
 		if (UCPInventoryComponent* Inventory = PlayerPawn->FindComponentByClass<UCPInventoryComponent>())
 		{
 			HeldItemCounts = Inventory->GetItemCountsByID();
+			Inventory->OnContainerUpdated.AddUniqueDynamic(this, &ACPQuestNPC::HandleInventoryUpdatedForMarker);
 		}
 	}
 
