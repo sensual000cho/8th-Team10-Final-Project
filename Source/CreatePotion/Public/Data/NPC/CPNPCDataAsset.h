@@ -74,9 +74,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Animation")
 	TSubclassOf<UAnimInstance> AnimClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Sound")
-	USoundBase* FartSound;
-
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Potion|Bouncy")
 	FLinearColor SlimeInnerColor = FLinearColor(0.02f, 0.25f, 0.05f, 1.0f);
 

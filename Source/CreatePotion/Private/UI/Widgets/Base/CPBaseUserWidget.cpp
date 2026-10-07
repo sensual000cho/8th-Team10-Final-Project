@@ -26,3 +26,8 @@ void UCPBaseUserWidget::UnbindEvents()
 {
 	
 }
+
+bool UCPBaseUserWidget::HandleEscape()
+{
+	return false;
+}
