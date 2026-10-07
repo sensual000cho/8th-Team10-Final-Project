@@ -70,6 +70,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UI|Widget")
 	void UnregisterCreatedWidget(UUserWidget* Widget);
 	
+	// Input
+	// ESC 입력 처리
+	UFUNCTION(BlueprintCallable, Category = "UI|Input")
+	bool HandleEscape();
+	
 private:
 	// --- 헬퍼 함수 ---
 	// InputMode 변경

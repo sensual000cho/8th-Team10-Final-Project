@@ -22,6 +22,12 @@ void UCPBasePopupWidget::SetAutoClose(float Duration)
 	AutoCloseRemaining = Duration > 0.f ? Duration : -1.f;
 }
 
+bool UCPBasePopupWidget::HandleEscape()
+{
+	RequestClose();
+	return true;
+}
+
 void UCPBasePopupWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
