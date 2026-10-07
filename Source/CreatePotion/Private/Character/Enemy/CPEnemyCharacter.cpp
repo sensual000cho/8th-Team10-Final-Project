@@ -216,11 +216,15 @@ void ACPEnemyCharacter::StartDeathPhysics(const FVector& DeathVelocity, const FV
     USkeletalMeshComponent* MeshComponent = GetMesh();
     const FQuat DeathSphereRotation = MeshComponent->GetComponentQuat() * InitialMeshRelativeRotation.Quaternion().Inverse();
 
-    DeathPhysicsSphere->SetWorldLocation(MeshComponent->Bounds.Origin, false, nullptr, ETeleportType::TeleportPhysics);
+    // 회전한 Mesh 대신 충돌이 보장된 Capsule 중심에서 물리를 시작한다.
+    DeathPhysicsSphere->SetWorldLocation(CharacterCapsule->GetComponentLocation(), false, nullptr, ETeleportType::TeleportPhysics);
     DeathPhysicsSphere->SetWorldRotation(DeathSphereRotation, false, nullptr, ETeleportType::TeleportPhysics);
     DeathPhysicsSphere->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
     MeshComponent->AttachToComponent(DeathPhysicsSphere, FAttachmentTransformRules::KeepWorldTransform);
     MeshComponent->SetRelativeRotation(InitialMeshRelativeRotation, false, nullptr, ETeleportType::TeleportPhysics);
+    // 메시 외형 중심을 구체 중심에 맞춰 치우친 회전을 방지한다.
+    const FVector MeshCenter = MeshComponent->CalcBounds(MeshComponent->GetComponentTransform()).Origin;
+    MeshComponent->AddWorldOffset(DeathPhysicsSphere->GetComponentLocation() - MeshCenter, false, nullptr, ETeleportType::TeleportPhysics);
     MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
     CharacterCapsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -228,6 +232,7 @@ void ACPEnemyCharacter::StartDeathPhysics(const FVector& DeathVelocity, const FV
     DeathPhysicsSphere->SetEnableGravity(true);
     DeathPhysicsSphere->SetLinearDamping(1.5f);
     DeathPhysicsSphere->SetAngularDamping(3.0f);
+    DeathPhysicsSphere->SetUseCCD(true); // 빠른 낙하 중 지면 관통 방지
     DeathPhysicsSphere->SetSimulatePhysics(true);
     DeathPhysicsSphere->SetPhysicsLinearVelocity(DeathVelocity);
 
