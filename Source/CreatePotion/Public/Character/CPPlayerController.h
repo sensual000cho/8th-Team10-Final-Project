@@ -146,6 +146,9 @@ public:
 	// 지정한 아이템을 HandItemContainer에 잡고 원래 위치 정보를 기록
 	bool BeginHoldingItem(const FContainerItem& InItem, UCPItemContainerComponent* OriginContainer, int32 OriginIndex);
 
+	// HandItemContainer에 들고 있는 아이템을 원래 위치로 되돌리는 함수
+	void ReturnHeldItemToOrigin();
+
 private:
 	void SetContextHandlerForTargetContext(EUITargetContext InTargetContext);
 

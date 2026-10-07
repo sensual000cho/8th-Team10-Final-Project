@@ -7,6 +7,8 @@
 #include "Quest/QuestTypes.h"
 #include "CPQuestMarkerComponent.generated.h"
 
+class UCPInventoryComponent;
+
 UCLASS(ClassGroup = (Quest), meta = (BlueprintSpawnableComponent))
 class CREATEPOTION_API UCPQuestMarkerComponent : public UWidgetComponent
 {
@@ -31,6 +33,13 @@ protected:
 	UFUNCTION()
 	void HandleQuestUpdated(FName QuestID, EQuestState NewState);
 
+	UFUNCTION()
+	void HandleInventoryUpdated();
+
+	void TryBindInventory();
+
 	UPROPERTY(Transient)
 	FName TrackedQuestID = NAME_None;
+
+	TWeakObjectPtr<UCPInventoryComponent> BoundInventory;
 };

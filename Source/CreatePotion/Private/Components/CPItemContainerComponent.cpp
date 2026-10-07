@@ -271,6 +271,30 @@ bool UCPItemContainerComponent::RemoveItemFromContainer(int32 TargetGridIndex, i
     return false;
 }
 
+bool UCPItemContainerComponent::CanPlaceItemAt(const FContainerItem& Item, int32 TargetIndex) const
+{
+    if (TargetIndex < 0 || !Item.Instance.IsValid())
+    {
+        return false;
+    }
+
+    // 다른 아이템이 그 칸을 차지하고 있으면 불가능
+    if (FindItemArrayIndexCoveringGridIndex(TargetIndex) != INDEX_NONE)
+    {
+        return false;
+    }
+
+    if (ContainerType == EContainerType::Slot1D)
+    {
+        return TargetIndex < MaxSlots;
+    }
+
+    const UCPForageableItemData* Data = Item.Instance.SourceItemData;
+    int32 W = Item.bIsRotated ? Data->ContainerSizeY : Data->ContainerSizeX;
+    int32 H = Item.bIsRotated ? Data->ContainerSizeX : Data->ContainerSizeY;
+    return IsGridSpaceEnough(TargetIndex, W, H);
+}
+
 // 신규 추가
 TMap<FName, int32> UCPItemContainerComponent::GetItemCountsByID() const
 {

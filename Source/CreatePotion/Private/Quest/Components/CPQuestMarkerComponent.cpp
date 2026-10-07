@@ -15,7 +15,7 @@ UCPQuestMarkerComponent::UCPQuestMarkerComponent()
 	SetWidgetSpace(EWidgetSpace::World);
 	SetTwoSided(true);
 
-	// 상호작용 트레이스/포커스 위치 계산에 끼어들지 않도록
+	// 상호작용 트레이스/포커스 위치 계산 방해 차단
 	SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
@@ -44,6 +44,11 @@ void UCPQuestMarkerComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		}
 	}
 
+	if (BoundInventory.IsValid())
+	{
+		BoundInventory->OnContainerUpdated.RemoveDynamic(this, &UCPQuestMarkerComponent::HandleInventoryUpdated);
+	}
+
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -70,11 +75,31 @@ void UCPQuestMarkerComponent::HandleQuestUpdated(FName QuestID, EQuestState NewS
 	UpdateQuestMarker();
 }
 
+void UCPQuestMarkerComponent::HandleInventoryUpdated()
+{
+	if (TrackedQuestID.IsNone()) return;
+	UpdateQuestMarker();
+}
+
+void UCPQuestMarkerComponent::TryBindInventory()
+{
+	if (BoundInventory.IsValid()) return;
+
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	UCPInventoryComponent* Inventory = PlayerPawn ? PlayerPawn->FindComponentByClass<UCPInventoryComponent>() : nullptr;
+	if (!Inventory) return;
+
+	Inventory->OnContainerUpdated.AddUniqueDynamic(this, &UCPQuestMarkerComponent::HandleInventoryUpdated);
+	BoundInventory = Inventory;
+}
+
 void UCPQuestMarkerComponent::UpdateQuestMarker()
 {
 	// 추적할 퀘스트가 없으면(모든 단계 종료) 마커 숨김
 	SetVisibility(!TrackedQuestID.IsNone());
 	if (TrackedQuestID.IsNone()) return;
+
+	TryBindInventory();
 
 	UGameInstance* GI = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
 	UQuestManager* QuestManager = GI ? GI->GetSubsystem<UQuestManager>() : nullptr;
