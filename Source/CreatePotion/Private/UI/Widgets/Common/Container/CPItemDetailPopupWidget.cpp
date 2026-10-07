@@ -5,6 +5,7 @@
 #include "Components/TextBlock.h"
 #include "Types/CPItemInstanceTypes.h"
 #include "Data/CPForageableItemData.h"
+#include "Data/CPTagDefinitionTypes.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 
 void UCPItemDetailPopupWidget::NativeConstruct()
@@ -35,6 +36,30 @@ void UCPItemDetailPopupWidget::ShowDetail(const FCPItemInstance& Instance)
 		NameText->SetText(Instance.GetDisplayName());
 	}
 
+	if (TagText)
+	{
+		const bool bIsPotion = Instance.CurrentEffects.Num() > 0;
+		TArray<FGameplayTag> Tags = bIsPotion ? TArray<FGameplayTag>() : Instance.GetDisplayTags();
+
+		if (Tags.Num() == 0)
+		{
+			TagText->SetVisibility(ESlateVisibility::Collapsed);
+		}
+		else
+		{
+			TArray<FText> TagNames;
+			for (const FGameplayTag& Tag : Tags)
+			{
+				TagNames.Add(FCPTagDefinitionLookup::GetDisplayName(Tag));
+			}
+
+			TagText->SetText(FText::Format(
+				FText::FromString(TEXT("태그 : {0}")),
+				FText::Join(FText::FromString(TEXT(", ")), TagNames)));
+			TagText->SetVisibility(ESlateVisibility::HitTestInvisible);
+		}
+	}
+
 	if (ItemIcon)
 	{
 		if (UTexture2D* LoadedTexture = Instance.SourceItemData->Icon.LoadSynchronous())
@@ -46,7 +71,7 @@ void UCPItemDetailPopupWidget::ShowDetail(const FCPItemInstance& Instance)
 	// 포션(효과 태그가 있는 경우)일 때만 액체 레이어 표시
 	if (LiquidImage)
 	{
-		if (Instance.CurrentEffects.Num() > 0)
+		if (Instance.IsPotion())
 		{
 			LiquidImage->SetColorAndOpacity(Instance.GetLiquidColor());
 			LiquidImage->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
