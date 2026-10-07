@@ -63,9 +63,6 @@ void UCPQuestLocationComponent::EndPlay(const EEndPlayReason::Type EndPlayReason
 
 void UCPQuestLocationComponent::HandleQuestUpdated(FName QuestID, EQuestState NewState)
 {
-	UE_LOG(LogTemp, Log, TEXT("[%s] QuestLocation: quest updated %s / lock=%s"),
-		*GetOwner()->GetName(), *QuestID.ToString(), bRefreshLocked ? TEXT("ON") : TEXT("OFF"));
-
 	if (bRefreshLocked)
 	{
 		bPendingRefresh = true;
@@ -76,9 +73,6 @@ void UCPQuestLocationComponent::HandleQuestUpdated(FName QuestID, EQuestState Ne
 
 void UCPQuestLocationComponent::SetRefreshLocked(bool bLocked)
 {
-	UE_LOG(LogTemp, Log, TEXT("[%s] QuestLocation: lock %s"),
-		*GetOwner()->GetName(), bLocked ? TEXT("ON") : TEXT("OFF"));
-
 	bRefreshLocked = bLocked;
 
 	if (!bLocked && bPendingRefresh)
@@ -194,10 +188,6 @@ void UCPQuestLocationComponent::ApplyLocation(AActor* Target)
 	}
 
 	Owner->SetActorLocationAndRotation(NewLocation, NewRotation, false, nullptr, ETeleportType::TeleportPhysics);
-
-	UE_LOG(LogTemp, Log, TEXT("[%s] QuestLocation: moved to %s"),
-		*Owner->GetName(), Target ? *Target->GetName() : TEXT("home"));
-
 	OnLocationChanged.Broadcast(Target != nullptr);
 }
 

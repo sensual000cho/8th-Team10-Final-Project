@@ -5,6 +5,7 @@
 #include "Engine/LocalPlayer.h"
 #include "CreatePotion.h"   // 로그용 헤더
 
+#include "Character/CPPlayerController.h"
 #include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
 #include "GameInstance/Subsystem/CPContainerSubsystem.h"
 #include "UI/Widgets/Common/Container/CPContainerMainWidget.h"
@@ -107,26 +108,24 @@ void UCPInventoryComponent::ToggleInventoryUI()
 		if (InventoryUIInstance->CachedUIManager)
 		{
 			InventoryUIInstance->CachedUIManager->PlayWidgetSound(InventoryUIInstance->OpenSound);
+			InventoryUIInstance->CachedUIManager->RegisterCreatedWidget(InventoryUIInstance);
 		}
-
-		PC->bShowMouseCursor = true;
-		FInputModeGameAndUI InputMode;
-		InputMode.SetWidgetToFocus(InventoryUIInstance->TakeWidget());
-		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-		PC->SetInputMode(InputMode);
+		
 	}
 	else
 	{
+		if (ACPPlayerController* CPPC = Cast<ACPPlayerController>(PC))
+		{
+			CPPC->ReturnHeldItemToOrigin();
+		}
+
 		InventoryUIInstance->SetVisibility(ESlateVisibility::Collapsed);
 
 		if (InventoryUIInstance->CachedUIManager)
 		{
 			InventoryUIInstance->CachedUIManager->PlayWidgetSound(InventoryUIInstance->CloseSound);
+			InventoryUIInstance->CachedUIManager->UnregisterCreatedWidget(InventoryUIInstance);
 		}
-
-		PC->bShowMouseCursor = false;
-		FInputModeGameOnly InputMode;
-		PC->SetInputMode(InputMode);
 	}
 }
 
@@ -150,7 +149,7 @@ void UCPInventoryComponent::CloseInventoryUI()
 		return;
 	}
 
-	if (InventoryUIInstance->GetVisibility() == ESlateVisibility::Visible)
+	if (InventoryUIInstance->GetVisibility() == ESlateVisibility::SelfHitTestInvisible)
 	{
 		ToggleInventoryUI();
 	}

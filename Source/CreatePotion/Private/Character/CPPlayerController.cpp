@@ -5,8 +5,6 @@
 #include "EnhancedInputComponent.h"
 #include "Engine/LocalPlayer.h"
 #include "InputMappingContext.h"
-#include "GameCore/Interface/CPLevelUIInterface.h"
-#include "GameFramework/HUD.h"
 
 #include "EngineUtils.h"                          // TActorIterator
 #include "NPC/Components/CPShopContainerComponent.h"
@@ -31,12 +29,16 @@
 #include "Character/CPCarryComponent.h"
 #include "GameInstance/Subsystem/CPSaveSubsystem.h"
 #include "Lab/Actor/CPPotionActor.h"
+#include "Settings/CPUISettings.h"
+#include "UI/Widgets/Common/KeyGuide/CPThrowKeyGuideWidget.h"
 
 void ACPPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
 	SetContextHandlerForTargetContext(EUITargetContext::Inventory);
+	
+	InitKeyGuideWidget();
 }
 
 void ACPPlayerController::SetupInputComponent()
@@ -103,6 +105,7 @@ void ACPPlayerController::ConsumeHeldPotionCharge()
 #pragma region CarryProp
 void ACPPlayerController::HandlePropAttached(ACPThrowablePropBase* Prop)
 {
+	
 	// Q/E 장착 경로는 이미 인벤토리에 있으므로 무시
 	if (bIsEquippingFromInventory || !IsValid(Prop) || !CachedInventoryComponent)
 	{
@@ -110,7 +113,7 @@ void ACPPlayerController::HandlePropAttached(ACPThrowablePropBase* Prop)
 	}
 
 	const FCPItemInstance& Instance = Prop->GetWorkingIngredient();
-
+	
 	// 포션 이외의 아이템은 적용 x
 	if (!Instance.IsValid() || Instance.CurrentEffects.Num() == 0)
 	{
@@ -184,6 +187,26 @@ void ACPPlayerController::OnItemWheelScroll(const FInputActionValue& Value)
 {
 	if (!ItemWheelWidgetInstance)
 	{
+		return;
+	}
+	bool bIsHoldingSomething = false;
+	if (APawn* ControlledPawn = GetPawn())
+	{
+		if (UCPCarryComponent* CarryComponent = ControlledPawn->FindComponentByClass<UCPCarryComponent>())
+		{
+			bIsHoldingSomething = CarryComponent->HasHeldProp();
+		}
+	}
+
+	// 아무것도 안 들고 있으면 휠을 넘기지 않고 현재 포커스 중인(=마지막으로 사용한) 포션을 장착
+	if (!bIsHoldingSomething)
+	{
+		int32 FocusedGridIndex;
+		if (ItemWheelWidgetInstance->GetFocusedPotionGridIndex(FocusedGridIndex))
+		{
+			ItemWheelWidgetInstance->ShowCurrentFocus();
+			EquipItemAtGridIndex(FocusedGridIndex);
+		}
 		return;
 	}
 
@@ -328,7 +351,10 @@ void ACPPlayerController::SetPawn(APawn* InPawn)
 		{
 			CarryComponent->OnPropAttached.RemoveAll(this); // Delegate 중복 구독 방지를 위해 기존 항목 제거
 			CarryComponent->OnPropAttached.AddUObject(this, &ACPPlayerController::HandlePropAttached);
+			CarryComponent->OnHeldPropChanged.AddUniqueDynamic(this, &ACPPlayerController::HandleHeldPropChanged);
 		}
+		
+		
 	}
 	else
 	{
@@ -436,34 +462,37 @@ void ACPPlayerController::OpenExternalContainerUI(UCPItemContainerComponent* InT
 	CurrentContainerUIInstance->BindContainer(InTargetContainer);
 	CurrentInteractingContainer = InTargetContainer;
 
-	bShowMouseCursor = true;
-	SetInputMode(FInputModeGameAndUI());
+	// bShowMouseCursor = true;
+	// SetInputMode(FInputModeGameAndUI());
 
 	SetContextHandlerForTargetContext(InTargetContainer->TargetContext);
 
 	if (UCPUIManagerSubsystem* UIManager = GetGameInstance()->GetSubsystem<UCPUIManagerSubsystem>())
 	{
+		UIManager->RegisterCreatedWidget(CurrentContainerUIInstance);
 		UIManager->PlayWidgetSound(CurrentContainerUIInstance->OpenSound);
 	}
 }
 
 void ACPPlayerController::CloseExternalContainerUI()
 {
+	ReturnHeldItemToOrigin();	// HandHeld에 무언가를 들고 있으면 원래 자리로 되돌리기
+
 	if (CurrentContainerUIInstance)
 	{
 		if (UCPUIManagerSubsystem* UIManager = GetGameInstance()->GetSubsystem<UCPUIManagerSubsystem>())
 		{
 			UIManager->PlayWidgetSound(CurrentContainerUIInstance->CloseSound);
+			UIManager->CloseWidget(CurrentContainerUIInstance);
 		}
-
-		CurrentContainerUIInstance->RemoveFromParent();
+		
 		CurrentContainerUIInstance = nullptr;
 	}
 
 	CurrentInteractingContainer = nullptr;
 
-	bShowMouseCursor = false;
-	SetInputMode(FInputModeGameOnly());
+	// bShowMouseCursor = false;
+	// SetInputMode(FInputModeGameOnly());
 
 	// 컨테이너를 닫은 뒤에는 Inventory로 변경
 	SetContextHandlerForTargetContext(EUITargetContext::Inventory);
@@ -541,9 +570,52 @@ bool ACPPlayerController::BeginHoldingItem(const FContainerItem& InItem, UCPItem
 	{
 		Popup->HideDetail();
 	}
-
+	
 	return true;
 }
+
+void ACPPlayerController::ReturnHeldItemToOrigin()
+{
+	if (!IsHoldingItem() || !LeftClickPickedContainer)
+	{
+		return;
+	}
+
+	FContainerItem Held = LeftClickPickedContainer->ContainerItems[0];
+	UCPItemContainerComponent* Origin = LeftClickPickedItemOriginContainer;
+	int32 Remaining = Held.Stacked;
+
+	// 1. 원래 칸이 비어 있으면 정확히 그 자리에 되돌리기
+	if (Origin && Origin->CanPlaceItemAt(Held, LeftClickPickedOriginSlotIndex))
+	{
+		if (Origin->TryPlaceHoldingItem(LeftClickPickedContainer, LeftClickPickedOriginSlotIndex))
+		{
+			Remaining = 0;
+		}
+	}
+
+	// 2. 원래 컨테이너의 다른 빈자리 아무곳에나 되돌리기 (같은 아이템이 있으면 합치기)
+	if (Remaining > 0 && Origin)
+	{
+		Remaining = Origin->TryGetItemFromInstance(Held.Instance, Remaining);
+	}
+
+	// 3. 원래 컨테이너에도 자리가 없으면 인벤토리로
+	if (Remaining > 0 && CachedInventoryComponent && CachedInventoryComponent != Origin)
+	{
+		Remaining = CachedInventoryComponent->TryGetItemFromInstance(Held.Instance, Remaining);
+	}
+
+	// 4. 그래도 남아 있을경우
+	if (Remaining > 0)
+	{
+		UE_LOG(LogContainer, Warning, TEXT("[HandHeldContainer] 되돌릴 공간이 없어 [%s]를 넣지 못했음"),
+			*Held.Instance.GetDisplayName().ToString());
+	}
+
+	ResetHoldingItem();
+}
+
 #pragma endregion
 
 #pragma region Shop
@@ -653,6 +725,67 @@ void ACPPlayerController::DebugAddCombinedPotionToInventory()
 
 	int32 Leftover = CachedInventoryComponent->TryGetItemFromInstance(Instance, 1);
 	UE_LOG(LogContainer, Log, TEXT("[Debug] 포션 인벤토리 획득 시도 결과, 남은 개수: %d"), Leftover);
+}
+
+void ACPPlayerController::InitKeyGuideWidget()
+{
+	// 키 가이드 위젯 생성 후 Visibility Collapsed로 설정
+	const UCPUISettings* UISettings = GetDefault<UCPUISettings>();
+	if (!UISettings)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[CPPlayerController][InitKeyGuideWidget]UISetting이 유효하지 않습니다."));
+		return;
+	}
+
+	ThrowKeyGuideWidgetClass = UISettings->ThrowKeyGuideWidgetClass.LoadSynchronous();
+	if (!IsValid(ThrowKeyGuideWidgetClass))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[CPPlayerController][InitKeyGuideWidget]ThrowKeyGuideWidgetClass가 유효하지 않습니다."));
+		return;
+	}
+	
+	ThrowKeyGuideWidget = Cast<UCPThrowKeyGuideWidget>(CreateWidget(this, ThrowKeyGuideWidgetClass));
+	UE_LOG(LogTemp, Warning, TEXT("[KeyGuide] Created = %s"), *GetNameSafe(ThrowKeyGuideWidget));
+	
+	if (!IsValid(ThrowKeyGuideWidget))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[CPPlayerController][InitKeyGuideWidget]ThrowKeyGuideWidget이 유효하지 않습니다."));
+		return;
+	}
+	
+	ThrowKeyGuideWidget->AddToViewport();
+	ThrowKeyGuideWidget->HideWidget();
+	
+	
+	
+}
+
+void ACPPlayerController::HandleHeldPropChanged(ACPThrowablePropBase* HeldProp)
+{
+	// 아이템 장착 중 키 가이드 UI 보여주기
+	if (IsValid(HeldProp))
+	{
+		if (IsValid(ThrowKeyGuideWidget))
+		{
+			ThrowKeyGuideWidget->ShowWidget();			
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[CPPlayerController] ThrowKeyGuideWidget이 유효하지 않습니다."));
+		}
+
+	}
+	else // 미장착 시 UI 끄기
+	{
+		if (IsValid(ThrowKeyGuideWidget))
+		{
+			ThrowKeyGuideWidget->HideWidget();	
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[CPPlayerController] ThrowKeyGuideWidget이 유효하지 않습니다."));
+		}
+	}
 }
 
 void ACPPlayerController::SpawnDebugPotion(const TArray<FGameplayTag>& EffectTags)

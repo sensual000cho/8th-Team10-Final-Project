@@ -24,7 +24,7 @@ UCPCauldronComponent::UCPCauldronComponent():
 	RandomImpulseMin(2000.f),
 	RandomImpulseMax(4000.f)
 {
-	InteractionPrompt = FText::FromString(TEXT("포션 만들기"));
+	InteractionPrompt = FText::FromString(TEXT("재료를 넣어주세요"));
 }
 
 void UCPCauldronComponent::BeginPlay()
@@ -118,6 +118,8 @@ void UCPCauldronComponent::LoadSaveData(const FCPCauldronSaveData& InSaveData)
 	IngredientTags = InSaveData.IngredientTags;
 	CombinedTags = InSaveData.CombinedTags;
 	
+	InteractionPrompt = IngredientInstances.IsEmpty() ? FText::FromString(TEXT("재료를 넣어주세요")) : FText::FromString(TEXT("포션 만들기"));
+	RefreshUI();
 	OnEffectsChanged.Broadcast();
 }
 
@@ -148,6 +150,9 @@ bool UCPCauldronComponent::CreatePotion()
 	IngredientInstances.Reset();
 	IngredientTags.Reset();
 	CombinedTags.Reset();
+	
+	InteractionPrompt = IngredientInstances.IsEmpty() ? FText::FromString(TEXT("재료를 넣어주세요")) : FText::FromString(TEXT("포션 만들기"));
+	RefreshUI();
 	OnEffectsChanged.Broadcast();
 	return true;
 }
@@ -286,5 +291,8 @@ void UCPCauldronComponent::HandleIngredientOverlap(
 	}
 	IngredientProp->SetActorEnableCollision(false);
 	IngredientProp->Destroy();
+	
+	InteractionPrompt = IngredientInstances.IsEmpty() ? FText::FromString(TEXT("재료를 넣어주세요")) : FText::FromString(TEXT("포션 만들기"));
+	RefreshUI();
 	OnEffectsChanged.Broadcast();
 }
