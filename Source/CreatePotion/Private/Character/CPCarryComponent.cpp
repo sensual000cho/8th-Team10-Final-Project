@@ -104,15 +104,24 @@ bool UCPCarryComponent::ReplaceHeldProp(ACPThrowablePropBase* NewProp)
 
     if (IsValid(PreviousHeldProp))
     {
-        // NewProp이 부착되기 전에 원래 위치 기준으로 계산
-        const FVector DropLocation = MakeReplacementDropLocation(PreviousHeldProp, NewProp);
-
-        if (!DropHeldProp(DropLocation))
+        // 인벤토리에 원본이 있는 프롭은 필드에 내려놓지 않고 제거
+        if (PreviousHeldProp->IsBackedByInventory())
         {
-            return false;
+            SetHeldProp(nullptr); // 참조와 OnDestroyed Delegate 구독 해제
+            PreviousHeldProp->Destroy();
+        }
+        else
+        {
+            // NewProp이 부착되기 전에 원래 위치 기준으로 계산
+            const FVector DropLocation = MakeReplacementDropLocation(PreviousHeldProp, NewProp);
+
+            if (!DropHeldProp(DropLocation))
+            {
+                return false;
+            }
         }
     }
-    
+
     return AttachProp(NewProp);
 }
 
@@ -233,7 +242,7 @@ bool UCPCarryComponent::ConsumeHeldPropToInventory(UCPInventoryComponent* Target
     }
 
     // Destroy 전에 값을 복사해두기
-    FCPItemInstance InstanceCopy = PropToStow->GetWorkingIngredient();
+    FCPItemInstance InstanceCopy = PropToStow->GetWorkingIngredient().MakeInventoryInstance();
     if (!InstanceCopy.IsValid())
     {
         return false;
