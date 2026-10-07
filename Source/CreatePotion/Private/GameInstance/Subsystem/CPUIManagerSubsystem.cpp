@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
 #include "UI/Widgets/Base/CPBasePopupWidget.h"
+#include "UI/Widgets/Common/Container/CPInventoryMainWidget.h"
 
 UUserWidget* UCPUIManagerSubsystem::PushWidget(TSubclassOf<UUserWidget> WidgetClass)
 {
@@ -24,11 +25,10 @@ UUserWidget* UCPUIManagerSubsystem::PushWidget(TSubclassOf<UUserWidget> WidgetCl
 			ZOrder = PopupWidget->ZOrder;
 			InputMode = PopupWidget->GetInputMode();
 			// UE_LOG(LogTemp, Warning, TEXT("[UIManager] PushWidgetBP InputMode 읽음: %d"), (int32)InputMode);
+			OpenWidgets.Add({Widget, InputMode});
 		}
 		
 		Widget->AddToViewport(ZOrder);
-		
-		OpenWidgets.Add({Widget, InputMode});
 		UpdateInputMode();
 	}
 	return Widget;
@@ -60,7 +60,8 @@ void UCPUIManagerSubsystem::CloseWidget(UUserWidget* Widget)
 void UCPUIManagerSubsystem::CloseTopWidget()
 {
 	if (OpenWidgets.Num() == 0) return;
-	CloseWidget(OpenWidgets.Last().Widget.Get());
+	UUserWidget* Top = OpenWidgets.Last().Widget.Get();
+	if (!IsValid(Top)) return;
 }
 
 UUserWidget* UCPUIManagerSubsystem::ToggleWidget(TSubclassOf<UUserWidget> WidgetClass)
@@ -236,6 +237,30 @@ void UCPUIManagerSubsystem::UnregisterCreatedWidget(UUserWidget* Widget)
 	{
 		UpdateInputMode();
 	}
+}
+
+bool UCPUIManagerSubsystem::HandleEscape()
+{
+	// null 위젯 처리
+	OpenWidgets.RemoveAll([](const FPopupEntry& Entry)
+	{
+		return !Entry.Widget.IsValid();	
+	});
+	
+	
+	// 열려있는 위젯이 없으면 ESC로 메뉴 열기
+	if (OpenWidgets.IsEmpty())
+	{
+		return false;
+	}
+	
+	// 열려있는 위젯이 있으면 최상위 위젯부터 닫기
+	if (UCPBaseUserWidget* Top = Cast<UCPBaseUserWidget>(OpenWidgets.Last().Widget.Get()))
+	{
+		Top->HandleEscape();
+	}
+	
+	return true;
 }
 
 
