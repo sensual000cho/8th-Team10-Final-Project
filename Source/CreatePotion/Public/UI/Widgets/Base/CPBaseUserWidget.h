@@ -44,6 +44,10 @@ public:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "UI|Sound")
 	class USoundBase* CloseSound;
+
+	// Opt in only for widgets whose lifetime is managed by PushWidget/CloseWidget.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Sound")
+	bool bPlayManagedOpenCloseSounds = false;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Input")
 	bool bCanCloseByEscape = false;
