@@ -8,6 +8,8 @@
 #include "Data/CPTagDefinitionTypes.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 
+#include "UI/Widgets/Base/CPWidgetLocationPlacer.h"
+
 void UCPItemDetailPopupWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -90,8 +92,9 @@ void UCPItemDetailPopupWidget::ShowDetail(const FCPItemInstance& Instance)
 
 void UCPItemDetailPopupWidget::UpdatePositionToMouse()
 {
-	FVector2D MousePos = UWidgetLayoutLibrary::GetMousePositionOnViewport(this);
-	SetPositionInViewport(MousePos + FVector2D(20.f, 20.f), false);
+	const FVector2D MousePos = UWidgetLayoutLibrary::GetMousePositionOnViewport(this);
+	const FVector2D Pos = CPWidgetLocationPlacer::CalcPositionNearCursor(this, MousePos, FVector2D(20.f, 20.f));
+	SetPositionInViewport(Pos, false);
 }
 
 void UCPItemDetailPopupWidget::HideDetail()
