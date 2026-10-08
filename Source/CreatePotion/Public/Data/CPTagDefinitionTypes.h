@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// CPTagDefinitionTypes.h
 
 #pragma once
 
@@ -48,4 +48,6 @@ class CREATEPOTION_API FCPTagDefinitionLookup
 {
 public:
 	static const FCPTagDefinitionRow* FindRow(const UDataTable* Table, const FGameplayTag& Tag);
+
+	static FText GetDisplayName(const FGameplayTag& Tag);
 };
