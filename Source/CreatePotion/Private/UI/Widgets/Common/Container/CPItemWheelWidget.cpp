@@ -1,6 +1,8 @@
 ﻿// CPItemWheelWidget.cpp
 
 #include "UI/Widgets/Common/Container/CPItemWheelWidget.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 #include "Components/Image.h"
 #include "Components/CanvasPanel.h"
 #include "Components/PanelWidget.h"
@@ -312,5 +314,6 @@ bool UCPItemWheelWidget::TryScrollAndPickNextFocus(float ScrollDelta, int32& Out
 	// 애니메이션 완료를 기다리지 않고 "이동할 목표"의 GridIndex를 미리 계산해서 반환
 	int32 ArrayIdx = PotionArrayIndices[NextListIndex];
 	OutGridIndex = BoundInventory->ContainerItems[ArrayIdx].GridIndex;
+	if (SelectionSound && NextListIndex != FocusedListIndex) UGameplayStatics::PlaySound2D(this, SelectionSound);
 	return true;
 }

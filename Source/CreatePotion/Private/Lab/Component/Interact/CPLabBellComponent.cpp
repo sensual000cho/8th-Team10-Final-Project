@@ -2,6 +2,7 @@
 
 
 #include "Lab/Component/Interact/CPLabBellComponent.h"
+#include "Sound/SoundBase.h"
 
 #include "Character/CPInteractionComponent.h"
 #include "GameInstance/Subsystem/CPUIManagerSubsystem.h"
@@ -63,6 +64,7 @@ bool UCPLabBellComponent::TryInteract(AActor* Interactor)
 		
 		Spawner->DestroyActiveNPC();
 		if (!LabGameMode->ClearPotionRequest()) return false;
+		if (BellSound) UGameplayStatics::PlaySoundAtLocation(this, BellSound, GetOwner()->GetActorLocation());
 		
 		return true;
 	}
@@ -72,7 +74,8 @@ bool UCPLabBellComponent::TryInteract(AActor* Interactor)
 	UCPUIManagerSubsystem* UIManager = GameInstance ? GameInstance->GetSubsystem<UCPUIManagerSubsystem>() : nullptr;
 	if (!UIManager || !QuestSelectWidgetClass) return false;
 	
-	UIManager->PushWidget(QuestSelectWidgetClass);
+	UUserWidget* OpenedWidget = UIManager->PushWidget(QuestSelectWidgetClass);
+	if (OpenedWidget && BellSound) UGameplayStatics::PlaySoundAtLocation(this, BellSound, GetOwner()->GetActorLocation());
 	return true;
 }
 
