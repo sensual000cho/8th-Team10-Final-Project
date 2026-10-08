@@ -2,6 +2,8 @@
 
 
 #include "Character/Enemy/CPEnemyCharacter.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 
 #include "AIController.h"
 #include "AbilitySystemComponent.h"
@@ -371,7 +373,7 @@ void ACPEnemyCharacter::ApplyAttackHit()
     // 공격을 시작한 뒤 도망갔거나 벽(나무 등)에 가려졌는지 다시 검사
     if (!IsTargetInAttackReach(Target))
     {
-        // UE_LOG(LogTemp, Log, TEXT("[EnemyAttack] 공격 빗나감: %s"), *GetName());
+        if (AttackMissSound) UGameplayStatics::PlaySoundAtLocation(this, AttackMissSound, GetActorLocation());
         return;
     }
 
@@ -382,6 +384,7 @@ void ACPEnemyCharacter::ApplyAttackHit()
     // 타격 순간 뒤쪽으로 피한 대상에게는 피해를 주지 않음
     if (!DirectionToTarget.IsNearlyZero() && Dot < CosThreshold)
     {
+        if (AttackMissSound) UGameplayStatics::PlaySoundAtLocation(this, AttackMissSound, GetActorLocation());
         return;
     }
 
@@ -389,6 +392,10 @@ void ACPEnemyCharacter::ApplyAttackHit()
 
     if (IsValid(TargetHealthComponent))
     {
+        if (AttackHitSound && FMath::IsFinite(AttackDamage) && AttackDamage > 0.f && !TargetHealthComponent->IsDead())
+        {
+            UGameplayStatics::PlaySoundAtLocation(this, AttackHitSound, Target->GetActorLocation());
+        }
         // 피해 처리 중 이벤트가 발생할 수 있으므로 마지막에 호출
         TargetHealthComponent->ApplyDamage(AttackDamage, this);
     }

@@ -13,6 +13,7 @@ class UAbilitySystemComponent;
 class UCPEnemyAttributeSet;
 class UGameplayAbility;
 class USphereComponent;
+class USoundBase;
 struct FOnAttributeChangeData;
 DECLARE_MULTICAST_DELEGATE(FCPOnEnemyDying);
 
@@ -116,6 +117,12 @@ protected:
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Attack")
     TArray<TObjectPtr<UAnimMontage>> AttackMontages;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Attack|Sound")
+    TObjectPtr<USoundBase> AttackHitSound;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Attack|Sound")
+    TObjectPtr<USoundBase> AttackMissSound;
     
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Attack")
     TArray<TObjectPtr<UAnimMontage>> VictoryMontages;

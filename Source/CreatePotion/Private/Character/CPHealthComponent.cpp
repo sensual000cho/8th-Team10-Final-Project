@@ -2,8 +2,11 @@
 
 
 #include "Character/CPHealthComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 
 #include "Engine/World.h"
+#include "GameFramework/Pawn.h"
 #include "TimerManager.h"
 
 UCPHealthComponent::UCPHealthComponent()
@@ -14,6 +17,7 @@ UCPHealthComponent::UCPHealthComponent()
 void UCPHealthComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	HurtSoundRandom.Initialize(static_cast<int32>(FPlatformTime::Cycles()));
 	
 	MaxHealth = FMath::Max(MaxHealth, 1.f);
 	CurrentHealth = MaxHealth;
@@ -61,6 +65,13 @@ float UCPHealthComponent::ApplyDamage(float DamageAmount, AActor* DamageCauser)
 	}
 	else if (AppliedDamage > 0.f)
 	{
+		if (const APawn* Player = Cast<APawn>(GetOwner()); Player && Player->IsPlayerControlled())
+		{
+			if (!HurtSounds.IsEmpty())
+			{
+				if (USoundBase* Sound = HurtSounds[HurtSoundRandom.RandRange(0, HurtSounds.Num() - 1)]) UGameplayStatics::PlaySoundAtLocation(this, Sound, Player->GetActorLocation());
+			}
+		}
 		OnDamaged.Broadcast(AppliedDamage, DamageCauser);
 		OnHealthChanged.Broadcast(CurrentHealth, MaxHealth);
 	}

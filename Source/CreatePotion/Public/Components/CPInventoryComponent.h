@@ -27,6 +27,11 @@ class CREATEPOTION_API UCPInventoryComponent : public UCPItemContainerComponent
 public:
 	UCPInventoryComponent();
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<class USoundBase> ItemDropSound;
+
+
+
 	virtual int32 TryGetItemFromData(UCPForageableItemData* InItemData, int32 Count) override;
 
 	UCPContainerMainWidget* GetInventoryUIInstance() const { return InventoryUIInstance; }

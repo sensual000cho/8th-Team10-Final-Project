@@ -1,4 +1,6 @@
 #include "UI/Widgets/Lab/CPLabResultWidget.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 
 #include "Components/CPInventoryComponent.h"
 #include "Components/TextBlock.h"
@@ -57,6 +59,10 @@ bool UCPLabResultWidget::InitializeResult(FName QuestId)
 		if (!Inventory || !Inventory->TryGetMoney(Result.RewardAmount)) return false;
 	}
 	
+	if (CompletionSound && Result.DeliveryGrade == EDeliveryGrade::Perfect)
+	{
+		UGameplayStatics::PlaySound2D(this, CompletionSound);
+	}
 	QuestManager->ClearResult();
 	
 	World->GetTimerManager().ClearTimer(AutoCloseTimerHandle);
