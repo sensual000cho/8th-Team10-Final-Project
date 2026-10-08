@@ -63,19 +63,27 @@ bool UQuestManager::IsRandomQuest(FName QuestID) const
 	return bIsRandom;
 }
 
-FName UQuestManager::GetRandomQuestID() const
+TArray<FName> UQuestManager::GetRandomQuestIDs(int32 MaxCount) const
 {
-	if (!RandomQuestAnswerTable) return NAME_None;
+	TArray<FName> Result;
+	if (!RandomQuestAnswerTable || MaxCount <= 0) return Result;
 
 	TArray<FName> AllIDs = RandomQuestAnswerTable->GetRowNames();
 	AllIDs.RemoveAll([this](const FName& ID) {
 		return GetQuestState(ID) != EQuestState::NotAccepted;
 		});
 
-	if (AllIDs.Num() == 0) return NAME_None;
+	const int32 Count = FMath::Min(MaxCount, AllIDs.Num());
+	for (int32 i = 0; i < Count; ++i)
+	{
+		const int32 SwapIndex = FMath::RandRange(i, AllIDs.Num() - 1);
+		AllIDs.Swap(i, SwapIndex);
+		Result.Add(AllIDs[i]);
+	}
 
-	return AllIDs[FMath::RandRange(0, AllIDs.Num() - 1)];
+	return Result;
 }
+
 
 TArray<FName> UQuestManager::GetAllTrackedQuestIDs() const
 {
