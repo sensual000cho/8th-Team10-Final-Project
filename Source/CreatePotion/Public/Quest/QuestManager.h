@@ -63,8 +63,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	bool IsRandomQuest(FName QuestID) const;
 
-	UFUNCTION(BlueprintCallable, Category = "Quest|State")
-	FName GetRandomQuestID() const;
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Quest|State")
+	TArray<FName> GetRandomQuestIDs(int32 MaxCount = 6) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Quest|Journal")
 	TArray<FName> GetAllTrackedQuestIDs() const;
