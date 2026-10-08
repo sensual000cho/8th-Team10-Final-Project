@@ -64,7 +64,7 @@ public:
 	bool IsRandomQuest(FName QuestID) const;
 
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Quest|State")
-	TArray<FName> GetRandomQuestIDs(int32 MaxCount = 4) const;
+	TArray<FName> GetRandomQuestIDs(int32 MaxCount = 6) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Quest|Journal")
 	TArray<FName> GetAllTrackedQuestIDs() const;
