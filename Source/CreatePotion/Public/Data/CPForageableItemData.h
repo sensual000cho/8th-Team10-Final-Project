@@ -23,6 +23,9 @@ public:
 	TArray<FGameplayTag> TagAxes;
 	
 #pragma region Container
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Identity")
+	bool bIsPotion = false;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory", meta = (ClampMin = "1"))
 	int32 MaxStack;	
 	

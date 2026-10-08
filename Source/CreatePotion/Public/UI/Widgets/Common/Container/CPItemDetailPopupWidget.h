@@ -38,4 +38,7 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* NameText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	UTextBlock* TagText;
 };

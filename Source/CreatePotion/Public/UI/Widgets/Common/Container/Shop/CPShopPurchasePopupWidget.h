@@ -29,6 +29,7 @@ public:
 
 	void OpenForSplit(UCPItemContainerComponent* InSourceContainer, int32 InGridIndex);
 
+	void PlaceNearCursor();
 protected:
 	virtual void NativeConstruct() override;
 

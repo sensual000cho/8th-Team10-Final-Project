@@ -102,7 +102,7 @@ void UCPItemWheelWidget::RefreshPotionList()
 	for (int32 i = 0; i < BoundInventory->ContainerItems.Num(); ++i)
 	{
 		const FContainerItem& Item = BoundInventory->ContainerItems[i];
-		if (Item.Instance.SourceItemData && Item.Instance.CurrentEffects.Num() > 0)
+		if (Item.Instance.SourceItemData && Item.Instance.IsPotion())
 		{
 			PotionArrayIndices.Add(i);
 		}
