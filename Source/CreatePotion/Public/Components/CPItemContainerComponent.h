@@ -44,6 +44,9 @@ public:
     // 해당 칸이 비어 있고 아이템 크기만큼 공간이 있는지 확인하는 함수
     bool CanPlaceItemAt(const FContainerItem& Item, int32 TargetIndex) const;
 
+    // 퀘스트용 가상 ID: 효과/종류 상관없이 포션 전체를 하나로 집계
+    static FName GetAnyPotionID() { return FName(TEXT("AnyPotion")); }
+
     // 신규 추가 - 퀘스트 시스템 연동용
     // 아이템 애셋 이름(FName) 기준으로 현재 보유 수량을 집계해서 반환
     UFUNCTION(BlueprintCallable, Category = "Container|Quest")
