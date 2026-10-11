@@ -47,6 +47,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "CP|Settings|Audio")
 	void SetAmbienceVolume(float Volume);
 
+	UFUNCTION(BlueprintCallable, Category = "CP|Settings|Screen")
+	void SetGraphicsLevel(int32 InLevel); 
+	
 	UFUNCTION(BlueprintPure, Category = "CP|Settings|Audio")
 	float GetMasterVolume() const { return MasterVolume; }
 
@@ -62,6 +65,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "CP|Settings|Audio")
 	float GetAmbienceVolume() const { return AmbienceVolume; }
 
+	UFUNCTION(BlueprintCallable, Category = "CP|Settings|Screen")
+	int32 GetGraphicsLevel() const { return GraphicsLevel; }
 private:
 	void ClampAudioVolumes();
 
@@ -80,4 +85,7 @@ private:
 
 	UPROPERTY(Config)
 	float AmbienceVolume = 1.0f;
+	
+	UPROPERTY(Config)
+	int32 GraphicsLevel = 2;
 };
