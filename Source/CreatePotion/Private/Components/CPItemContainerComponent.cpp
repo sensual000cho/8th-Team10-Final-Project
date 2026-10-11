@@ -303,8 +303,13 @@ TMap<FName, int32> UCPItemContainerComponent::GetItemCountsByID() const
     {
         if (Item.Instance.SourceItemData)
         {
-            FName ItemID = Item.Instance.SourceItemData->GetFName(); 
+            FName ItemID = Item.Instance.SourceItemData->GetFName();
             Result.FindOrAdd(ItemID) += Item.Stacked;
+
+            if (Item.Instance.SourceItemData->bIsPotion)
+            {
+                Result.FindOrAdd(GetAnyPotionID()) += Item.Stacked;
+            }
         }
     }
     return Result;
@@ -315,11 +320,13 @@ bool UCPItemContainerComponent::RemoveItemByID(FName ItemID, int32 AmountToRemov
 {
     int32 Remaining = AmountToRemove;
 
-    // 뒤에서부터 순회 (RemoveAt으로 배열이 줄어들 수 있으므로 안전하게)
     for (int32 i = ContainerItems.Num() - 1; i >= 0 && Remaining > 0; --i)
     {
-        if (ContainerItems[i].Instance.SourceItemData && 
-            ContainerItems[i].Instance.SourceItemData->GetFName() == ItemID)
+        const UCPForageableItemData* Data = ContainerItems[i].Instance.SourceItemData;
+        const bool bMatch = Data &&
+            (ItemID == GetAnyPotionID() ? Data->bIsPotion : Data->GetFName() == ItemID);
+
+        if (bMatch)
         {
             int32 ToRemove = FMath::Min(Remaining, ContainerItems[i].Stacked);
             ContainerItems[i].Stacked -= ToRemove;
@@ -340,7 +347,6 @@ bool UCPItemContainerComponent::RemoveItemByID(FName ItemID, int32 AmountToRemov
 
     return Remaining <= 0;   // 요구한 수량을 전부 뺐으면 성공
 }
-
 bool UCPItemContainerComponent::PopItemFromContainer(int32 TargetGridIndex, FContainerItem& OutPoppedItem)
 {
     int32 ArrayIdx = ContainerItems.IndexOfByPredicate(
