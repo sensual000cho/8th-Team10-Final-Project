@@ -51,7 +51,7 @@ void ACPResourceSpawner::BeginPlay()
 			TimeSubsystem->OnTimeChanged.AddDynamic(this, &ACPResourceSpawner::HandleTimeChanged);
 		}
 	}
-	
+
 	if (SpawnEntries.Num() == 0)
 	{
 		//UE_LOG(LogTemp, Warning, TEXT("%s : Resource definition is null"), *GetName());
@@ -59,7 +59,7 @@ void ACPResourceSpawner::BeginPlay()
 		return;
 	}
 	
-	SpawnAllSlots();
+	SpawnAllSlots(); 
 }
 
 void ACPResourceSpawner::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -128,8 +128,8 @@ void ACPResourceSpawner::HandleTimeChanged(int64 Time)
 	
 	for (const int32& SlotIndex : ReadySlots)
 	{
-		SpawnSlot(SlotIndex);
 		PendingRespawnSlots.Remove(SlotIndex);
+		SpawnSlot(SlotIndex);
 	}
 }
 
@@ -167,7 +167,12 @@ void ACPResourceSpawner::SpawnSlot(int32 SlotIndex)
 	if (!Definition) return;
 	
 	FTransform SpawnTransform;
-	if (!TryCalculateSpawnTransform(SlotIndex, State.Generation, SpawnTransform)) return;
+	if (!TryCalculateSpawnTransform(SlotIndex, State.Generation, SpawnTransform))
+	{
+		PendingRespawnSlots.Add(SlotIndex);
+		
+		return;
+	}
 	
 	UCPObjectPoolSubsystem* PoolSubsystem = GetWorld()->GetSubsystem<UCPObjectPoolSubsystem>();
 	if (!PoolSubsystem) return;
@@ -182,10 +187,20 @@ void ACPResourceSpawner::SpawnSlot(int32 SlotIndex)
 	if (bShouldSpawnVine && !State.bVineCleared)
 	{
 		AActor* AcquiredVine = PoolSubsystem->AcquireActor(VineActorClass, SpawnTransform);
-		if (!AcquiredVine) return;
+		if (!AcquiredVine)
+		{
+			PoolSubsystem->ReleaseActor(ResourceActor);
+			
+			return;
+		}
 		
 		ACPRockVineActor* VineActor = Cast<ACPRockVineActor>(AcquiredVine);
-		if (!VineActor) return;
+		if (!VineActor)
+		{
+			PoolSubsystem->ReleaseActor(AcquiredVine);
+			
+			return;
+		}
 		
 		VineActor->Initialize(Key);
 	}
@@ -193,7 +208,6 @@ void ACPResourceSpawner::SpawnSlot(int32 SlotIndex)
 	const int32 HarvestMultiplier = bShouldSpawnVine ? Entry->VineHarvestMultiplier : 1;
 	
 	ResourceActor->InitializeResource(Key, Definition, HarvestMultiplier);
-	PendingRespawnSlots.Add(SlotIndex);
 }
 
 const FCPResourceSpawnEntry* ACPResourceSpawner::SelectResource(int32 SlotIndex, int32 Generation) const

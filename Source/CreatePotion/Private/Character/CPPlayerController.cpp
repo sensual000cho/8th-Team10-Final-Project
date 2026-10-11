@@ -105,18 +105,19 @@ void ACPPlayerController::ConsumeHeldPotionCharge()
 #pragma region CarryProp
 void ACPPlayerController::HandlePropAttached(ACPThrowablePropBase* Prop)
 {
-	
 	// Q/E 장착 경로는 이미 인벤토리에 있으므로 무시
 	if (bIsEquippingFromInventory || !IsValid(Prop) || !CachedInventoryComponent)
 	{
 		return;
 	}
 
-	const FCPItemInstance& Instance = Prop->GetWorkingIngredient();
-	
-	// 포션 이외의 아이템은 적용 x
-	if (!Instance.IsValid() || Instance.CurrentEffects.Num() == 0)
+	CurrentlyHeldPotionInstance = FCPItemInstance();
+	bCurrentHeldItemIsFromInventory = false;
+
+	const FCPItemInstance Instance = Prop->GetWorkingIngredient().MakeInventoryInstance();
+	if (!Instance.IsValid())
 	{
+		UpdatePotionHighlight();
 		return;
 	}
 
@@ -124,13 +125,15 @@ void ACPPlayerController::HandlePropAttached(ACPThrowablePropBase* Prop)
 	if (Leftover > 0)
 	{
 		// 인벤토리가 가득 차면 기존처럼 "필드에서 주운 것"으로 남겨둠 
-		UE_LOG(LogContainer, Warning, TEXT("[Carry] 인벤토리 공간 부족으로 주운 포션을 인벤토리에 넣지 못함"));
+		UE_LOG(LogContainer, Warning, TEXT("[Carry] 인벤토리 공간 부족으로 아이템을 인벤토리에 넣지 못함"));
+		UpdatePotionHighlight();
 		return;
 	}
 
 	// Q/E로 장착한 것과 동일하게 취급
 	CurrentlyHeldPotionInstance = Instance;
 	bCurrentHeldItemIsFromInventory = true;
+	Prop->SetBackedByInventory(true);
 	UpdatePotionHighlight();
 }
 
@@ -290,6 +293,7 @@ void ACPPlayerController::EquipItemAtGridIndex(int32 GridIndex)
 	CurrentlyHeldPotionInstance = FoundItem->Instance;
 	CurrentlyHeldPotionOriginIndex = GridIndex;
 	bCurrentHeldItemIsFromInventory = true;
+	Potion->SetBackedByInventory(true);	// 인벤토리로부터 왔다는 정보
 	UpdatePotionHighlight();
 }
 #pragma endregion

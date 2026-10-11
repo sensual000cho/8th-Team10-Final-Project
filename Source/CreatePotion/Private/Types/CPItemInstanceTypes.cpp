@@ -80,3 +80,30 @@ FText FCPItemInstance::GetDisplayName() const
 
 	return FText::FromString(CombinedPrefix + TEXT(" ") + SourceItemData->DisplayName.ToString());
 }
+
+TArray<FGameplayTag> FCPItemInstance::GetDisplayTags() const
+{
+	if (CurrentEffects.Num() > 0)
+	{
+		return CurrentEffects;
+	}
+
+	return SourceItemData ? SourceItemData->TagAxes : TArray<FGameplayTag>();
+}
+
+bool FCPItemInstance::IsPotion() const
+{
+	return SourceItemData && SourceItemData->bIsPotion;
+}
+
+FCPItemInstance FCPItemInstance::MakeInventoryInstance() const
+{
+	FCPItemInstance Result = *this;
+
+	if (!IsPotion() && SourceItemData && CurrentEffects == SourceItemData->TagAxes)
+	{
+		Result.CurrentEffects.Empty();
+	}
+
+	return Result;
+}
