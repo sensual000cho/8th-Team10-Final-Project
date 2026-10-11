@@ -191,7 +191,7 @@ FReply UCPNPCDialogueWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry
             OnChoiceSelected(TEXT("다음"));
         }
 
-        return FReply::Handled();
+        return FReply::Handled().SetUserFocus(TakeWidget(), EFocusCause::Mouse);
     }
     return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
@@ -212,6 +212,22 @@ FReply UCPNPCDialogueWidget::NativeOnKeyDown(const FGeometry& InGeometry, const 
         return FReply::Handled();
     }
     return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
+}
+
+void UCPNPCDialogueWidget::NativeOnFocusLost(const FFocusEvent& InFocusEvent)
+{
+    Super::NativeOnFocusLost(InFocusEvent);
+
+    if (IsInViewport() && GetWorld())
+    {
+        GetWorld()->GetTimerManager().SetTimerForNextTick([this]()
+            {
+                if (IsValid(this) && IsInViewport())
+                {
+                    SetKeyboardFocus();
+                }
+            });
+    }
 }
 
 void UCPNPCDialogueWidget::OnTypewriterTick()
