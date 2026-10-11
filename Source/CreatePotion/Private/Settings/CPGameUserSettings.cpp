@@ -112,6 +112,11 @@ void UCPGameUserSettings::SetAmbienceVolume(float Volume)
 	AmbienceVolume = FMath::Clamp(Volume, 0.0f, 1.0f);
 }
 
+void UCPGameUserSettings::SetGraphicsLevel(int32 InLevel)
+{
+	GraphicsLevel = InLevel;
+}
+
 void UCPGameUserSettings::ClampAudioVolumes()
 {
 	MasterVolume = FMath::Clamp(MasterVolume, 0.0f, 1.0f);
