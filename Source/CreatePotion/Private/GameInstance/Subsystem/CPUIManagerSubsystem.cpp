@@ -29,6 +29,10 @@ UUserWidget* UCPUIManagerSubsystem::PushWidget(TSubclassOf<UUserWidget> WidgetCl
 		}
 		
 		Widget->AddToViewport(ZOrder);
+		if (const UCPBaseUserWidget* SoundWidget = Cast<UCPBaseUserWidget>(Widget); SoundWidget && SoundWidget->bPlayManagedOpenCloseSounds)
+		{
+			PlayWidgetSound(SoundWidget->OpenSound);
+		}
 		UpdateInputMode();
 	}
 	return Widget;
@@ -50,6 +54,10 @@ void UCPUIManagerSubsystem::CloseWidget(UUserWidget* Widget)
 	{
 		if (OpenWidgets[Index].Widget.IsValid())
 		{
+			if (const UCPBaseUserWidget* SoundWidget = Cast<UCPBaseUserWidget>(OpenWidgets[Index].Widget.Get()); SoundWidget && SoundWidget->bPlayManagedOpenCloseSounds)
+			{
+				PlayWidgetSound(SoundWidget->CloseSound);
+			}
 			OpenWidgets[Index].Widget->RemoveFromParent();
 		}
 		OpenWidgets.RemoveAt(Index);

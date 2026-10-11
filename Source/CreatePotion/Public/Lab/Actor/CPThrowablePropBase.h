@@ -53,6 +53,15 @@ public:
     UFUNCTION(BlueprintPure, Category = "Prop|State")
     bool IsHeld() const;
 
+#pragma region Container
+public:
+    void SetBackedByInventory(bool bInBacked) { bBackedByInventory = bInBacked; }
+    bool IsBackedByInventory() const { return bBackedByInventory; }
+
+private:
+    bool bBackedByInventory = false;
+#pragma endregion
+
 protected:
     /*
      * PotionActor 전용, 상속 받고 재정의

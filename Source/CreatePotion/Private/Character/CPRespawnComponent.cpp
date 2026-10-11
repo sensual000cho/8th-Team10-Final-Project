@@ -1,6 +1,8 @@
 // CPRespawnComponent.cpp
 
 #include "Character/CPRespawnComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 
 #include "Animation/AnimInstance.h"
 #include "Character/CPHealthComponent.h"
@@ -94,6 +96,11 @@ void UCPRespawnComponent::HandleOwnerDeath(AActor* DamageCauser)
     
     if (IsValid(interactionComponent)){
         interactionComponent->SetInteractionBlocked(true);
+    }
+
+    if (GameOverSound && !World->GetTimerManager().IsTimerActive(RespawnTimerHandle) && OwnerCharacter->IsPlayerControlled())
+    {
+        UGameplayStatics::PlaySound2D(this, GameOverSound);
     }
 
     const float SafeDelay = FMath::IsFinite(RespawnDelay) ? FMath::Max(RespawnDelay, 0.01f) : 5.f;
@@ -219,6 +226,7 @@ bool UCPRespawnComponent::Respawn()
         interactionComponent->SetInteractionBlocked(false);
     }
     
+    if (RespawnSound && OwnerCharacter->IsPlayerControlled()) UGameplayStatics::PlaySound2D(this, RespawnSound);
     OnRespawnCompleted.Broadcast();
     
     return true;

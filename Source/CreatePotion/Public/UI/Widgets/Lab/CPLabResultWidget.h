@@ -21,6 +21,10 @@ class CREATEPOTION_API UCPLabResultWidget : public UCPBasePopupWidget
 	GENERATED_BODY()
 
 public:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<class USoundBase> CompletionSound;
+
+
 	// 리셋 함수
 	UFUNCTION(BlueprintCallable, Category = "Lab|Result")
 	void ResetResultView();

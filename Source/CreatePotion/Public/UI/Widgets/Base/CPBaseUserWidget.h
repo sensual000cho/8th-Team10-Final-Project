@@ -25,6 +25,8 @@ protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 	
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	
 	// 바인딩, 언바인딩 함수
 	// 자식 클래스에서 override해서 사용
 	virtual void BindEvents();
@@ -44,9 +46,17 @@ public:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "UI|Sound")
 	class USoundBase* CloseSound;
+
+	// Opt in only for widgets whose lifetime is managed by PushWidget/CloseWidget.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Sound")
+	bool bPlayManagedOpenCloseSounds = false;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Input")
 	bool bCanCloseByEscape = false;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="UI|Input")
+	bool bConsumeLeftMouseButton = false;
+	
 protected:
 	// 캐싱된 UIMangerSubsystem
 	UPROPERTY()
