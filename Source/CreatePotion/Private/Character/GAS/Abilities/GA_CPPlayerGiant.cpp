@@ -18,6 +18,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/BlueprintCameraEvaluationDataRef.h"
 #include "GameFramework/GameplayCameraComponentBase.h"
+#include "Services/CameraModifierService.h"
 #include "TimerManager.h"
 #include "UObject/UnrealType.h"
 
@@ -168,6 +169,8 @@ void UGA_CPPlayerGiant::ApplyGiantState()
 
 void UGA_CPPlayerGiant::RestoreOriginalState()
 {
+	// 캐릭터가 제거되는 중에도 남아 있는 카메라 보정은 먼저 해제한다.
+	RestoreGiantCamera();
 	if (!bGiantApplied || !CachedCharacter.IsValid())
 	{
 		return;
@@ -181,7 +184,6 @@ void UGA_CPPlayerGiant::RestoreOriginalState()
 	CachedCapsule->SetCapsuleSize(OriginalCapsuleRadius, OriginalCapsuleHalfHeight, true);
 	CachedCharacter->AddActorWorldOffset(FVector(0.0f, 0.0f, -OriginalCapsuleHalfHeight * (Magnitude - 1.0f)), false, nullptr, ETeleportType::TeleportPhysics);
 	RestoreCalculatedWalkSpeed(0.0f, FVector::ZeroVector, FVector::ZeroVector);
-	RestoreGiantCamera();
 
 	if (CachedCarryComponent.IsValid())
 	{
@@ -231,7 +233,9 @@ void UGA_CPPlayerGiant::ApplyGiantCamera()
 	FCameraVariableDefinition VariableDefinition = TranslationParameter->GetVariableDefinition();
 	VariableDefinition.bIsPrivate = false;
 	CameraData.GetResult()->VariableTable.SetValue<FVector3d>(VariableDefinition, GiantCameraTranslationOffset, true);
-	GiantCameraRigInstance = CachedGameplayCamera->StartGlobalCameraModifierRig(GiantCameraRig);
+	// 기본 Modifier 순서에는 엔진의 기준값이 더해진다. Director의 충돌 Rig(0)보다 먼저 적용한다.
+	const int32 BeforeCollisionOrder = -UE::Cameras::FCameraModifierService::GetFirstBlendStackOrderKey() - 1;
+	GiantCameraRigInstance = CachedGameplayCamera->StartGlobalCameraModifierRig(GiantCameraRig, BeforeCollisionOrder);
 }
 
 void UGA_CPPlayerGiant::RestoreGiantCamera()
@@ -239,6 +243,6 @@ void UGA_CPPlayerGiant::RestoreGiantCamera()
 	if (CachedGameplayCamera.IsValid() && GiantCameraRigInstance.IsValid())
 	{
 		CachedGameplayCamera->StopCameraModifierRig(GiantCameraRigInstance);
-		GiantCameraRigInstance = FCameraRigInstanceID();
 	}
+	GiantCameraRigInstance = FCameraRigInstanceID();
 }
