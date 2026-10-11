@@ -68,7 +68,7 @@ void UCPItemSlotWidget::UpdateSlot(const FContainerItem& ItemData)
 		if (LiquidImage)
 		{
 			// 포션일 때(CurrentEffects 배열에 내용물이 있을 때)만 액체 이미지를 표시
-			if (ItemData.Instance.CurrentEffects.Num() > 0) 
+			if (ItemData.Instance.IsPotion())
 			{
 				LiquidImage->SetColorAndOpacity(ItemData.Instance.GetLiquidColor());
 				LiquidImage->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
