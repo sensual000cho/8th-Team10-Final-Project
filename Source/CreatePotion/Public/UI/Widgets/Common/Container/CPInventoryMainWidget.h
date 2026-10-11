@@ -11,7 +11,11 @@ class CREATEPOTION_API UCPInventoryMainWidget : public UCPContainerMainWidget
 {
 	GENERATED_BODY()
 
+public:
+	virtual bool HandleEscape() override;
+	
 protected:
 	virtual void HandleCloseRequested() override;
 
+	
 };

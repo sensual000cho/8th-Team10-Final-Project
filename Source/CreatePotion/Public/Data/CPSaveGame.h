@@ -45,7 +45,7 @@ public:
 	UPROPERTY()
 	FCPCauldronSaveData CauldronData;
 	
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Save")
 	FName LevelName;
 	
 	UPROPERTY()

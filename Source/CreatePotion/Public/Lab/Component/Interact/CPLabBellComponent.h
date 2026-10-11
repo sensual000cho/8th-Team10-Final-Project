@@ -14,6 +14,10 @@ class CREATEPOTION_API UCPLabBellComponent : public UCPInteractableComponent
 	GENERATED_BODY()
 	
 public:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<class USoundBase> BellSound;
+
+
 	UCPLabBellComponent();
 	
 	// Life Cycle

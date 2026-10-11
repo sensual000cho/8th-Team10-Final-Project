@@ -15,7 +15,10 @@ class CREATEPOTION_API UCPHealthComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-public:	
+public:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TArray<TObjectPtr<class USoundBase>> HurtSounds;
+
 	UCPHealthComponent();
 	
 	UFUNCTION(BlueprintCallable, Category = "Health")
@@ -51,6 +54,9 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
+	// Audio variation must not consume the gameplay random sequence.
+	FRandomStream HurtSoundRandom;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Health", meta = (AllowPrivateAccess = "true", ClampMin = "1.0"))
 	float MaxHealth = 40.f;
 

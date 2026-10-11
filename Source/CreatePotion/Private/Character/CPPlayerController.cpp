@@ -105,18 +105,19 @@ void ACPPlayerController::ConsumeHeldPotionCharge()
 #pragma region CarryProp
 void ACPPlayerController::HandlePropAttached(ACPThrowablePropBase* Prop)
 {
-	
 	// Q/E 장착 경로는 이미 인벤토리에 있으므로 무시
 	if (bIsEquippingFromInventory || !IsValid(Prop) || !CachedInventoryComponent)
 	{
 		return;
 	}
 
-	const FCPItemInstance& Instance = Prop->GetWorkingIngredient();
-	
-	// 포션 이외의 아이템은 적용 x
-	if (!Instance.IsValid() || Instance.CurrentEffects.Num() == 0)
+	CurrentlyHeldPotionInstance = FCPItemInstance();
+	bCurrentHeldItemIsFromInventory = false;
+
+	const FCPItemInstance Instance = Prop->GetWorkingIngredient().MakeInventoryInstance();
+	if (!Instance.IsValid())
 	{
+		UpdatePotionHighlight();
 		return;
 	}
 
@@ -124,13 +125,15 @@ void ACPPlayerController::HandlePropAttached(ACPThrowablePropBase* Prop)
 	if (Leftover > 0)
 	{
 		// 인벤토리가 가득 차면 기존처럼 "필드에서 주운 것"으로 남겨둠 
-		UE_LOG(LogContainer, Warning, TEXT("[Carry] 인벤토리 공간 부족으로 주운 포션을 인벤토리에 넣지 못함"));
+		UE_LOG(LogContainer, Warning, TEXT("[Carry] 인벤토리 공간 부족으로 아이템을 인벤토리에 넣지 못함"));
+		UpdatePotionHighlight();
 		return;
 	}
 
 	// Q/E로 장착한 것과 동일하게 취급
 	CurrentlyHeldPotionInstance = Instance;
 	bCurrentHeldItemIsFromInventory = true;
+	Prop->SetBackedByInventory(true);
 	UpdatePotionHighlight();
 }
 
@@ -187,6 +190,26 @@ void ACPPlayerController::OnItemWheelScroll(const FInputActionValue& Value)
 {
 	if (!ItemWheelWidgetInstance)
 	{
+		return;
+	}
+	bool bIsHoldingSomething = false;
+	if (APawn* ControlledPawn = GetPawn())
+	{
+		if (UCPCarryComponent* CarryComponent = ControlledPawn->FindComponentByClass<UCPCarryComponent>())
+		{
+			bIsHoldingSomething = CarryComponent->HasHeldProp();
+		}
+	}
+
+	// 아무것도 안 들고 있으면 휠을 넘기지 않고 현재 포커스 중인(=마지막으로 사용한) 포션을 장착
+	if (!bIsHoldingSomething)
+	{
+		int32 FocusedGridIndex;
+		if (ItemWheelWidgetInstance->GetFocusedPotionGridIndex(FocusedGridIndex))
+		{
+			ItemWheelWidgetInstance->ShowCurrentFocus();
+			EquipItemAtGridIndex(FocusedGridIndex);
+		}
 		return;
 	}
 
@@ -270,6 +293,7 @@ void ACPPlayerController::EquipItemAtGridIndex(int32 GridIndex)
 	CurrentlyHeldPotionInstance = FoundItem->Instance;
 	CurrentlyHeldPotionOriginIndex = GridIndex;
 	bCurrentHeldItemIsFromInventory = true;
+	Potion->SetBackedByInventory(true);	// 인벤토리로부터 왔다는 정보
 	UpdatePotionHighlight();
 }
 #pragma endregion
@@ -456,6 +480,8 @@ void ACPPlayerController::OpenExternalContainerUI(UCPItemContainerComponent* InT
 
 void ACPPlayerController::CloseExternalContainerUI()
 {
+	ReturnHeldItemToOrigin();	// HandHeld에 무언가를 들고 있으면 원래 자리로 되돌리기
+
 	if (CurrentContainerUIInstance)
 	{
 		if (UCPUIManagerSubsystem* UIManager = GetGameInstance()->GetSubsystem<UCPUIManagerSubsystem>())
@@ -550,6 +576,48 @@ bool ACPPlayerController::BeginHoldingItem(const FContainerItem& InItem, UCPItem
 	}
 	
 	return true;
+}
+
+void ACPPlayerController::ReturnHeldItemToOrigin()
+{
+	if (!IsHoldingItem() || !LeftClickPickedContainer)
+	{
+		return;
+	}
+
+	FContainerItem Held = LeftClickPickedContainer->ContainerItems[0];
+	UCPItemContainerComponent* Origin = LeftClickPickedItemOriginContainer;
+	int32 Remaining = Held.Stacked;
+
+	// 1. 원래 칸이 비어 있으면 정확히 그 자리에 되돌리기
+	if (Origin && Origin->CanPlaceItemAt(Held, LeftClickPickedOriginSlotIndex))
+	{
+		if (Origin->TryPlaceHoldingItem(LeftClickPickedContainer, LeftClickPickedOriginSlotIndex))
+		{
+			Remaining = 0;
+		}
+	}
+
+	// 2. 원래 컨테이너의 다른 빈자리 아무곳에나 되돌리기 (같은 아이템이 있으면 합치기)
+	if (Remaining > 0 && Origin)
+	{
+		Remaining = Origin->TryGetItemFromInstance(Held.Instance, Remaining);
+	}
+
+	// 3. 원래 컨테이너에도 자리가 없으면 인벤토리로
+	if (Remaining > 0 && CachedInventoryComponent && CachedInventoryComponent != Origin)
+	{
+		Remaining = CachedInventoryComponent->TryGetItemFromInstance(Held.Instance, Remaining);
+	}
+
+	// 4. 그래도 남아 있을경우
+	if (Remaining > 0)
+	{
+		UE_LOG(LogContainer, Warning, TEXT("[HandHeldContainer] 되돌릴 공간이 없어 [%s]를 넣지 못했음"),
+			*Held.Instance.GetDisplayName().ToString());
+	}
+
+	ResetHoldingItem();
 }
 
 #pragma endregion

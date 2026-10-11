@@ -18,6 +18,10 @@ class CREATEPOTION_API UCPItemWheelWidget : public UCPBaseFixedWidget
 	GENERATED_BODY()
 
 public:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<class USoundBase> SelectionSound;
+
+
 	// PC가 인벤토리를 확보한 시점에 한 번 호출
 	void BindInventory(UCPInventoryComponent* InInventory);
 
@@ -111,6 +115,9 @@ public:
 #pragma endregion
 
 #pragma region Sliding
+public:
+	void ShowCurrentFocus();
+
 private:
 	void UpdateSlotScales(float Progress);
 
