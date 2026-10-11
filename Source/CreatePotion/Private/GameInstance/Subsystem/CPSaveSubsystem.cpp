@@ -50,10 +50,10 @@ void UCPSaveSubsystem::SaveGame()
 	UGameplayStatics::SaveGameToSlot(SaveData, SlotName, 0);
 }
 
-void UCPSaveSubsystem::LoadGame()
+UCPSaveGame* UCPSaveSubsystem::LoadGame()
 {
 	UCPSaveGame* SaveData = Cast<UCPSaveGame>(UGameplayStatics::LoadGameFromSlot(SlotName, 0));
-	if (!SaveData) return;
+	if (!SaveData) return nullptr;
 	
 	UGameInstance* GI = GetGameInstance();
 	
@@ -89,7 +89,8 @@ void UCPSaveSubsystem::LoadGame()
 	LoadedRotation = SaveData->PlayerRotation;
 	bHasLoadedTransform = true;
 	
-	UGameplayStatics::OpenLevel(GetWorld(), SaveData->LevelName);
+	return SaveData;
+	// UGameplayStatics::OpenLevel(GetWorld(), SaveData->LevelName);
 }
 
 void UCPSaveSubsystem::ResetGameSession()
