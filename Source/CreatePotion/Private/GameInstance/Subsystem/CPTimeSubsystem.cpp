@@ -43,6 +43,7 @@ ECPTimePhase UCPTimeSubsystem::GetCurrentPhase() const
 void UCPTimeSubsystem::LoadSaveData(int64 SavedTotalWorldMinutes)
 {
 	TotalWorldMinutes = SavedTotalWorldMinutes;
+	BroadcastCurrentState();
 }
 
 void UCPTimeSubsystem::ResetData()
@@ -96,9 +97,7 @@ void UCPTimeSubsystem::StartTime()
 		true
 	);
 	
-	OnTimeChanged.Broadcast(TotalWorldMinutes);
-	OnDayChanged.Broadcast(GetCurrentDay());
-	OnTimePhaseChanged.Broadcast(GetCurrentPhase());
+	BroadcastCurrentState();
 }
 
 void UCPTimeSubsystem::PauseTime()
@@ -136,4 +135,11 @@ void UCPTimeSubsystem::Deinitialize()
 void UCPTimeSubsystem::HandleTimeTick()
 {
 	AdvanceTime(1.0);
+}
+
+void UCPTimeSubsystem::BroadcastCurrentState()
+{
+	OnTimeChanged.Broadcast(TotalWorldMinutes);
+	OnDayChanged.Broadcast(GetCurrentDay());
+	OnTimePhaseChanged.Broadcast(GetCurrentPhase());
 }
