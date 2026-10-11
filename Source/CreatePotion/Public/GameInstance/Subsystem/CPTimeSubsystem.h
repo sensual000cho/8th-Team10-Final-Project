@@ -30,6 +30,7 @@ class CREATEPOTION_API UCPTimeSubsystem : public UGameInstanceSubsystem
 	
 public:
 	// Game Save
+	UFUNCTION(BlueprintCallable)
 	void LoadSaveData(int64 SavedTotalWorldMinutes);
 	
 	void ResetData();
@@ -70,6 +71,9 @@ private:
 	
 	UFUNCTION()
 	void HandleTimeTick();
+	
+	UFUNCTION()
+	void BroadcastCurrentState();
 	
 	// 총 시간
 	int64 TotalWorldMinutes = 0;
