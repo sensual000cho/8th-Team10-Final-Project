@@ -152,6 +152,8 @@ public:
 private:
 	void SetContextHandlerForTargetContext(EUITargetContext InTargetContext);
 
+	bool FindHeldItemSource(UCPItemContainerComponent*& OutContainer, int32& OutGridIndex) const;
+
 protected:
 	UPROPERTY(EditAnywhere, Category = "Input|Carry")
 	UInputAction* IA_CarryHeldProp;
