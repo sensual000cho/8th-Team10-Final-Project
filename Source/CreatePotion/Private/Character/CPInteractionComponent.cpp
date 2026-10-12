@@ -14,6 +14,7 @@
 #include "EnhancedInputSubsystems.h"	// IMC 바인딩
 #include "EnhancedInputComponent.h"		// IA 바인딩
 #include "Components/CPInteractableComponent.h"
+#include "TraceServices/Model/TimingProfiler.h"
 
 // 에디터에서 콘솔창에 cp.Debug.Interaction를 입력해서 Debug On/Off 가능
 // cp.Debug.Interaction 1 --> Debug On
@@ -445,8 +446,6 @@ void UCPInteractionComponent::BeginTimedInteraction()
 
 void UCPInteractionComponent::SetActorHighlight(AActor* Target, bool bHighlighted)
 {
-	// UE_LOG(LogTemp, Warning, TEXT("[InteractionComponent] SetActorHighlight 호출됨"));
-	
 	if (!Target) return;
 	
 	// 하이라이트 인터페이스를 구현한 액터면 그 구현을 우선 사용
@@ -456,32 +455,23 @@ void UCPInteractionComponent::SetActorHighlight(AActor* Target, bool bHighlighte
 		return;
 	}
 	
-	// Target->GetComponentByClass<UMeshComponent>();
-	
-	// 하이라이트할 메쉬 찾기
-	UMeshComponent* MeshComp = FindTopMesh(Target);
-	if (!MeshComp)
-	{
-		UE_LOG(LogTemp, Error, TEXT("[InteractionComponent] %s 에서 Mesh 발견되지 않음"), *Target->GetName());
-		return;
-	}
-	
 	UMaterialInterface* Overlay = bHighlighted ? HighlightMaterial : nullptr;
 	
-	// 상위 메쉬
-	MeshComp->SetOverlayMaterial(Overlay);
-	
-	// 자식 메쉬
-	TArray<USceneComponent*> Children;
-	MeshComp->GetChildrenComponents(true, Children);
-	
 	static const FName NoHighlightTag(TEXT("NoHighlight"));
-	for (USceneComponent* Child : Children)
+	
+	TArray<UMeshComponent*> Meshes;
+	Target->GetComponents<UMeshComponent>(Meshes);
+	
+	for (UMeshComponent* Mesh : Meshes)
 	{
-		UMeshComponent* ChildMesh = Cast<UMeshComponent>(Child);
-		if (!ChildMesh || ChildMesh->IsA<UWidgetComponent>() || ChildMesh->ComponentHasTag(NoHighlightTag)) continue;
+		if (!Mesh 
+			|| !Mesh->IsA<USceneComponent>()
+			|| Mesh->ComponentHasTag(NoHighlightTag))
+		{
+			continue;
+		}
 		
-		ChildMesh->SetOverlayMaterial(Overlay);
+		Mesh->SetOverlayMaterial(Overlay);
 	}
 }
 
