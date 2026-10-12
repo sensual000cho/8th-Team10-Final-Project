@@ -55,17 +55,24 @@ bool UCPContainerContextBase::HandleLeftClickOnly(UCPGridSlotWidgetBase* Clicked
             const UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(PC->GetPawn());
             if (ASC && ASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(TEXT("State.Effect.Slime")))) return true;
 
-            FContainerItem HeldItem = PC->LeftClickPickedContainer->ContainerItems[0];
+            FContainerItem& HeldItem = PC->LeftClickPickedContainer->ContainerItems[0];
 
-            if (HeldItem.Instance.SourceItemData)
+            if (HeldItem.Instance.IsValid())
             {
-                for (int32 i = 0; i < HeldItem.Stacked; ++i)
-                {
-                    SpawnDroppedProp(HeldItem.Instance.SourceItemData, 1, PC->GetPawn(), HeldItem.Instance.CurrentEffects);
-                }
+                SpawnDroppedProp(HeldItem.Instance.SourceItemData, 1, PC->GetPawn(), HeldItem.Instance.CurrentEffects);
+                HeldItem.Stacked -= 1;
             }
 
-            PC->ResetHoldingItem();
+            // 버린 이후에 개수가 0이면 
+            if (HeldItem.Stacked <= 0)
+            {
+                PC->ResetHoldingItem();
+            }
+            else // 0이 아니면
+            {
+                PC->LeftClickPickedContainer->OnContainerUpdated.Broadcast(); // 남은 수량으로 손 아이콘 갱신
+            }
+
             return true;
         }
 

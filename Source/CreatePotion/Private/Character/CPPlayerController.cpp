@@ -80,18 +80,24 @@ void ACPPlayerController::SetupInputComponent()
 #pragma region PotionThrow
 void ACPPlayerController::ConsumeHeldPotionCharge()
 {
-	if (CachedInventoryComponent && bCurrentHeldItemIsFromInventory && CurrentlyHeldPotionInstance.IsValid())
+	if (bCurrentHeldItemIsFromInventory)
 	{
-		// 저장해둔 인덱스 대신 같은 포션이 들어있는 칸을 찾아서 직접 차감
-		const FContainerItem* Match = CachedInventoryComponent->ContainerItems.FindByPredicate(
-			[this](const FContainerItem& It)
-			{
-				return UCPItemContainerComponent::AreInstancesStackable(It.Instance, CurrentlyHeldPotionInstance);
-			});
+		UCPItemContainerComponent* SourceContainer = nullptr;
+		int32 SourceIndex = -1;
 
-		if (Match)
+		if (FindHeldItemSource(SourceContainer, SourceIndex))
 		{
-			CachedInventoryComponent->RemoveItemFromContainer(Match->GridIndex, 1);
+			SourceContainer->RemoveItemFromContainer(SourceIndex, 1);
+
+			// HandHeld에서 차감했는데 개수가 0이면 Carry 상태도 리셋
+			if (SourceContainer == LeftClickPickedContainer && !IsHoldingItem())
+			{
+				ResetHoldingItem();
+			}
+		}
+		else
+		{
+			UE_LOG(LogContainer, Warning, TEXT("[Carry] 아이템의 원본 위치를 찾을 수 없음"));
 		}
 	}
 
@@ -161,18 +167,15 @@ void ACPPlayerController::UpdatePotionHighlight()
 		}
 	}
 
-	// 손에 든 포션과 같은 포션이 들어있는 칸을 찾음
-	if (bIsHoldingPotion && CurrentlyHeldPotionInstance.IsValid())
+	if (bIsHoldingPotion)
 	{
-		const FContainerItem* Match = CachedInventoryComponent->ContainerItems.FindByPredicate(
-			[this](const FContainerItem& It)
-			{
-				return UCPItemContainerComponent::AreInstancesStackable(It.Instance, CurrentlyHeldPotionInstance);
-			});
+		UCPItemContainerComponent* SourceContainer = nullptr;
+		int32 SourceIndex = -1;
 
-		if (Match)
+		// 인벤토리에 있을 때만 하이라이트 (HandHeld나 외부 컨테이너에 있으면 인벤토리엔 표시할 칸이 없음)
+		if (FindHeldItemSource(SourceContainer, SourceIndex) && SourceContainer == CachedInventoryComponent)
 		{
-			HighlightIndex = Match->GridIndex;
+			HighlightIndex = SourceIndex;
 		}
 	}
 
@@ -396,6 +399,39 @@ void ACPPlayerController::SetContextHandlerForTargetContext(EUITargetContext InT
 		CurrentContextHandler = NewObject<UCPContextInventoryOnly>(this);
 		break;
 	}
+}
+
+bool ACPPlayerController::FindHeldItemSource(UCPItemContainerComponent*& OutContainer, int32& OutGridIndex) const
+{
+	if (!CurrentlyHeldPotionInstance.IsValid())
+	{
+		return false;
+	}
+
+	// 원본이 있을 수 있는 후보 목록 - 인벤토리, HandHeld(=LeftClickPicked), 상호작용중인 컨테이너
+	TArray<UCPItemContainerComponent*> Candidates = { CachedInventoryComponent, LeftClickPickedContainer, CurrentInteractingContainer };
+
+	// 원본이 있을 수 있는 후보에서 재료 찾기
+	for (UCPItemContainerComponent* Container : Candidates)
+	{
+		if (!Container)
+		{
+			continue;
+		}
+
+		if (const FContainerItem* Found = Container->ContainerItems.FindByPredicate(
+			[this](const FContainerItem& It)
+			{
+				return UCPItemContainerComponent::AreInstancesStackable(It.Instance, CurrentlyHeldPotionInstance);
+			}))
+		{
+			OutContainer = Container;
+			OutGridIndex = Found->GridIndex;
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void ACPPlayerController::OnCarryHeldProp(const FInputActionValue& Value)
