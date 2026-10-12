@@ -39,6 +39,10 @@ public:
 	
 
 protected:
+	// 도감 내부 상세 화면 이동음. 위젯 전체 열기/닫기 음원과 별도로 지정한다.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> NavigationSound;
+
 	// 도감 서브시스템
 	UPROPERTY(BlueprintReadOnly, Category = "Codex")
 	TObjectPtr<UCPCodexSubsystem> CodexSubsystem;
