@@ -34,14 +34,14 @@ void UCPCodexMainWidget::UnbindEvents()
 
 void UCPCodexMainWidget::OpenItemDetail(UCPForageableItemData* SelectedItemData)
 {
-	CachedUIManager->PlayWidgetSound(OpenSound);
+	CachedUIManager->PlayWidgetSound(NavigationSound);
 	WBP_CPForageableCodex->SetForageableItem(SelectedItemData);
 	WidgetSwitcher->SetActiveWidgetIndex(2);
 }
 
 void UCPCodexMainWidget::OpenNPCDetail(UCPNPCDataAsset* SelectedNPCData)
 {
-	CachedUIManager->PlayWidgetSound(OpenSound);
+	CachedUIManager->PlayWidgetSound(NavigationSound);
 	WBP_CPNPCCodex->SetNPCData(SelectedNPCData);
 	WidgetSwitcher->SetActiveWidgetIndex(3);
 }
