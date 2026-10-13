@@ -45,6 +45,8 @@ void ACPTimeOfDayController::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	Material = SkySphere->CreateDynamicMaterialInstance(0);
+	
 	UGameInstance* GI = GetGameInstance();
 	if (!GI) return;
 	
@@ -117,7 +119,6 @@ void ACPTimeOfDayController::UpdateSunRotation(double GameMinutes)
 	
 	if (SkySphere)
 	{
-		UMaterialInstanceDynamic* Material = SkySphere->CreateDynamicMaterialInstance(0);
 		if (Material)
 		{
 			float Intensity = FMath::GetMappedRangeValueClamped(
