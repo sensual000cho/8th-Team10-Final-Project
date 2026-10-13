@@ -48,7 +48,7 @@ protected:
 	// WBP가 제거될 때 버튼 이벤트 연결을 해제해 중복 호출과 남은 참조를 방지한다.
 	virtual void UnbindEvents() override;
 
-	// 팝업 상단에 "포션 제조 결과"
+	// 팝업 상단에 "퀘스트 결과"
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_ResultTitle;
 
@@ -63,10 +63,6 @@ protected:
 	// 효능 행과 보상 사유 행을 생성할 때 사용하는 공용 2열 Row WBP 클래스다.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lab|Result|Rows")
 	TSubclassOf<UCPLabResultLabelValueRowWidget> LabelValueRowWidgetClass;
-
-	// 계산된 기본 보상 값을 표시한다. 이 위젯에서는 보상을 계산하지 않는다.
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> Text_BaseReward;
 
 	// 가산과 차감이 모두 반영된 최종 보상 값을 표시한다.
 	UPROPERTY(meta = (BindWidget))

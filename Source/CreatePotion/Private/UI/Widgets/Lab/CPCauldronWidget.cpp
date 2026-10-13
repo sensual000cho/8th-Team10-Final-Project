@@ -3,12 +3,12 @@
 
 #include "UI/Widgets/Lab/CPCauldronWidget.h"
 
-#include "Blueprint/WidgetTree.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Data/CPTagDefinitionTypes.h"
 #include "Lab/Component/Interact/CPCauldronComponent.h"
 #include "Settings/CPDTSettings.h"
+#include "UI/Widgets/Lab/CPCauldronEffectRowWidget.h"
 
 void UCPCauldronWidget::SetCauldronComponent(UCPCauldronComponent* InCauldronComponent)
 {
@@ -59,36 +59,23 @@ void UCPCauldronWidget::RefreshEffectTags()
 	const bool bHasIngredients = !BoundCauldronComponent->GetIngredientInstance().IsEmpty();
 	Txt_CurrentEffects->SetVisibility(bHasIngredients ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 	
+	if (!EffectRowWidgetClass) return;
+	
+	const UCPDTSettings* DTSettings = GetDefault<UCPDTSettings>();
+	UDataTable* TagDefinitionTable = DTSettings ? DTSettings->TagDefinitionTable.LoadSynchronous() : nullptr;
+	
 	// 효과 VB에 추가 + 가운데 정렬
 	const TArray<FGameplayTag> EffectTags = BoundCauldronComponent->GetEffectTags();
 	for (const FGameplayTag& Tag : EffectTags){
 		if (!Tag.IsValid()) continue;
 		
-		UTextBlock* EffectTextBlock = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-		if (!EffectTextBlock) continue;
+		const FCPTagDefinitionRow* TagDefinition = FCPTagDefinitionLookup::FindRow(TagDefinitionTable, Tag);
+		if (!TagDefinition) continue;
 		
-		EffectTextBlock->SetText(GetEffectDisplayName(Tag));
-		EffectTextBlock->SetJustification(ETextJustify::Center);
-		VB_EffectTags->AddChildToVerticalBox(EffectTextBlock);
+		UCPCauldronEffectRowWidget* EffectRow = CreateWidget<UCPCauldronEffectRowWidget>(this, EffectRowWidgetClass);
+		if (!EffectRow) continue;
+		
+		EffectRow->SetEffectData(TagDefinition->DisplayName, TagDefinition->LiquidColor01);
+		VB_EffectTags->AddChildToVerticalBox(EffectRow);
 	}
-}
-
-FText UCPCauldronWidget::GetEffectDisplayName(const FGameplayTag& EffectTag) const
-{
-	if (!EffectTag.IsValid()) return FText::GetEmpty();
-	
-	const UCPDTSettings* DTSettings = GetDefault<UCPDTSettings>();
-	UDataTable* TagDefinitionTable = DTSettings ? DTSettings->TagDefinitionTable.LoadSynchronous() : nullptr;
-	if (!TagDefinitionTable) return FText::GetEmpty();
-	
-	TArray<FCPTagDefinitionRow*> Rows;
-	TagDefinitionTable->GetAllRows<FCPTagDefinitionRow>(TEXT("CauldronWidgetTagDefinition"), Rows);
-	
-	for (const FCPTagDefinitionRow* Row : Rows){
-		if (Row && Row->Tag == EffectTag){
-			return Row->DisplayName;
-		}
-	}
-	
-	return FText::GetEmpty();
 }
