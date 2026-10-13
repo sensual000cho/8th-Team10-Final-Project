@@ -59,7 +59,7 @@ void ACPQuestNPC::StartDialogue(AActor* Interactor)
 	// 표시할 Text 선택
 
 	TArray<FCPDialogueLine> DialogueLines = FindDialogueLines(Interactor);
-	if (CurrentQuestId.IsNone())
+	if (DialogueLines.IsEmpty())
 	{
 		if (LocationComp)
 		{
@@ -357,7 +357,8 @@ TArray<FCPDialogueLine> ACPQuestNPC::FindDialogueLines(AActor* Interactor)
 {
 	CurrentQuestId = NAME_None;
 	PendingResultQuestId = NAME_None;
-	if (!IsValid(Interactor) || !QuestData || QuestData->QuestIDs.IsEmpty()) return {};
+	if (!IsValid(Interactor) || !QuestData ) return {};
+	if (QuestData->QuestIDs.IsEmpty()) return QuestData->CompletedDialogueLines;
 
 	UGameInstance* GameInstance = GetGameInstance();
 	UQuestManager* QuestManager = GameInstance ? GameInstance->GetSubsystem<UQuestManager>() : nullptr;
@@ -421,6 +422,20 @@ TArray<FCPDialogueLine> ACPQuestNPC::FindDialogueLines(AActor* Interactor)
 		CurrentQuestId = QuestID;
 		return { HintLine };
 	}
+	
+	bool bHasValidQuest = false;
+	
+	for (const FName& QuestID : QuestData->QuestIDs){
+		if (QuestID.IsNone()) continue;
+		
+		bHasValidQuest = true;
+		if (QuestManager->GetQuestState(QuestID) != EQuestState::Completed) return {};
+	}
+	
+	if (bHasValidQuest){
+		return QuestData->CompletedDialogueLines;
+	}
+	
 	return {};
 }
 

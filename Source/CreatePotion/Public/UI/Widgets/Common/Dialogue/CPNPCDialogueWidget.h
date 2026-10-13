@@ -36,7 +36,6 @@ protected:
     virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 
     virtual void NativeOnFocusLost(const FFocusEvent& InFocusEvent) override;
-
 private:
     UFUNCTION()
     void OnChoiceSelected(const FString& ButtonText);

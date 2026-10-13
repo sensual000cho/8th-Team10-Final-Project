@@ -48,7 +48,7 @@ void UCPNPCCodexWidget::RefreshCompletedQuestButtons()
 	if (!QuestManager) return;
 	
 	TArray<FName> QuestIDs;
-	QuestIDs.Append(QuestNPCData->TownQuestIDs);
+	QuestIDs.Append(QuestNPCData->QuestIDs);
 	
 	for (const FName& QuestID : QuestIDs){
 		if (QuestID.IsNone() || QuestManager->GetQuestState(QuestID) != EQuestState::Completed) continue;

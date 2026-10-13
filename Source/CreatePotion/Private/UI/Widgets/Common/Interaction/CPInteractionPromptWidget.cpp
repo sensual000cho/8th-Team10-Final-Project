@@ -69,7 +69,11 @@ void UCPInteractionPromptWidget::UpdateUI(const FText& Prompt, const FName& Targ
 {
 	if (IsValid(TextBlock_ActorName))
 	{
-		TextBlock_ActorName->SetText(FText::FromName(TargetName));
+		if (TargetName.IsNone()){
+			TextBlock_ActorName->SetText(FText::GetEmpty());	
+		}else{
+			TextBlock_ActorName->SetText(FText::FromName(TargetName));	
+		}
 	}
 	
 	if (IsValid(TextBlock_InteractionPrompt))

@@ -34,7 +34,7 @@ void UCPNPCQuestButtonWidget::SetQuest(FName InQuestID, const FText& InQuestTitl
 void UCPNPCQuestButtonWidget::ApplyFocusState(FName FocusedQuestID)
 {
 	if (QuestID == FocusedQuestID){
-		Txt_QuestTitle->SetColorAndOpacity(FLinearColor::Yellow);
+		Txt_QuestTitle->SetColorAndOpacity(FLinearColor::FromSRGBColor(FColor(240, 69, 19, 255)));
 	}else{
 		Txt_QuestTitle->SetColorAndOpacity(FLinearColor::Black);
 	}
