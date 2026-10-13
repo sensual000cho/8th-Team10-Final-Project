@@ -14,7 +14,6 @@
 #include "EnhancedInputSubsystems.h"	// IMC 바인딩
 #include "EnhancedInputComponent.h"		// IA 바인딩
 #include "Components/CPInteractableComponent.h"
-#include "TraceServices/Model/TimingProfiler.h"
 
 // 에디터에서 콘솔창에 cp.Debug.Interaction를 입력해서 Debug On/Off 가능
 // cp.Debug.Interaction 1 --> Debug On
