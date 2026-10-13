@@ -357,7 +357,8 @@ TArray<FCPDialogueLine> ACPQuestNPC::FindDialogueLines(AActor* Interactor)
 {
 	CurrentQuestId = NAME_None;
 	PendingResultQuestId = NAME_None;
-	if (!IsValid(Interactor) || !QuestData || QuestData->QuestIDs.IsEmpty()) return {};
+	if (!IsValid(Interactor) || !QuestData ) return {};
+	if (QuestData->QuestIDs.IsEmpty()) return QuestData->CompletedDialogueLines;
 
 	UGameInstance* GameInstance = GetGameInstance();
 	UQuestManager* QuestManager = GameInstance ? GameInstance->GetSubsystem<UQuestManager>() : nullptr;
