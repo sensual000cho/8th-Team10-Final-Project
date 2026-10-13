@@ -13,7 +13,6 @@ void UCPLabResultWidget::ResetResultView()
 {
 	Text_ResultTitle->SetText(FText::GetEmpty());
 	Text_Grade->SetText(FText::GetEmpty());
-	Text_BaseReward->SetText(FText::GetEmpty());
 	Text_FinalReward->SetText(FText::GetEmpty());
 
 	VBox_Tips->ClearChildren();
@@ -27,7 +26,6 @@ void UCPLabResultWidget::SetHeaderText(const FText& InResultTitle, const FText& 
 
 void UCPLabResultWidget::SetRewardText(const FText& InBaseRewardText, const FText& InFinalRewardText)
 {
-	Text_BaseReward->SetText(InBaseRewardText);
 	Text_FinalReward->SetText(InFinalRewardText);
 }
 

@@ -6,6 +6,7 @@
 #include "UI/Widgets/Common/Interaction/CPInteractionPromptWidget.h"
 #include "CPCauldronWidget.generated.h"
 
+class UCPCauldronEffectRowWidget;
 class UVerticalBox;
 struct FGameplayTag;
 class UCPCauldronComponent;
@@ -29,10 +30,10 @@ private:
 	UFUNCTION()
 	void RefreshEffectTags();
 	
-	// Tag Definition에 저장된 DisplayName으로 반환
-	FText GetEffectDisplayName(const FGameplayTag& EffectTag) const;
-	
 protected:	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="UI")
+	TSubclassOf<UCPCauldronEffectRowWidget> EffectRowWidgetClass;
+	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Txt_CurrentEffects;
 	
