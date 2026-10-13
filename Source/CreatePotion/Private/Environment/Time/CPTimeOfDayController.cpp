@@ -64,7 +64,7 @@ void ACPTimeOfDayController::BeginPlay()
 		VisualUpdateTimerHandle,
 		this,
 		&ACPTimeOfDayController::UpdateVisualTime,
-		0.1f,
+		0.01f,
 		true);
 	
 	if (EnvironmentNiagaraParameter)
@@ -150,8 +150,8 @@ void ACPTimeOfDayController::UpdateVisualTime()
 	VisualGameMinutes = FMath::FInterpTo(
 		VisualGameMinutes,
 		TargetGameMinutes,
-		0.1f,
-		1.f);
+		0.01f,
+		0.1f);
 	
 	UpdateSunRotation(VisualGameMinutes);
 }
