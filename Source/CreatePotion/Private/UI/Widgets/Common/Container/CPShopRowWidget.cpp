@@ -22,7 +22,7 @@ void UCPShopRowWidget::UpdateRow(const FContainerItem& ItemData)
 	{
 		if (UTexture2D* LoadedTexture = Data->Icon.LoadSynchronous())
 		{
-			ItemIcon->SetBrushFromTexture(LoadedTexture);
+			ItemIcon->SetBrushFromTexture(LoadedTexture, true);
 		}
 	}
 
