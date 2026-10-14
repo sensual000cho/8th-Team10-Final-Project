@@ -14,24 +14,21 @@ void UCPLabResultWidget::ResetResultView()
 	Text_ResultTitle->SetText(FText::GetEmpty());
 	Text_Grade->SetText(FText::GetEmpty());
 	Text_FinalReward->SetText(FText::GetEmpty());
-
-	VBox_Tips->ClearChildren();
 }
 
 void UCPLabResultWidget::SetHeaderText(const FText& InResultTitle, const FText& InGradeText)
 {
 	Text_ResultTitle->SetText(InResultTitle);
 	Text_Grade->SetText(InGradeText);
+	
+	const FLinearColor GradeColor = InGradeText.EqualTo(FText::FromString(TEXT("성공"))) ? 
+		FLinearColor::FromSRGBColor(FColor::FromHex(TEXT("4F6B3AFF"))) : FLinearColor::FromSRGBColor(FColor::FromHex(TEXT("963F32FF")));
+	Text_Grade->SetColorAndOpacity(GradeColor);
 }
 
 void UCPLabResultWidget::SetRewardText(const FText& InBaseRewardText, const FText& InFinalRewardText)
 {
 	Text_FinalReward->SetText(InFinalRewardText);
-}
-
-void UCPLabResultWidget::AddTipRow(const FText& InReasonText, const FText& InAmountText)
-{
-	AddLabelValueRow(VBox_Tips, InReasonText, InAmountText);
 }
 
 bool UCPLabResultWidget::InitializeResult(FName QuestId)

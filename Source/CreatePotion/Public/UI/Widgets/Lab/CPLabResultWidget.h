@@ -36,10 +36,6 @@ public:
 	// 외부에서 계산이 끝난 기본 보상과 최종 보상 문구를 표시한다.
 	UFUNCTION(BlueprintCallable, Category = "Lab|Result")
 	void SetRewardText(const FText& InBaseRewardText, const FText& InFinalRewardText);
-
-	// 보상 상세 목록에 가산 또는 차감 사유와 금액으로 구성된 행 하나를 추가한다.
-	UFUNCTION(BlueprintCallable, Category = "Lab|Result")
-	void AddTipRow(const FText& InReasonText, const FText& InAmountText);
 	
 	//UI 내용 채우는 함수
 	bool InitializeResult(FName QuestId);
@@ -55,10 +51,6 @@ protected:
 	// 팝업 상단에 성공, 부분 성공, 실패 같은 최종 결과 등급을 표시한다.
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_Grade;
-
-	// 보상 가산 또는 차감 사유와 금액 행들을 담는 세로 목록이다.
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UVerticalBox> VBox_Tips;
 
 	// 효능 행과 보상 사유 행을 생성할 때 사용하는 공용 2열 Row WBP 클래스다.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lab|Result|Rows")
