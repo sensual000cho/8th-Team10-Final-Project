@@ -288,7 +288,7 @@ void UCPShopPurchasePopupWidget::RefreshDisplay()
 	{
 		if (UTexture2D* LoadedTexture = Data->Icon.LoadSynchronous())
 		{
-			ItemIcon->SetBrushFromTexture(LoadedTexture);
+			ItemIcon->SetBrushFromTexture(LoadedTexture, true);
 		}
 	}
 
