@@ -27,6 +27,7 @@ void UCPCodexItemSlotWidget::UnbindEvents()
 void UCPCodexItemSlotWidget::SetItemData(UCPForageableItemData* NewItemData)
 {
 	ItemData = NewItemData;
+	Image_Item->SetVisibility(ESlateVisibility::Visible);
 	RefreshImage();
 }
 
