@@ -464,14 +464,20 @@ void UCPInteractionComponent::SetActorHighlight(AActor* Target, bool bHighlighte
 	for (UMeshComponent* Mesh : Meshes)
 	{
 		if (!Mesh 
-			|| !Mesh->IsA<USceneComponent>()
-			|| Mesh->ComponentHasTag(NoHighlightTag))
+			|| Mesh->IsA<UWidgetComponent>()
+			|| Mesh->ComponentHasTag(NoHighlightTag)
+			)
 		{
 			continue;
 		}
 		
-		Mesh->SetOverlayMaterial(Overlay);
-	}
+		// Stencil 값
+		static constexpr int32 HighlightStencilValue = 1;
+		
+		Mesh->SetRenderCustomDepth(bHighlighted);
+		Mesh->SetCustomDepthStencilValue(bHighlighted ? HighlightStencilValue : 0);
+	}	
+	
 }
 
 UMeshComponent* UCPInteractionComponent::FindTopMesh(AActor* Target)
