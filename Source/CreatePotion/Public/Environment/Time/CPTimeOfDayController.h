@@ -91,6 +91,10 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Time Of Day")
 	TObjectPtr<UNiagaraParameterCollection> EnvironmentNiagaraParameter;
 	
+	// 밤하늘 강도 조절용
+	UPROPERTY()
+	TObjectPtr<UMaterialInstanceDynamic> Material;
+	
 	UPROPERTY(Transient)
 	TObjectPtr<UNiagaraParameterCollectionInstance> EnvironmentNiagaraInstance;
 	
