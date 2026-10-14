@@ -40,6 +40,11 @@ void UCPShopPurchasePopupWidget::NativeConstruct()
 			ButtonSlot->SetPadding(FMargin(0.f));
 		}
 	}
+
+	if (QuantitySlider)
+	{
+		QuantitySlider->SetStepSize(1.f);
+	}
 }
 
 FReply UCPShopPurchasePopupWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
@@ -255,6 +260,12 @@ void UCPShopPurchasePopupWidget::PlaceNearCursor()
 void UCPShopPurchasePopupWidget::OnQuantityChanged(float NewValue)
 {
 	CurrentQuantity = FMath::RoundToInt(NewValue);
+
+	if (QuantitySlider && !FMath::IsNearlyEqual(NewValue, static_cast<float>(CurrentQuantity)))
+	{
+		QuantitySlider->SetValue(static_cast<float>(CurrentQuantity));
+	}
+
 	RefreshDisplay();
 }
 
@@ -277,7 +288,7 @@ void UCPShopPurchasePopupWidget::RefreshDisplay()
 	{
 		if (UTexture2D* LoadedTexture = Data->Icon.LoadSynchronous())
 		{
-			ItemIcon->SetBrushFromTexture(LoadedTexture);
+			ItemIcon->SetBrushFromTexture(LoadedTexture, true);
 		}
 	}
 

@@ -66,7 +66,7 @@ void UCPItemDetailPopupWidget::ShowDetail(const FCPItemInstance& Instance)
 	{
 		if (UTexture2D* LoadedTexture = Instance.SourceItemData->Icon.LoadSynchronous())
 		{
-			ItemIcon->SetBrushFromTexture(LoadedTexture);
+			ItemIcon->SetBrushFromTexture(LoadedTexture, true);
 		}
 	}
 
