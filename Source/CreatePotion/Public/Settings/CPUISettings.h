@@ -76,4 +76,8 @@ public:
 	
 	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Container")
 	TSoftClassPtr<UUserWidget> LabSelectItemWidgetClass;
+	
+	// KeyGuide
+	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "KeyGuide")
+	TSoftClassPtr<UUserWidget> ThrowKeyGuideWidgetClass;
 };

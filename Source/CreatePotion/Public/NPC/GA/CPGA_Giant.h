@@ -14,4 +14,7 @@ public:
 
 protected:
 	virtual void ApplyVisual(ACPBaseNPC* NPC, bool bActive, float InMagnitude) override;
+
+	UPROPERTY(EditDefaultsOnly)
+	FGameplayTag GiantCueTag;
 };

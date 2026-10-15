@@ -21,6 +21,10 @@ class CREATEPOTION_API UCPLabResultWidget : public UCPBasePopupWidget
 	GENERATED_BODY()
 
 public:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<class USoundBase> CompletionSound;
+
+
 	// 리셋 함수
 	UFUNCTION(BlueprintCallable, Category = "Lab|Result")
 	void ResetResultView();
@@ -32,10 +36,6 @@ public:
 	// 외부에서 계산이 끝난 기본 보상과 최종 보상 문구를 표시한다.
 	UFUNCTION(BlueprintCallable, Category = "Lab|Result")
 	void SetRewardText(const FText& InBaseRewardText, const FText& InFinalRewardText);
-
-	// 보상 상세 목록에 가산 또는 차감 사유와 금액으로 구성된 행 하나를 추가한다.
-	UFUNCTION(BlueprintCallable, Category = "Lab|Result")
-	void AddTipRow(const FText& InReasonText, const FText& InAmountText);
 	
 	//UI 내용 채우는 함수
 	bool InitializeResult(FName QuestId);
@@ -44,7 +44,7 @@ protected:
 	// WBP가 제거될 때 버튼 이벤트 연결을 해제해 중복 호출과 남은 참조를 방지한다.
 	virtual void UnbindEvents() override;
 
-	// 팝업 상단에 "포션 제조 결과"
+	// 팝업 상단에 "퀘스트 결과"
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_ResultTitle;
 
@@ -52,17 +52,9 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_Grade;
 
-	// 보상 가산 또는 차감 사유와 금액 행들을 담는 세로 목록이다.
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UVerticalBox> VBox_Tips;
-
 	// 효능 행과 보상 사유 행을 생성할 때 사용하는 공용 2열 Row WBP 클래스다.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lab|Result|Rows")
 	TSubclassOf<UCPLabResultLabelValueRowWidget> LabelValueRowWidgetClass;
-
-	// 계산된 기본 보상 값을 표시한다. 이 위젯에서는 보상을 계산하지 않는다.
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> Text_BaseReward;
 
 	// 가산과 차감이 모두 반영된 최종 보상 값을 표시한다.
 	UPROPERTY(meta = (BindWidget))

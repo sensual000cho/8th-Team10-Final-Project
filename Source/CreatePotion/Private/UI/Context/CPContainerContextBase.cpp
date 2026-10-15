@@ -1,6 +1,8 @@
 ﻿// CPContainerContextBase.h
 
 #include "UI/Context/CPContainerContextBase.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 #include "Character/CPPlayerController.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
@@ -53,17 +55,24 @@ bool UCPContainerContextBase::HandleLeftClickOnly(UCPGridSlotWidgetBase* Clicked
             const UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(PC->GetPawn());
             if (ASC && ASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(TEXT("State.Effect.Slime")))) return true;
 
-            FContainerItem HeldItem = PC->LeftClickPickedContainer->ContainerItems[0];
+            FContainerItem& HeldItem = PC->LeftClickPickedContainer->ContainerItems[0];
 
-            if (HeldItem.Instance.SourceItemData)
+            if (HeldItem.Instance.IsValid())
             {
-                for (int32 i = 0; i < HeldItem.Stacked; ++i)
-                {
-                    SpawnDroppedProp(HeldItem.Instance.SourceItemData, 1, PC->GetPawn(), HeldItem.Instance.CurrentEffects);
-                }
+                SpawnDroppedProp(HeldItem.Instance.SourceItemData, 1, PC->GetPawn(), HeldItem.Instance.CurrentEffects);
+                HeldItem.Stacked -= 1;
             }
 
-            PC->ResetHoldingItem();
+            // 버린 이후에 개수가 0이면 
+            if (HeldItem.Stacked <= 0)
+            {
+                PC->ResetHoldingItem();
+            }
+            else // 0이 아니면
+            {
+                PC->LeftClickPickedContainer->OnContainerUpdated.Broadcast(); // 남은 수량으로 손 아이콘 갱신
+            }
+
             return true;
         }
 
@@ -222,6 +231,7 @@ void UCPContainerContextBase::SpawnDroppedProp(UCPForageableItemData* ItemData, 
     // InitializeFromItemData의 인자에 EffectTags를 추가로 전달하도록 리팩토링 해야함
     // 
     // Prop에 Count 개수가 반영되면 추후 일괄 버리기 기능으로 Count 개수가 합쳐진 1개의 Prop만 드롭되도록 
+    bool bPlayedDropSound = false;
     for (int32 i = 0; i < Count; ++i)
     {
         FVector SpawnLoc = BaseLocation + FVector(FMath::RandRange(-50.f, 50.f), FMath::RandRange(-50.f, 50.f), 10.f);
@@ -229,6 +239,12 @@ void UCPContainerContextBase::SpawnDroppedProp(UCPForageableItemData* ItemData, 
         if (ACPThrowablePropBase* SpawnedProp = World->SpawnActor<ACPThrowablePropBase>(PropClass, SpawnLoc, FRotator::ZeroRotator))
         {
             SpawnedProp->InitializeFromItemData(ItemData, EffectTags);
+            if (!bPlayedDropSound)
+            {
+                const UCPInventoryComponent* Inventory = NearActor->FindComponentByClass<UCPInventoryComponent>();
+                if (Inventory && Inventory->ItemDropSound) UGameplayStatics::PlaySoundAtLocation(NearActor, Inventory->ItemDropSound, SpawnLoc);
+                bPlayedDropSound = true;
+            }
 
             // TODO[Container] : 아이템을 버렸을 때 자동 수거 기능을 활성화 할 지 여부 미정
             // if (UDropItemWorldSubsystem* DropSubsystem = World->GetSubsystem<UDropItemWorldSubsystem>())

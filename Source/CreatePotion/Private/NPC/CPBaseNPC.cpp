@@ -66,7 +66,12 @@ void ACPBaseNPC::SetHighlight_Implementation(bool bHighlighted)
 						if (FObjectProperty* ObjProp = CastField<FObjectProperty>(Prop))
 						{
 							UMaterialInterface* HighlightMat = Cast<UMaterialInterface>(ObjProp->GetObjectPropertyValue_InContainer(InteractionComp));
-							MainMesh->SetOverlayMaterial(HighlightMat);
+							
+							// Stencil 값
+							static constexpr int32 HighlightStencilValue = 1;
+							
+							MainMesh->SetRenderCustomDepth(bHighlighted);
+							MainMesh->SetCustomDepthStencilValue(bHighlighted ? HighlightStencilValue : 0);
 							return;
 						}
 					}
@@ -74,8 +79,9 @@ void ACPBaseNPC::SetHighlight_Implementation(bool bHighlighted)
 			}
 		}
 	}
-
-	MainMesh->SetOverlayMaterial(nullptr);
+	// MainMesh->SetOverlayMaterial(nullptr);
+	MainMesh->SetRenderCustomDepth(false);
+	MainMesh->SetCustomDepthStencilValue(0);
 }
 
 void ACPBaseNPC::PostInitializeComponents()
@@ -125,6 +131,10 @@ void ACPBaseNPC::BeginPlay()
 
 void ACPBaseNPC::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if (IsValid(AbilitySystemComponent)){
+		AbilitySystemComponent->CancelAllAbilities();
+	}
+	
 	if (UCPNPCSubsystem* Subsystem = GetNPCSubsystem())
 	{
 		Subsystem->UnregisterActiveNPC(GetPotionNPCId(), this);
@@ -261,6 +271,7 @@ void ACPBaseNPC::CatchUpPersistentPotionEffects()
 	FCPNPCEffectSaveData SaveData;
 	if (Subsystem->GetNPCEffectData(NPCId, SaveData))
 	{
+		bRestoringPersistentPotionEffects = true;
 		for (const auto& EffectPair : SaveData.ActiveEffects)
 		{
 			if (AbilitySystemComponent)
@@ -269,6 +280,8 @@ void ACPBaseNPC::CatchUpPersistentPotionEffects()
 			}
 			ApplyPotionEffectVisual(EffectPair.Key, true, EffectPair.Value.Magnitude);
 		}
+		
+		bRestoringPersistentPotionEffects = false;
 	}
 }
 

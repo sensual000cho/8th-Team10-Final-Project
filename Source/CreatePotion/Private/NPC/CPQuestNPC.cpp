@@ -57,8 +57,9 @@ void ACPQuestNPC::StartDialogue(AActor* Interactor)
 	}
 
 	// 표시할 Text 선택
-	TArray<FText> DialogueLines = FindDialogueLines(Interactor);
-	if (CurrentQuestId.IsNone())
+
+	TArray<FCPDialogueLine> DialogueLines = FindDialogueLines(Interactor);
+	if (DialogueLines.IsEmpty())
 	{
 		if (LocationComp)
 		{
@@ -194,7 +195,7 @@ void ACPQuestNPC::ShowResultDialogue()
 	ActiveDialogueWidget->OnClosed.RemoveAll(this);
 	ActiveDialogueWidget->OnClosed.AddUObject(this, &ACPQuestNPC::OnDialogueClosed);
 
-	TArray<FText> ReactionTexts;
+	TArray<FCPDialogueLine> ReactionTexts;
 	const TArray<FConditionEvaluation> Evaluations = QuestManager->EvaluateConditions(DeliveryResult.QuestId, DeliveryResult.CurrentEffects);
 
 	for (const FConditionEvaluation& Eval : Evaluations) {
@@ -203,7 +204,9 @@ void ACPQuestNPC::ShowResultDialogue()
 
 		FText Reaction = QuestManager->GetReactionText(DeliveryResult.QuestId, Eval);
 		if (!Reaction.IsEmpty()) {
-			ReactionTexts.Add(Reaction);
+			FCPDialogueLine Line;
+			Line.Text = Reaction;
+			ReactionTexts.Add(Line);
 		}
 	}
 
@@ -215,6 +218,14 @@ void ACPQuestNPC::UpdateOverheadWidgetsScale(float ScaleMultiplier)
 	Super::UpdateOverheadWidgetsScale(ScaleMultiplier);
 	if (QuestMarkerWidget) {
 		QuestMarkerWidget->SetRelativeLocation(InitialQuestMarkerLocation * ScaleMultiplier);
+	}
+}
+
+void ACPQuestNPC::SetQuestMarkerVisibility(bool bVisible)
+{
+	if (QuestMarkerWidget)
+	{
+		QuestMarkerWidget->SetVisibility(bVisible);
 	}
 }
 
@@ -337,11 +348,17 @@ void ACPQuestNPC::HandleQuestUpdatedForMarker(FName QuestID, EQuestState NewStat
 	}
 }
 
-TArray<FText> ACPQuestNPC::FindDialogueLines(AActor* Interactor)
+void ACPQuestNPC::HandleInventoryUpdatedForMarker()
+{
+	UpdateQuestMarker();
+}
+
+TArray<FCPDialogueLine> ACPQuestNPC::FindDialogueLines(AActor* Interactor)
 {
 	CurrentQuestId = NAME_None;
 	PendingResultQuestId = NAME_None;
-	if (!IsValid(Interactor) || !QuestData || QuestData->QuestIDs.IsEmpty()) return {};
+	if (!IsValid(Interactor) || !QuestData ) return {};
+	if (QuestData->QuestIDs.IsEmpty()) return QuestData->CompletedDialogueLines;
 
 	UGameInstance* GameInstance = GetGameInstance();
 	UQuestManager* QuestManager = GameInstance ? GameInstance->GetSubsystem<UQuestManager>() : nullptr;
@@ -364,7 +381,8 @@ TArray<FText> ACPQuestNPC::FindDialogueLines(AActor* Interactor)
 		const EQuestCompletionType CompletionType = QuestManager->GetQuestCompletionType(QuestID);
 		// 대화형 퀘스트
 		if (CompletionType == EQuestCompletionType::Dialogue) {
-			TArray<FText> DialogueLines = QuestManager->GetNPCStoryLines(QuestID);
+			TArray<FCPDialogueLine> DialogueLines = QuestManager->GetNPCStoryLines(QuestID);
+
 			if (DialogueLines.IsEmpty() || !QuestManager->CompleteQuestByDialogue(QuestID)) return {};
 
 			CurrentQuestId = QuestID;
@@ -379,24 +397,45 @@ TArray<FText> ACPQuestNPC::FindDialogueLines(AActor* Interactor)
 
 			const TMap<FName, int32> HeldItems = Inventory->GetItemCountsByID();
 			if (QuestManager->TryCompleteQuestByItem(QuestID, HeldItems)) {
-				TArray<FName> RequiredItemIDs;
-				int32 RequiredItemCount = 0;
+				if (QuestManager->ShouldConsumeRequiredItems(QuestID))
+				{
+					TArray<FName> RequiredItemIDs;
+					int32 RequiredItemCount = 0;
 
-				QuestManager->GetRequiredItemInfo(QuestID, RequiredItemIDs, RequiredItemCount);
-				for (const FName& RequiredItemID : RequiredItemIDs) {
-					Inventory->RemoveItemByID(RequiredItemID, RequiredItemCount);
+					QuestManager->GetRequiredItemInfo(QuestID, RequiredItemIDs, RequiredItemCount);
+					for (const FName& RequiredItemID : RequiredItemIDs) {
+						Inventory->RemoveItemByID(RequiredItemID, RequiredItemCount);
+					}
 				}
 				CurrentQuestId = QuestID;
 				return QuestManager->GetNPCStoryLines(QuestID);
 			}
 
+			FCPDialogueLine HintLine;
+			HintLine.Text = QuestManager->GetSessionHintText(QuestID);
 			CurrentQuestId = QuestID;
-			return { QuestManager->GetSessionHintText(QuestID) };
+			return { HintLine };
 		}
 
+		FCPDialogueLine HintLine;
+		HintLine.Text = QuestManager->GetSessionHintText(QuestID);
 		CurrentQuestId = QuestID;
-		return { QuestManager->GetSessionHintText(QuestID) };
+		return { HintLine };
 	}
+	
+	bool bHasValidQuest = false;
+	
+	for (const FName& QuestID : QuestData->QuestIDs){
+		if (QuestID.IsNone()) continue;
+		
+		bHasValidQuest = true;
+		if (QuestManager->GetQuestState(QuestID) != EQuestState::Completed) return {};
+	}
+	
+	if (bHasValidQuest){
+		return QuestData->CompletedDialogueLines;
+	}
+	
 	return {};
 }
 
@@ -412,6 +451,7 @@ void ACPQuestNPC::UpdateQuestMarker()
 		if (UCPInventoryComponent* Inventory = PlayerPawn->FindComponentByClass<UCPInventoryComponent>())
 		{
 			HeldItemCounts = Inventory->GetItemCountsByID();
+			Inventory->OnContainerUpdated.AddUniqueDynamic(this, &ACPQuestNPC::HandleInventoryUpdatedForMarker);
 		}
 	}
 

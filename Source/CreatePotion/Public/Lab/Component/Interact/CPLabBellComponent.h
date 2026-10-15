@@ -14,11 +14,22 @@ class CREATEPOTION_API UCPLabBellComponent : public UCPInteractableComponent
 	GENERATED_BODY()
 	
 public:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<class USoundBase> BellSound;
+
+
 	UCPLabBellComponent();
 	
+	// Life Cycle
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	
 	// Interact
+	virtual void BeginFocus(AActor* Interactor) override;
 	virtual bool TryInteract(AActor* Interactor) override;
-	virtual bool CanInteract() const override;
+	
+private:
+	void HandlePotionRequestStateChanged(bool bActiveRequest);
 	
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "UI")

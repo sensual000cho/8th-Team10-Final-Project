@@ -1,4 +1,6 @@
 #include "UI/Widgets/Lab/CPLabResultWidget.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 
 #include "Components/CPInventoryComponent.h"
 #include "Components/TextBlock.h"
@@ -11,27 +13,22 @@ void UCPLabResultWidget::ResetResultView()
 {
 	Text_ResultTitle->SetText(FText::GetEmpty());
 	Text_Grade->SetText(FText::GetEmpty());
-	Text_BaseReward->SetText(FText::GetEmpty());
 	Text_FinalReward->SetText(FText::GetEmpty());
-
-	VBox_Tips->ClearChildren();
 }
 
 void UCPLabResultWidget::SetHeaderText(const FText& InResultTitle, const FText& InGradeText)
 {
 	Text_ResultTitle->SetText(InResultTitle);
 	Text_Grade->SetText(InGradeText);
+	
+	const FLinearColor GradeColor = InGradeText.EqualTo(FText::FromString(TEXT("성공"))) ? 
+		FLinearColor::FromSRGBColor(FColor::FromHex(TEXT("4F6B3AFF"))) : FLinearColor::FromSRGBColor(FColor::FromHex(TEXT("963F32FF")));
+	Text_Grade->SetColorAndOpacity(GradeColor);
 }
 
 void UCPLabResultWidget::SetRewardText(const FText& InBaseRewardText, const FText& InFinalRewardText)
 {
-	Text_BaseReward->SetText(InBaseRewardText);
 	Text_FinalReward->SetText(InFinalRewardText);
-}
-
-void UCPLabResultWidget::AddTipRow(const FText& InReasonText, const FText& InAmountText)
-{
-	AddLabelValueRow(VBox_Tips, InReasonText, InAmountText);
 }
 
 bool UCPLabResultWidget::InitializeResult(FName QuestId)
@@ -57,6 +54,10 @@ bool UCPLabResultWidget::InitializeResult(FName QuestId)
 		if (!Inventory || !Inventory->TryGetMoney(Result.RewardAmount)) return false;
 	}
 	
+	if (CompletionSound && Result.DeliveryGrade == EDeliveryGrade::Perfect)
+	{
+		UGameplayStatics::PlaySound2D(this, CompletionSound);
+	}
 	QuestManager->ClearResult();
 	
 	World->GetTimerManager().ClearTimer(AutoCloseTimerHandle);

@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
 #include "UI/Widgets/Base/CPBasePopupWidget.h"
+#include "UI/Widgets/Common/Container/CPInventoryMainWidget.h"
 
 UUserWidget* UCPUIManagerSubsystem::PushWidget(TSubclassOf<UUserWidget> WidgetClass)
 {
@@ -15,16 +16,23 @@ UUserWidget* UCPUIManagerSubsystem::PushWidget(TSubclassOf<UUserWidget> WidgetCl
 	
 	if (Widget)
 	{
-		Widget->AddToViewport(OpenWidgets.Num());
-		
+		int32 ZOrder = 0;
 		ECPInputMode InputMode = ECPInputMode::GameOnly;
+		
+		// 팝업위젯일 경우
 		if (auto* PopupWidget = Cast<UCPBasePopupWidget>(Widget))
 		{
+			ZOrder = PopupWidget->ZOrder;
 			InputMode = PopupWidget->GetInputMode();
-			UE_LOG(LogTemp, Warning, TEXT("[UIManager] PushWidgetBP InputMode 읽음: %d"), (int32)InputMode);
+			// UE_LOG(LogTemp, Warning, TEXT("[UIManager] PushWidgetBP InputMode 읽음: %d"), (int32)InputMode);
+			OpenWidgets.Add({Widget, InputMode});
 		}
 		
-		OpenWidgets.Add({Widget, InputMode});
+		Widget->AddToViewport(ZOrder);
+		if (const UCPBaseUserWidget* SoundWidget = Cast<UCPBaseUserWidget>(Widget); SoundWidget && SoundWidget->bPlayManagedOpenCloseSounds)
+		{
+			PlayWidgetSound(SoundWidget->OpenSound);
+		}
 		UpdateInputMode();
 	}
 	return Widget;
@@ -46,6 +54,10 @@ void UCPUIManagerSubsystem::CloseWidget(UUserWidget* Widget)
 	{
 		if (OpenWidgets[Index].Widget.IsValid())
 		{
+			if (const UCPBaseUserWidget* SoundWidget = Cast<UCPBaseUserWidget>(OpenWidgets[Index].Widget.Get()); SoundWidget && SoundWidget->bPlayManagedOpenCloseSounds)
+			{
+				PlayWidgetSound(SoundWidget->CloseSound);
+			}
 			OpenWidgets[Index].Widget->RemoveFromParent();
 		}
 		OpenWidgets.RemoveAt(Index);
@@ -56,7 +68,8 @@ void UCPUIManagerSubsystem::CloseWidget(UUserWidget* Widget)
 void UCPUIManagerSubsystem::CloseTopWidget()
 {
 	if (OpenWidgets.Num() == 0) return;
-	CloseWidget(OpenWidgets.Last().Widget.Get());
+	UUserWidget* Top = OpenWidgets.Last().Widget.Get();
+	if (!IsValid(Top)) return;
 }
 
 UUserWidget* UCPUIManagerSubsystem::ToggleWidget(TSubclassOf<UUserWidget> WidgetClass)
@@ -128,21 +141,39 @@ void UCPUIManagerSubsystem::PlayWidgetSound(USoundBase* Sound)
 
 void UCPUIManagerSubsystem::UpdateInputMode()
 {
+	
+	
 	APlayerController* PC = GetGameInstance()->GetFirstLocalPlayerController();
 	if (!PC) return;
 	
-	// 열린 위젯이 없으면 기본 게임모드로 복구
-	if (OpenWidgets.Num() == 0)
+	auto Priority = [](ECPInputMode Mode)
 	{
-		FInputModeGameOnly InputMode;
-		PC->SetInputMode(InputMode);
-		PC->bShowMouseCursor = false;
-		return;
+		switch (Mode)
+		{
+			case ECPInputMode::UIOnly:    return 2;
+			case ECPInputMode::GameAndUI: return 1;
+			default:					  return 0;
+		}
+	};
+	
+	ECPInputMode CurrentMode = ECPInputMode::GameOnly;
+	UUserWidget* TopWidget = nullptr;
+	
+	for (int32 i = OpenWidgets.Num() - 1; i>= 0; --i)
+	{
+		const FPopupEntry& Entry = OpenWidgets[i];
+		if (!Entry.Widget.IsValid()) continue;
+		
+		if (Priority(Entry.InputMode) > Priority(CurrentMode))
+		{
+			CurrentMode = Entry.InputMode;
+			TopWidget = Entry.Widget.Get();
+		}
 	}
 	
-	const FPopupEntry& TopEntry = OpenWidgets.Last();
-	UUserWidget* TopWidget = TopEntry.Widget.Get();
-	ECPInputMode CurrentMode = TopEntry.InputMode;
+	UE_LOG(LogTemp, Warning, TEXT("[UIManager] -> 적용 모드 = %s, 포커스 = %s"),
+		*UEnum::GetValueAsString(CurrentMode),
+		*GetNameSafe(TopWidget));
 	
 	switch (CurrentMode)
 	{
@@ -165,17 +196,32 @@ void UCPUIManagerSubsystem::UpdateInputMode()
 		{
 			FInputModeGameAndUI InputMode;
 			if (TopWidget) InputMode.SetWidgetToFocus(TopWidget->TakeWidget());
+			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 			InputMode.SetHideCursorDuringCapture(false);
 			PC->SetInputMode(InputMode);
 			PC->bShowMouseCursor = true;
 			break;
 		}
 	}
+	
 }
 
-void UCPUIManagerSubsystem::RegisterPushedWidget(UUserWidget* Widget)
+void UCPUIManagerSubsystem::RegisterCreatedWidget(UUserWidget* Widget)
 {
-	Widget->AddToViewport(OpenWidgets.Num());
+	if (!IsValid(Widget)) return;
+	
+	if (!Widget->IsInViewport())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[UIManager] %s가 뷰포트에 없는 상태로 등록됩니다."), *GetNameSafe(Widget));
+	}
+	
+	const bool bAlreadyOpen = OpenWidgets.ContainsByPredicate(
+		[Widget](const FPopupEntry& Entry){ return Entry.Widget == Widget;});
+	if (bAlreadyOpen)
+	{
+		UpdateInputMode();
+		return;
+	}
 			
 	ECPInputMode InputMode = ECPInputMode::GameAndUI; // 디폴트값
 	if (auto* PopupWidget = Cast<UCPBasePopupWidget>(Widget))
@@ -186,6 +232,43 @@ void UCPUIManagerSubsystem::RegisterPushedWidget(UUserWidget* Widget)
 	// 열린 위젯 배열에 추가
 	OpenWidgets.Add({Widget, InputMode});
 	UpdateInputMode();
+}
+
+void UCPUIManagerSubsystem::UnregisterCreatedWidget(UUserWidget* Widget)
+{
+	if (!IsValid(Widget)) return;
+	
+	const int32 Removed = OpenWidgets.RemoveAll(
+		[Widget](const FPopupEntry& Entry){ return Entry.Widget == Widget; });
+	
+	if (Removed > 0)
+	{
+		UpdateInputMode();
+	}
+}
+
+bool UCPUIManagerSubsystem::HandleEscape()
+{
+	// null 위젯 처리
+	OpenWidgets.RemoveAll([](const FPopupEntry& Entry)
+	{
+		return !Entry.Widget.IsValid();	
+	});
+	
+	
+	// 열려있는 위젯이 없으면 ESC로 메뉴 열기
+	if (OpenWidgets.IsEmpty())
+	{
+		return false;
+	}
+	
+	// 열려있는 위젯이 있으면 최상위 위젯부터 닫기
+	if (UCPBaseUserWidget* Top = Cast<UCPBaseUserWidget>(OpenWidgets.Last().Widget.Get()))
+	{
+		Top->HandleEscape();
+	}
+	
+	return true;
 }
 
 

@@ -2,6 +2,8 @@
 
 
 #include "Character/Enemy/CPEnemyCharacter.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 
 #include "AIController.h"
 #include "AbilitySystemComponent.h"
@@ -216,11 +218,15 @@ void ACPEnemyCharacter::StartDeathPhysics(const FVector& DeathVelocity, const FV
     USkeletalMeshComponent* MeshComponent = GetMesh();
     const FQuat DeathSphereRotation = MeshComponent->GetComponentQuat() * InitialMeshRelativeRotation.Quaternion().Inverse();
 
-    DeathPhysicsSphere->SetWorldLocation(MeshComponent->Bounds.Origin, false, nullptr, ETeleportType::TeleportPhysics);
+    // 회전한 Mesh 대신 충돌이 보장된 Capsule 중심에서 물리를 시작한다.
+    DeathPhysicsSphere->SetWorldLocation(CharacterCapsule->GetComponentLocation(), false, nullptr, ETeleportType::TeleportPhysics);
     DeathPhysicsSphere->SetWorldRotation(DeathSphereRotation, false, nullptr, ETeleportType::TeleportPhysics);
     DeathPhysicsSphere->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
     MeshComponent->AttachToComponent(DeathPhysicsSphere, FAttachmentTransformRules::KeepWorldTransform);
     MeshComponent->SetRelativeRotation(InitialMeshRelativeRotation, false, nullptr, ETeleportType::TeleportPhysics);
+    // 메시 외형 중심을 구체 중심에 맞춰 치우친 회전을 방지한다.
+    const FVector MeshCenter = MeshComponent->CalcBounds(MeshComponent->GetComponentTransform()).Origin;
+    MeshComponent->AddWorldOffset(DeathPhysicsSphere->GetComponentLocation() - MeshCenter, false, nullptr, ETeleportType::TeleportPhysics);
     MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
     CharacterCapsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -228,6 +234,7 @@ void ACPEnemyCharacter::StartDeathPhysics(const FVector& DeathVelocity, const FV
     DeathPhysicsSphere->SetEnableGravity(true);
     DeathPhysicsSphere->SetLinearDamping(1.5f);
     DeathPhysicsSphere->SetAngularDamping(3.0f);
+    DeathPhysicsSphere->SetUseCCD(true); // 빠른 낙하 중 지면 관통 방지
     DeathPhysicsSphere->SetSimulatePhysics(true);
     DeathPhysicsSphere->SetPhysicsLinearVelocity(DeathVelocity);
 
@@ -371,7 +378,7 @@ void ACPEnemyCharacter::ApplyAttackHit()
     // 공격을 시작한 뒤 도망갔거나 벽(나무 등)에 가려졌는지 다시 검사
     if (!IsTargetInAttackReach(Target))
     {
-        // UE_LOG(LogTemp, Log, TEXT("[EnemyAttack] 공격 빗나감: %s"), *GetName());
+        if (AttackMissSound) UGameplayStatics::PlaySoundAtLocation(this, AttackMissSound, GetActorLocation());
         return;
     }
 
@@ -382,6 +389,7 @@ void ACPEnemyCharacter::ApplyAttackHit()
     // 타격 순간 뒤쪽으로 피한 대상에게는 피해를 주지 않음
     if (!DirectionToTarget.IsNearlyZero() && Dot < CosThreshold)
     {
+        if (AttackMissSound) UGameplayStatics::PlaySoundAtLocation(this, AttackMissSound, GetActorLocation());
         return;
     }
 
@@ -389,6 +397,10 @@ void ACPEnemyCharacter::ApplyAttackHit()
 
     if (IsValid(TargetHealthComponent))
     {
+        if (AttackHitSound && FMath::IsFinite(AttackDamage) && AttackDamage > 0.f && !TargetHealthComponent->IsDead())
+        {
+            UGameplayStatics::PlaySoundAtLocation(this, AttackHitSound, Target->GetActorLocation());
+        }
         // 피해 처리 중 이벤트가 발생할 수 있으므로 마지막에 호출
         TargetHealthComponent->ApplyDamage(AttackDamage, this);
     }

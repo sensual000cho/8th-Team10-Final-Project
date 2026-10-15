@@ -1,6 +1,8 @@
 ﻿// CPItemWheelWidget.cpp
 
 #include "UI/Widgets/Common/Container/CPItemWheelWidget.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 #include "Components/Image.h"
 #include "Components/CanvasPanel.h"
 #include "Components/PanelWidget.h"
@@ -102,7 +104,7 @@ void UCPItemWheelWidget::RefreshPotionList()
 	for (int32 i = 0; i < BoundInventory->ContainerItems.Num(); ++i)
 	{
 		const FContainerItem& Item = BoundInventory->ContainerItems[i];
-		if (Item.Instance.SourceItemData && Item.Instance.CurrentEffects.Num() > 0)
+		if (Item.Instance.SourceItemData && Item.Instance.IsPotion())
 		{
 			PotionArrayIndices.Add(i);
 		}
@@ -257,6 +259,17 @@ float UCPItemWheelWidget::GetTargetScaleForOffset(int32 Offset) const
 	}
 }
 
+void UCPItemWheelWidget::ShowCurrentFocus()
+{
+	if (PotionArrayIndices.Num() == 0)
+	{
+		return;
+	}
+
+	RefreshIcons();
+	ShowWheelTemporarily();
+}
+
 bool UCPItemWheelWidget::GetFocusedPotionGridIndex(int32& OutGridIndex) const
 {
 	if (!BoundInventory || PotionArrayIndices.Num() == 0)
@@ -301,5 +314,6 @@ bool UCPItemWheelWidget::TryScrollAndPickNextFocus(float ScrollDelta, int32& Out
 	// 애니메이션 완료를 기다리지 않고 "이동할 목표"의 GridIndex를 미리 계산해서 반환
 	int32 ArrayIdx = PotionArrayIndices[NextListIndex];
 	OutGridIndex = BoundInventory->ContainerItems[ArrayIdx].GridIndex;
+	if (SelectionSound && NextListIndex != FocusedListIndex) UGameplayStatics::PlaySound2D(this, SelectionSound);
 	return true;
 }

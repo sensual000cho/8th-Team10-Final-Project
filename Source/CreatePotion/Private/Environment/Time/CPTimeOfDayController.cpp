@@ -45,6 +45,8 @@ void ACPTimeOfDayController::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	Material = SkySphere->CreateDynamicMaterialInstance(0);
+	
 	UGameInstance* GI = GetGameInstance();
 	if (!GI) return;
 	
@@ -62,7 +64,7 @@ void ACPTimeOfDayController::BeginPlay()
 		VisualUpdateTimerHandle,
 		this,
 		&ACPTimeOfDayController::UpdateVisualTime,
-		0.1f,
+		0.01f,
 		true);
 	
 	if (EnvironmentNiagaraParameter)
@@ -117,7 +119,6 @@ void ACPTimeOfDayController::UpdateSunRotation(double GameMinutes)
 	
 	if (SkySphere)
 	{
-		UMaterialInstanceDynamic* Material = SkySphere->CreateDynamicMaterialInstance(0);
 		if (Material)
 		{
 			float Intensity = FMath::GetMappedRangeValueClamped(
@@ -149,8 +150,8 @@ void ACPTimeOfDayController::UpdateVisualTime()
 	VisualGameMinutes = FMath::FInterpTo(
 		VisualGameMinutes,
 		TargetGameMinutes,
-		0.1f,
-		1.f);
+		0.01f,
+		0.1f);
 	
 	UpdateSunRotation(VisualGameMinutes);
 }

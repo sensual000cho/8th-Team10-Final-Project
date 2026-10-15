@@ -15,7 +15,10 @@ public:
 	void SaveGame();
 	
 	UFUNCTION(BlueprintCallable, Category = "Save")	
-	void LoadGame();
+	UCPSaveGame* LoadGame();
+	
+	UFUNCTION(BlueprintCallable, Category = "Save")
+	void ResetGameSession();
 	
 	void ApplyLoadPlayerTransform(APawn* InPawn);
 	

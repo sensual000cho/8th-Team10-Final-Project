@@ -2,6 +2,7 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
+#include "Components/AudioComponent.h"
 
 #include "AIController.h"
 #include "AbilitySystemComponent.h"
@@ -80,6 +81,7 @@ void UCPGA_EnemyFartLaunch::ActivateAbility(const FGameplayAbilitySpecHandle Han
 		if (StartSFX) UGameplayStatics::PlaySoundAtLocation(this, StartSFX, Avatar->GetActorLocation());
 	}
 	bEffectSFXStarted = true;
+	if (FlightSFX) FlightAudioComponent = UGameplayStatics::SpawnSoundAttached(FlightSFX, Enemy->GetRootComponent(), NAME_None, FVector::ZeroVector, EAttachLocation::KeepRelativeOffset, true);
 
 	if (FartLaunchCueTag.IsValid() && ActorInfo->AbilitySystemComponent.IsValid())
 	{
@@ -149,6 +151,8 @@ void UCPGA_EnemyFartLaunch::RestoreLivingState()
 
 void UCPGA_EnemyFartLaunch::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
+	if (FlightAudioComponent.IsValid()) FlightAudioComponent->Stop();
+	FlightAudioComponent.Reset();
 	if (bEffectSFXStarted)
 	{
 		bEffectSFXStarted = false;

@@ -18,7 +18,7 @@ class CREATEPOTION_API UCPSaveGame : public USaveGame
 	
 public:
 	// 시간 상태 정보
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Save")
 	int64 TotalWorldMinutes = 0;
 	
 	// 인벤토리 상태 정보
@@ -45,7 +45,7 @@ public:
 	UPROPERTY()
 	FCPCauldronSaveData CauldronData;
 	
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Save")
 	FName LevelName;
 	
 	UPROPERTY()

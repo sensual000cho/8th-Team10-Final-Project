@@ -7,6 +7,7 @@
 #include "UI/Widgets/Base/CPBaseUserWidget.h"
 #include "CPCodexCombineRowWidget.generated.h"
 
+class USizeBox;
 class UBorder;
 class UImage;
 class UTextBlock;
@@ -25,8 +26,10 @@ class CREATEPOTION_API UCPCodexCombineRowWidget : public UCPBaseUserWidget
 	GENERATED_BODY()
 	
 public:
-	void SetCombinationData(
-		const FCPTagCodexDisplayData& LeftData, const FCPTagCodexDisplayData& RightData, const FCPTagCodexDisplayData& ResultData);
+	void SetCombinationData(const FCPTagCodexDisplayData& LeftData, const FCPTagCodexDisplayData& RightData, 
+		const FCPTagCodexDisplayData& ResultData, bool bShowImages = true);
+	
+	float GetTagColorOpacity() const { return TagColorOpacity; }
 	
 private:
 	void ApplyIngredientImage(UImage* ImageWidget, UCPForageableItemData* ItemData);
@@ -38,6 +41,9 @@ private:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Codex|Tag", meta = (AllowPrivateAccess = "true"))
 	float TagColorOpacity;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<USizeBox> SizeBox;
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> Img_LeftImage;

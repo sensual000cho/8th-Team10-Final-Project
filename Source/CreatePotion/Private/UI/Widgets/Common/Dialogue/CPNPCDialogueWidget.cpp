@@ -7,6 +7,7 @@
 #include "TimerManager.h"
 #include "Settings/CPUISettings.h"
 #include "UI/Widgets/Lab/CPLabResultWidget.h"
+#include "Kismet/GameplayStatics.h"
 
 // [신규] DialogueLines[CurrentLineIndex]를 꺼내 타자기 효과로 재생.
 // "다음" 버튼 클릭 시에도 이 함수가 다시 호출되어 다음 줄을 재생함.
@@ -14,12 +15,21 @@ void UCPNPCDialogueWidget::PlayCurrentLine()
 {
     if (DialogueLines.IsValidIndex(CurrentLineIndex))
     {
-        PlayTypewriterEffect(DialogueLines[CurrentLineIndex]);
+        PlayTypewriterEffect(DialogueLines[CurrentLineIndex].Text);
+
+        const FCPDialogueLine& CurrentLine = DialogueLines[CurrentLineIndex];
+        if (!CurrentLine.Voice.IsNull())
+        {
+            if (USoundBase* SoundAsset = CurrentLine.Voice.LoadSynchronous())
+            {
+                UGameplayStatics::PlaySound2D(this, SoundAsset);
+            }
+        }
     }
 }
 
 void UCPNPCDialogueWidget::InitDialogueLines(FName InQuestID, const FText& InNPCName,
-    const TArray<FText>& InDialogueLines)
+    const TArray<FCPDialogueLine>& InDialogueLines)
 {
     CurrentQuestID = InQuestID;
     DialogueLines = InDialogueLines;
@@ -30,6 +40,43 @@ void UCPNPCDialogueWidget::InitDialogueLines(FName InQuestID, const FText& InNPC
     }
     
     PlayCurrentLine();
+}
+
+void UCPNPCDialogueWidget::NativeConstruct()
+{
+    Super::NativeConstruct();
+
+    if (APlayerController* PC = GetOwningPlayer())
+    {
+        FInputModeUIOnly UIInputMode;
+        UIInputMode.SetWidgetToFocus(TakeWidget());
+        UIInputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+
+        PC->SetInputMode(UIInputMode);
+        PC->bShowMouseCursor = true;
+
+        if (APawn* ControlledPawn = PC->GetPawn())
+        {
+            ControlledPawn->DisableInput(PC);
+        }
+    }
+}
+
+void UCPNPCDialogueWidget::NativeDestruct()
+{
+    if (APlayerController* PC = GetOwningPlayer())
+    {
+        FInputModeGameOnly GameInputMode;
+        PC->SetInputMode(GameInputMode);
+        PC->bShowMouseCursor = false;
+
+        if (APawn* ControlledPawn = PC->GetPawn())
+        {
+            ControlledPawn->EnableInput(PC);
+        }
+    }
+
+    Super::NativeDestruct();
 }
 
 void UCPNPCDialogueWidget::BindEvents()
@@ -144,7 +191,7 @@ FReply UCPNPCDialogueWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry
             OnChoiceSelected(TEXT("다음"));
         }
 
-        return FReply::Handled();
+        return FReply::Handled().SetUserFocus(TakeWidget(), EFocusCause::Mouse);
     }
     return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
@@ -165,6 +212,22 @@ FReply UCPNPCDialogueWidget::NativeOnKeyDown(const FGeometry& InGeometry, const 
         return FReply::Handled();
     }
     return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
+}
+
+void UCPNPCDialogueWidget::NativeOnFocusLost(const FFocusEvent& InFocusEvent)
+{
+    Super::NativeOnFocusLost(InFocusEvent);
+
+    if (IsInViewport() && GetWorld())
+    {
+        GetWorld()->GetTimerManager().SetTimerForNextTick([this]()
+            {
+                if (IsValid(this) && IsInViewport())
+                {
+                    SetKeyboardFocus();
+                }
+            });
+    }
 }
 
 void UCPNPCDialogueWidget::OnTypewriterTick()
@@ -246,7 +309,7 @@ void UCPNPCDialogueWidget::OnSkipAllClicked()
     if (DialogueLines.Num() > 0)
     {
         CurrentLineIndex = DialogueLines.Num() - 1;
-        FullDialogueText = DialogueLines[CurrentLineIndex].ToString();
+        FullDialogueText = DialogueLines[CurrentLineIndex].Text.ToString();
     }
 
     GetWorld()->GetTimerManager().ClearTimer(TypewriterTimerHandle);

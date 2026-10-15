@@ -9,6 +9,7 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
 #include "NavigationSystem.h"
+#include "GameMode/CPLabGameMode.h"
 
 DEFINE_LOG_CATEGORY(LogCPNPC);
 
@@ -42,18 +43,22 @@ void UCPNPCMoveComponent::BeginPlay()
 	}
 	
 	InitializeMovementData();
-
-	const FName StorageKey = GetMovementStorageKey();
-	if (!StorageKey.IsNone())
-	{
-		if (UGameInstance* GI = GetWorld()->GetGameInstance())
+	
+	const bool bIsLab = GetWorld() && GetWorld()->GetAuthGameMode<ACPLabGameMode>() != nullptr;
+	
+	if (!bIsLab){
+		const FName StorageKey = GetMovementStorageKey();
+		if (!StorageKey.IsNone())
 		{
-			if (UCPNPCSubsystem* Subsystem = GI->GetSubsystem<UCPNPCSubsystem>())
+			if (UGameInstance* GI = GetWorld()->GetGameInstance())
 			{
-				FCPNPCMovementSaveData SaveData;
-				if (Subsystem->GetNPCMovementData(StorageKey, SaveData))
+				if (UCPNPCSubsystem* Subsystem = GI->GetSubsystem<UCPNPCSubsystem>())
 				{
-					RestoreMovementState(SaveData);
+					FCPNPCMovementSaveData SaveData;
+					if (Subsystem->GetNPCMovementData(StorageKey, SaveData))
+					{
+						RestoreMovementState(SaveData);
+					}
 				}
 			}
 		}
@@ -123,7 +128,6 @@ void UCPNPCMoveComponent::ApplySpeed(float Speed)
 		if (UCharacterMovementComponent* MoveComp = Character->GetCharacterMovement())
 		{
 			MoveComp->MaxWalkSpeed = Speed;
-			//UE_LOG(LogCPNPC, Log, TEXT("[%s] 이동 속도 적용: %f"), *GetNameSafe(GetOwner()), MoveComp->MaxWalkSpeed);
 		}
 	}
 }
@@ -189,11 +193,6 @@ void UCPNPCMoveComponent::RestoreMovementState(const FCPNPCMovementSaveData& Sav
 	}
 
 	CurrentPointIndex = SaveData.NextPointIndex;
-
-	/*UE_LOG(LogCPNPC, Log, TEXT("[NPC 위치 복원] 액터: [%s] | 복원된 좌표: %s | 이어서 갈 인덱스: %d"),
-		*GetNameSafe(OwnerCharacter),
-		*SaveData.SavedLocation.ToCompactString(),
-		CurrentPointIndex);*/
 }
 
 void UCPNPCMoveComponent::OnDisplacementTagChanged(const FGameplayTag CallbackTag, int32 NewCount)
@@ -287,7 +286,6 @@ void UCPNPCMoveComponent::SaveMovementState()
 			SaveData.bHasSavedTransform = true;
 			Subsystem->SaveNPCMovementData(StorageKey, SaveData);
 
-			//UE_LOG(LogCPNPC, Log, TEXT("[NPC 위치 저장] 키: [%s] | 좌표: %s | 다음 목표 인덱스: %d"),*StorageKey.ToString(),*SaveData.SavedLocation.ToCompactString(),SaveData.NextPointIndex);
 		}
 	}
 }
@@ -329,10 +327,6 @@ void UCPNPCMoveComponent::InitializeMovementData()
 			bLoop = SelectedRoute->bLoop;
 			CurrentPointIndex = 0;
 		}
-		else
-		{
-			//UE_LOG(LogCPNPC, Log, TEXT("[%s] 현재 레벨 [%s]에 지정된 루트가 없어 정지 상태를 유지합니다."),*GetNameSafe(GetOwner()), *CurrentLevelName);
-		}
 	}
 
 	ApplySpeed(DA->MoveSpeed);
@@ -340,8 +334,6 @@ void UCPNPCMoveComponent::InitializeMovementData()
 
 void UCPNPCMoveComponent::MoveToCurrentIndex()
 {
-	//UE_LOG(LogCPNPC, Warning, TEXT("[%s] MoveToCurrentIndex 호출됨! 인덱스: %d"),*GetNameSafe(GetOwner()), CurrentPointIndex);
-
 	if (!AIController || TargetPoints.Num() == 0)
 	{
 		return;
@@ -373,14 +365,6 @@ void UCPNPCMoveComponent::MoveToCurrentIndex()
 		const FVector CurrentLoc = OwnerActor->GetActorLocation();
 		const float Dist3D = FVector::Dist(CurrentLoc, Destination);
 		const float Dist2D = FVector::Dist2D(CurrentLoc, Destination);
-
-		/*UE_LOG(LogCPNPC, Error, TEXT("[%s] [이동 시도] 목표: %s | 현재위치: %s | 3D거리: %.1f | 2D거리: %.1f | AcceptanceRadius: %.1f"),
-			*GetNameSafe(OwnerActor),
-			*Destination.ToString(),
-			*CurrentLoc.ToString(),
-			Dist3D,
-			Dist2D,
-			AcceptanceRadius);*/
 	}
 
 	EPathFollowingRequestResult::Type MoveResult = AIController->MoveToLocation(
@@ -391,8 +375,6 @@ void UCPNPCMoveComponent::MoveToCurrentIndex()
 		false, // 수동 투영 완료 상태
 		true   // bCanStrafe
 	);
-
-	//UE_LOG(LogCPNPC, Warning, TEXT("[%s] MoveToLocation 결과: %s"),*GetNameSafe(GetOwner()),*UEnum::GetValueAsString(MoveResult));
 
 	if (MoveResult == EPathFollowingRequestResult::Failed)
 	{
@@ -432,7 +414,6 @@ void UCPNPCMoveComponent::OnMoveCompleted(FAIRequestID RequestID, EPathFollowing
 		WaitTime = TargetPoints[CurrentPointIndex].WaitSeconds;
 		ArrivedLocation = TargetPoints[CurrentPointIndex].Point;
 	}
-	//UE_LOG(LogCPNPC, Log, TEXT("[%s] 도착 좌표: %s | 대기 시간: %.2f | 현재 인덱스: %d"),*GetNameSafe(GetOwner()), *ArrivedLocation.ToString(), WaitTime, CurrentPointIndex);
 
 	if (Result == EPathFollowingResult::Success)
 	{

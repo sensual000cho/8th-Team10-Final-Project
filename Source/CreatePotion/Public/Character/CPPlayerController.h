@@ -24,6 +24,7 @@ class UCPItemWheelWidget;
 class UCPShopPurchasePopupWidget;
 class UCPItemDetailPopupWidget;
 class UCPDropZoneWidget;
+class UCPThrowKeyGuideWidget;
 
 //디버깅용 포션생성 함수용
 class UCPForageableItemData;
@@ -79,9 +80,12 @@ private:
 
 	void UpdatePotionHighlight();
 
+public:
+	
 private:
 	// Q/E 장착으로 AttachProp을 호출하는 동안에만 true, 필드로부터 줍기와 구분용
 	bool bIsEquippingFromInventory = false;
+	
 #pragma endregion
 
 #pragma region Wheel
@@ -142,8 +146,13 @@ public:
 	// 지정한 아이템을 HandItemContainer에 잡고 원래 위치 정보를 기록
 	bool BeginHoldingItem(const FContainerItem& InItem, UCPItemContainerComponent* OriginContainer, int32 OriginIndex);
 
+	// HandItemContainer에 들고 있는 아이템을 원래 위치로 되돌리는 함수
+	void ReturnHeldItemToOrigin();
+
 private:
 	void SetContextHandlerForTargetContext(EUITargetContext InTargetContext);
+
+	bool FindHeldItemSource(UCPItemContainerComponent*& OutContainer, int32& OutGridIndex) const;
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "Input|Carry")
@@ -166,12 +175,13 @@ public:
 	// 캐싱할 Inventory Component
 	UPROPERTY()
 	UCPInventoryComponent* CachedInventoryComponent = nullptr;
-
+	
 	UPROPERTY(EditAnywhere, Category = "Container|UI")
 	TSubclassOf<UCPHandHeldItemWidget> HandHeldItemWidgetClass;
 
 	UPROPERTY(EditAnywhere, Category = "Container|UI")
 	TSubclassOf<UCPItemWheelWidget> ItemWheelWidgetClass;
+	
 protected:
 	// 현재 화면에 떠 있는 외부 컨테이너 UI 인스턴스 (Lab, Storage, Shop 공용)
 	UPROPERTY()
@@ -190,6 +200,7 @@ private:
 
 	// 마우스 클릭으로 "현재 들고 있는 아이템"의 기존 Index
 	int32 LeftClickPickedOriginSlotIndex = -1;
+
 #pragma endregion
 
 #pragma region Shop
@@ -220,6 +231,22 @@ public:
 private:
 	UPROPERTY()
 	UCPItemDetailPopupWidget* ItemDetailPopupInstance;
+#pragma endregion
+	
+#pragma region KeyGuideWidget
+	
+public: 
+	// 게임 시작 시 키 가이드 초기화
+	void InitKeyGuideWidget();
+public:
+	UPROPERTY(EditAnywhere, Category = "KeyGuide|UI")
+	TSubclassOf<UUserWidget> ThrowKeyGuideWidgetClass;
+	
+	UPROPERTY(EditAnywhere, Category = "KeyGuide|UI")
+	TObjectPtr<UCPThrowKeyGuideWidget> ThrowKeyGuideWidget;
+	
+	UFUNCTION(BlueprintCallable, Category = "KeyGuide|UI")
+	void HandleHeldPropChanged(ACPThrowablePropBase* HeldProp);
 #pragma endregion
 	
 //디버깅용 포션생성

@@ -55,35 +55,3 @@ ACPBaseNPC* UCPGA_PotionReactionBase::GetValidatedOwningPotionNPC(const FGamepla
 	}
 	return NPC;
 }
-
-void UCPGA_PotionReactionBase::PrintPotionEventLog(const FGameplayEventData* TriggerEventData) const
-{
-	if (!TriggerEventData)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[Potion Event] TriggerEventData is NULL!"));
-		return;
-	}
-
-	FString EventTagStr = TriggerEventData->EventTag.ToString();
-
-	FString InstigatorName = TriggerEventData->Instigator ? TriggerEventData->Instigator->GetName() : TEXT("None");
-	FString TargetName = TriggerEventData->Target ? TriggerEventData->Target->GetName() : TEXT("None");
-	FString OptionalObjName = TriggerEventData->OptionalObject ? TriggerEventData->OptionalObject->GetName() : TEXT("None");
-
-	FString ContextInstigator = TriggerEventData->ContextHandle.GetInstigator() ? TriggerEventData->ContextHandle.GetInstigator()->GetName() : TEXT("None");
-	FString ContextCauser = TriggerEventData->ContextHandle.GetEffectCauser() ? TriggerEventData->ContextHandle.GetEffectCauser()->GetName() : TEXT("None");
-
-	FString HitLocationStr = TEXT("None");
-	if (const FHitResult* HitResult = TriggerEventData->ContextHandle.GetHitResult())
-	{
-		HitLocationStr = HitResult->ImpactPoint.ToString();
-	}
-
-	UE_LOG(LogTemp, Warning, TEXT("================ [ Potion Hit Event Data ] ================"));
-	UE_LOG(LogTemp, Warning, TEXT("1. Event Tag      : %s"), *EventTagStr);
-	UE_LOG(LogTemp, Warning, TEXT("2. Instigator     : %s"), *InstigatorName);
-	UE_LOG(LogTemp, Warning, TEXT("3. Target         : %s"), *TargetName);
-	UE_LOG(LogTemp, Warning, TEXT("4. Optional Obj   : %s"), *OptionalObjName);
-	UE_LOG(LogTemp, Warning, TEXT("5. Context Handle : Instigator(%s), Causer(%s), HitLoc(%s)"), *ContextInstigator, *ContextCauser, *HitLocationStr);
-	UE_LOG(LogTemp, Warning, TEXT("==========================================================="));
-}

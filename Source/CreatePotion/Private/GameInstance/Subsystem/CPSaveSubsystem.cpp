@@ -50,10 +50,10 @@ void UCPSaveSubsystem::SaveGame()
 	UGameplayStatics::SaveGameToSlot(SaveData, SlotName, 0);
 }
 
-void UCPSaveSubsystem::LoadGame()
+UCPSaveGame* UCPSaveSubsystem::LoadGame()
 {
 	UCPSaveGame* SaveData = Cast<UCPSaveGame>(UGameplayStatics::LoadGameFromSlot(SlotName, 0));
-	if (!SaveData) return;
+	if (!SaveData) return nullptr;
 	
 	UGameInstance* GI = GetGameInstance();
 	
@@ -89,7 +89,46 @@ void UCPSaveSubsystem::LoadGame()
 	LoadedRotation = SaveData->PlayerRotation;
 	bHasLoadedTransform = true;
 	
-	UGameplayStatics::OpenLevel(GetWorld(), SaveData->LevelName);
+	return SaveData;
+	// UGameplayStatics::OpenLevel(GetWorld(), SaveData->LevelName);
+}
+
+void UCPSaveSubsystem::ResetGameSession()
+{
+	UGameInstance* GI = GetGameInstance();
+	if (!GI) return;
+	
+	bHasLoadedTransform = false;
+	LoadedLocation = FVector::ZeroVector;
+	LoadedRotation = FRotator::ZeroRotator;
+	
+	if (UCPContainerSubsystem* ContainerSubsystem = GI->GetSubsystem<UCPContainerSubsystem>()){
+		ContainerSubsystem->ResetData();
+	}
+	
+	if (UCPResourceStateSubsystem* ResourceSubsystem = GI->GetSubsystem<UCPResourceStateSubsystem>()){
+		ResourceSubsystem->ResetData();
+	}
+
+	if (UCPCodexSubsystem* CodexSubsystem = GI->GetSubsystem<UCPCodexSubsystem>()){
+		CodexSubsystem->ResetData();
+	}
+	
+	if (UCPNPCSubsystem* NPCSubsystem = GI->GetSubsystem<UCPNPCSubsystem>()){
+		NPCSubsystem->ResetData();
+	}
+	
+	if (UQuestManager* QuestManager = GI->GetSubsystem<UQuestManager>()){
+		QuestManager->ResetData();
+	}
+	
+	if (UCPCauldronSubsystem* CauldronSubsystem = GI->GetSubsystem<UCPCauldronSubsystem>()){
+		CauldronSubsystem->ResetData();
+	} 
+	
+	if (UCPTimeSubsystem* TimeSubsystem = GI->GetSubsystem<UCPTimeSubsystem>()){
+		TimeSubsystem->ResetData();
+	}
 }
 
 void UCPSaveSubsystem::ApplyLoadPlayerTransform(APawn* InPawn)

@@ -11,6 +11,7 @@
 UCPGA_Heat::UCPGA_Heat()
 {
 	EffectTag = FGameplayTag::RequestGameplayTag(FName("State.Effect.Heat"));
+	ImmunityTag = FGameplayTag::RequestGameplayTag(FName("Immunity.Potion.Heat"));
 	DurationWorldMinutes = 60;
 	Magnitude = 1.0f;
 }

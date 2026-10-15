@@ -6,6 +6,8 @@
 #include "Components/CPItemContainerComponent.h"
 #include "CPInventoryComponent.generated.h"
 
+class UCPUIManagerSubsystem;
+
 class UInputMappingContext;
 class UInputAction;
 
@@ -24,6 +26,11 @@ class CREATEPOTION_API UCPInventoryComponent : public UCPItemContainerComponent
 	
 public:
 	UCPInventoryComponent();
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<class USoundBase> ItemDropSound;
+
+
 
 	virtual int32 TryGetItemFromData(UCPForageableItemData* InItemData, int32 Count) override;
 
@@ -95,7 +102,7 @@ public:
 private:
 	UPROPERTY()
 	UCPContainerMainWidget* InventoryUIInstance;
-
+	
 	// TryBindInput()을 retry하기 위한 타이머 핸들
 	FTimerHandle InputBindingTimerHandle;
 

@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "CPRespawnComponent.generated.h"
 
+class UCPInteractionComponent;
 class ACharacter;
 class APlayerStart;
 class UCPHealthComponent;
@@ -19,6 +20,13 @@ class CREATEPOTION_API UCPRespawnComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<class USoundBase> GameOverSound;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<class USoundBase> RespawnSound;
+
+
 	UCPRespawnComponent();
 
 	// 캐릭터 BP에서 사망 몽타주를 재생하는 Mesh 지정
@@ -60,6 +68,9 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UCPHealthComponent> HealthComponent;
+	
+	UPROPERTY(Transient)
+	TObjectPtr<UCPInteractionComponent> interactionComponent;
 
 	UPROPERTY(Transient)
 	TObjectPtr<USkeletalMeshComponent> RespawnAnimationMesh;

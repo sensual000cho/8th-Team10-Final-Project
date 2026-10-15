@@ -1,6 +1,5 @@
 #include "UI/Widgets/Lab/Helper/CPLabResultUICalc.h"
 
-#include "GameMode/CPLabGameMode.h"
 #include "Quest/QuestManager.h"
 #include "UI/Widgets/Lab/CPLabResultWidget.h"
 
@@ -11,14 +10,6 @@ bool FCPLabResultUICalc::ApplyDeliveryResult(const FCPQuestResult& DeliveryResul
 	ResultWidget->ResetResultView();
 	ResultWidget->SetHeaderText(
 		FText::FromString(TEXT("퀘스트 완료")), GetGradeText(DeliveryResult.DeliveryGrade));
-
-	// 현재 계약에서 TipAmount는 세부 사유 없이 합산된 추가 보상이다.
-	if (DeliveryResult.TipAmount != 0)
-	{
-		ResultWidget->AddTipRow(
-			FText::FromString(TEXT("추가 보상 (임시)")),
-			FormatGold(DeliveryResult.TipAmount, true));
-	}
 
 	// RewardAmount와 TipAmount는 판정 측에서 확정된 값이며 여기서는 표시 합계만 만든다.
 	int32 FinalRewardAmount = DeliveryResult.DeliveryGrade == EDeliveryGrade::Perfect ? 

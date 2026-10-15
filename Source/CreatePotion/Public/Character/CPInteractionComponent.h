@@ -24,6 +24,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInteractionAlignmentStarted);
 
 class AActor;
 class UCameraComponent;
+class UmeshComponent;
 class UInputAction;
 class UInputMappingContext;
 class UMaterialInterface;
@@ -148,16 +149,11 @@ private:
 	// Yaw 회전값 계산
 	FRotator MakeInteractionFacingRotation(const AActor* Target) const;
 	
-	// --- 상호작용 대상 Highlight ---
-	void SetActorHighlight(AActor* Target, bool bHighlighted);
-	
 	// 상호작용 취소 함수
 	void CancelTimedInteraction();
 	bool HasInteractorMoved() const;
 	
 private:
-	UPROPERTY(EditDefaultsOnly, Category = "Highlight")
-	UMaterialInterface* HighlightMaterial;
 	
 	// 상호작용 대상 탐색 타이머
 	FTimerHandle TraceTimerHandle;
@@ -230,5 +226,17 @@ private:
 	
 	int32 BindRetryCount = 0;
 	FTimerHandle IMCBindingTimerHandle;		// IMC를 바인딩 할 타이머 핸들
+#pragma endregion
+	
+#pragma region Highlight
+private:
+	// --- 상호작용 대상 Highlight ---
+	void SetActorHighlight(AActor* Target, bool bHighlighted);
+	
+	static UMeshComponent* FindTopMesh(AActor* Target);
+	
+private:
+	UPROPERTY(EditDefaultsOnly, Category = "Highlight")
+	UMaterialInterface* HighlightMaterial;
 #pragma endregion
 };

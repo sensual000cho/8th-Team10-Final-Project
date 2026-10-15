@@ -77,7 +77,7 @@ private:
 	
 	// 태양 궤도 시작 각도
 	UPROPERTY(EditAnywhere, Category = "Time Of Day")
-	float SunPitchOffset = -90.f;
+	float SunPitchOffset = -170.f;
 	
 	// 방향 조절용
 	UPROPERTY(EditAnywhere, Category = "Time Of Day")
@@ -90,6 +90,10 @@ private:
 	// 나이아가라 파라미터
 	UPROPERTY(EditAnywhere, Category = "Time Of Day")
 	TObjectPtr<UNiagaraParameterCollection> EnvironmentNiagaraParameter;
+	
+	// 밤하늘 강도 조절용
+	UPROPERTY()
+	TObjectPtr<UMaterialInstanceDynamic> Material;
 	
 	UPROPERTY(Transient)
 	TObjectPtr<UNiagaraParameterCollectionInstance> EnvironmentNiagaraInstance;

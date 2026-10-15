@@ -15,11 +15,16 @@ ECPTimePhase UCPTimeSubsystem::GetCurrentPhase() const
 {
 	const int32 Minutes = static_cast<int32>(TotalWorldMinutes) % 1440;
 	
-	constexpr int32 NightStart = 6 * 60;
-	constexpr int32 DawnStart = 12 * 60;
-	constexpr int32 MorningStart = 18 * 60;
+	constexpr int32 DayStart = 6 * 60;
+	constexpr int32 NightStart = 12 * 60;
+	constexpr int32 DawnStart = 18 * 60;
 	
-	if (Minutes < NightStart)
+	if (Minutes < DayStart)
+	{
+		return ECPTimePhase::Morning;
+	}
+	
+	else if (Minutes < NightStart)
 	{
 		return ECPTimePhase::Day;
 	}
@@ -28,25 +33,26 @@ ECPTimePhase UCPTimeSubsystem::GetCurrentPhase() const
 	{
 		return ECPTimePhase::Night;
 	}
-	
-	else if (Minutes < MorningStart)
-	{
-		return ECPTimePhase::Dawn;
-	}
 
 	else
 	{
-		return ECPTimePhase::Morning;
+		return ECPTimePhase::Dawn;
 	}
 }
 
 void UCPTimeSubsystem::LoadSaveData(int64 SavedTotalWorldMinutes)
 {
 	TotalWorldMinutes = SavedTotalWorldMinutes;
+	BroadcastCurrentState();
+}
+
+void UCPTimeSubsystem::ResetData()
+{
+	if (UGameInstance* GI = GetGameInstance()){
+		GI->GetTimerManager().ClearTimer(TimeTickHandle);
+	}
 	
-	OnTimeChanged.Broadcast(TotalWorldMinutes);
-	OnDayChanged.Broadcast(GetCurrentDay());
-	OnTimePhaseChanged.Broadcast(GetCurrentPhase());
+	TotalWorldMinutes = 0;
 }
 
 void UCPTimeSubsystem::AdvanceTime(int64 Amount)
@@ -91,9 +97,7 @@ void UCPTimeSubsystem::StartTime()
 		true
 	);
 	
-	OnTimeChanged.Broadcast(TotalWorldMinutes);
-	OnDayChanged.Broadcast(GetCurrentDay());
-	OnTimePhaseChanged.Broadcast(GetCurrentPhase());
+	BroadcastCurrentState();
 }
 
 void UCPTimeSubsystem::PauseTime()
@@ -131,4 +135,11 @@ void UCPTimeSubsystem::Deinitialize()
 void UCPTimeSubsystem::HandleTimeTick()
 {
 	AdvanceTime(1.0);
+}
+
+void UCPTimeSubsystem::BroadcastCurrentState()
+{
+	OnTimeChanged.Broadcast(TotalWorldMinutes);
+	OnDayChanged.Broadcast(GetCurrentDay());
+	OnTimePhaseChanged.Broadcast(GetCurrentPhase());
 }

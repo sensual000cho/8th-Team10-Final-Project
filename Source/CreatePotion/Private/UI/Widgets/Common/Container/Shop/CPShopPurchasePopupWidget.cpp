@@ -15,6 +15,7 @@
 #include "Components/CPItemContainerComponent.h"
 #include "Components/CPInventoryComponent.h"
 #include "Data/CPForageableItemData.h"
+#include "UI/Widgets/Base/CPWidgetLocationPlacer.h"
 
 void UCPShopPurchasePopupWidget::NativeConstruct()
 {
@@ -38,6 +39,11 @@ void UCPShopPurchasePopupWidget::NativeConstruct()
 			ButtonSlot->SetVerticalAlignment(VAlign_Center);
 			ButtonSlot->SetPadding(FMargin(0.f));
 		}
+	}
+
+	if (QuantitySlider)
+	{
+		QuantitySlider->SetStepSize(1.f);
 	}
 }
 
@@ -139,12 +145,9 @@ void UCPShopPurchasePopupWidget::OpenForPurchase(UCPItemContainerComponent* InSh
 		ErrorMessageText->SetText(FText::GetEmpty());
 	}
 
-	SetAlignmentInViewport(FVector2D(0.f, 0.f));
-	FVector2D MousePos = UWidgetLayoutLibrary::GetMousePositionOnViewport(this);
-	SetPositionInViewport(MousePos, false); // 마우스 위치를 좌상단으로 
-
 	SetVisibility(ESlateVisibility::Visible);
 	RefreshDisplay();
+	PlaceNearCursor();
 }
 
 void UCPShopPurchasePopupWidget::OpenForSale(UCPItemContainerComponent* InPlayerContainer, int32 InGridIndex, UCPItemContainerComponent* InShopContainer, UCPInventoryComponent* InPlayerInventory)
@@ -187,12 +190,9 @@ void UCPShopPurchasePopupWidget::OpenForSale(UCPItemContainerComponent* InPlayer
 		ErrorMessageText->SetText(FText::GetEmpty());
 	}
 
-	SetAlignmentInViewport(FVector2D(0.f, 0.f));
-	FVector2D MousePos = UWidgetLayoutLibrary::GetMousePositionOnViewport(this);
-	SetPositionInViewport(MousePos, false);
-
 	SetVisibility(ESlateVisibility::Visible);
 	RefreshDisplay();
+	PlaceNearCursor();
 
 	if (CachedUIManager)
 	{
@@ -242,16 +242,30 @@ void UCPShopPurchasePopupWidget::OpenForSplit(UCPItemContainerComponent* InSourc
 		ErrorMessageText->SetText(FText::GetEmpty());
 	}
 
-	SetAlignmentInViewport(FVector2D(0.f, 0.f));
-	SetPositionInViewport(UWidgetLayoutLibrary::GetMousePositionOnViewport(this), false);
-
 	SetVisibility(ESlateVisibility::Visible);
 	RefreshDisplay();
+	PlaceNearCursor();
+}
+
+void UCPShopPurchasePopupWidget::PlaceNearCursor()
+{
+	// 이전에 드래그로 옮겨둔 이동량이 남아 있으면 커서와 어긋나므로 초기화
+	SetRenderTranslation(FVector2D::ZeroVector);
+
+	SetAlignmentInViewport(FVector2D(0.f, 0.f));
+	const FVector2D MousePos = UWidgetLayoutLibrary::GetMousePositionOnViewport(this);
+	SetPositionInViewport(CPWidgetLocationPlacer::CalcPositionNearCursor(this, MousePos, FVector2D::ZeroVector), false);
 }
 
 void UCPShopPurchasePopupWidget::OnQuantityChanged(float NewValue)
 {
 	CurrentQuantity = FMath::RoundToInt(NewValue);
+
+	if (QuantitySlider && !FMath::IsNearlyEqual(NewValue, static_cast<float>(CurrentQuantity)))
+	{
+		QuantitySlider->SetValue(static_cast<float>(CurrentQuantity));
+	}
+
 	RefreshDisplay();
 }
 
@@ -274,7 +288,7 @@ void UCPShopPurchasePopupWidget::RefreshDisplay()
 	{
 		if (UTexture2D* LoadedTexture = Data->Icon.LoadSynchronous())
 		{
-			ItemIcon->SetBrushFromTexture(LoadedTexture);
+			ItemIcon->SetBrushFromTexture(LoadedTexture, true);
 		}
 	}
 

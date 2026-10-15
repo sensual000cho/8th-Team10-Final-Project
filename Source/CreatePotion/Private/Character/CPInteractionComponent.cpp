@@ -9,6 +9,7 @@
 #include "Engine/World.h"
 #include "Components/MeshComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Components/MeshComponent.h"
 
 #include "EnhancedInputSubsystems.h"	// IMC 바인딩
 #include "EnhancedInputComponent.h"		// IA 바인딩
@@ -444,9 +445,6 @@ void UCPInteractionComponent::BeginTimedInteraction()
 
 void UCPInteractionComponent::SetActorHighlight(AActor* Target, bool bHighlighted)
 {
-	// TODO: 하이라이트 로직 InteractableActorComponent로 옮기기
-	UE_LOG(LogTemp, Warning, TEXT("[InteractionComponent] SetActorHighlight 호출됨"));
-	
 	if (!Target) return;
 	
 	// 하이라이트 인터페이스를 구현한 액터면 그 구현을 우선 사용
@@ -456,34 +454,68 @@ void UCPInteractionComponent::SetActorHighlight(AActor* Target, bool bHighlighte
 		return;
 	}
 	
-	// 하이라이트할 메쉬 찾기
-	TArray<UMeshComponent*> MeshComponents;
-	Target->GetComponents<UMeshComponent>(MeshComponents);
+	UMaterialInterface* Overlay = bHighlighted ? HighlightMaterial : nullptr;
 	
-	bool bMeshFound = false;
-	for (UMeshComponent* Comp : MeshComponents)
+	static const FName NoHighlightTag(TEXT("NoHighlight"));
+	
+	TArray<UMeshComponent*> Meshes;
+	Target->GetComponents<UMeshComponent>(Meshes);
+	
+	for (UMeshComponent* Mesh : Meshes)
 	{
-		if (!Comp && !Comp->IsA<UWidgetComponent>())
+		if (!Mesh 
+			|| Mesh->IsA<UWidgetComponent>()
+			|| Mesh->ComponentHasTag(NoHighlightTag)
+			)
 		{
 			continue;
 		}
 		
+		// Stencil 값
+		static constexpr int32 HighlightStencilValue = 1;
 		
-		Comp->SetOverlayMaterial(bHighlighted ? HighlightMaterial : nullptr);
-		bMeshFound = true;
-		
-		// Debug Log: 어떤 메쉬를 찾아서 하이라이트 하고 있는지 출력
-		// const TCHAR* Message = HighlightMaterial ? TEXT("Valid") : TEXT("NULL");
-		// UE_LOG(LogTemp, Warning, TEXT("[InteractionComponent] Found Mesh: %s, HighlightMaterial: %s"),
-		// *Comp->GetName(), Message);
-	}
+		Mesh->SetRenderCustomDepth(bHighlighted);
+		Mesh->SetCustomDepthStencilValue(bHighlighted ? HighlightStencilValue : 0);
+	}	
 	
-	// Debug Log: Mesh 발견되지 않으면 출력
-	if (!bMeshFound)
+}
+
+UMeshComponent* UCPInteractionComponent::FindTopMesh(AActor* Target)
+{
+	if (!Target) return nullptr;
+	
+	// 루트가 메쉬면 바로 사용
+	if (UMeshComponent* RootMesh = Cast<UMeshComponent>(Target->GetRootComponent()))
 	{
-		UE_LOG(LogTemp, Error, TEXT("[InteractionComponent] %s 에서 Mesh 발견되지 않음"), *Target->GetName());
+		if (!RootMesh->IsA<UWidgetComponent>())
+		{
+			return RootMesh;
+		}
 	}
 	
+	TArray<UMeshComponent*> MeshComponents;
+	Target->GetComponents<UMeshComponent>(MeshComponents);
+	
+	UMeshComponent* BestMesh = nullptr;
+	int32 BestDepth = MAX_int32;
+	
+	for (UMeshComponent* Comp : MeshComponents)
+	{
+		if (!Comp || !Comp->IsA<UWidgetComponent>()) continue;
+		
+		int32 Depth = 0;
+		for (USceneComponent* Parent = Comp->GetAttachParent(); Parent; Parent = Parent->GetAttachParent())
+		{
+			++Depth;	
+		}
+		
+		if (Depth < BestDepth)
+		{
+			BestDepth = Depth;
+			BestMesh = Comp;
+		}
+	}
+	return BestMesh;
 }
 
 AActor* UCPInteractionComponent::SelectBestInteractionTarget(const TArray<FHitResult>& InteractionHits, const FVector& CameraLocation, const FVector& CameraForward) const
@@ -823,7 +855,7 @@ void UCPInteractionComponent::TryBindInputMappingContext()
 		{
 			// 플레이어 인터렉션용 IMC를 추가, priority = 1, 값이 높을 수록 우선
 			Subsystem->AddMappingContext(InteractionMappingContext, 1);
-			UE_LOG(LogTemp, Warning, TEXT("[Interaction] IMC 바인딩 성공"));
+			// UE_LOG(LogTemp, Warning, TEXT("[Interaction] IMC 바인딩 성공"));
 		}
 
 		if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(MyPawn->InputComponent))
@@ -831,7 +863,7 @@ void UCPInteractionComponent::TryBindInputMappingContext()
 			// Started(누른 순간)에 TryInteract 함수 실행
 			EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &UCPInteractionComponent::TryInteract);
 			GetWorld()->GetTimerManager().ClearTimer(IMCBindingTimerHandle);	// 바인딩 성공시 타이머 즉시 종료
-			UE_LOG(LogTemp, Warning, TEXT("[Interaction] IA 바인딩 성공"));
+			// UE_LOG(LogTemp, Warning, TEXT("[Interaction] IA 바인딩 성공"));
 		}
 	}
 	else

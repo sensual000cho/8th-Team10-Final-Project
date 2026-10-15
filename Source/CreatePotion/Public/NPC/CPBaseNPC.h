@@ -67,6 +67,8 @@ public:
 	void UnregisterVisualDelegate(FGameplayTag EffectTag);
 
 	UCPNPCSubsystem* GetNPCSubsystem() const;
+	
+	bool IsRestoringPersistentPotionEffects() const { return bRestoringPersistentPotionEffects; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -108,6 +110,8 @@ protected:
 private:
 	// 태그별로 바인딩된 비주얼 함수 맵
 	TMap<FGameplayTag, FOnPotionVisualUpdateDelegate> VisualDelegateMap;
+	
+	bool bRestoringPersistentPotionEffects = false;
 
 #pragma region Route Debug
 protected:

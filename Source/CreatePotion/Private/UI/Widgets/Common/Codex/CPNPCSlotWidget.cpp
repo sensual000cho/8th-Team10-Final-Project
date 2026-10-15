@@ -28,6 +28,7 @@ void UCPNPCSlotWidget::UnbindEvents()
 void UCPNPCSlotWidget::SetNPCData(UCPNPCDataAsset* InNPCData)
 {
 	NPCData = InNPCData;
+	Txt_NPCName->SetVisibility(ESlateVisibility::Visible);
 	RefreshSlot();
 }
 

@@ -29,6 +29,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Popup")
 	virtual void SetAutoClose(float Duration);
 	
+	virtual bool HandleEscape() override;
+	
 protected:
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	

@@ -2,12 +2,14 @@
 
 #include "CoreMinimal.h"
 #include "NPC/CPBaseNPC.h"
+#include "Quest/QuestTypes.h"
 #include "CPQuestNPC.generated.h"
 
 class UCPNPCComponent;
 class UCPNPCDialogueWidget;
 class UCPQuestNPCDataAsset;
 class UWidgetComponent;
+class UCPInventoryComponent;
 
 UCLASS()
 class CREATEPOTION_API ACPQuestNPC : public ACPBaseNPC
@@ -30,6 +32,8 @@ public:
 
 	virtual void UpdateOverheadWidgetsScale(float ScaleMultiplier) override;
 
+	void SetQuestMarkerVisibility(bool bVisible);
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -41,11 +45,14 @@ protected:
 	UFUNCTION()
 	void HandleQuestUpdatedForMarker(FName QuestID, EQuestState NewState);
 
+	UFUNCTION()
+	void HandleInventoryUpdatedForMarker();
+
 	void HandleLocationFadeFinished();
 
 
 private:
-	TArray<FText> FindDialogueLines(AActor* Interactor);
+	TArray<FCPDialogueLine> FindDialogueLines(AActor* Interactor);
 
 	// 결과 UI 표시 (대화형 퀘스트 완료 후)
 	void ShowQuestResultWidget(FName QuestID);
